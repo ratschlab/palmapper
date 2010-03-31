@@ -80,25 +80,6 @@ int init_alignment_structures() {
 		exit(1);
 	}
 
-#if THREADS == 0
-	M = (double**) malloc ((2 * _config.NUM_GAPS + 1) * sizeof(double*));
-	T = (char**) malloc ((2 * _config.NUM_GAPS + 1) * sizeof(char*));
-	if (M == NULL || T == NULL) {
-		fprintf(stderr, "[init_alignment_structures] Could not allocate memory\n");
-		exit(1);
-	}
-
-	int i;
-	for (i=0; i!=2*_config.NUM_GAPS+1; ++i) {
-		*(M+i) = (double*) malloc ((_config.MAX_READ_LENGTH + _config.NUM_GAPS * 2) * sizeof(double));
-		*(T+i) = (char*) malloc ((_config.MAX_READ_LENGTH + _config.NUM_GAPS * 2) * sizeof(char));
-		if (*(M+i) == NULL || *(T+i) == NULL) {
-			fprintf(stderr, "[init_alignment_structures] Could not allocate memory\n");
-			exit(1);
-		}
-	}
-#endif
-
 	//only for debugging purposes:
 	//chrseq = (char *) malloc (_config.MAX_READ_LENGTH * sizeof(char));
 	//chrseq[0] = '\0';
@@ -124,10 +105,8 @@ int init_from_meta_index() {
 
 int init_defaults() {
 
-#if THREADS == 1
 	_config.NUM_THREADS = 1;
 	_stats.NUM_HITS = 0;
-#endif
 	_stats.NUM_ALIGNMENTS = 0;
 
 	_config.ALL_HIT_STRATEGY = 0; // default: best hit strategy
@@ -310,41 +289,6 @@ int init_operators() {
 
 int init_statistic_vars() {
 	new (&_stats) Statistics();
-#if 0
-	int i;
-	_stats.PERFECT_READS = 0;
-	_stats.PERFECT_HITS = 0;
-	_stats.PERFECT_HITS_REV = 0;
-	_stats.NUM_HITS = 0;
-	for (i = 0; i != ASSUMED_READ_LENGTH; ++i)
-		_stats.HITS_LEN[i] = 0;
-	_stats.HITS_MM
-			= (unsigned int *) malloc((Config::MAX_EDIT_OPS + 1) * sizeof(unsigned int));
-	if (_stats.HITS_MM == NULL) {
-		fprintf(stderr, "[init_statistic_vars] Could not allocate memory\n");
-		exit(1);
-	}
-	for (i = 0; i != Config::MAX_EDIT_OPS + 1; ++i)
-		_stats.HITS_MM[i] = 0;
-	_stats.NUM_ALIGNMENTS = 0;
-	_stats.NUM_WHOLE_ALIGNMENTS = 0;
-	_stats.ENDSTART_MAPPED[0] = 0;
-	_stats.ENDSTART_MAPPED[1] = 0;
-	_stats.NOT_ALIGNED[0] = 0;
-	_stats.NOT_ALIGNED[1] = 0;
-	_stats.GAPS_ENCOUNTERED[0] = 0;
-	_stats.GAPS_ENCOUNTERED[1] = 0;
-	_stats.GAPS_ENCOUNTERED[2] = 0;
-	_stats.TOO_MANY_MMS[0] = 0;
-	_stats.TOO_MANY_MMS[1] = 0;
-	_stats.BREAK_TB_IN_GLOBAL_ALIGNMENT = 0;
-	_stats.BREAK_GLOBAL_ALIGNMENT[0] = 0;
-	_stats.BREAK_GLOBAL_ALIGNMENT[1] = 0;
-	_stats.CELLS_GLOBAL = 0;
-	_stats.CELLS_OVERHANG = 0;
-
-	_stats.W = 0;
-#endif
 	return (0);
 }
 

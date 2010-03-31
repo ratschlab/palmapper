@@ -28,8 +28,6 @@
 #endif
 
 
-#define THREADS 1
-
 // ##############################################################
 // ####### GLOBAL VARIABLES #####################################
 // ##############################################################
@@ -62,12 +60,8 @@ extern int REPORT_REPETITIVE_SEED_DEPTH_EXTRA ;
 // ####### FILE HANDLING ########################################
 // ##############################################################
 
-//extern FILE *CHR_INDEX_FP;
-//extern FILE *META_INDEX_FP;
-//extern FILE *QUERY_FP;
 extern FILE *OUT_FP;
 extern FILE *SP_OUT_FP;
-//extern FILE *LEFTOVER_FP;
 extern FILE *TRIGGERED_LOG_FP; // #A#
 
 // ##############################################################
@@ -282,14 +276,9 @@ extern char *get_seq(unsigned int n);
 extern void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_);
 
 //align.c
-#if THREADS == 1
 int check_mm(Chromosome const &chr, int genome_pos, int readpos, int ori);
 extern int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches);
 extern int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches);
-#else
-extern int align_hit_simple(HIT* hit);
-extern int prepare_kbound_alignment (HIT* hit);
-#endif
 
 //print.c
 
