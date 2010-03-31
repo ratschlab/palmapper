@@ -62,12 +62,12 @@ extern int REPORT_REPETITIVE_SEED_DEPTH_EXTRA ;
 // ####### FILE HANDLING ########################################
 // ##############################################################
 
-extern FILE *CHR_INDEX_FP;
-extern FILE *META_INDEX_FP;
-extern FILE *QUERY_FP;
+//extern FILE *CHR_INDEX_FP;
+//extern FILE *META_INDEX_FP;
+//extern FILE *QUERY_FP;
 extern FILE *OUT_FP;
 extern FILE *SP_OUT_FP;
-extern FILE *LEFTOVER_FP;
+//extern FILE *LEFTOVER_FP;
 extern FILE *TRIGGERED_LOG_FP; // #A#
 
 // ##############################################################
@@ -300,7 +300,7 @@ extern int print_alignment(HIT* hit, unsigned int num);
 extern int print_hits();
 extern int print_perfect_hits(unsigned int num);
 extern int print_largest_hit();
-extern void print_leftovers(const char *tag);
+extern void print_leftovers(const char *tag, FILE *LEFTOVER_FP);
 extern void printhits();
 extern void printhit(HIT* hit);
 extern void print_alignment_matrix(int chrstart, int readstart, int length, int offset_front, int offset_end, Chromosome const &chr, char ori, int K);

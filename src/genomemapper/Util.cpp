@@ -12,3 +12,11 @@ bool Util::_isInitialized = doInit();
 
 int Util::POWER[MAX_INDEX_DEPTH+1];
 
+FILE *Util::openFile(std::string const &name, char const *mode) {
+	FILE *ret = fopen(name.c_str(), mode);
+	if (ret == NULL) {
+		fprintf(stderr, "ERROR : Couldn't open input file %s\n", name.c_str());
+		exit(1);
+	}
+	return ret;
+}

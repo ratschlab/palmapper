@@ -51,6 +51,7 @@ char Genome::upper_char[256];
 
 
 Genome::Genome() {
+	NUM_CHROMOSOMES = 0;
 
  	if (_config.VERBOSE) { printf("Reading in indices\n"); }
 	build_index();
@@ -161,12 +162,14 @@ int Genome::load_genome()
 
 int Genome::build_index()
 {
+	FILE *META_INDEX_FP = Util::openFile(_config.META_INDEX_FILE_NAME, "r");
+	FILE *CHR_INDEX_FP = Util::openFile(_config.CHR_INDEX_FILE_NAME, "r");
 	// handle meta information
-	read_meta_index_header();  // updated
+	read_meta_index_header(META_INDEX_FP);  // updated
 
 	alloc_index_memory(); // updated
 
-	read_meta_index(); // updated
+	read_meta_index(META_INDEX_FP); // updated
 
 	// initialize with meta information
 	init_from_meta_index(); // updated
@@ -175,12 +178,12 @@ int Genome::build_index()
 	mmap_indices(); // updated
 
 	// handle index information
-	read_chr_index();
+	read_chr_index(CHR_INDEX_FP);
 
 	return(0);
 }
 
-int Genome::read_meta_index_header()
+int Genome::read_meta_index_header(FILE *META_INDEX_FP)
 {
 
 	if (_config.VERBOSE) { printf("Reading in meta index\n"); }
@@ -290,7 +293,7 @@ int Genome::read_meta_index_header()
 	return(0);
 }
 
-int Genome::read_meta_index()
+int Genome::read_meta_index(FILE *META_INDEX_FP)
 {
  	META_INDEX_ENTRY *file_entry = new META_INDEX_ENTRY ;;
 	int used_slots = 0;
@@ -341,7 +344,7 @@ int Genome::read_meta_index()
   	return 0;
 }
 
-int Genome::read_chr_index()
+int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 {
 	unsigned int chr_num = 0;
 	unsigned int chr;
@@ -390,7 +393,6 @@ int Genome::read_chr_index()
 
   	return(0);
 }
-
 
 ////////////////////////////////////////////////////////
 // Code originally written by Andre Noll.

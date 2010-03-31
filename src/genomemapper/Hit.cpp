@@ -118,6 +118,8 @@ int map_reads()
 		fprintf(stderr, "ERROR : Couldn't open log file %s\n", _config.TRIGGERED_LOG_FILE.c_str());     // #A#
 		exit(1);                                                                        // #A#
 	}                                                                                   // #A#
+    FILE *QUERY_FP = Util::openFile(_config.QUERY_FILE_NAME, "r");
+    FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w") : NULL;
 
 	while (!eof) {
 		
@@ -340,7 +342,7 @@ int map_reads()
 					}
 
 					if (_config.LEFTOVER_FILE_NAME.length() > 0)
-						print_leftovers("");
+						print_leftovers("", LEFTOVER_FP);
 				}
 			}
 			else
@@ -355,7 +357,7 @@ int map_reads()
 			{
 				fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", _read.id(), cancel, READ) ;
 				if (_config.LEFTOVER_FILE_NAME.length() > 0)
-					print_leftovers(" (read mapping failed)");
+					print_leftovers(" (read mapping failed)", LEFTOVER_FP);
 			}
 
 			dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?

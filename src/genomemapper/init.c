@@ -5,13 +5,9 @@
 #include <assert.h>
 
 int init_defaults();
-int init_chr_index_file();
-int init_meta_index_file();
 int init_constants();
-int init_query_file();
 int init_output_file();
 int init_spliced_output_file();
-int init_leftover_file();
 int init_hit_lists();
 int init_operators();
 int init_statistic_vars();
@@ -24,13 +20,8 @@ char upper_char[256] ;
 int init(int argc, char *argv[]) {
 	init_defaults();
 	_config.parseCommandLine(argc, argv);
-	init_chr_index_file();
-	init_meta_index_file();
-	init_query_file();
 	init_output_file();
 	init_spliced_output_file();
-	if (_config.LEFTOVER_FILE_NAME.length() > 0)
-		init_leftover_file();
 	init_alignment_structures();
 	init_hit_lists();
 
@@ -290,50 +281,6 @@ int init_spliced_output_file() {
 		}
 	} else {
 		SP_OUT_FP = stdout;
-	}
-
-	return (0);
-}
-
-int init_leftover_file() {
-	if ((LEFTOVER_FP = fopen(_config.LEFTOVER_FILE_NAME.c_str(), "w")) == NULL) {
-		fprintf(stderr, "ERROR : Couldn't open leftover file %s\n",
-				_config.LEFTOVER_FILE_NAME.c_str());
-		exit(1);
-	}
-
-	return (0);
-}
-
-int init_query_file() {
-	if ((QUERY_FP = fopen(_config.QUERY_FILE_NAME.c_str(), "r")) == NULL) {
-		fprintf(stderr, "ERROR : Couldn't open input file %s\n",
-				_config.QUERY_FILE_NAME.c_str());
-		exit(1);
-	}
-
-	return (0);
-}
-
-int init_chr_index_file() 
-{
-	if ((CHR_INDEX_FP = fopen(_config.CHR_INDEX_FILE_NAME.c_str(), "r")) == NULL)
-	{
-		fprintf(stderr, "ERROR : Couldn't open input file %s\n",
-				_config.CHR_INDEX_FILE_NAME.c_str());
-		exit(1);
-	}
-
-	return (0);
-}
-
-int init_meta_index_file() 
-{
-	if ((META_INDEX_FP = fopen(_config.META_INDEX_FILE_NAME.c_str(), "r")) == NULL)
-	{
-		fprintf(stderr, "ERROR : Couldn't open input file %s\n",
-				_config.META_INDEX_FILE_NAME.c_str());
-		exit(1);
 	}
 
 	return (0);
