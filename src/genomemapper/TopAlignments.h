@@ -2,6 +2,8 @@
 
 #include <pthread.h>
 
+struct alignment_t ;
+
 class TopAlignments
 {
 public:
@@ -16,6 +18,15 @@ public:
 	void end_best_alignment_record(int RTRIM_STRATEGY_CUT) ;
 	void add_alignment_record(alignment_t *alignment, int num_alignments) ;
 
+	size_t size()
+	{
+		return top_alignments.size() ;
+	}
+	alignment_t * get_alignment(int idx)
+	{
+		return top_alignments[idx] ;
+	}
+	
 protected:
 
 	int32_t compare_score(alignment_t *a1, alignment_t *a2) ;

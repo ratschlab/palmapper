@@ -38,7 +38,7 @@ int NUM_MATCHES; // For new version of QPalma
 double WORST_SCORE;
 double WORST_MM_SCORE;
 
-int NUM_SCORE_INTERVALS;
+unsigned int NUM_SCORE_INTERVALS;
 HIT **HIT_LISTS_OPERATOR;
 HIT **READSTART_BINS;
 HITS_BY_SCORE_STRUCT *HITS_BY_SCORE; ///< Collection of bins, each of which contains all hits with the same score for the current read.

@@ -60,8 +60,8 @@ int qpalma_filter(struct alignment_t *ali, int num_N)
 	int start = ali -> exons[0] ;
 	int end = ali -> exons[1] ;
 	
-	int num_gaps = ali -> num_gaps ;
-	int num_matches = ali -> num_matches ;
+	unsigned int num_gaps = ali -> num_gaps ;
+	unsigned int num_matches = ali -> num_matches ;
 
 	if (num_gaps > _config.FILTER_BY_MAX_GAPS || _read.length()-num_matches > _config.FILTER_BY_MAX_MISMATCHES+num_N)
 	{

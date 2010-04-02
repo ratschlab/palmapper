@@ -189,7 +189,7 @@ int alloc_hits_by_score()
 		exit(1);
 	}
 
-	int i;
+	unsigned int i;
 	for (i=0; i!=NUM_SCORE_INTERVALS; ++i) {
 		HITS_BY_SCORE[i].hitpointer = NULL;
 		HITS_BY_SCORE[i].num = 0;

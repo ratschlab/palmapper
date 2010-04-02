@@ -202,7 +202,7 @@ int report_repetitive_seed(Chromosome const &chr, int chr_start, int count)
 	//fprintf(stdout, "repetitive_seed:\tchr=%s\tpos=%i\tcount=%i\n", CHR_DESC[chr], chr_start, count) ;
 	reported_repetitive_seeds++ ;
 
-	for (int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<chr.length(); i++)
+	for (int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<(int)chr.length(); i++)
 		if ((CHR_MAP(chr,i) & MASK_REPETITIVE_SEED) == 0)
 		{
 			covered_repetitive_seed_positions++ ;
@@ -214,7 +214,7 @@ int report_repetitive_seed(Chromosome const &chr, int chr_start, int count)
 	if (count<Config::REPORT_REPETITIVE_SEED_COUNT_MANY1)
 		return 0 ;
 
-	for (int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<chr.length(); i++)
+	for (int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<(int)chr.length(); i++)
 		if ((CHR_MAP(chr,i) & MASK_REPETITIVE_SEED_MANY1) == 0)
 		{
 			covered_repetitive_seed_positions_many1++ ;
@@ -224,7 +224,7 @@ int report_repetitive_seed(Chromosome const &chr, int chr_start, int count)
 	if (count<Config::REPORT_REPETITIVE_SEED_COUNT_MANY2)
 		return 0 ;
 
-	for (int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<chr.length(); i++)
+	for (int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<(int)chr.length(); i++)
 		if ((CHR_MAP(chr,i) & MASK_REPETITIVE_SEED_MANY2) == 0)
 		{
 			covered_repetitive_seed_positions_many2++ ;

@@ -42,12 +42,12 @@ int get_splicesite_positions(std::string file_template, const char * type, Chrom
 	// some bounds checking/corrections
 	if (start<0)
 		start=0 ;
-	if (start>chr.length())
+	if (start>(int)chr.length())
 		start=chr.length()-1 ;
 	
 	if (end<0)
 		end=0 ;
-	if (end>chr.length())
+	if (end>(int)chr.length())
 		end=chr.length()-1 ;
 
 	int num=0 ;
@@ -281,8 +281,8 @@ void recover_long_regions(std::vector<region_t*> &long_regions_output, std::vect
     arr[i] = long_regions[i];  
   qsort(arr, nbr_long_regions);
  
-  int reg=0;
-  int lr=0;
+  unsigned int reg=0;
+  unsigned int lr=0;
 
   while (reg < current_regions.size() && lr < nbr_long_regions){
     //fprintf(stdout,"current region: %i-%i and current long region: %i-%i\n", current_regions[reg]->start,current_regions[reg]->end,arr[lr]->start,arr[lr]->end);
@@ -317,10 +317,10 @@ int convert_dna_position(int real_position, size_t* cum_length, const std::vecto
   return -1;
 }
 
-int get_first_read_map(bool* read_map){
+int get_first_read_map(bool* read_map)
+{
 
-
-  for(int i=0; i < _read.length(); i++)
+  for(unsigned int i=0; i < _read.length(); i++)
     if (read_map[i])
       return i;
   
@@ -1522,7 +1522,7 @@ int perform_alignment_wait(int & num_reported)
 	total_num_thread_tasks++ ;
 	total_num_threads+=thread_data.size() ;
 
-	for (int i=0; i<thread_data.size(); i++)
+	for (unsigned int i=0; i<thread_data.size(); i++)
 	{
 		//fprintf(stderr, "thread #%i join\n", (int)thread_data.size()) ;
 		pthread_join( thread_data[i]->thread, NULL);
@@ -1556,13 +1556,13 @@ int perform_alignment_wait(int & num_reported)
 
 int rescue_alignment(std::string & read_anno, int ori, int &num_A, int &num_T, int &num)
 {
-  int read_pos = 0 ;
-  int genome_pos = 0 ;
-  int last_good_pos = 0 ;
-  int alignment_gaps = 0 ;
-  int alignment_mismatches = 0 ;
-
-  for (int i=0; i<read_anno.length(); i++)
+	unsigned int read_pos = 0 ;
+	int genome_pos = 0 ;
+	int last_good_pos = 0 ;
+	int alignment_gaps = 0 ;
+	int alignment_mismatches = 0 ;
+	
+  for (unsigned int i=0; i<read_anno.length(); i++)
     {
       //fprintf(stdout, "%c", read_anno[i]) ;
       assert(read_anno[i]!=']') ;
@@ -2341,7 +2341,7 @@ int perform_alignment(std::string &read_string, std::string &read_quality, std::
 
 		strcpy(aln->read_id, _read.id());
 
-		add_alignment_record(aln, 1);
+		_topalignments.add_alignment_record(aln, 1);
 		num_reported++ ;
 		
 		if (verbosity >= 2) 

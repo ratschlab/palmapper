@@ -38,11 +38,13 @@
 #include <genomemapper/Read.h>
 #include <genomemapper/Statistics.h>
 #include <genomemapper/Util.h>
+#include <genomemapper/TopAlignments.h>
 
 extern Config _config;
 extern Statistics _stats;
 extern Read _read;
 extern Genome _genome;
+extern TopAlignments _topalignments;
 
 #if 1 // dd
 extern char HAS_SLOT;
@@ -168,7 +170,7 @@ typedef struct hits_by_score_structure {
 } HITS_BY_SCORE_STRUCT;
 
 #define SCORE_INTERVAL 1
-extern int NUM_SCORE_INTERVALS;
+extern unsigned int NUM_SCORE_INTERVALS;
 
 extern HIT **HIT_LISTS_OPERATOR;
 extern HIT **READSTART_BINS;

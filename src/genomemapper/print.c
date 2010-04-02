@@ -170,7 +170,7 @@ int print_hits() {
 				// code was set up: we see the hits in the order of their score here - better hits first.
 				while (hit != NULL) 
 				{
-					report_unspliced_hit(hit) ;
+					_topalignments.report_unspliced_hit(hit) ;
 					hit = hit->same_eo_succ;
 				}
 

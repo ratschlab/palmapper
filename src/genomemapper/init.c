@@ -113,8 +113,6 @@ int init_defaults() {
 	_config.SUMMARY_HIT_STRATEGY = 0; //            "
 	_config.HITLEN_LIMIT = 0; // only temporarily 0
 
-	int i;
-
 	_config.VERBOSE = 0;
 
 	_config.MAP_REVERSE = 1;

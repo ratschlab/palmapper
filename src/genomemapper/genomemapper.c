@@ -10,6 +10,7 @@
 Config _config;
 Statistics _stats;
 Genome _genome(false);
+TopAlignments _topalignments ;
 
 int main(int argc, char *argv[]) 
 {

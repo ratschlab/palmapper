@@ -1,5 +1,6 @@
-// Authors: Korbinian Schneeberger and Joerg Hagmann
+// Authors: Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
+// Copyright (C) 2009-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include "genomemapper.h"
 
@@ -258,15 +259,16 @@ int map_reads()
 
 			if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
 			{
-				start_best_alignment_record();
+				_topalignments.start_best_alignment_record();
 
 				read_mapped = print_hits();	// returns 1 if at least one hit is printed, 0 otherwise
 				if (_config.VERBOSE)
-					printf("%i unspliced alignment found\n", (int)top_alignments.size()); 
+					printf("%i unspliced alignment found\n", (int)_topalignments.size()); 
 
 				bool trigger = false ;
 				if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
-					trigger = top_alignments.size()==0 || qpalma_filter(top_alignments[0], num_N)!=0 ;
+					trigger = _topalignments.size()==0 || 
+						qpalma_filter(_topalignments.get_alignment(0), num_N)!=0 ;
 
 				if ( trigger )
 				{
@@ -314,12 +316,12 @@ int map_reads()
 
 			if (!cancel)
 			{
-				if (top_alignments.size()>0)
+				if (_topalignments.size()>0)
 					read_mapped = 1 ;
 				//if (_config.VERBOSE && read_mapped)
 				//	printf("unspliced or spliced alignment found\n"); 
 				
-				end_best_alignment_record(RTRIM_STRATEGY_CUT);
+				_topalignments.end_best_alignment_record(RTRIM_STRATEGY_CUT);
 				
 				if (read_mapped)
 					_stats.READS_MAPPED++ ;

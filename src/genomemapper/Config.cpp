@@ -10,6 +10,8 @@ Config::Config() {
 	SUMMARY_HIT_STRATEGY = 0;
 	RTRIM_STRATEGY=0 ;
 	RTRIM_STRATEGY_MIN_LEN=25 ;
+	POLYTRIM_STRATEGY=0 ;
+	POLYTRIM_STRATEGY_MIN_LEN=25 ;
 	//int SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[2] ;
 	HITLEN_LIMIT = 0;
 	VERBOSE = 0;
@@ -180,8 +182,22 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			i++;
 			RTRIM_STRATEGY = 1 ;
 			RTRIM_STRATEGY_MIN_LEN = atoi(argv[i]) ;
-			if (RTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
+			if ((int)RTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
 				fprintf(stderr,	"ERROR: minimal rtrim alignment length too short\n");
+		}
+
+		//polyA/T trimming
+		if (strcmp(argv[i], "-polytrim") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				usage();
+				exit(1);
+			}
+			i++;
+			POLYTRIM_STRATEGY = 1 ;
+			POLYTRIM_STRATEGY_MIN_LEN = atoi(argv[i]) ;
+			if ((int)POLYTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
+				fprintf(stderr,	"ERROR: minimal polytrim alignment length too short\n");
 		}
 
 		//report output file
@@ -990,7 +1006,8 @@ int Config::usage() {
 	printf(" -index-extend INT                  length of seed-length extension\n");
 	printf(" -index-precache                    linearly read index file to fill caches\n\n");
 
-	printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n\n");
+	printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n");
+	printf(" -polytrim INT                      trims polyA or polyT ends until a hit is found or the minimal length is reached (INT)\n\n");
 
 	printf(" -rlim INT  limit the number of reads for alignment\n\n");
 

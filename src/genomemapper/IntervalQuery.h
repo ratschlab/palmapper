@@ -35,8 +35,8 @@ class IntervalQuery {
       int *index_ptr;
       double *score_ptr;
 
-      int num_scores_p;
-      int num_hits_p;
+      unsigned int num_scores_p;
+      unsigned int num_hits_p;
 
 	  static std::vector<std::string> mmap_fname_list ;
 	  static std::vector<void*> mmap_ptr_list ;
@@ -65,9 +65,9 @@ public:
 	  
 	  int mmap_file(const char *filename, int open_mode, void **map, off_t *size, bool convert) ;
 	  
-      int interval_query(char* basename, char** score_names, int num_scores, int* interval_matrix, int num_intervals);
+      int interval_query(char* basename, char** score_names, unsigned int num_scores, int* interval_matrix, unsigned int num_intervals);
 
-      int query(char* basename, char** score_names, int num_scores, int* interval_matrix, int num_intervals);
+      int query(char* basename, char** score_names, unsigned int num_scores, int* interval_matrix, unsigned int num_intervals);
 
       void getResults(int* pos, int* index, double* score);
 

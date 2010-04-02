@@ -233,7 +233,7 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
  * lhs[2]: index vector (k x 1), lhs[2][j] = l <=> rhs[2][l, 0] <= lhs[0][j] <= rhs[2][l, 1].
  */
 
-int IntervalQuery::interval_query(char* basename, char** score_names, int num_scores, int* interval_matrix, int num_intervals)
+int IntervalQuery::interval_query(char* basename, char** score_names, unsigned int num_scores, int* interval_matrix, unsigned int num_intervals)
 {
 	clock_t start_time=clock() ;
 
@@ -377,8 +377,8 @@ int IntervalQuery::interval_query(char* basename, char** score_names, int num_sc
 	    ret = find_interval(pos_map, num_positions, left_, right_, &lindex_, &rindex_, llimit, rlimit);
 	    if (ret <= 0) /* empty interval */
 		continue;
-            assert(ret == rindex_ - lindex_ + 1);
-	    for (m = 0; m < ret; m++) {
+		assert((unsigned)ret == rindex_ - lindex_ + 1);
+	    for (m = 0; m < (unsigned)ret; m++) {
 	      if (index_ptr)
 	  	index_ptr[k + m] = j;
 	      err_txt = (char*)"returned position out of interval";
@@ -450,7 +450,7 @@ void IntervalQuery::cleanup()
 
 }
 
-int IntervalQuery::query(char* basename, char** score_names, int num_scores, int* interval_matrix, int num_intervals)
+int IntervalQuery::query(char* basename, char** score_names, unsigned int num_scores, int* interval_matrix, unsigned int num_intervals)
 {
 	int ret = interval_query(basename, score_names, num_scores, interval_matrix, num_intervals);
 	if (ret<0)
@@ -461,14 +461,15 @@ int IntervalQuery::query(char* basename, char** score_names, int num_scores, int
 }
 
 
-void IntervalQuery::getResults(int* pos, int* index, double* score) {
+void IntervalQuery::getResults(int* pos, int* index, double* score) 
+{
 
-   for(int k=0; k<num_hits_p;k++) {
+   for(unsigned int k=0; k<num_hits_p;k++) {
       pos[k] = pos_ptr[k];
       index[k] = index_ptr[k];
    }
 
-   for(int k=0; k<num_hits_p*num_scores_p;k++) {
+   for(unsigned int k=0; k<num_hits_p*num_scores_p;k++) {
       score[k] = score_ptr[k];
    }
 

@@ -742,11 +742,13 @@ int kbound_global_alignment(HIT* hit, unsigned short int hitreadpos, unsigned in
 
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
 
-	int chrstart, chrend, offset_front, offset_end;
+	unsigned int chrstart, chrend ;
+	int offset_front, offset_end;
 	if (orientation == '+') {
 		chrstart = start - hitreadpos;		// 0-initialized
-		if (chrstart < K) offset_front = chrstart;
-			else offset_front = K;
+		if ((int)chrstart < K) 
+			offset_front = chrstart;
+		else offset_front = K;
 
 		chrend = chrstart + Read_length;			// 1-initialized
 		if (chrend + K > Chr_length) offset_end = Chr_length - chrend;

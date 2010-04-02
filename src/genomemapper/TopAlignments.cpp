@@ -7,26 +7,24 @@
 #include "genomemapper.h"
 #include "dyn_prog/qpalma_dp.h"
 
-static const int MAX_EXON_LEN=100 ;
+#include "TopAlignments.h"
 
-const int verbosity = 0 ;
+const int TopAlignments::MAX_EXON_LEN = 100 ;
 
-std::vector<alignment_t *> top_alignments;
-int num_spliced_alignments = 0;
-int num_unspliced_alignments = 0;
+TopAlignments::TopAlignments() : top_alignments(), num_spliced_alignments(0),
+		num_unspliced_alignments(0), verbosity(0)
+{
+	//top_mutex=PTHREAD_MUTEX_INITIALIZER ;
+}
 
-alignment_t *gen_alignment_from_hit(HIT *best_hit) ;
-
-pthread_mutex_t top_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-u_int8_t report_unspliced_hit(HIT *hit) 
+u_int8_t TopAlignments::report_unspliced_hit(HIT *hit) 
 {
 	alignment_t *algn_hit = gen_alignment_from_hit(hit) ;
 	add_alignment_record(algn_hit, 1) ;
 	return 1;
 }
 
-int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p)
+int TopAlignments::construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p)
 {
 	int alignment_length = _read.length() ;
 	
@@ -96,7 +94,7 @@ int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, i
 		{
 			if (hit->edit_op[0].pos - 1>=0)
 			{ // don't know what to do here ... hit->edit_op[0].pos - 1 can be negative
-				for (size_t i=0; i<hit->edit_op[0].pos - 1; i++)
+				for (size_t i=0; (int)i<hit->edit_op[0].pos - 1; i++)
 					ALIGNSEQ[i] = (*hit->chromosome)[readstart+i] ;
 				//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + (readstart), hit->edit_op[0].pos - 1);
 				count_char += hit->edit_op[0].pos - 1;
@@ -104,7 +102,7 @@ int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, i
 		} 
 		else if (hit->edit_op[j].pos - hit->edit_op[j - 1].pos != 0) 
 		{
-			for (size_t i=0; i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++)
+			for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++)
 				ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
 			//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
 			//hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read); // -1???
@@ -162,7 +160,7 @@ int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, i
 
 	if (((int)_read.length()) - hit->edit_op[j - 1].pos + gap_in_read >= 0)
 	{ // again some strange case ... don't know what else to do
-		for (size_t i=0; i<((int)_read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++)
+		for (size_t i=0; (int)i<((int)_read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++)
 			ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
 		//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
 		//((int)_read.lenght())	- hit->edit_op[j - 1].pos + gap_in_read);
@@ -183,7 +181,7 @@ int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, i
 
 }
 
-alignment_t *gen_alignment_from_hit(HIT *best_hit)
+alignment_t *TopAlignments::gen_alignment_from_hit(HIT *best_hit)
 {
 	int hitlength = best_hit->end - best_hit->start + 1;
 	unsigned int readstart;
@@ -226,7 +224,7 @@ alignment_t *gen_alignment_from_hit(HIT *best_hit)
 // returns > 0 if a1 scores better than a2
 // returns < 0 if a1 scores worse than a2
 // returns 0 if a1 and a2 score equally well
-int32_t compare_score(alignment_t *a1, alignment_t *a2) {
+int32_t TopAlignments::compare_score(alignment_t *a1, alignment_t *a2) {
 
 	assert(a1->qpalma_score!=1000) ;
 	assert(a2->qpalma_score!=1000) ;
@@ -240,7 +238,7 @@ int32_t compare_score(alignment_t *a1, alignment_t *a2) {
 		return 0;
 }
 
-void start_best_alignment_record() 
+void TopAlignments::start_best_alignment_record() 
 {
 	pthread_mutex_lock( &top_mutex) ;
 	
@@ -258,7 +256,7 @@ void start_best_alignment_record()
 }
 
 
-void check_alignment(struct alignment_t * alignment)
+void TopAlignments::check_alignment(struct alignment_t * alignment)
 {
 	if (alignment->exons.size()>4)
 		return ;
@@ -273,7 +271,7 @@ void check_alignment(struct alignment_t * alignment)
 	}
 }
 
-void end_best_alignment_record(int RTRIM_STRATEGY_CUT) {
+void TopAlignments::end_best_alignment_record(int RTRIM_STRATEGY_CUT) {
 
 	if (top_alignments.empty())
 		return;
@@ -282,7 +280,7 @@ void end_best_alignment_record(int RTRIM_STRATEGY_CUT) {
 
 	pthread_mutex_lock( &top_mutex) ;
 
-	for (int i=0; i<top_alignments.size(); i++)
+	for (unsigned int i=0; i<top_alignments.size(); i++)
 	{
 		check_alignment(top_alignments[i]) ;
 	}
@@ -290,7 +288,7 @@ void end_best_alignment_record(int RTRIM_STRATEGY_CUT) {
 
 	if (_config.REPORT_SPLICED_READS)
 	{
-		for (int i=0; i<top_alignments.size(); i++)
+		for (unsigned int i=0; i<top_alignments.size(); i++)
 			report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, top_alignments[i]->num_matches, i) ;
 	}
 
@@ -301,7 +299,7 @@ void end_best_alignment_record(int RTRIM_STRATEGY_CUT) {
 	start_best_alignment_record();
 }
 
-void add_alignment_record(alignment_t *alignment, int num_alignments) {
+void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments) {
 
 	if (alignment == NULL || !alignment->spliced)
 		num_unspliced_alignments += num_alignments;
