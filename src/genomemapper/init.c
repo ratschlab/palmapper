@@ -5,11 +5,8 @@
 #include <assert.h>
 
 int init_defaults();
-int init_constants();
 int init_output_file();
 int init_spliced_output_file();
-int init_hit_lists();
-int init_operators();
 int init_statistic_vars();
 int init_alignment_structures();
 
@@ -23,7 +20,7 @@ int init(int argc, char *argv[]) {
 	init_output_file();
 	init_spliced_output_file();
 	init_alignment_structures();
-	init_hit_lists();
+	_hits.init_hit_lists();
 
 	//_qpalma.init_qpalma() ;
 
@@ -87,21 +84,6 @@ int init_alignment_structures() {
 	return (0);
 }
 
-int init_from_meta_index() {
-	init_constants(); // updated
-
-	alloc_genome_memory(); // updated
-
-	init_operators(); //updated
-
-	if (_config.STATISTICS) {
-		init_statistic_vars(); //updated
-	}
-	if (!_config.HITLEN_LIMIT)
-		_config.HITLEN_LIMIT = _config.INDEX_DEPTH;
-
-	return (0);
-}
 
 int init_defaults() {
 
@@ -164,75 +146,6 @@ int init_defaults() {
 	return (0);
 }
 
-int init_constants() {
-	if (_config.INDEX_DEPTH == 5) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 256; //binary number: 0000 0000 0000 0001 0000 0000
-		BINARY_CODE[2] = 512; //binary number: 0000 0000 0000 0010 0000 0000
-		BINARY_CODE[3] = 768; //binary number: 0000 0000 0000 0011 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 6) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 1024; //binary number: 0000 0000 0000 0100 0000 0000
-		BINARY_CODE[2] = 2048; //binary number: 0000 0000 0000 1000 0000 0000
-		BINARY_CODE[3] = 3072; //binary number: 0000 0000 0000 1100 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 7) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 4096; //binary number: 0000 0000 0001 0000 0000 0000
-		BINARY_CODE[2] = 8192; //binary number: 0000 0000 0010 0000 0000 0000
-		BINARY_CODE[3] = 12288; //binary number: 0000 0000 0011 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 8) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 16384; //binary number: 0000 0000 0100 0000 0000 0000
-		BINARY_CODE[2] = 32768; //binary number: 0000 0000 1000 0000 0000 0000
-		BINARY_CODE[3] = 49152; //binary number: 0000 0000 1100 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 9) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 65536; //binary number: 0000 0001 0000 0000 0000 0000
-		BINARY_CODE[2] = 131072; //binary number: 0000 0010 0000 0000 0000 0000
-		BINARY_CODE[3] = 196608; //binary number: 0000 0011 0000 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 10) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 262144; //binary number: 0000 0100 0000 0000 0000 0000
-		BINARY_CODE[2] = 524288; //binary number: 0000 1000 0000 0000 0000 0000
-		BINARY_CODE[3] = 786432; //binary number: 0000 1100 0000 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 11) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 1048576; //binary number: 0001 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 2097152; //binary number: 0010 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 3145728; //binary number: 0011 0000 0000 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 12) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 4194304; //binary number: 0100 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 8388608; //binary number: 1000 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 12582912; //binary number: 1100 0000 0000 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 13) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 16777216; //binary number: 0001 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 33554432; //binary number: 0010 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 50331648; //binary number: 0011 0000 0000 0000 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH == 14) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 67108864; //binary number: 0001 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 134217728; //binary number: 0010 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 201326592; //binary number: 0011 0000 0000 0000 0000 0000 0000
-	}
-	if (_config.INDEX_DEPTH>14 || _config.INDEX_DEPTH<5)
-	  {
-	    fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
-	    exit(1) ;
-	  }
-
-	return (0);
-}
 
 int init_output_file() {
 	if (_config.OUT_FILE_NAME.length() > 0) {
@@ -262,31 +175,3 @@ int init_spliced_output_file() {
 
 	return (0);
 }
-
-int init_hit_lists() {
-	alloc_hit_lists_operator();
-	alloc_hits_by_score(); // A T T E N T I O N ! ! !   needs correct _config.NUM_EDIT_OPS which can be changed in init_alignment_structures() !!!
-
-	return (0);
-}
-
-int init_operators() {
-	MAPPING_ENTRY_OPERATOR = alloc_mapping_entry_container();
-	assert(MAPPING_ENTRY_OPERATOR!=NULL) ;
-
-	MAPPING_ENTRY_OPERATOR_FIRST = MAPPING_ENTRY_OPERATOR;
-
-	HIT_OPERATOR = alloc_hit_container();
-	assert(HIT_OPERATOR!=NULL) ;
-	HIT_OPERATOR_FIRST = HIT_OPERATOR;
-
-	alloc_chromosome_entry_container();
-
-	return (0);
-}
-
-int init_statistic_vars() {
-	new (&_stats) Statistics();
-	return (0);
-}
-

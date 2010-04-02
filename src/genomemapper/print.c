@@ -114,7 +114,7 @@ int report_read_alignment(HIT* hit, int nbest)
 	// PERFECT HITS:
 	if (hit->mismatches == 0) 
 	{
-		report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
+		_genomemaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
 	}
 	// HITS WITH MISMATCHES:
 	else 
@@ -149,7 +149,7 @@ int report_read_alignment(HIT* hit, int nbest)
 			}
 		}
 		
-		report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length())+gap_offset, ((int)_read.length()) - hit->mismatches, nbest) ;
+		_genomemaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length())+gap_offset, ((int)_read.length()) - hit->mismatches, nbest) ;
 	}
 
 	return 1;

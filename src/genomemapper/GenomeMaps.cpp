@@ -6,32 +6,40 @@
 
 #include "genomemapper.h"
 #include "dyn_prog/qpalma_dp.h"
+#include "GenomeMaps.h"
 
-int reported_repetitive_seeds = 0 ;
-int reported_mapped_regions = 0 ;
-int reported_mapped_reads = 0 ;
-int reported_spliced_reads = 0 ;
-//int reported_splice_sites = 0 ;
+clock_t GenomeMaps::last_report = 0 ;
 
-int covered_mapped_read_positions = 0 ;
-int covered_mapped_read_positions_best = 0 ;
-int covered_spliced_read_positions = 0 ;
-int covered_spliced_read_positions_best = 0 ;
-int covered_repetitive_seed_positions = 0 ;
-int covered_repetitive_seed_positions_many1 = 0 ;
-int covered_repetitive_seed_positions_many2 = 0 ;
-int covered_mapped_region_positions = 0 ;
-//int covered_splice_site_positions = 0 ;
+GenomeMaps::GenomeMaps()
+{
+	CHR_MAP_c = NULL ;
 
-unsigned char **CHR_MAP_c = NULL ;
+	reported_repetitive_seeds = 0 ;
+	reported_mapped_regions = 0 ;
+	reported_mapped_reads = 0 ;
+	reported_spliced_reads = 0 ;
+    //reported_splice_sites = 0 ;
+
+    covered_mapped_read_positions = 0 ;
+    covered_mapped_read_positions_best = 0 ;
+    covered_spliced_read_positions = 0 ;
+    covered_spliced_read_positions_best = 0 ;
+    covered_repetitive_seed_positions = 0 ;
+    covered_repetitive_seed_positions_many1 = 0 ;
+    covered_repetitive_seed_positions_many2 = 0 ;
+    covered_mapped_region_positions = 0 ;
+    //covered_splice_site_positions = 0 ;
+
+	REPORT_REPETITIVE_SEED_DEPTH_EXTRA = 31 - MAX_INDEX_DEPTH ;
+}
+
+GenomeMaps::~GenomeMaps()
+{
+	clean_reporting() ;
+}
+
 #ifdef CHR_MAP_DNAARRAY
-std::vector<CHR_MAP_DNAARRAY_CLASS*> CHR_MAP_a  ;
-#endif
-
-clock_t last_report = 0 ;
-
-#ifdef CHR_MAP_DNAARRAY
-void to_dnaarray(int chr=-1)
+void GenomeMaps::to_dnaarray(int chr=-1)
 {
 	assert(CHR_MAP_c!=NULL) ;
 	//fprintf(stdout, "to_dnaarray(%i)\n", chr) ;
@@ -76,7 +84,7 @@ void to_dnaarray(int chr=-1)
 	}
 }
 
-void from_dnaarray(int chr = -1)
+void GenomeMaps::from_dnaarray(int chr = -1)
 {
 	assert(CHR_MAP_c!=NULL) ;
 	//fprintf(stdout, "from_dnaarray(%i)\n", chr) ;
@@ -128,7 +136,7 @@ void from_dnaarray(int chr = -1)
 }
 #endif
 
-int init_reporting()
+int GenomeMaps::init_reporting()
 {
 	try
 	{
@@ -183,7 +191,7 @@ int init_reporting()
 }
 
 
-int report_repetitive_seed(Chromosome const &chr, int chr_start, int count)
+int GenomeMaps::report_repetitive_seed(Chromosome const &chr, int chr_start, int count)
 {
 	//fprintf(stdout, "repetitive_seed:\tchr=%s\tpos=%i\tcount=%i\n", CHR_DESC[chr], chr_start, count) ;
 
@@ -235,7 +243,7 @@ int report_repetitive_seed(Chromosome const &chr, int chr_start, int count)
 	return 1 ;
 }
 
-int report_mapped_region(Chromosome const &chr, int chr_start, int chr_end, int num_matches)
+int GenomeMaps::report_mapped_region(Chromosome const &chr, int chr_start, int chr_end, int num_matches)
 {
 	reported_mapped_regions++ ;
 	//fprintf(stdout, "mapped_region:\tchr=%s\tstart=%i\tend=%i\tmatches=%i\n", CHR_DESC[chr], chr_start, chr_end, num_matches) ;
@@ -269,7 +277,7 @@ int report_mapped_region(Chromosome const &chr, int chr_start, int chr_end, int 
 	return 0 ;
 }
 
-int report_mapped_read(Chromosome const &chr, int start, int end, int num_matches, int nbest_hit)
+int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, int num_matches, int nbest_hit)
 {
 	reported_mapped_reads++ ;
 	start = start - Config::QPALMA_USE_MAP_WINDOW;
@@ -323,7 +331,7 @@ int report_mapped_read(Chromosome const &chr, int start, int end, int num_matche
 	return 0 ;
 }
 
-int report_spliced_read(Chromosome const &chr, std::vector<int> & exons, int num_matches, int nbest_hit)
+int GenomeMaps::report_spliced_read(Chromosome const &chr, std::vector<int> & exons, int num_matches, int nbest_hit)
 {
 	reported_spliced_reads++ ;
 
@@ -391,7 +399,7 @@ int report_spliced_read(Chromosome const &chr, std::vector<int> & exons, int num
 }
 
 /*
-int report_splice_site(int chr, int pos, char strand, char type)
+int GenomeMaps::report_splice_site(int chr, int pos, char strand, char type)
 {
 	reported_splice_sites++ ;
 
@@ -423,7 +431,7 @@ int report_splice_site(int chr, int pos, char strand, char type)
 }
 */
 
-int do_reporting(int force)
+int GenomeMaps::do_reporting(int force)
 {
 	if (force || (clock()-last_report)/CLOCKS_PER_SEC>10)
 	{
@@ -440,7 +448,7 @@ int do_reporting(int force)
 	return 0 ;
 }
 
-int read_reporting()
+int GenomeMaps::read_reporting()
 {
 	const char* fname = _config.REPORT_FILE ;
 	if (fname==NULL || strlen(_config.REPORT_FILE)==0)
@@ -517,7 +525,7 @@ int read_reporting()
 	return 0 ;
 }
 
-int write_reporting()
+int GenomeMaps::write_reporting()
 {
 	const char* fname = _config.REPORT_FILE ;
 	if (fname==NULL || strlen(_config.REPORT_FILE)==0)
@@ -562,7 +570,7 @@ int write_reporting()
 	return 0 ;
 }
 
-int clean_reporting()
+int GenomeMaps::clean_reporting()
 {
 	if (CHR_MAP_c!=NULL)
 	{

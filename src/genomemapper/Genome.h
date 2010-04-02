@@ -8,6 +8,7 @@
 
 #define CHR_DESC_LENGTH 50
 
+
 class Genome {
 public:
 	Genome();
@@ -19,6 +20,8 @@ public:
 		return NUM_CHROMOSOMES;
 	}
 
+	int BINARY_CODE[4];
+	unsigned int LONGEST_CHROMOSOME;
 
 private:
 	int build_index();

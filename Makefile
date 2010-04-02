@@ -27,14 +27,13 @@ DYNPROG_OBJ = $(ObjDir)/genomemapper/dyn_prog/Mathmatics_dp.o \
 	$(ObjDir)/genomemapper/dyn_prog/result_align.o \
 	$(ObjDir)/genomemapper/dyn_prog/fill_matrix.o
 
-GM_OBJ = $(ObjDir)/genomemapper/report_maps.o \
+GM_OBJ = $(ObjDir)/genomemapper/GenomeMaps.o \
 	$(ObjDir)/genomemapper/QPalma.o \
 	$(ObjDir)/genomemapper/align.o \
 	$(ObjDir)/genomemapper/alloc.o \
 	$(ObjDir)/genomemapper/TopAlignments.o \
 	$(ObjDir)/genomemapper/IntervalQuery.o \
 	$(ObjDir)/genomemapper/genomemapper.o \
-	$(ObjDir)/genomemapper/index.o \
 	$(ObjDir)/genomemapper/init.o \
 	$(ObjDir)/genomemapper/print.o \
 	$(ObjDir)/genomemapper/Chromosome.o \

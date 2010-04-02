@@ -1012,7 +1012,7 @@ int QPalma::capture_hits()
   for (int32_t i = _read.length(); i >= _config.SPLICED_HIT_MIN_LENGTH_SHORT; i--) {
 
 
-    hit = *(HIT_LISTS_OPERATOR + i);
+    hit = *(_hits.HIT_LISTS_OPERATOR + i);
     
     while (hit != NULL) 
       {
@@ -1228,7 +1228,7 @@ int QPalma::capture_hits()
 		      int region_end = -1 ;
 		      for (int p=start; p<end; p+=Config::QPALMA_USE_MAP_WINDOW)//p+=1)
 			{
-			  int val = CHR_MAP(chromosome,p) ;
+			  int val = _genomemaps.CHR_MAP(chromosome,p) ;
 			  
 			  if ((val & take_report_map)!=0 && end-p>Config::QPALMA_USE_MAP_WINDOW)//p<end-1)
 			    {

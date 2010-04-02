@@ -4,13 +4,7 @@ int SLOT;
 #endif // dd
 size_t INDEX_SIZE = Config::INDEX_SIZE_13 ;
 
-// Genome
-int BINARY_CODE[4];
-unsigned int NUM_POS;
-unsigned int LONGEST_HIT;
 
-//config
-int REPORT_REPETITIVE_SEED_DEPTH_EXTRA = 31 - MAX_INDEX_DEPTH ;
 
 FILE *OUT_FP;
 FILE *SP_OUT_FP;
@@ -44,7 +38,6 @@ HIT **READSTART_BINS;
 HITS_BY_SCORE_STRUCT *HITS_BY_SCORE; ///< Collection of bins, each of which contains all hits with the same score for the current read.
 unsigned int HITS_IN_SCORE_LIST;
 CHROMOSOME_ENTRY **GENOME;
-unsigned int LONGEST_CHROMOSOME;
 // dd unsigned int CHROM_CONTAINER_SIZE;
 
 //Hit resultat

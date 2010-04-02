@@ -295,16 +295,16 @@ void TopAlignments::end_top_alignment_record(int rtrim_cut, int polytrim_cut_sta
 	{
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 			if (top_alignments[i]->exons.size()>2)
-				report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
-									top_alignments[i]->num_matches, i) ;
+				_genomemaps.report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
+												top_alignments[i]->num_matches, i) ;
 	}
 	if (_config.REPORT_MAPPED_READS)
 	{
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
 			if (top_alignments[i]->exons.size()<=2) 
-				report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
-								   top_alignments[i]->num_matches, i) ;
+				_genomemaps.report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
+											   top_alignments[i]->num_matches, i) ;
 		}
 	}
 
@@ -840,10 +840,10 @@ int print_hits() {
 		if (printed && !_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY)
 			break; // best hit strategy
 
-		if (HITS_BY_SCORE[i].hitpointer != NULL) 
+		if (_hits.HITS_BY_SCORE[i].hitpointer != NULL) 
 		{
 			// only _config.REPEATMAP numbers of alignment will be chosen randomly:
-			if (!_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY && _config.REPEATMAP < 0 && HITS_BY_SCORE[i].num > -_config.REPEATMAP) 
+			if (!_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY && _config.REPEATMAP < 0 && _hits.HITS_BY_SCORE[i].num > -_config.REPEATMAP) 
 			{
 				srand((unsigned) time(NULL));
 				
@@ -853,7 +853,7 @@ int print_hits() {
 					n = 1;
 					while (n != 0) {
 						n = 0;
-						hits[j] = rand() % HITS_BY_SCORE[i].num;
+						hits[j] = rand() % _hits.HITS_BY_SCORE[i].num;
 						for (k = 0; k != j; ++k) {
 							if (hits[j] == hits[k])
 								++n;
@@ -863,10 +863,10 @@ int print_hits() {
 
 				qsort(hits, -_config.REPEATMAP, sizeof(int), compare_int);
 
-				hit = HITS_BY_SCORE[i].hitpointer;
+				hit = _hits.HITS_BY_SCORE[i].hitpointer;
 
 				nr = 0;
-				for (j = 0; j != HITS_BY_SCORE[i].num; ++j) {
+				for (j = 0; j != _hits.HITS_BY_SCORE[i].num; ++j) {
 
 					if (hits[nr] == j) {
 						printed += print_alignment(hit, -_config.REPEATMAP);
@@ -881,7 +881,7 @@ int print_hits() {
 
 			} else if (_config.SUMMARY_HIT_STRATEGY) {
 
-				hit = HITS_BY_SCORE[i].hitpointer;
+				hit = _hits.HITS_BY_SCORE[i].hitpointer;
 
 				// iterate over all hits for this score and collect data to generate a summary
 				// This somewhat counter-intuitive code works because of the way the pre-existing
@@ -894,14 +894,14 @@ int print_hits() {
 
 			} else { // no random selection of output alignments:
 
-				hit = HITS_BY_SCORE[i].hitpointer;
+				hit = _hits.HITS_BY_SCORE[i].hitpointer;
 
 				while (hit != NULL) {
 
 					if (!_config.ALL_HIT_STRATEGY)
-						nr = HITS_BY_SCORE[i].num;
+						nr = _hits.HITS_BY_SCORE[i].num;
 					else
-						nr = HITS_IN_SCORE_LIST;
+						nr = _hits.HITS_IN_SCORE_LIST;
 
 					if (_config.REPEATMAP == 0) { // no max nr of hits per read was specified, print all
 						printed += print_alignment(hit, nr);
@@ -917,11 +917,11 @@ int print_hits() {
 
 			if (_config.REPORT_MAPPED_READS)
 			{
-				hit = HITS_BY_SCORE[i].hitpointer;
+				hit = _hits.HITS_BY_SCORE[i].hitpointer;
 
 				while (hit != NULL) {
 
-					nr = HITS_IN_SCORE_LIST;
+					nr = _hits.HITS_IN_SCORE_LIST;
 
 					printed += report_read_alignment(hit, reported_reads);
 					reported_reads++ ;

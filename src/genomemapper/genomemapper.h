@@ -39,25 +39,24 @@
 #include <genomemapper/Util.h>
 #include <genomemapper/TopAlignments.h>
 #include <genomemapper/QPalma.h>
+#include <genomemapper/GenomeMaps.h>
 
 extern Config _config;
 extern Statistics _stats;
 extern Read _read;
+extern Hits _hits;
 extern Genome _genome;
 extern TopAlignments _topalignments ;
 extern QPalma _qpalma ;
+extern GenomeMaps _genomemaps ;
+
+
 
 #if 1 // dd
 extern char HAS_SLOT;
 extern int SLOT;
 #endif // dd
-extern int BINARY_CODE[4];
 
-extern unsigned int NUM_POS;
-
-extern unsigned int LONGEST_HIT;
-
-extern int REPORT_REPETITIVE_SEED_DEPTH_EXTRA ;
 
 // ##############################################################
 // ####### FILE HANDLING ########################################
@@ -129,74 +128,16 @@ extern double WORST_MM_SCORE;
 // ####### HIT/EDIT #############################################
 // ##############################################################
 
-typedef struct hits_by_score_structure {
-	HIT *hitpointer;
-	int num;
-} HITS_BY_SCORE_STRUCT;
 
 #define SCORE_INTERVAL 1
 extern unsigned int NUM_SCORE_INTERVALS;
 
-extern HIT **HIT_LISTS_OPERATOR;
-extern HIT **READSTART_BINS;
-extern HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
-extern unsigned int HITS_IN_SCORE_LIST;
 
-typedef struct mapping_entry_structure {
-	unsigned int readpos;
-	HIT *hit;
-	struct mapping_entry_structure *pred;
-	struct mapping_entry_structure *succ;
-} MAPPING_ENTRY;
-
-typedef struct chromosome_entry {
-
-	int chromosome; // @TODO? Minus values indicate reverse hits (would save strand var = 1 byte, ~15MB)
-	unsigned int genome_pos;
-	char strand;
-
-	struct chromosome_entry *next;
-	MAPPING_ENTRY *mapping_entries;
-
-	// It seems to be cheaper to store the back-pointer information (pos)
-	// in each of these entries rather than having a superior structure.
-} CHROMOSOME_ENTRY;
-
-extern CHROMOSOME_ENTRY **GENOME;
-
-extern unsigned int LONGEST_CHROMOSOME;
 
 // ##############################################################
 // ####### MEMORY CONTAINER #####################################
 // ##############################################################
 
-#define CONTAINER_SIZE 100000
-
-typedef struct mapping_entry_container_structure {
-	struct mapping_entry_structure entries[CONTAINER_SIZE];
-	unsigned int used;
-	struct mapping_entry_container_structure *next;
-} MAPPING_ENTRY_CONTAINER;
-
-typedef struct hit_container_structure {
-	HIT entries[CONTAINER_SIZE];
-	unsigned int used;
-	struct hit_container_structure *next;
-} HIT_CONTAINER;
-
-typedef struct chromosome_entry_container_structure {
-	CHROMOSOME_ENTRY* entries;
-	unsigned int used;
-} CHROMOSOME_ENTRY_CONTAINER;
-
-extern MAPPING_ENTRY_CONTAINER* MAPPING_ENTRY_OPERATOR_FIRST;
-extern MAPPING_ENTRY_CONTAINER* MAPPING_ENTRY_OPERATOR;
-extern HIT_CONTAINER* HIT_OPERATOR_FIRST;
-extern HIT_CONTAINER* HIT_OPERATOR;
-extern CHROMOSOME_ENTRY_CONTAINER* CHROMOSOME_ENTRY_OPERATOR;
-
-extern unsigned int MAX_USED_SLOTS;
-extern unsigned int NUM_MAPPING_ENTRIES;
 
 // ##############################################################
 // ####### ROUTINES #############################################
@@ -260,7 +201,5 @@ extern void print_leftovers(const char *tag, FILE *LEFTOVER_FP);
 extern void print_alignment_matrix(int chrstart, int readstart, int length, int offset_front, int offset_end, Chromosome const &chr, char ori, int K);
 extern void print_alignment_stats(int num_unspliced_best, int num_unspliced_suboptimal, int num_spliced_best, int num_spliced_suboptimal) ;
 extern int compare_int(const void *a, const void *b) ;
-
-#include "report_maps.h"
 
 #endif

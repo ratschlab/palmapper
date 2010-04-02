@@ -12,6 +12,8 @@ Statistics _stats;
 Genome _genome(false);
 TopAlignments _topalignments ;
 QPalma _qpalma ;
+GenomeMaps _genomemaps ;
+Hits _hits ;
 
 int main(int argc, char *argv[]) 
 {
@@ -32,11 +34,11 @@ int main(int argc, char *argv[])
 
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
 	{
-		init_reporting() ;
+		_genomemaps.init_reporting() ;
 		if (!_config.REPORT_RESET)
 		{
-			read_reporting() ;
-			do_reporting(1) ;
+			_genomemaps.read_reporting() ;
+			_genomemaps.do_reporting(1) ;
 		}
 	}
 	
@@ -86,7 +88,7 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	map_reads();
+	_hits.map_reads();
 
 	if (_config.STATISTICS)	{
 		print_stats();
@@ -119,9 +121,9 @@ int main(int argc, char *argv[])
 
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL)
 	{
-		do_reporting(1) ;
-		write_reporting() ;
-		clean_reporting() ;
+		_genomemaps.do_reporting(1) ;
+		_genomemaps.write_reporting() ;
+		//_genomemaps.clean_reporting() ;
 	}
 
 	//if (_config.VERBOSE) { printf("La Fin.\n"); }

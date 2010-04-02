@@ -4,7 +4,10 @@
 
 #include "genomemapper.h"
 
-HIT::HIT() {
+//config
+
+Hits::Hits() {
+/*
 	readpos = 0;
 	start = 0;
 	end = 0;
@@ -13,16 +16,17 @@ HIT::HIT() {
 	gaps = 0;
 	start_offset = 0;
 	end_offset = 0;
-	aligned = 0;
+	aligned = 0;*/
 	/*int i;
 	//for (i=0; i!=MAX_MISMATCHES; ++i) mismatch[i] = READ_LENGTH + 1;
 	for (i=0; i!=MAX_MISMATCHES; ++i) {
 		edit_op[i].mm = 0;
 	}*/
-	orientation = ' ';
+/*	orientation = ' ';
 	same_eo_succ = NULL;
 	next = NULL;
 	last = NULL;
+*/
 }
 
 static std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
@@ -47,7 +51,8 @@ void printhit(HIT* hit) {
 	printf("/ID: %s]", _read.id());
 }
 
-void printhits() {
+void Hits::printhits() 
+{
 	//printf("list:\n");
 	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
 	int i;
@@ -130,8 +135,6 @@ inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int &
 #define TIME_CODE(x) 
 
 int size_hit(HIT *hit, unsigned int *oldlength, char num);
-int browse_hits();
-int duplicate(HIT* hit);
 void printgenome();
 
 clock_t time1 = 0, time2a=0, time2a_seek=0, time2a_part1=0, time2a_part2=0, time2a_part3=0, time2a_part4=0, time2a_part5=0, time2b=0, time2c, time3=0 ;
@@ -152,7 +155,7 @@ void map_reads_timing(int count_reads, float this_read=-1)
 		fprintf(stdout, "\n") ;
 }
 
-int map_reads()
+int Hits::map_reads()
 {
 	char eof = 0, read_mapped;
 	unsigned int count_reads = 0;
@@ -195,7 +198,7 @@ int map_reads()
 	restart:
 
 		// make it somehow dependent on the read length, the index depth and the number of mismatches 
-		REPORT_REPETITIVE_SEED_DEPTH_EXTRA = _read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
+		_genomemaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA = _read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
 	
 		if (eof != 0)
 			continue;
@@ -247,7 +250,7 @@ int map_reads()
 			int nr_seeds = (int) (_read.length() / _config.INDEX_DEPTH);
  			if (!_config.ALL_HIT_STRATEGY || _config.SUMMARY_HIT_STRATEGY || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0)) 
 			{
-				int ret	= _read.map_fast(first_slot, first_pos);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
+				int ret	= map_fast(_read, first_slot, first_pos);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 				if (ret<0)
 					cancel = 1 ;
 				else
@@ -267,7 +270,7 @@ int map_reads()
 				{
 
 					c_map_short_read++;
-					int ret = _read.map_short_read(count_reads, first_slot, first_pos);
+					int ret = map_short_read(_read, count_reads, first_slot, first_pos);
 					
 					if (ret<0)
 						cancel=2 ;
@@ -568,7 +571,7 @@ struct seedlist
 	int pos ;
 } ;
 
-int seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos, char reverse)
+int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos, char reverse)
 {
 #ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
@@ -731,9 +734,9 @@ int seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos,
 				if (report_repetitive_seeds)
 				{   // check every seed, whether it is extendable by REPORT_REPETITIVE_SEED_DEPTH_EXTRA nucleotides 
 					/// and report it
-					int e = extend_seed(direction, REPORT_REPETITIVE_SEED_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
+					int e = extend_seed(direction, _genomemaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
 
-					if (e==REPORT_REPETITIVE_SEED_DEPTH_EXTRA)
+					if (e==_genomemaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA)
 					{
 						struct seedlist seed;
 						seed.chr= &genome_chr ;
@@ -1057,7 +1060,7 @@ int seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos,
 			{
 				//fprintf(stdout, "report %i/%i repetitive seeds\n", (int)extended_seedlist.size(), (int)index_entry.num) ;
 				for (int ii=0; ii<extended_seedlist.size(); ii++)
-					report_repetitive_seed(*extended_seedlist[ii].chr, extended_seedlist[ii].pos, extended_seedlist.size())  ;
+					_genomemaps.report_repetitive_seed(*extended_seedlist[ii].chr, extended_seedlist[ii].pos, extended_seedlist.size())  ;
 			}
 			
 			//if (index_entry.num>_config.INDEX_DEPTH_EXTRA_THRESHOLD)
@@ -1072,13 +1075,13 @@ int seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos,
 	return(1);
 }
 
-void printgenome()
+void Hits::printgenome()
 {
 	printf("G E N O M E: \n");
 	unsigned int i,c;
 	HIT *hit;
 	CHROMOSOME_ENTRY *ce;
-	for (i=0; i!=LONGEST_CHROMOSOME; ++i) {
+	for (i=0; i!=_genome.LONGEST_CHROMOSOME; ++i) {
 		c=0;
 		ce = *(GENOME+i);
 		if (ce != NULL) {
@@ -1096,7 +1099,7 @@ void printgenome()
 }
 
 //@TODO remove num
-int size_hit(HIT *hit, unsigned int *oldlength, char num)
+int Hits::size_hit(HIT *hit, unsigned int *oldlength, char num)
 {
 	HIT *last, *next;
 
@@ -1150,7 +1153,7 @@ int size_hit(HIT *hit, unsigned int *oldlength, char num)
 }
 
 
-int browse_hits()
+int Hits::browse_hits()
 {
 	HIT* hit;
 	int i;
@@ -1271,7 +1274,7 @@ int browse_hits()
 					{
 						if (_config.REPORT_MAPPED_REGIONS && hitlength >= Config::REPORT_MAPPED_REGIONS_MIN_LENGTH)
 						{
-							report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
+							_genomemaps.report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
 						}
 						
 						// insert hit into HITS_BY_SCORE
@@ -1305,7 +1308,7 @@ int browse_hits()
 
 						if (_config.REPORT_MAPPED_REGIONS && hitlength>=Config::REPORT_MAPPED_REGIONS_MIN_LENGTH)
 						{
-							report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
+							_genomemaps.report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
 						}
 
 						if (_config.NUM_GAPS != 0) 
@@ -1380,7 +1383,7 @@ int browse_hits()
  *
  */
 
-int insert_into_scorelist(HIT* hit, char d)
+int Hits::insert_into_scorelist(HIT* hit, char d)
 {
 	if (d)
 	{
@@ -1415,7 +1418,7 @@ int insert_into_scorelist(HIT* hit, char d)
 }
 
 
-int duplicate(HIT* hit)
+int Hits::duplicate(HIT* hit)
 {
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart, readend;
@@ -1567,3 +1570,895 @@ char *get_seq(unsigned int n)
 	return seq;
 }
 
+// alloc
+
+int Hits::alloc_genome_memory()
+{
+	if ((GENOME = (CHROMOSOME_ENTRY **) calloc (_genome.LONGEST_CHROMOSOME, sizeof(CHROMOSOME_ENTRY**))) == NULL) {
+		fprintf(stderr, "ERROR : not enough memory for genome memory\n");
+		exit(1);
+	}
+		
+	//@TODO is this really necessary? why isn't it already NULL
+	unsigned int i;
+	for (i=0; i!=_genome.LONGEST_CHROMOSOME; ++i) {
+		*(GENOME+i) = NULL;
+	}
+
+	return(0);
+}
+
+int Hits::init_from_meta_index() {
+	init_constants(); // updated
+
+	alloc_genome_memory(); // updated
+
+	init_operators(); //updated
+
+	if (_config.STATISTICS) {
+		init_statistic_vars(); //updated
+	}
+	if (!_config.HITLEN_LIMIT)
+		_config.HITLEN_LIMIT = _config.INDEX_DEPTH;
+
+	return (0);
+}
+
+int Hits::init_constants() 
+{
+	if (_config.INDEX_DEPTH == 5) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 256; //binary number: 0000 0000 0000 0001 0000 0000
+		_genome.BINARY_CODE[2] = 512; //binary number: 0000 0000 0000 0010 0000 0000
+		_genome.BINARY_CODE[3] = 768; //binary number: 0000 0000 0000 0011 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 6) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 1024; //binary number: 0000 0000 0000 0100 0000 0000
+		_genome.BINARY_CODE[2] = 2048; //binary number: 0000 0000 0000 1000 0000 0000
+		_genome.BINARY_CODE[3] = 3072; //binary number: 0000 0000 0000 1100 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 7) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 4096; //binary number: 0000 0000 0001 0000 0000 0000
+		_genome.BINARY_CODE[2] = 8192; //binary number: 0000 0000 0010 0000 0000 0000
+		_genome.BINARY_CODE[3] = 12288; //binary number: 0000 0000 0011 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 8) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 16384; //binary number: 0000 0000 0100 0000 0000 0000
+		_genome.BINARY_CODE[2] = 32768; //binary number: 0000 0000 1000 0000 0000 0000
+		_genome.BINARY_CODE[3] = 49152; //binary number: 0000 0000 1100 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 9) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 65536; //binary number: 0000 0001 0000 0000 0000 0000
+		_genome.BINARY_CODE[2] = 131072; //binary number: 0000 0010 0000 0000 0000 0000
+		_genome.BINARY_CODE[3] = 196608; //binary number: 0000 0011 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 10) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 262144; //binary number: 0000 0100 0000 0000 0000 0000
+		_genome.BINARY_CODE[2] = 524288; //binary number: 0000 1000 0000 0000 0000 0000
+		_genome.BINARY_CODE[3] = 786432; //binary number: 0000 1100 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 11) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 1048576; //binary number: 0001 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[2] = 2097152; //binary number: 0010 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[3] = 3145728; //binary number: 0011 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 12) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 4194304; //binary number: 0100 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[2] = 8388608; //binary number: 1000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[3] = 12582912; //binary number: 1100 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 13) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 16777216; //binary number: 0001 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[2] = 33554432; //binary number: 0010 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[3] = 50331648; //binary number: 0011 0000 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 14) {
+		_genome.BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[1] = 67108864; //binary number: 0001 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[2] = 134217728; //binary number: 0010 0000 0000 0000 0000 0000 0000
+		_genome.BINARY_CODE[3] = 201326592; //binary number: 0011 0000 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH>14 || _config.INDEX_DEPTH<5)
+	  {
+	    fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
+	    exit(1) ;
+	  }
+
+	return (0);
+}
+
+int Hits::init_operators() {
+	MAPPING_ENTRY_OPERATOR = alloc_mapping_entry_container();
+	assert(MAPPING_ENTRY_OPERATOR!=NULL) ;
+
+	MAPPING_ENTRY_OPERATOR_FIRST = MAPPING_ENTRY_OPERATOR;
+
+	HIT_OPERATOR = alloc_hit_container();
+	assert(HIT_OPERATOR!=NULL) ;
+	HIT_OPERATOR_FIRST = HIT_OPERATOR;
+
+	alloc_chromosome_entry_container();
+
+	return (0);
+}
+
+int Hits::init_statistic_vars() {
+	new (&_stats) Statistics();
+	return (0);
+}
+
+
+int Hits::init_hit_lists() {
+	alloc_hit_lists_operator();
+	alloc_hits_by_score(); // A T T E N T I O N ! ! !   needs correct _config.NUM_EDIT_OPS which can be changed in init_alignment_structures() !!!
+
+	return (0);
+}
+
+
+
+MAPPING_ENTRY* Hits::alloc_mapping_entry()
+{
+	MAPPING_ENTRY_CONTAINER *container;
+	MAPPING_ENTRY *entry;
+
+	if (MAPPING_ENTRY_OPERATOR->used >= CONTAINER_SIZE - 1) {
+		container = alloc_mapping_entry_container();
+		if (!container)
+			return NULL ;
+		MAPPING_ENTRY_OPERATOR->next = container;
+		MAPPING_ENTRY_OPERATOR = container;
+	}
+	
+	entry = &(MAPPING_ENTRY_OPERATOR->entries[MAPPING_ENTRY_OPERATOR->used]);
+	MAPPING_ENTRY_OPERATOR->used++;
+
+	entry->hit = NULL;
+	entry->pred = NULL;
+	entry->succ = NULL;
+	entry->readpos = -1;
+	
+	return(entry);
+}
+
+MAPPING_ENTRY_CONTAINER* Hits::alloc_mapping_entry_container()
+{
+	MAPPING_ENTRY_CONTAINER *container;
+
+	if ((container =  (MAPPING_ENTRY_CONTAINER *) calloc(1, sizeof(MAPPING_ENTRY_CONTAINER))) == NULL) {
+		//fprintf(stderr, "ERROR : not enough memory for mapping entry container memory (alloc_mapping_entry_container)\n");
+		fprintf(stderr, "WARNING : not enough memory for mapping entry container memory (alloc_mapping_entry_container)\n");
+		return NULL ;
+	}
+
+	container->used = 0;
+	container->next = NULL;
+
+	return(container);
+}
+
+
+CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand)
+{
+	if (CHROMOSOME_ENTRY_OPERATOR->used > _config.CHROM_CONTAINER_SIZE - 1) {
+		fprintf(stderr, "\n!!! WARNING: Chromosome container size of %d is too small! Hits for read %s cannot be reported any more!\n\n", _config.CHROM_CONTAINER_SIZE, _read.id());
+		return(NULL);
+	}
+	
+	CHROMOSOME_ENTRY *entry;
+
+	entry = &(CHROMOSOME_ENTRY_OPERATOR->entries[CHROMOSOME_ENTRY_OPERATOR->used]);
+	entry->chromosome = chr.nr();
+	entry->genome_pos = pos;
+	entry->strand = strand;
+	entry->next = NULL;
+    entry->mapping_entries = NULL;
+    
+    CHROMOSOME_ENTRY_OPERATOR->used++;
+
+    if (_config.STATISTICS && CHROMOSOME_ENTRY_OPERATOR->used > MAX_USED_SLOTS)
+    	MAX_USED_SLOTS = CHROMOSOME_ENTRY_OPERATOR->used;
+
+	return(entry);
+}
+
+CHROMOSOME_ENTRY_CONTAINER* Hits::alloc_chromosome_entry_container()
+{
+
+    if ((CHROMOSOME_ENTRY_OPERATOR = (CHROMOSOME_ENTRY_CONTAINER *) calloc (1, sizeof(CHROMOSOME_ENTRY_CONTAINER))) == NULL) {
+    	fprintf(stderr, "ERROR : not enough memory for chromosome entry container memory\n");
+		exit(1);
+	}
+
+	if ((CHROMOSOME_ENTRY_OPERATOR->entries = (CHROMOSOME_ENTRY *) calloc (_config.CHROM_CONTAINER_SIZE, sizeof(CHROMOSOME_ENTRY))) == NULL) {
+		fprintf(stderr, "ERROR : not enough memory for chromosome entry container memory\n");
+		exit(1);
+	}
+	
+	CHROMOSOME_ENTRY_OPERATOR->used = 0;
+
+	return(CHROMOSOME_ENTRY_OPERATOR);
+}
+
+HIT* Hits::alloc_hit()
+{
+	HIT_CONTAINER *container;
+	HIT *hit;
+
+	if (HIT_OPERATOR->used >= CONTAINER_SIZE - 1) {
+		container = alloc_hit_container();
+		if (!container)
+			return NULL ;
+		HIT_OPERATOR->next = container;
+		HIT_OPERATOR = container;
+	}
+	
+	hit = &(HIT_OPERATOR->entries[HIT_OPERATOR->used]);
+	HIT_OPERATOR->used++;
+
+	new (hit) HIT();
+	return(hit);
+}
+
+HIT_CONTAINER* Hits::alloc_hit_container()
+{
+	HIT_CONTAINER *container;
+
+	if ((container =  (HIT_CONTAINER *) calloc (1, sizeof(HIT_CONTAINER))) == NULL) {
+		fprintf(stderr, "WARNING: not enough memory for mapping entry container memory (alloc_hit_container)\n");
+		return NULL ;
+	}
+
+	container->used = 0;
+	container->next = NULL;
+
+	return(container);
+}
+
+int Hits::alloc_hit_lists_operator()
+{
+	if ((HIT_LISTS_OPERATOR = (HIT **) calloc (_config.MAX_READ_LENGTH, sizeof(HIT*))) == NULL) {
+		fprintf(stderr, "ERROR : not enough memory for hitlist (alloc_hit_lists_operator)\n");
+		exit(1);
+	}
+
+	return(0);
+}
+
+int Hits::alloc_hits_by_score()
+{
+	double max_score = _config.NUM_GAPS * _config.GAP_SCORE + (_config.NUM_EDIT_OPS - _config.NUM_GAPS) * _config.MM_SCORE;
+	NUM_SCORE_INTERVALS = max_score / SCORE_INTERVAL;
+	if (NUM_SCORE_INTERVALS * SCORE_INTERVAL != max_score) ++NUM_SCORE_INTERVALS;
+	NUM_SCORE_INTERVALS++;
+	
+	if ((HITS_BY_SCORE = (HITS_BY_SCORE_STRUCT *) calloc (NUM_SCORE_INTERVALS, sizeof(HITS_BY_SCORE_STRUCT))) == NULL) {
+		fprintf(stderr, "ERROR : not enough memory for hitlist by score (alloc_hits_by_score)\n");
+		exit(1);
+	}
+
+	unsigned int i;
+	for (i=0; i!=NUM_SCORE_INTERVALS; ++i) {
+		HITS_BY_SCORE[i].hitpointer = NULL;
+		HITS_BY_SCORE[i].num = 0;
+	}
+
+	return(0);
+}
+
+int Hits::alloc_readstart_bins()
+{
+	if ((READSTART_BINS = (HIT **) calloc ((_genome.LONGEST_CHROMOSOME / ((_config.NUM_GAPS==0)? 1: _config.NUM_GAPS)), sizeof(HIT*) )) == NULL) {
+		fprintf(stderr, "ERROR : not enough memory for readstart bin structure (alloc_readstart_bins)\n");
+		exit(1);
+	}
+
+	return(0);
+} 
+
+int Hits::dealloc_mapping_entries()
+{
+	NUM_MAPPING_ENTRIES = 0;
+	
+	MAPPING_ENTRY_CONTAINER *container, *next;
+	container = MAPPING_ENTRY_OPERATOR_FIRST->next;
+
+	while (container != NULL) {
+		next = container->next;
+		NUM_MAPPING_ENTRIES += container->used;
+		free(container);
+		container = next;
+	}
+
+	NUM_MAPPING_ENTRIES += MAPPING_ENTRY_OPERATOR_FIRST->used;
+	
+	MAPPING_ENTRY_OPERATOR = MAPPING_ENTRY_OPERATOR_FIRST;
+	MAPPING_ENTRY_OPERATOR->used = 0;
+	MAPPING_ENTRY_OPERATOR->next = NULL;
+
+	return(0);
+}
+
+int Hits::dealloc_hits()
+{
+	HIT_CONTAINER *container, *next;
+	container = HIT_OPERATOR_FIRST->next;
+
+	while (container != NULL) {
+		next = container->next;
+		free(container);
+		container = next;
+	}
+
+
+	HIT_OPERATOR = HIT_OPERATOR_FIRST;
+	HIT_OPERATOR->used = 0;
+	HIT_OPERATOR->next = NULL;
+
+	return(0);
+}
+
+int Hits::dealloc_chromosome_entries()
+{
+	unsigned int i;
+	
+	for (i=0; i < _config.CHROM_CONTAINER_SIZE; i++) {
+		free(CHROMOSOME_ENTRY_OPERATOR->entries[i].mapping_entries);
+		free(CHROMOSOME_ENTRY_OPERATOR->entries+i);
+	}
+	//free(CHROMOSOME_ENTRY_OPERATOR);
+
+	return(0);
+}
+
+int Hits::dealloc_hit_lists_operator()
+{
+	unsigned int i;
+
+	//for (i = _config.INDEX_DEPTH; i <= LONGEST_HIT; i++) {
+	for (i = 0; i <= LONGEST_HIT; i++) 
+	{
+		*(HIT_LISTS_OPERATOR+i) = NULL;
+	}
+	
+	return(0);
+}
+
+int Hits::dealloc_hits_by_score()
+{
+	unsigned int i;
+
+	for (i = 0; i != NUM_SCORE_INTERVALS; i++) {
+		HITS_BY_SCORE[i].hitpointer = NULL;
+		HITS_BY_SCORE[i].num = 0;
+	}
+
+	return(0);
+}
+
+
+
+// read
+
+
+int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
+{
+#ifndef BinaryStream_MAP
+	STORAGE_ENTRY *index_mmap ;
+#else
+	CBinaryStream<STORAGE_ENTRY>* index_mmap;
+#endif
+	INDEX_ENTRY index_entry;
+
+	unsigned int pos, i, j, p, chars, block, chrom_overlap = 0, hits_reported = 0;
+	int slot, run, nr_mms, readpos, chrpos, readstart, chrstart;
+	firstslot = -1 ; firstpos=0 ;
+
+	unsigned char position;
+	char nr_runs, rev, nr_seeds = read.length() / _config.INDEX_DEPTH, mm, perfect = 0, cancel=0;
+
+	if (/*_config.*/_config.NUM_GAPS != 0)
+		nr_runs = (nr_seeds > 1)? 2: 1;
+	else {
+		if (nr_seeds > /*_config.*/_config.NUM_MISMATCHES) nr_runs = /*_config.*/_config.NUM_MISMATCHES + 1;
+			else nr_runs = nr_seeds;
+	}
+
+	bool seed_already_inspected_fwd[nr_runs+1];
+	bool seed_already_inspected_rev[nr_runs+1];
+
+	int max_mms = nr_runs - 1;
+	int mmpos[max_mms];
+	//fprintf(stdout, "nr_runs=%i\n", nr_runs) ;
+
+	for (run=1; run<=nr_runs; ++run) {
+
+		if (nr_runs == 1) nr_runs = 0;	// a bit fishy, but nr_runs and run only have to be different, thats why this assignment is due
+		if (run == nr_runs) readstart = ((int)read.length()) - /*_config.*/_config.INDEX_DEPTH;
+			else		 	readstart = (run-1) * /*_config.*/_config.INDEX_DEPTH;
+
+		slot = get_slot(read, readstart) ;
+
+		//fprintf(stdout, "map_fast: slot=%i HAS_SLOT=%i read_start=%i seq=%s\n", slot, HAS_SLOT, readstart, get_seq(slot)) ;
+
+		if (run==1)
+		{
+			if (slot<0)
+			{
+				for (int ii=1; ii<((int)read.length())-/*_config.*/_config.INDEX_DEPTH && firstslot<0; ii++)
+				{
+					firstpos = ii ;
+					firstslot = get_slot(read, firstpos) ;
+				}
+			}
+			else
+			{
+				firstslot = slot ;
+				//firstpos = 0 ;
+			}
+		}
+
+		// does not work when one of the first symbols are non-ACGT.
+		//if (run == 1)
+		//	firstslot = slot;
+
+
+		if (slot >= 0)
+		{	// tests if slot has an unallowed char!
+
+			for (rev=0; rev <= /*_config.*/_config.MAP_REVERSE; ++rev) {
+				if (!rev) {
+					index_entry = INDEX[slot];
+					index_mmap = INDEX_FWD_MMAP;
+				}
+				else  {
+					index_entry = INDEX_REV[slot];
+					index_mmap = INDEX_REV_MMAP;
+				}
+
+				// for each mapping position
+				if (index_entry.num) {
+
+					STORAGE_ENTRY* se_buffer=NULL;
+
+					try
+					{
+						se_buffer=new STORAGE_ENTRY[index_entry.num];
+					}
+					catch (std::bad_alloc)
+					{
+						return -1;
+					}
+
+					int index_entry_num=index_entry.num ;
+					if ((int)index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) { // && !REPORT_REPETITIVE_SEEDS)
+						index_entry_num=0 ;
+						if (rev) seed_already_inspected_rev[run] = false;
+						else seed_already_inspected_fwd[run] = false;
+					}
+					else {
+						if (rev) seed_already_inspected_rev[run] = true;
+						else seed_already_inspected_fwd[run] = true;
+					}
+
+					time_t start_time = clock() ;
+#ifndef BinaryStream_MAP
+					index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+#else
+					index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+#endif
+					time2a_seek += clock()-start_time ;
+
+					for (i=0; (int)i<index_entry_num; i++)
+					{
+
+						block = 0; position = 0;
+						unsigned char* p_block = (unsigned char*) &block;
+						STORAGE_ENTRY se;
+						unsigned char* p_id;
+
+						if (!rev) {
+							//memcpy(&block, &((index_mmap+(index_entry.offset-(i+1)))->id[0]), 3 * sizeof(char));
+							//memcpy(&position, &((index_mmap+(index_entry.offset-(i+1)))->id[3]), sizeof(unsigned char));
+							se = se_buffer[index_entry.num-(i+1)];
+						}
+						else {
+							//memcpy(&block, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[0]), 3 * sizeof(char));
+							//memcpy(&position, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[3]), sizeof(unsigned char));
+							se = se_buffer[i];//index_entry.offset-(index_entry.num-i)];
+						}
+
+						p_id=se.id;
+						p_block[0]=p_id[0];
+						p_block[1]=p_id[1];
+						p_block[2]=p_id[2];
+						position = p_id[3];
+						pos = (unsigned int) position + BLOCK_TABLE[block].pos;	// 0-initialized
+						Chromosome &chr = _genome.chromosome(BLOCK_TABLE[block].chr);
+
+						//if (_config.REPORT_REPETITIVE_SEEDS)
+						//	report_repetitive_seed(chr, pos, index_entry.num)  ;
+
+						//if (index_entry.num>_config.SEED_HIT_CANCEL_THRESHOLD)
+						//	continue ;
+
+						if (!rev) {
+							chrstart = pos - (run!=nr_runs) * (run-1) * /*_config.*/_config.INDEX_DEPTH - (run==nr_runs) * (((int)read.length()) - /*_config.*/_config.INDEX_DEPTH);
+						}	// 0-initialized
+						else {
+							chrstart = pos + (run!=nr_runs) *   run   * /*_config.*/_config.INDEX_DEPTH + (run==nr_runs) * ((int)read.length()) - 1;
+						}
+
+						// check if read can map on position in genome:
+						if ( (!rev && chrstart < 0) ||
+								(rev && chrstart < ((int)read.length()) - 1) ) {
+							if (/*_config.*/_config.STATISTICS) chrom_overlap++;
+						}
+						else if ( (!rev && chrstart + ((int)read.length()) > (int)chr.length()) ||
+								  ( rev && chrstart > (int)chr.length() - 1) ) {
+							if (/*_config.*/_config.STATISTICS) chrom_overlap++;
+						}
+						else {
+
+							nr_mms = 0;
+							chars = 0;
+							cancel = 0;
+
+							readpos = 0;
+							chrpos = chrstart;
+
+							for (j=1; (int)j!=run; ++j) {
+
+								mm = 0;
+
+								for (p=0; (int)p!=/*_config.*/_config.INDEX_DEPTH; ++p) {
+
+									char * read_data=read.data() ;
+									read_data[readpos+p] = mytoupper(read_data[readpos+p]);
+									if ( ( rev && get_compl_base(chr[chrpos-p]) != read_data[readpos+p]) ||
+											(!rev &&                chr[chrpos+p]  != read_data[readpos+p]) ||
+											!(unique_base(read_data[readpos+p])) ) {
+
+										if (nr_mms < max_mms) {
+											mmpos[nr_mms] = readpos + p + 1;
+											++nr_mms;
+										}
+										else {
+											cancel = 1;
+											break;
+										}
+										++mm;
+
+									}
+
+									++chars;
+
+								}
+
+								if (!mm && ((rev && seed_already_inspected_rev[j]) || (!rev && seed_already_inspected_fwd[j]))) {
+									cancel = 1;
+									break;
+								}
+
+								if (cancel) break;
+
+								chrpos += /*_config.*/_config.INDEX_DEPTH * (rev? -1: 1);
+								readpos += /*_config.*/_config.INDEX_DEPTH;
+
+							}
+
+
+							chrpos  = chrpos  + (run!=nr_runs) * /*_config.*/_config.INDEX_DEPTH * (rev? -1: 1);
+							readpos = readpos + (run!=nr_runs) * /*_config.*/_config.INDEX_DEPTH;
+							while (!cancel && (int)chars != ((int)read.length()) - /*_config.*/_config.INDEX_DEPTH) {
+
+								read.data()[readpos] = mytoupper(read.data()[readpos]);
+								if ( ( rev && get_compl_base(chr[chrpos]) != read.data()[readpos]) ||
+										(!rev && 				 chr[chrpos]  != read.data()[readpos]) ||
+										!(unique_base(read.data()[readpos])) )
+								{
+									if (nr_mms == max_mms) {
+										cancel = 1;
+										break;
+									}
+									mmpos[nr_mms] = readpos + 1;
+									++nr_mms;
+								}
+
+								readpos++;
+								chrpos += rev? -1: 1;
+								chars++;
+
+							}
+
+
+							if ( !cancel && nr_mms <= max_mms ) {
+								// create hit
+								HIT* hit = new HIT();
+								if (!hit)
+								{
+									delete[] se_buffer;
+									return -1 ;
+								}
+
+								hit->chromosome = &chr;
+								hit->readpos = 1;
+
+								if (!rev) {
+									hit->orientation = '+';
+									hit->start = chrstart + 1;					// 1-initialized
+									hit->end = chrstart + ((int)read.length());
+								}
+								else {
+									hit->orientation = '-';
+									hit->start = chrstart - ((int)read.length()) + 2;	// 1-initialized
+									hit->end = chrstart + 1;
+								}
+
+								mm = 0;
+								// create possible mismatches
+								for (j=0; (int)j!=nr_mms; ++j) {
+									hit->edit_op[j].mm = 1;
+									if (hit->orientation == '+') hit->edit_op[j].pos = mmpos[j];
+									else					 hit->edit_op[j].pos = ((int)read.length()) - mmpos[j] + 1;
+									assert(hit->edit_op[j].pos >= -((int)read.length()) && hit->edit_op[j].pos<=(int)read.length()) ;
+									hit->mismatches++;
+									mm = 1;
+								}
+
+								//if (!_config.ALL_HIT_STRATEGY && nr_mms < max_mms)
+								//	max_mms = nr_mms;
+
+								update_num_edit_ops(nr_mms, _config.ALL_HIT_STRATEGY, max_mms) ;
+
+								// perfect matching read
+								if (/*_config.*/_config.STATISTICS) {
+									if (!mm) {
+										if (rev) /*_stats.*/_stats.PERFECT_HITS_REV++;
+										else /*_stats.*/_stats.PERFECT_HITS++;
+										if (!perfect) /*_stats.*/_stats.PERFECT_READS++;
+
+										perfect = 1;
+									}
+									else /*_stats.*/_stats.NOT_ALIGNED[1]++;
+								}
+
+								int ret = insert_into_scorelist(hit, 0);
+								assert(ret>=0) ;
+
+								if (/*_config.*/_config.STATISTICS)	_stats.HITS_LEN[read.length()]++;
+
+								hits_reported++;
+
+							} // end of create hit
+
+						} // end of no hit-overlap with chrom border
+
+					} // end of for each mapping pos
+
+					delete[] se_buffer;
+				} // end of index entry num
+
+			} // end of forward/reverse	rev
+
+		} // end of slot != -1
+
+	} // end of runs = different slots
+
+	if (!/*_config.*/_config.ALL_HIT_STRATEGY && !hits_reported)
+	{	//if best hit strategy, but no mappings found -> prepare for complete mapping!
+		/*_config.*/_config.ALL_HIT_STRATEGY = -1;
+	}
+	else
+	{
+		if (/*_config.*/_config.STATISTICS)
+		{
+			/*_stats.*/_stats.NUM_HITS += hits_reported;
+			/*_stats.*/_stats.HITS_PER_READ += hits_reported;
+			/*_stats.*/_stats.ENDSTART_MAPPED[0] += chrom_overlap;
+		}
+	}
+	//fprintf(stdout, "map_fast: firstslot=%i, firstpos=%i\n", firstslot, firstpos) ;
+
+	return 0 ;
+}
+
+
+int Hits::map_short_read(Read& read, unsigned int num, int first_slot, int first_pos)
+{
+	char reverse;
+	unsigned int readpos = first_pos ;
+	unsigned int spacer = first_pos;
+	unsigned int slot;
+
+	//fprintf(stdout, "first_slot=%i\n", first_slot) ;
+
+	if (first_slot < 0) {	// first slot has an unallowed char!
+		return -1 ;
+		/*assert(0) ; //obsoleted code
+		spacer = -first_slot+1 +1 ;
+		readpos = -first_slot+1 + 1 ;
+		HAS_SLOT = 0;*/
+	}
+	else if (/*_config.*/_config.ALL_HIT_STRATEGY && !/*_config.*/_config.SUMMARY_HIT_STRATEGY) {	// first slot hasn't been computed yet
+		spacer = 0;
+		slot = 0;
+		HAS_SLOT = 0;
+	}
+	else {	// first slot has already been computed in map_fast and doesn't contain unallowed chars
+		slot = first_slot;
+
+		reverse = 0;
+		if (INDEX[slot].num != 0)
+			reverse = 1;
+		if (/*_config.*/_config.MAP_REVERSE && INDEX_REV[slot].num != 0)
+			reverse = (reverse + reverse) + 2;
+
+		if (reverse > 0)
+		{
+			clock_t seed2genome_start=clock() ;
+			//fprintf(stdout, "1: slot=%i\n", slot) ;
+			int ret = seed2genome(num, slot, readpos + 1, reverse) ;
+			time2a_seed2genome += clock() - seed2genome_start ;
+
+			if (ret<0)
+			{
+				fprintf(stderr, "seed2genome<0 (1)\n")  ;
+				return ret ; // add one to readpos for 1-initialization
+			}
+		}
+
+		readpos++;
+		spacer = /*_config.*/_config.INDEX_DEPTH;
+		SLOT = first_slot;
+		HAS_SLOT = 1;
+	}
+
+	while (spacer < read.length())
+	{
+		char * read_data = read.data() ;
+		
+		read_data[spacer] = mytoupper(read_data[spacer]);
+		if (spacer < readpos + /*_config.*/_config.INDEX_DEPTH - 1)
+		{
+			if (read_data[spacer]=='A' || read_data[spacer]=='T' || read_data[spacer]=='C' || read_data[spacer]=='G')
+			{
+				spacer++;
+			}
+			else
+			{
+				spacer++;
+				readpos = spacer;
+				HAS_SLOT = 0;
+			}
+		}
+		else {
+			if (read_data[spacer]=='A' || read_data[spacer]=='T' || read_data[spacer]=='C' || read_data[spacer]=='G')
+			{
+				slot = get_slot(read, readpos);
+				//fprintf(stdout, "map_short_read: slot=%i HAS_SLOT=%i readpos=%i seq=%s\n", slot, HAS_SLOT, readpos, get_seq(slot)) ;
+
+				if (slot<0)
+				{
+					spacer++;
+					readpos++;
+					continue ;
+				}
+
+				// reverse: 0: slot doesnt match in either index or index_rev, 1: only index, 2: only index_rev, 4: both
+				reverse = 0;
+				//if (INDEX[slot].last_entry != NULL) {
+				if (INDEX[slot].num != 0) {
+					reverse = 1;
+				}
+				if (/*_config.*/_config.MAP_REVERSE && INDEX_REV[slot].num != 0) {
+					reverse = (reverse + reverse) + 2;
+				}
+
+				if (reverse > 0) {
+					clock_t seed2genome_start=clock() ;
+					int ret = seed2genome(num, slot, readpos + 1, reverse) ;
+					time2a_seed2genome += clock() - seed2genome_start ;
+					if (ret<0)
+					{
+						fprintf(stderr, "seed2genome<0 (2)\n") ;
+						return ret ; // add one to readpos for 1-initialization
+					}
+				}
+
+				spacer++;
+				readpos++;
+				HAS_SLOT = 1;
+			}
+			else {
+				spacer++;
+				readpos=spacer;
+				HAS_SLOT = 0;
+			}
+		}
+	}
+
+	HAS_SLOT = 0;
+
+	return 1;
+}
+
+
+/**
+ *
+ *  \param pos Position in the current read for which to get a slot
+ *  \return A slot
+ */
+
+int Hits::get_slot(Read & read, int pos)
+{
+    unsigned int slot = 0;
+	unsigned int i;
+	int c = 0;
+	char * read_data = read.data() ;
+	
+	if (HAS_SLOT == 0)
+	{
+
+		for (i = 0; (int)i < /*_config.*/_config.INDEX_DEPTH; i++)
+		{
+			read_data[pos + i] = mytoupper(read_data[pos + i]);
+
+			switch (read_data[pos + i])
+			{
+			case 'A':
+				c = 0;
+				break;
+			case 'C':
+				c = 1;
+				break;
+			case 'G':
+				c = 2;
+				break;
+			case 'T':
+				c = 3;
+				break;
+			default:
+				return -pos - i - 1 ; // subtract -1 to make sure the output is indeed negative (pos=i=0..?)
+			}
+
+			slot = slot + Util::POWER[i] * c;
+		}
+
+	} else {
+
+		slot = SLOT;
+		slot >>= 2;
+
+		read_data[pos + /*_config.*/_config.INDEX_DEPTH - 1] = mytoupper(read_data[pos + /*_config.*/_config.INDEX_DEPTH - 1]);
+
+		switch (read_data[pos + /*_config.*/_config.INDEX_DEPTH - 1]) {
+		case 'A':
+			slot = slot | _genome.BINARY_CODE[0];
+			break;
+		case 'C':
+			slot = slot | _genome.BINARY_CODE[1];
+			break;
+		case 'G':
+			slot = slot | _genome.BINARY_CODE[2];
+			break;
+		case 'T':
+			slot = slot | _genome.BINARY_CODE[3];
+			break;
+		default:
+			return -1;
+		}
+	}
+
+	SLOT = slot;
+
+	return (slot);
+}

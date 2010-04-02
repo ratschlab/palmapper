@@ -9,6 +9,7 @@
 
 #include <genomemapper/Genome.h>
 
+
 inline char get_compl_base_(char c)
 {
 	switch (c)
@@ -159,7 +160,7 @@ int Genome::build_index()
 	read_meta_index(META_INDEX_FP); // updated
 
 	// initialize with meta information
-	init_from_meta_index(); // updated
+	_hits.init_from_meta_index(); // updated
 
 	// mmap map files into memory
 	mmap_indices(); // updated
@@ -235,6 +236,7 @@ int Genome::read_meta_index_header(FILE *META_INDEX_FP)
 
 	////////////////////////////////////////////////////////////////////////////////////
 	// Get number of positions in index?
+	int NUM_POS ;
 	if (fread(&NUM_POS, sizeof(int), 1, META_INDEX_FP) == 0) {
                 fprintf(stderr, "ERROR: cant read meta index file\n");
                 exit(0);
