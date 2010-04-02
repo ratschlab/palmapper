@@ -4,45 +4,9 @@
 #include <string>
 #include <vector>
 
+#include <genomemapper/Chromosome.h>
+
 #define CHR_DESC_LENGTH 50
-
-#define USE_CHR_BIN
-#define USE_CHR_BIN_CLASS CDNAArray4
-
-class Chromosome {
-	friend class Genome;
-public:
-	Chromosome();
-
-	char operator[](unsigned int index) const {
-//		assert(index < _length);
-#ifdef USE_CHR_BIN
-		return CHR_SEQ_dd->get_char(index);
-#else
-		return _data[index];
-#endif
-	}
-
-	unsigned int length() const {
-		return _length;
-	}
-
-	unsigned int nr() const {
-		return _nr;
-	}
-
-	char const *desc() const {
-		return _desc.c_str();
-	}
-private:
-#ifdef USE_CHR_BIN
-	USE_CHR_BIN_CLASS* CHR_SEQ_dd;
-#endif
-	std::string _desc;
-	unsigned int _nr;
-	unsigned int _length;
-	char *_data;
-};
 
 class Genome {
 public:
@@ -83,23 +47,6 @@ private:
 	}
 	friend char get_compl_base(char c);
 };
-
-//#ifdef USE_CHR_BIN
-//extern std::vector<USE_CHR_BIN_CLASS*> CHR_SEQ_a ;
-//#endif
-//extern char** CHR_SEQ_c ;
-
-//inline char CHR_SEQ(size_t chr, size_t index)
-//{
-//#ifdef USE_CHR_BIN
-//	return CHR_SEQ_a[(chr)]->get_char(index) ;
-//#else
-//	return CHR_SEQ_c[(chr)][(index)] ;
-//#endif
-//}
-
-//extern unsigned int* CHR_LENGTH;
-//extern char** CHR_DESC;
 
 inline char unique_base(char c)
 {

@@ -40,6 +40,7 @@ GM_OBJ = $(ObjDir)/genomemapper/report_maps.o \
 	$(ObjDir)/genomemapper/init.o \
 	$(ObjDir)/genomemapper/print.o \
 	$(ObjDir)/genomemapper/usage.o \
+	$(ObjDir)/genomemapper/Chromosome.o \
 	$(ObjDir)/genomemapper/Config.o \
 	$(ObjDir)/genomemapper/Genome.o \
 	$(ObjDir)/genomemapper/Hit.o \

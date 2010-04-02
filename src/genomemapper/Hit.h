@@ -1,13 +1,12 @@
 #pragma once
 
 #include <genomemapper/Config.h>
+#include <genomemapper/Chromosome.h>
 
 typedef struct edit_op_structure {
 	signed int pos;
 	int mm: 1;
 } EDIT_OPS;
-
-class Chromosome;
 
 class HIT {
 public:

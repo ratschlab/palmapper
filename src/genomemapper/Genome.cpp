@@ -9,13 +9,6 @@
 
 #include <genomemapper/Genome.h>
 
-Chromosome::Chromosome() {
-	_length = 0;
-	_data = NULL;
-	_nr = -1;
-	CHR_SEQ_dd = NULL;
-}
-
 inline char get_compl_base_(char c)
 {
 	switch (c)
@@ -86,10 +79,11 @@ int Genome::load_genome()
 	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) {
 		Chromosome &chr = _chromosomes[i];
 		chr._nr = i;
-		if ((chr._data = (char*) malloc ((chr._length + 1) * sizeof(char))) == NULL) {
-			fprintf(stderr, "ERROR : not enough memory for genome\n");
-			exit(1);
-		}
+		char *data = new char[chr.length()];
+//		if ((chr._data = (char*) malloc ((chr._length + 1) * sizeof(char))) == NULL) {
+//			fprintf(stderr, "ERROR : not enough memory for genome\n");
+//			exit(1);
+//		}
 		
 		unsigned int pos = 0;
 		
@@ -100,13 +94,13 @@ int Genome::load_genome()
 			if (fgets(line, 512, GENOME_FP) == 0) {}
 	
 		if (fgets(line, 512, GENOME_FP) == NULL || line[0] == '>') {
-			fprintf(stderr, "ERROR: cannot find sequence \"%s\"!\n",chr._desc.c_str());
+			fprintf(stderr, "ERROR: cannot find sequence \"%s\"!\n",chr.desc());
 			exit(1);
 		}
 		while (line[0] != '>') {
 			linelen = strcspn(line, " \n\t");
 			if (linelen > 0 && (line[linelen] == '\t' || line[linelen] == ' ')) {
-				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", _config.GENOME_FILE_NAME.c_str(), chr._desc.c_str());
+				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", _config.GENOME_FILE_NAME.c_str(), chr.desc());
 				exit(0);
 			}
 			for (unsigned int j=0; j!=linelen; j++)
@@ -121,12 +115,12 @@ int Genome::load_genome()
 				    c=='V' ) */
 				if (is_valid_char((int)line[j]))
 				{
-					chr._data[pos++] = is_valid_char((int)line[j]) ;
+					data[pos++] = is_valid_char((int)line[j]) ;
 				}
 				else 
 				{
 					char c=mytoupper(line[j]) ;
-					fprintf(stderr,"ERROR: Character '%c' encountered in chromosome '%s'! Only IUPAC-code is accepted!\n", c, chr._desc.c_str());
+					fprintf(stderr,"ERROR: Character '%c' encountered in chromosome '%s'! Only IUPAC-code is accepted!\n", c, chr.desc());
 					exit(0);
 				} 
 			}
@@ -138,21 +132,14 @@ int Genome::load_genome()
 			if (fgets(line, 512, GENOME_FP) == NULL) break;
 		}
 		
-		chr._data[chr._length] = '\0';
+		data[chr.length()] = '\0';
 
-		if (chr._length != strlen(chr._data)) {
-			fprintf(stderr, "ERROR: Idx file seems to be corrupted. Chromosome %d has %d characters at the end! (%d %d)\n",i+1, (int)strlen(chr._data)-chr._length, (int)strlen(chr._data), chr._length);
+		if (chr.length() != strlen(data)) {
+			fprintf(stderr, "ERROR: Idx file seems to be corrupted. Chromosome %d has %d characters at the end! (%d %d)\n",i+1, (int)strlen(data)-chr.length(), (int)strlen(data), chr.length());
 			exit(1);
 		}
 
-#ifdef USE_CHR_BIN
-		//fprintf(stdout, "creating binary genome representation\n") ;
-		chr.CHR_SEQ_dd = new USE_CHR_BIN_CLASS(chr._data, chr._length);
-//		for (unsigned int j = 0; j < chr.length(); ++j)
-//			assert(chr[j] == chr._data[j]);
-		free(chr._data);
-		chr._data = NULL;
-#endif		
+		chr.data(data, chr.length());
 	}
 	
 	fclose(GENOME_FP);
@@ -382,8 +369,8 @@ int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 			printf("Early stop in index file (3).\nCorrupted file?\n");
 			exit(1);
 		}
-		_chromosomes[chr]._desc.assign(chr_desc);
-		if (_config.VERBOSE) { printf("description is %s\n", _chromosomes[chr]._desc.c_str()); }
+		_chromosomes[chr].desc(chr_desc);
+		if (_config.VERBOSE) { printf("description is %s\n", _chromosomes[chr].desc()); }
 
 	} // for every chromosome
 
