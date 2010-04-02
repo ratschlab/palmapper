@@ -6,8 +6,8 @@ using namespace std;
 
 void increaseFeatureCount(penalty_struct* qparam, int dnaChar, int estChar, double estprb) {
 
-   FA(estChar > 0 && estChar < 6);
-   FA(dnaChar > -1 && dnaChar < 6);
+   assert(estChar > 0 && estChar < 6);
+   assert(dnaChar > -1 && dnaChar < 6);
 
    int currentPos = (estChar-1)*6+dnaChar;
 

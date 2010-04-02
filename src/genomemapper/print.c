@@ -117,7 +117,7 @@ int print_hits() {
 	//u_int32_t num_other_hits = 0;
 	int reported_reads = 0 ;
 
-	for (i = 0; i != NUM_SCORE_INTERVALS; ++i) {
+	for (i = 0; i != (int)NUM_SCORE_INTERVALS; ++i) {
 
 		if (printed && !_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY)
 			break; // best hit strategy
@@ -283,7 +283,7 @@ int print_alignment(HIT* hit, unsigned int num) {
 								- fstart
 					: readstart - fstart + ((int)_read.length()) + _config.FLANKING;
 				{
-					for (size_t i=0; i<flen; i++)
+					for (size_t i=0; i<(size_t)flen; i++)
 						FLANK_SEQ[i]=(*hit->chromosome)[fstart + i];
 					//strncpy(FLANK_SEQ, CHR_SEQ[hit->chromosome] + fstart, flen);
 				}
@@ -337,14 +337,14 @@ int print_alignment(HIT* hit, unsigned int num) {
 
 			if (j == 0) 
 			{
-				for (size_t i=0; i< hit->edit_op[0].pos - 1; i++)
+				for (size_t i=0; (int)i< hit->edit_op[0].pos - 1; i++)
 					ALIGNSEQ[i]=(*hit->chromosome)[readstart + i];
 				//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + (readstart),
 				//		hit->edit_op[0].pos - 1);
 				count_char += hit->edit_op[0].pos - 1;
 			} else if (hit->edit_op[j].pos - hit->edit_op[j - 1].pos != 0) 
 			{
-				for (size_t i=0; i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++)
+				for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++)
 					ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read) + i];
 				/*strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome]
 						+ (readstart + hit->edit_op[j - 1].pos + gap_offset
@@ -391,7 +391,7 @@ int print_alignment(HIT* hit, unsigned int num) {
 
 		// from last mismatch to end of read:
 		{
-			for (size_t i=0; i<((int)_read.length()) - hit->edit_op[j - 1].pos + gap_in_read; i++)
+			for (size_t i=0; (int)i<((int)_read.length()) - hit->edit_op[j - 1].pos + gap_in_read; i++)
 				ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read) + i];
 			/*strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart
 				+ hit->edit_op[j - 1].pos + gap_offset - gap_in_read),
@@ -440,7 +440,7 @@ int print_alignment(HIT* hit, unsigned int num) {
 								- fstart
 					: readstart - fstart + ((int)_read.length()) + _config.FLANKING;
 				{
-					for (size_t i=0; i<flen; i++)
+					for (size_t i=0; i<(size_t)flen; i++)
 						FLANK_SEQ[i]= (*hit->chromosome)[fstart + i];
 					//strncpy(FLANK_SEQ, CHR_SEQ[hit->chromosome] + fstart, flen);
 				}
@@ -674,8 +674,15 @@ void printhit(HIT* hit) {
 }
 
 
-void print_alignment_records(std::vector<alignment_t *> & hits, int num_unspliced_alignments, int num_spliced_alignments, int RTRIM_STRATEGY_CUT)
+void print_alignment_records(std::vector<alignment_t *> & hits, 
+							 int num_unspliced_alignments, int num_spliced_alignments, 
+							 int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end)
 {
+	if (rtrim_cut!=0)
+		assert(polytrim_cut_start==0 && polytrim_cut_end==0) ;
+	if (polytrim_cut_start!=0)
+		assert(polytrim_cut_end==0) ;
+
 	if (hits.size()==0)
 		return ;
 	alignment_t * best = hits[0] ;
@@ -691,7 +698,7 @@ void print_alignment_records(std::vector<alignment_t *> & hits, int num_unsplice
 	else
 		num_unspliced_best++ ;
 
-	for (int i=1; i<hits.size(); i++)
+	for (int i=1; i<(int)hits.size(); i++)
 		if (hits[i]->spliced)
 			num_spliced_suboptimal+=1 ;
 		else
@@ -739,7 +746,7 @@ void print_alignment_records(std::vector<alignment_t *> & hits, int num_unsplice
 
 	if (_config.RTRIM_STRATEGY)
 	{
-		fprintf(MY_OUT_FP, "\ttrimmed=%i", RTRIM_STRATEGY_CUT) ;
+		fprintf(MY_OUT_FP, "\ttrimmed=%i", rtrim_cut) ;
 		fprintf(MY_OUT_FP, "\n");
 		return ;
 	} 
@@ -759,9 +766,16 @@ void print_alignment_records(std::vector<alignment_t *> & hits, int num_unsplice
 			fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
 					qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, best->read_anno, qual) ;
 		}
+		if (_config.POLYTRIM_STRATEGY)
+		{
+			if (polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimStart=%i", polytrim_cut_start) ;
+			if (polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimEnd=%i", polytrim_cut_end) ;
+		}
 	}
 	
-	for (int j=1; j<hits.size(); j++)
+	for (unsigned int j=1; j<hits.size(); j++)
 	{
 		alignment_t * second  = hits[j] ;
 		

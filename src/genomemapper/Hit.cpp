@@ -128,7 +128,12 @@ int map_reads()
 		int cancel = 0 ;
 
 		LONGEST_HIT = 0;
-		int RTRIM_STRATEGY_CUT = 0 ;
+		int rtrim_cut = 0 ;
+		int polytrim_cut_start = 0 ;
+		int polytrim_cut_end = 0 ;
+		int poly_length_start=0 ;
+		int poly_length_end=0 ;
+		Read* poly_orig_read = NULL ;
 
 		clock_t start_time = clock() ;
 
@@ -321,7 +326,7 @@ int map_reads()
 				//if (_config.VERBOSE && read_mapped)
 				//	printf("unspliced or spliced alignment found\n"); 
 				
-				_topalignments.end_best_alignment_record(RTRIM_STRATEGY_CUT);
+				_topalignments.end_best_alignment_record(rtrim_cut, polytrim_cut_start, polytrim_cut_end);
 				
 				if (read_mapped)
 					_stats.READS_MAPPED++ ;
@@ -331,7 +336,7 @@ int map_reads()
 					{
 				    	_read.cutOffLast();
 
-						RTRIM_STRATEGY_CUT += 1 ;
+						rtrim_cut += 1 ;
 						
 						dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
 						dealloc_hits();
@@ -341,6 +346,54 @@ int map_reads()
 							dealloc_hit_lists_operator();
 
 						goto restart ;
+					}
+
+				    if (_config.POLYTRIM_STRATEGY && (_read.length() > _config.POLYTRIM_STRATEGY_MIN_LEN))
+					{
+						// intended logic: increase start and end alternatively 
+						// until the individual stopping conditions are reached
+
+						if (polytrim_cut_start==0 && polytrim_cut_end==0)
+						{
+							// determine the number of T's at beginning or A's at end
+							_read.find_poly(poly_length_start, poly_length_end) ;
+							// copy original read
+							delete poly_orig_read ;
+							poly_orig_read=new Read(_read) ;
+						}
+						assert(poly_orig_read!=NULL) ;
+
+						// determine which side to cut
+						bool restart=false ;
+						bool start_cond = (polytrim_cut_start < poly_length_start &&
+										   _read.length() - polytrim_cut_start >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
+						bool end_cond = (polytrim_cut_end < poly_length_end &&
+										 _read.length() - polytrim_cut_end >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
+
+						if (start_cond && (polytrim_cut_start<polytrim_cut_end || !end_cond))
+						{
+							polytrim_cut_start += 1 ;
+							_read.trim_read_start(poly_orig_read, polytrim_cut_start) ;
+							restart = true ;
+						}
+						if (end_cond && !restart)
+						{
+							polytrim_cut_end += 1 ;
+							_read.trim_read_end(poly_orig_read, polytrim_cut_end) ;
+							restart = true ;
+						}
+
+						if (restart)
+						{
+							dealloc_mapping_entries();
+							dealloc_hits();
+							dealloc_hits_by_score();
+							CHROMOSOME_ENTRY_OPERATOR->used = 0;
+							if (LONGEST_HIT != 0)
+								dealloc_hit_lists_operator();
+							
+							goto restart ;
+						}
 					}
 
 					if (_config.LEFTOVER_FILE_NAME.length() > 0)
@@ -368,6 +421,7 @@ int map_reads()
 			CHROMOSOME_ENTRY_OPERATOR->used = 0;
 			if (LONGEST_HIT != 0)
 				dealloc_hit_lists_operator();
+			delete poly_orig_read ;
 
 			if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 			{

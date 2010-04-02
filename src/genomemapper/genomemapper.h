@@ -295,7 +295,7 @@ extern void print_leftovers(const char *tag, FILE *LEFTOVER_FP);
 extern void printhits();
 extern void printhit(HIT* hit);
 extern void print_alignment_matrix(int chrstart, int readstart, int length, int offset_front, int offset_end, Chromosome const &chr, char ori, int K);
-extern void print_alignment_records(std::vector<alignment_t *> &hits, int num_unspliced_alignments, int num_spliced_alignments, int RTRIM_STRATEGY_CUT) ;
+extern void print_alignment_records(std::vector<alignment_t *> &hits, int num_unspliced_alignments, int num_spliced_alignments, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
 extern int compare_int(const void *a, const void *b) ;
 
 

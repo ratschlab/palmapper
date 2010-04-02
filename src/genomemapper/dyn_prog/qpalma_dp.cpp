@@ -36,8 +36,8 @@ Alignment::Alignment(int numQPlifs, int numq, bool use_qscores) {
 
       //printf("number of support points: %d\n",numQualSuppPoints);
       //printf("number of plifs: %d\n",numPlifs );
-      FA( numQualSuppPoints >= 0 );
-      FA( numPlifs >= 0 );
+      assert( numQualSuppPoints >= 0 );
+      assert( numPlifs >= 0 );
 }
 
 void Alignment::getDNAEST(){}
@@ -459,16 +459,16 @@ void Alignment::getAlignmentResults(int* s_align, int* e_align,
       int* mmatrix_p, double* alignscores, double* qScores) {
 
    int idx;
-   for(idx=0; idx<splice_align_size; idx++){
+   for(idx=0; idx<(int)splice_align_size; idx++){
       s_align[idx] = splice_align[idx];
    }
-   for(idx=0; idx<est_align_size; idx++)
+   for(idx=0; idx<(int)est_align_size; idx++)
       e_align[idx] =  est_align[idx];
 
-   for(idx=0; idx<mmatrix_param_size; idx++)
+   for(idx=0; idx<(int)mmatrix_param_size; idx++)
       mmatrix_p[idx] = mmatrix_param[idx];
 
-   for(idx=0; idx<alignmentscores_size; idx++)
+   for(idx=0; idx<(int)alignmentscores_size; idx++)
       alignscores[idx] = alignmentscores[idx];
    
    if (use_quality_scores && qScores!=NULL) {
@@ -496,7 +496,7 @@ void Alignment::getAlignmentResults(int* s_align, int* e_align,
 
 float Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double * matchmatrix, char strand) 
 {
-	int len=strlen(align_seq) ;
+	int len_=strlen(align_seq) ;
 	float score=0.0 ;
 	//fprintf(stderr, "align_seq=%s\n", align_seq) ;
 	
@@ -504,7 +504,7 @@ float Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, i
 	int reverse[7] = { -1, 0, 4, 3, 2, 1, 5 } ;
 			
 	int pos=0 ;
-	for (int i=0; i<len; i++)
+	for (int i=0; i<len_; i++)
 	{
 		int dnachar ;
 		int estchar ;

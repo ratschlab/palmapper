@@ -271,7 +271,7 @@ void TopAlignments::check_alignment(struct alignment_t * alignment)
 	}
 }
 
-void TopAlignments::end_best_alignment_record(int RTRIM_STRATEGY_CUT) {
+void TopAlignments::end_best_alignment_record(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
 
 	if (top_alignments.empty())
 		return;
@@ -292,7 +292,7 @@ void TopAlignments::end_best_alignment_record(int RTRIM_STRATEGY_CUT) {
 			report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, top_alignments[i]->num_matches, i) ;
 	}
 
-	print_alignment_records(top_alignments,	num_unspliced_alignments, num_spliced_alignments, RTRIM_STRATEGY_CUT);
+	print_alignment_records(top_alignments,	num_unspliced_alignments, num_spliced_alignments, rtrim_cut, polytrim_cut_start, polytrim_cut_end);
 	
 	pthread_mutex_unlock( &top_mutex) ;
 

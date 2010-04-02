@@ -57,36 +57,36 @@ void CIO_DP::check_target()
 		target=stdout;
 }
 
-void CIO_DP::print_message_prio(EMessageType_DP prio, FILE* target)
+void CIO_DP::print_message_prio(EMessageType_DP prio, FILE* target_)
 {
 	switch (prio)
 	{
 		case M_DEBUG_DP:
-			fprintf(target, "[DEBUG] ");
+			fprintf(target_, "[DEBUG] ");
 			break;
 		case M_PROGRESS_DP:
-			fprintf(target, "[PROGRESS] ");
+			fprintf(target_, "[PROGRESS] ");
 			break;
 		case M_INFO_DP:
-			//fprintf(target, "[INFO] ");
+			//fprintf(target_, "[INFO] ");
 			break;
 		case M_NOTICE_DP:
-			fprintf(target, "[NOTICE] ");
+			fprintf(target_, "[NOTICE] ");
 			break;
 		case M_WARN_DP:
-			fprintf(target, "[WARN] ");
+			fprintf(target_, "[WARN] ");
 			break;
 		case M_ERROR_DP:
-			fprintf(target, "[ERROR] ");
+			fprintf(target_, "[ERROR] ");
 			break;
 		case M_CRITICAL_DP:
-			fprintf(target, "[CRITICAL] ");
+			fprintf(target_, "[CRITICAL] ");
 			break;
 		case M_ALERT_DP:
-			fprintf(target, "[ALERT] ");
+			fprintf(target_, "[ALERT] ");
 			break;
 		case M_EMERGENCY_DP:
-			fprintf(target, "[EMERGENCY] ");
+			fprintf(target_, "[EMERGENCY] ");
 			break;
 		case M_MESSAGEONLY_DP:
 			break;

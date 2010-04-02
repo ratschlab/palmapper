@@ -35,6 +35,28 @@ Read::Read() {
 	READ_LENGTH = 0;
 }
 
+Read::Read(const Read& read) 
+{
+	READ_ID = new char[_config.MAX_READ_ID_LENGTH];
+	for (int i = 0; i < 3; ++i) {
+		READ_QUALITY[i] = (char*) calloc(_config.MAX_READ_LENGTH + 1, sizeof(char));
+		if (READ_QUALITY[i] == NULL) {
+			fprintf(stderr, "[init_defaults] Could not allocate memory\n");
+			exit(1);
+		}
+	}
+	linenr = read.linenr ;
+	READ_LENGTH = read.READ_LENGTH ;
+	strncpy(READ_ID, read.READ_ID, _config.MAX_READ_ID_LENGTH) ;
+	strncpy(READ, read.READ, _config.MAX_READ_LENGTH+1) ;
+	for (int i = 0; i < 3; ++i) {
+		strncpy(READ_QUALITY[i], read.READ_QUALITY[i], _config.MAX_READ_LENGTH + 1) ;
+	}
+	READ_FORMAT=read.READ_FORMAT ;
+	READ_PE_FLAG = read.READ_PE_FLAG ;
+	
+}
+
 /** Parses one line of read descriptions in either FASTA, FASTQ or FLATFILE
  *  format and sets a number of global variables describing this read.
  *
@@ -107,7 +129,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 			return -1;
 		}
 
-		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
+		if ((int)strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
 			return -1;
 		}
@@ -182,7 +204,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
 			exit(0);
 		}
-		for (int i=0; i<strlen(READ); i++)
+		for (int i=0; i<(int)strlen(READ); i++)
 			if (READ[i]=='-')
 			{
 				//fprintf(stderr, "replaced '-' with 'N'\n")  ;
@@ -194,7 +216,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 			return -1;
 		}
 
-		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
+		if ((int)strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
 			return -1;
 		}
@@ -216,7 +238,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 		/////// Flatfile input ///////
 		READ_ID = strtok(line, "\t");
 
-		if (strlen(READ_ID) == linelen) {
+		if ((int)strlen(READ_ID) == linelen) {
 			fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", linenr);
 			exit(0);
 		}
@@ -243,7 +265,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 
 		strcpy(READ, tok);
 		READ_LENGTH = strlen(tok);
-		if (READ_LENGTH < /*_config.*/_config.INDEX_DEPTH) {
+		if ((int)READ_LENGTH < /*_config.*/_config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
 			return -1;
 		}
@@ -388,7 +410,7 @@ int Read::map_fast(int & firstslot, int & firstpos)
 					}
 
 					int index_entry_num=index_entry.num ;
-					if (index_entry.num>_config.SEED_HIT_CANCEL_THRESHOLD) { // && !REPORT_REPETITIVE_SEEDS)
+					if ((int)index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) { // && !REPORT_REPETITIVE_SEEDS)
 						index_entry_num=0 ;
 						if (rev) seed_already_inspected_rev[run] = false;
 						else seed_already_inspected_fwd[run] = false;
@@ -406,7 +428,7 @@ int Read::map_fast(int & firstslot, int & firstpos)
 #endif
 					time2a_seek += clock()-start_time ;
 
-					for (i=0; i<index_entry_num; i++)
+					for (i=0; (int)i<index_entry_num; i++)
 					{
 
 						block = 0; position = 0;
@@ -451,8 +473,8 @@ int Read::map_fast(int & firstslot, int & firstpos)
 								(rev && chrstart < ((int)READ_LENGTH) - 1) ) {
 							if (/*_config.*/_config.STATISTICS) chrom_overlap++;
 						}
-						else if ( (!rev && chrstart + ((int)READ_LENGTH) > chr.length()) ||
-								( rev && chrstart > chr.length() - 1) ) {
+						else if ( (!rev && chrstart + ((int)READ_LENGTH) > (int)chr.length()) ||
+								  ( rev && chrstart > (int)chr.length() - 1) ) {
 							if (/*_config.*/_config.STATISTICS) chrom_overlap++;
 						}
 						else {
@@ -464,11 +486,11 @@ int Read::map_fast(int & firstslot, int & firstpos)
 							readpos = 0;
 							chrpos = chrstart;
 
-							for (j=1; j!=run; ++j) {
+							for (j=1; (int)j!=run; ++j) {
 
 								mm = 0;
 
-								for (p=0; p!=/*_config.*/_config.INDEX_DEPTH; ++p) {
+								for (p=0; (int)p!=/*_config.*/_config.INDEX_DEPTH; ++p) {
 
 									READ[readpos+p] = mytoupper(READ[readpos+p]);
 									if ( ( rev && get_compl_base(chr[chrpos-p]) != READ[readpos+p]) ||
@@ -506,7 +528,7 @@ int Read::map_fast(int & firstslot, int & firstpos)
 
 							chrpos  = chrpos  + (run!=nr_runs) * /*_config.*/_config.INDEX_DEPTH * (rev? -1: 1);
 							readpos = readpos + (run!=nr_runs) * /*_config.*/_config.INDEX_DEPTH;
-							while (!cancel && chars != ((int)READ_LENGTH) - /*_config.*/_config.INDEX_DEPTH) {
+							while (!cancel && (int)chars != ((int)READ_LENGTH) - /*_config.*/_config.INDEX_DEPTH) {
 
 								READ[readpos] = mytoupper(READ[readpos]);
 								if ( ( rev && get_compl_base(chr[chrpos]) != READ[readpos]) ||
@@ -553,11 +575,11 @@ int Read::map_fast(int & firstslot, int & firstpos)
 
 								mm = 0;
 								// create possible mismatches
-								for (j=0; j!=nr_mms; ++j) {
+								for (j=0; (int)j!=nr_mms; ++j) {
 									hit->edit_op[j].mm = 1;
 									if (hit->orientation == '+') hit->edit_op[j].pos = mmpos[j];
 									else					 hit->edit_op[j].pos = ((int)READ_LENGTH) - mmpos[j] + 1;
-									assert(hit->edit_op[j].pos >= -((int)READ_LENGTH) && hit->edit_op[j].pos<=READ_LENGTH) ;
+									assert(hit->edit_op[j].pos >= -((int)READ_LENGTH) && hit->edit_op[j].pos<=(int)READ_LENGTH) ;
 									hit->mismatches++;
 									mm = 1;
 								}
@@ -753,7 +775,7 @@ int Read::get_slot(int pos)
 	if (HAS_SLOT == 0)
 	{
 
-		for (i = 0; i < /*_config.*/_config.INDEX_DEPTH; i++)
+		for (i = 0; (int)i < /*_config.*/_config.INDEX_DEPTH; i++)
 		{
 			READ[pos + i] = mytoupper(READ[pos + i]);
 

@@ -967,6 +967,13 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 	}
 
 	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
+
+	if (RTRIM_STRATEGY && POLYTRIM_STRATEGY)
+	{
+		fprintf(stderr, "ERROR: RTRIM and POLYTRIM cannot be combined\n") ;
+		exit(1) ;
+	}
+	
 	return 0;
 
 }

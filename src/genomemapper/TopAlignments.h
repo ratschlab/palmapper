@@ -15,7 +15,7 @@ public:
 
 	void start_best_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
-	void end_best_alignment_record(int RTRIM_STRATEGY_CUT) ;
+	void end_best_alignment_record(int rtrim_cut, int polytrim_start, int polytrim_end) ;
 	void add_alignment_record(alignment_t *alignment, int num_alignments) ;
 
 	size_t size()
