@@ -327,7 +327,6 @@ int report_spliced_read(Chromosome const &chr, std::vector<int> & exons, int num
 {
 	reported_spliced_reads++ ;
 
-
 	//fprintf(stdout, "mapped_read:  \tchr=%s\tstart=%i\tend=%i\tmatches=%i\tnbest=%i\n", CHR_DESC[chr], start, end, num_matches, nbest_hit) ;
 	
 	if (exons.size()==2)

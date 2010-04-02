@@ -23,7 +23,7 @@ Config::Config() {
 	INDEX_DEPTH_EXTRA = 3 ;
 	INDEX_DEPTH_EXTRA_THRESHOLD = 100000000 ;
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
-	OUTPUT_FORMAT = 0;
+	OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE ;
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
 	REPORT_REPETITIVE_SEEDS = 0 ;
@@ -505,9 +505,11 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			//printf("argv .%s.\n", argv[i]);
 			strcpy(output, argv[i]);
 			if (strcmp(output, "shore") == 0 || strcmp(output, "SHORE") == 0) {
-				OUTPUT_FORMAT = 0;
+				OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE ;
 			} else if (strcmp(output, "bed") == 0 || strcmp(output, "BED") == 0) {
-				OUTPUT_FORMAT = 1;
+				OUTPUT_FORMAT = OUTPUT_FORMAT_BED;
+			} else if (strcmp(output, "sam") == 0 || strcmp(output, "SAM") == 0) {
+				OUTPUT_FORMAT = OUTPUT_FORMAT_SAM;
 			} else {
 				fprintf(stderr,
 						"ERROR: Output file format must either be \"shore\" or \"bed\"\n");

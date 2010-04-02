@@ -11,9 +11,16 @@
 #define ASSUMED_READ_LENGTH 76 // TODO Refactoring needed. This should be a parameter.
 #define VERSION "0.4"
 
+enum OutputFormatEnum
+{
+	OUTPUT_FORMAT_SHORE=0,
+	OUTPUT_FORMAT_BED=1,
+	OUTPUT_FORMAT_SAM=2
+}  ;
 
 class Config {
 public:
+	
 	Config();
 	int parseCommandLine(int argc, char *argv[]);
 
@@ -64,7 +71,7 @@ public:
 	std::string GENOME_FILE_NAME;
 	std::string LEFTOVER_FILE_NAME;
 	std::string TRIGGERED_LOG_FILE;  // #A#
-	char OUTPUT_FORMAT;
+	OutputFormatEnum OUTPUT_FORMAT;
 
 	char * REPORT_FILE;
 	int REPORT_FILE_READONLY;

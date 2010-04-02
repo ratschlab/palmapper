@@ -32,6 +32,59 @@ inline void reset_num_edit_ops(int num_edit_ops)
  	SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.resize(0) ;
 }
 
+// for debugging purposes only
+
+void printhit(HIT* hit) {
+	printf("[%i: %i-%i/%c/chr%i/rp%i/%imm", hit->end - hit->start + 1,
+			hit->start, hit->end, hit->orientation, hit->chromosome->nr() + 1,
+			hit->readpos, hit->mismatches);
+	if (hit->mismatches != 0) {
+		printf(":");
+		int i;
+		for (i = 0; i != hit->mismatches; ++i) 
+			printf(" %i%c", hit->edit_op[i].pos, (hit->edit_op[i].mm) ? 'M' : 'G');
+	}
+	printf("/ID: %s]", _read.id());
+}
+
+void printhits() {
+	//printf("list:\n");
+	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
+	int i;
+	int c = 0;
+	HIT* hit;
+	for (i = _config.INDEX_DEPTH; i != ((int)_read.length()) + 1; ++i) {
+
+		if (*(HIT_LISTS_OPERATOR + i) != NULL) {
+			printf("%i: ", i);
+			hit = *(HIT_LISTS_OPERATOR + i);
+			do {
+				//if (hit->orientation == '-') {
+				printf("[%i: %i-%i/%c/chr%i/rp%i/%imm", hit->end - hit->start
+						+ 1, hit->start, hit->end, hit->orientation,
+						hit->chromosome->nr() + 1, hit->readpos, hit->mismatches);
+				if (hit->mismatches != 0) {
+					printf(":");
+					int j;
+					for (j = 0; j != hit->mismatches; ++j)
+						printf(" %i%c", hit->edit_op[j].pos,
+								(hit->edit_op[j].mm) ? 'M' : 'G');
+				}
+				printf("/%s]", _read.id());
+				++c;
+				//}
+				hit = hit->next;
+				if (c > 4)
+					hit = NULL;
+			} while (hit != NULL);
+			printf("\n");
+		}
+		c = 0;
+	}
+	//printf("done\n");
+}
+
+
 inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_)
 {
 	assert(num_edit_ops<Config::MAX_EDIT_OPS) ;
@@ -264,7 +317,7 @@ int map_reads()
 
 			if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
 			{
-				_topalignments.start_best_alignment_record();
+				_topalignments.start_top_alignment_record();
 
 				read_mapped = print_hits();	// returns 1 if at least one hit is printed, 0 otherwise
 				if (_config.VERBOSE)
@@ -273,7 +326,7 @@ int map_reads()
 				bool trigger = false ;
 				if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
 					trigger = _topalignments.size()==0 || 
-						qpalma_filter(_topalignments.get_alignment(0), num_N)!=0 ;
+						_qpalma.qpalma_filter(_topalignments.get_alignment(0), num_N)!=0 ;
 
 				if ( trigger )
 				{
@@ -296,14 +349,14 @@ int map_reads()
 						//(top_alignments.size()==0 || top_alignments[0]->num_matches <= _read.lenght() - _config.NUM_EDIT_OPS/2) )
 						try
 							{
-								int ret = capture_hits();
+								int ret = _qpalma.capture_hits();
 								//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 								if (ret<0)
 									cancel=4 ;
 								if (_config.VERBOSE)
 									fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
 								if (FILTER_STAT)
-									qpalma_filter_stat(ret>0) ;
+									_qpalma.qpalma_filter_stat(ret>0) ;
 							}
 						catch (std::bad_alloc&)
 							{
@@ -314,7 +367,7 @@ int map_reads()
 				if (FILTER_STAT && num_spliced_alignments_triggered>=5000)
 				{
 					fprintf(stdout, "final filter stat report\n") ;
-					qpalma_filter_stat_report() ;
+					_qpalma.qpalma_filter_stat_report() ;
 					FILTER_STAT=false ;
 				}
 			}
@@ -326,7 +379,7 @@ int map_reads()
 				//if (_config.VERBOSE && read_mapped)
 				//	printf("unspliced or spliced alignment found\n"); 
 				
-				_topalignments.end_best_alignment_record(rtrim_cut, polytrim_cut_start, polytrim_cut_end);
+				_topalignments.end_top_alignment_record(rtrim_cut, polytrim_cut_start, polytrim_cut_end);
 				
 				if (read_mapped)
 					_stats.READS_MAPPED++ ;
@@ -433,7 +486,7 @@ int map_reads()
 	}
 
 	map_reads_timing(count_reads) ;
-	capture_hits_timing() ;
+	_qpalma.capture_hits_timing() ;
 
 	//TODO dd use otehr criteria
 	fprintf(stdout, "\n#done\n") ;

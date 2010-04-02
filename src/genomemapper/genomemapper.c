@@ -11,6 +11,7 @@ Config _config;
 Statistics _stats;
 Genome _genome(false);
 TopAlignments _topalignments ;
+QPalma _qpalma ;
 
 int main(int argc, char *argv[]) 
 {
@@ -48,13 +49,13 @@ int main(int argc, char *argv[])
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_ACC = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		_qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> acceptor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_ACC) ;
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_DON = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		_qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> donor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_DON) ;
 	}
@@ -68,13 +69,13 @@ int main(int argc, char *argv[])
 		
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		_qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> acceptor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC) ;
 			
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_DON = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		_qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> donor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_DON) ;
 	}

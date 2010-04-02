@@ -230,7 +230,7 @@ int Genome::read_meta_index_header(FILE *META_INDEX_FP)
 		for (uint32_t i = 0; i < NUM_CHROMOSOMES; i++)
 		{
 			std::vector<region_t *> r;
-			regions[ori].push_back(r);
+			_qpalma.regions[ori].push_back(r);
 		}
 
 	////////////////////////////////////////////////////////////////////////////////////

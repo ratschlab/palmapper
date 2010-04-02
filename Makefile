@@ -28,9 +28,7 @@ DYNPROG_OBJ = $(ObjDir)/genomemapper/dyn_prog/Mathmatics_dp.o \
 	$(ObjDir)/genomemapper/dyn_prog/fill_matrix.o
 
 GM_OBJ = $(ObjDir)/genomemapper/report_maps.o \
-	$(ObjDir)/genomemapper/qpalma_alignment.o \
-	$(ObjDir)/genomemapper/qpalma_filter.o \
-	$(ObjDir)/genomemapper/qpalma_init.o \
+	$(ObjDir)/genomemapper/QPalma.o \
 	$(ObjDir)/genomemapper/align.o \
 	$(ObjDir)/genomemapper/alloc.o \
 	$(ObjDir)/genomemapper/TopAlignments.o \

@@ -10,7 +10,6 @@
 #include "shogun/Array.h"
 #include "DNAArray.h"
 #include "DNAArray4.h"
-#include "dyn_prog/qpalma_dp.h"
 
 #include <string.h>
 #include <ctype.h>
@@ -39,12 +38,14 @@
 #include <genomemapper/Statistics.h>
 #include <genomemapper/Util.h>
 #include <genomemapper/TopAlignments.h>
+#include <genomemapper/QPalma.h>
 
 extern Config _config;
 extern Statistics _stats;
 extern Read _read;
 extern Genome _genome;
-extern TopAlignments _topalignments;
+extern TopAlignments _topalignments ;
+extern QPalma _qpalma ;
 
 #if 1 // dd
 extern char HAS_SLOT;
@@ -123,42 +124,6 @@ extern int NUM_MATCHES; // for new version of QPalma
 #define UP 'U'
 extern double WORST_SCORE;
 extern double WORST_MM_SCORE;
-
-// ##############################################################
-// ####### SPLICED HITTING ######################################
-// ##############################################################
-
-typedef struct alignment_t {
-  double qpalma_score;
-  uint32_t num_matches;
-  uint32_t num_gaps;
-  char read_anno[4*Config::MAX_READ_LENGTH] ;
-  std::vector<int> exons;
-  Chromosome const *chromosome;
-  char orientation;
-  char strand ;
-  char read_id[Config::MAX_READ_ID_LENGTH];
-  int min_exon_len ;
-  int max_intron_len ;
-  bool spliced ;
-  //bool rescued ;
-  //int rescue_start, rescue_end ;
-} ALIGNMENT;
-
-extern std::vector<alignment_t *> top_alignments ;
-
-struct region_t {
-	int32_t start;
-	int32_t end;
-	bool erased ;
-	bool from_map ;
-	char orientation ;
-	bool* read_map ;
-	//int32_t chromosome ;
-	//char strand ;
-};
-extern std::vector<std::vector<region_t *> > regions[];
-
 
 // ##############################################################
 // ####### HIT/EDIT #############################################
@@ -292,55 +257,9 @@ extern int print_hits();
 extern int print_perfect_hits(unsigned int num);
 extern int print_largest_hit();
 extern void print_leftovers(const char *tag, FILE *LEFTOVER_FP);
-extern void printhits();
-extern void printhit(HIT* hit);
 extern void print_alignment_matrix(int chrstart, int readstart, int length, int offset_front, int offset_end, Chromosome const &chr, char ori, int K);
-extern void print_alignment_records(std::vector<alignment_t *> &hits, int num_unspliced_alignments, int num_spliced_alignments, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
+extern void print_alignment_stats(int num_unspliced_best, int num_unspliced_suboptimal, int num_spliced_best, int num_spliced_suboptimal) ;
 extern int compare_int(const void *a, const void *b) ;
-
-
-// qpalma_init.cpp
-
-struct alignment_parameter_struct {
-	struct penalty_struct h, a, d, *qualityPlifs;
-	int num_qualityPlifs;
-	double *matchmatrix;
-	int matchmatrix_dim[2];
-	int quality_offset ;
-} ;
-
-extern struct alignment_parameter_struct *alignment_parameters;
-
-extern int init_qpalma() ;
-extern int clean_qpalma() ;
-extern int map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report) ;
-
-// qpalma_filter.cpp
-
-extern int qpalma_filter(struct alignment_t *ali, int num_N) ;
-extern void qpalma_filter_stat(bool spliced) ;
-extern void qpalma_filter_stat_report() ;
-
-// qpalma_alignment.cpp
-
-extern int get_splicesite_positions(std::string file_template, const char *type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
-									std::vector<int> &positions) ;
-extern int capture_hits();
-extern int perform_alignment(std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
-							 Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) ;
-extern void capture_hits_timing(int read_count=-1, float this_read=-1.0) ;
-
-extern float score_unspliced(const char * read_anno) ;
-
-
-// filter.cpp
-
-extern u_int8_t report_unspliced_hit(HIT *hit)  ;
-
-extern void start_best_alignment_record();
-extern void end_best_alignment_record(int RTRIM_STRATEGY_CUT);
-extern void add_alignment_record(alignment_t *alignment, int num_alignments);
-
 
 #include "report_maps.h"
 

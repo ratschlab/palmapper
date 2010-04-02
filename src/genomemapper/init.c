@@ -25,7 +25,7 @@ int init(int argc, char *argv[]) {
 	init_alignment_structures();
 	init_hit_lists();
 
-	init_qpalma() ;
+	//_qpalma.init_qpalma() ;
 
 	return 0;
 }
@@ -148,7 +148,7 @@ int init_defaults() {
 	// 	  return count;
 	// }
 
-	_config.OUTPUT_FORMAT = 0;
+	_config.OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE;
 
 	_config.SCORES_OUT = 1;
 

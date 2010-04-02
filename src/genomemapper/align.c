@@ -188,9 +188,9 @@ int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const
 		// this version leads to seg faults later on ... quite unclear why
 		for (int ii=0; ii<mismatches; ii++)
 		{
-			assert(edit_op[ii].pos>=-((INT)_read.length()) && edit_op[ii].pos<=((INT)_read.length())) ;
+			assert(edit_op[ii].pos>=-((int)_read.length()) && edit_op[ii].pos<=((int)_read.length())) ;
 			hit->edit_op[ii]=edit_op[ii] ;
-			assert(hit->edit_op[ii].pos>=-((INT)_read.length()) && hit->edit_op[ii].pos<=((INT)_read.length())) ;
+			assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
 		}
 		
 		update_num_edit_ops(mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;

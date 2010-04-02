@@ -7,34 +7,511 @@
 #include "IntervalQuery.h"
 #include "dyn_prog/qpalma_dp.h"
 
-
-std::vector<std::vector<region_t *> > regions[2];
-
-clock_t region_align_time = 0;
-clock_t region1_time = 0;
-clock_t align_time = 0;
-int read_count = 0;
-
-long int total_dna_length=0 ;
-long int total_alignments=0 ;
-
-static clock_t last_timing_report=0 ;
-
-const int verbosity = 0 ;
-
-int total_num_threads = 0 ;
-int total_num_thread_tasks = 0 ;
+#include <genomemapper/QPalma.h>
 
 #define LONG_HIT_EXTEND_REGION _config.SPLICED_LONGEST_INTRON_LENGTH
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
-//int perform_alignment_starter(std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, int contig_idx, char strand, int ori) ;
-int perform_alignment_starter(std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
-int perform_alignment_wait(int & num_reported) ;
+clock_t QPalma::last_timing_report=0 ;
+clock_t QPalma::last_filter_report=0 ;
+
+QPalma::QPalma(int verbosity_): verbosity(verbosity_)
+{
+	region_align_time = 0;
+	region1_time = 0;
+	align_time = 0;
+	read_count = 0;
+	
+	total_dna_length=0 ;
+	total_alignments=0 ;
+	
+	last_timing_report=0 ;
+	
+	total_num_threads = 0 ;
+	total_num_thread_tasks = 0 ;
+
+	qpalma_filter_reason = -1 ;
+	for (int i=0; i<num_filter_reasons; i++)
+	{
+		qpalma_filter_stat_spliced[i]=0 ;
+		qpalma_filter_stat_unspliced[i]=0 ;
+	}
+	
+	if (_config.SPLICED_HITS)
+	{
+		if (_config.QPALMA_FILE.length()>0)
+		{
+			int ret=init_alignment_parameters(_config.QPALMA_FILE) ;
+			if (ret!=0)
+			{
+				fprintf(stderr, "init_alignment_parameters failed\n") ;
+				exit(ret) ;
+			}
+		}
+		else
+		{
+			fprintf(stderr, "alignment parameter file not provided (use -qpalma option)\n") ;
+			exit(-1) ;
+		}
+		
+		if (_config.ACC_FILES.length()>0)
+		{
+			int ret=check_splice_files(_config.ACC_FILES) ;
+			if (ret!=0)
+			{
+				fprintf(stderr, "check_splice_file failed\n") ;
+				exit(ret) ;
+			}
+		}
+		else
+		{
+			if (!_config.NO_SPLICE_PREDICTIONS)
+			{
+				fprintf(stderr, "acceptor splice site predictions file not provided (use -acc option)\n") ;
+				exit(-1) ;
+			}
+		}
+		
+		if (_config.DON_FILES.length()>0)
+		{
+			int ret=check_splice_files(_config.DON_FILES) ;
+			if (ret!=0)
+			{
+				fprintf(stderr, "check_splice_file failed\n") ;
+				exit(ret) ;
+			}
+		}
+		else
+		{
+			if (!_config.NO_SPLICE_PREDICTIONS)
+			{
+				fprintf(stderr, "donor splice site predictions file not provided (use -acc option)\n") ;
+				exit(-1) ;
+			}
+		}
+	}
+	
+}
 
 
-int get_splicesite_positions(std::string file_template, const char * type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
+QPalma::~QPalma()
+{
+	clean_alignment_parameters() ;
+}
+
+
+int QPalma::check_splice_files(std::string file_template)
+{
+	char basename[1000] ;
+	
+	for (int chr=1; chr<(int)_genome.nrChromosomes(); chr++)
+	{
+		char strand='+' ;
+		
+		while (1)
+		{
+			sprintf(basename, file_template.c_str(), chr, strand) ;
+		    char posname[1000] ;
+			sprintf(posname, "%s.pos", basename) ;
+		    char confcumname[1000] ;
+			sprintf(confcumname, "%s.Conf_cum", basename) ;
+
+			FILE *fd=fopen(posname, "r") ;
+			if (fd==NULL)
+			{
+				fprintf(stderr, "%s does not exist\n", posname) ;
+				return -1 ;
+			}
+			fclose(fd) ;
+
+			fd=fopen(confcumname, "r") ;
+			if (fd==NULL)
+			{
+				fprintf(stderr, "%s does not exist\n", confcumname) ;
+				return -1 ;
+			}
+			fclose(fd) ;
+			
+			if (strand=='+')
+				strand='-' ;
+			else
+				break ;
+		}
+	}
+	return 0 ;
+}
+
+int QPalma::compare_double(const void *a, const void *b) 
+{
+	double *ia = (double *) a;
+	double *ib = (double *) b;
+
+	return (int) (*ia - *ib);
+}
+
+int QPalma::map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report)
+{
+	char basename[1000] ;
+	
+	for (int chr=0; chr<(int)_genome.nrChromosomes() && (chr==0 || do_report); chr++)
+	{
+		char strand='+' ;
+		
+		while (1)
+		{
+			sprintf(basename, file_template.c_str(), chr+1, strand) ;
+		    char posname[1000] ;
+			sprintf(posname, "%s.pos", basename) ;
+		    char confcumname[1000] ;
+			sprintf(confcumname, "%s.Conf_cum", basename) ;
+
+			FILE *fd=fopen(posname, "r") ;
+			if (fd==NULL)
+			{
+				fprintf(stderr, "%s does not exist\n", posname) ;
+				return -1 ;
+			}
+			fclose(fd) ;
+
+			fd=fopen(confcumname, "r") ;
+			if (fd==NULL)
+			{
+				fprintf(stderr, "%s does not exist\n", confcumname) ;
+				return -1 ;
+			}
+			fclose(fd) ;
+			
+			{
+				IntervalQuery iq;
+				const int num_scores = 1;
+				const char *score_names[num_scores] = { "Conf_cum" };
+				const int num_intervals = 1 ;
+				int interval_matrix[num_intervals * 2];
+				int cum_length[num_intervals + 1];
+				cum_length[0] = 0;
+				interval_matrix[0] = 0 ;
+				interval_matrix[1] = _genome.chromosome(chr).length();
+				
+				// acc
+				sprintf(basename, file_template.c_str(), chr+1, strand) ;
+				
+				int acc_size = iq.query(basename, (char**) score_names, num_scores,
+										interval_matrix, num_intervals);
+				if (acc_size < 0) 
+					return -1;
+				
+				int* acc_pos = NULL ;
+				int* acc_index = NULL ;
+				double* acc_score = NULL ;
+				try
+					{
+						acc_pos = new int[acc_size] ;
+						acc_index = new int[acc_size] ;
+						acc_score = new double[acc_size] ;
+					}
+				catch (std::bad_alloc&)
+				{
+					fprintf(stderr, "[map_splice_sites] Could not allocate memory\n");
+					delete[] acc_pos ;
+					delete[] acc_index ;
+					delete[] acc_score ;
+					return -1;
+				}
+				
+				iq.getResults(acc_pos, acc_index, acc_score);
+				iq.cleanup();
+
+				if (strand=='+' && chr==0 && estimate_thresh)
+				{
+					std::vector<double> acc_score2 ;
+					
+					try
+						{
+							for (int i=0; i<acc_size; i++)
+								acc_score2.push_back(acc_score[i]) ;
+						}
+					catch (std::bad_alloc&)
+						{
+							fprintf(stderr, "[map_splice_sites] Could not allocate memory\n");
+							delete[] acc_pos ;
+							delete[] acc_index ;
+							delete[] acc_score ;
+							return -1;
+						}
+					
+					std::sort(acc_score2.begin(), acc_score2.end()) ; 
+					
+					if (_config.VERBOSE)
+						fprintf(stdout, "estimate_threshold: min=%1.3f  max=%1.3f %1.2f%% percentile=%1.3f\n", acc_score2[0], acc_score2[acc_size-1], splice_site_threshold*100, acc_score2[acc_size-1-(int)(acc_size*splice_site_threshold)]) ;
+					
+					splice_site_threshold=acc_score2[acc_size-1-(int)(acc_size*splice_site_threshold)] ;
+				}
+
+				/*int num_reported = 0 ;
+				if (do_report)
+					for (int i=0; i<acc_size; i++)
+					{
+						if (acc_score[i]>splice_site_threshold)
+						{
+							num_reported++ ;
+							report_splice_site(chr, acc_pos[i], strand, type) ;
+						}
+						}*/
+				
+				delete[] acc_pos ;
+				delete[] acc_index ;
+				delete[] acc_score ;
+				
+				//fprintf(stderr, "reported %i splice sites for %i %c\n", num_reported, chr, strand) ;
+			}
+			
+			if (strand=='+')
+				strand='-' ;
+			else
+				break ;
+		}
+	}
+
+	return 0 ;
+	
+}
+
+int QPalma::init_alignment_parameters(std::string qpalma_file)
+{
+	// initialize parameters for alignment
+	if (alignment_parameters == NULL) 
+	{
+		alignment_parameters = (struct alignment_parameter_struct*) malloc(
+			sizeof(struct alignment_parameter_struct));
+		
+		if (alignment_parameters == NULL) 
+		{
+			fprintf(stderr, "[init_alignment_parameters] Could not allocate memory\n");
+			return -1;
+		}
+		
+		int ret = init_spliced_align(qpalma_file.c_str(),
+									 alignment_parameters->h, alignment_parameters->a,
+									 alignment_parameters->d, alignment_parameters->qualityPlifs,
+									 alignment_parameters->num_qualityPlifs,
+									 alignment_parameters->matchmatrix,
+									 alignment_parameters->matchmatrix_dim,
+									 alignment_parameters->quality_offset);
+		if (ret < 0)
+			return ret;
+		return 0 ;
+	} 
+	else
+		assert(0) ;
+	return -1 ;
+}
+
+int QPalma::clean_alignment_parameters()
+{
+	if (alignment_parameters==NULL)
+		return -1 ;
+	
+	free(alignment_parameters->h.limits) ;
+	free(alignment_parameters->h.penalties) ;
+	free(alignment_parameters->a.limits) ;
+	free(alignment_parameters->a.penalties) ;
+	free(alignment_parameters->d.limits) ;
+	free(alignment_parameters->d.penalties) ;
+	for (int i=0; i<alignment_parameters->num_qualityPlifs; i++)
+	{
+		free(alignment_parameters->qualityPlifs[i].limits) ;
+		free(alignment_parameters->qualityPlifs[i].penalties) ;
+	}
+	free(alignment_parameters->qualityPlifs) ;
+	free(alignment_parameters) ;
+	alignment_parameters = NULL ;
+
+	return 0 ;
+}
+
+
+	
+int QPalma::read_plif(FILE *fd, struct penalty_struct &plif) {
+	char buf[1000] ;
+
+	int narg = fscanf(fd, "%1000s:\t", buf);
+	assert(narg==1);
+	if (strlen(buf) > 1 && buf[strlen(buf) - 1] == ':')
+		buf[strlen(buf) - 1] = 0;
+	plif.name = strdup(buf);
+	assert(plif.name!=NULL);
+
+	narg = fscanf(fd, "%i\t%i\t\t", &plif.min_len, &plif.max_len);
+	//fprintf(stdout, "narg=%i\n", narg) ;
+	assert(narg==2);
+	//assert(strlen(buf)==0) ;
+	plif.transform = T_LINEAR;
+
+	double values[100];
+	int values_cnt = 0;
+	while (1) {
+		narg = fscanf(fd, "%lf,", &values[values_cnt]);
+		if (narg != 1)
+			break;
+		//fprintf(stdout, "%i:%f  ", values_cnt, values[values_cnt]) ;
+		values_cnt++;
+		assert(values_cnt<100);
+	}
+
+	plif.len = values_cnt / 2;
+	plif.limits = (double*) malloc(sizeof(double) * plif.len);
+	plif.penalties = (double*) malloc(sizeof(double) * plif.len);
+
+	if (plif.limits == NULL || plif.penalties == NULL) {
+		fprintf(stderr,
+				"[read_plif] Could not allocate memory (READ_ID = %s)\n",
+				_read.id());
+		free(plif.limits);
+		free(plif.penalties);
+		return -1;
+	}
+
+	for (int i = 0; i < plif.len; i++) {
+		plif.limits[i] = values[i];
+		plif.penalties[i] = values[plif.len + i];
+	}
+	plif.cache = NULL;
+	plif.use_svm = 0;
+	plif.next_pen = NULL;
+	return 0;
+}
+
+int QPalma::read_matrix(FILE* fd, double *& matrix, char*& name, int dims[2]) {
+	char buf[100];
+
+	int narg = fscanf(fd, "%100s:\t", buf);
+	assert(narg==1);
+	if (buf[strlen(buf) - 1] == ':')
+		buf[strlen(buf) - 1] = '\0';
+	name = strdup(buf);
+	assert(name!=NULL);
+
+	narg = fscanf(fd, "%i\t%i\t", &dims[0], &dims[1]);
+	assert(narg==2);
+
+	matrix = (double*) malloc(sizeof(double) * dims[0] * dims[1]);
+
+	if (matrix == NULL) {
+		fprintf(stderr,
+				"[read_matrix] Could not allocate memory (READ_ID = %s)\n",
+				_read.id());
+		return -1;
+	}
+
+	int cnt = 0;
+	while (1) {
+		narg = fscanf(fd, "%lf,", &matrix[cnt]);
+		if (narg != 1)
+			break;
+		assert(cnt<dims[0]*dims[1]);
+		cnt++;
+	}
+	return 0;
+}
+
+void QPalma::skip_comment_lines(FILE* fd)
+{
+  const int buffer_len=1000 ;
+  char buffer[buffer_len] ;
+  
+  while (!feof(fd))
+    {
+      long pos = ftell(fd) ;
+      fgets(buffer, buffer_len, fd) ;
+      if (buffer[0]!='#' && buffer[0]!=0)
+	{
+	  fseek(fd, pos, SEEK_SET) ;
+	  break ;
+	}
+      //fprintf(stdout, "skipped comment line: %s\n", buffer) ;
+    }
+}
+
+int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
+		struct penalty_struct &a, struct penalty_struct &d,
+		struct penalty_struct *&qualityPlifs, int &num_qualityPlifs,
+		double*&matchmatrix, int dims[2], int &quality_offset) 
+{
+	num_qualityPlifs = 30;
+	qualityPlifs = (struct penalty_struct*) malloc(
+		sizeof(struct penalty_struct) * num_qualityPlifs);
+	
+	if (qualityPlifs == NULL) {
+		fprintf(stderr, "[init_spliced_align] Could not allocate memory\n");
+		return -1;
+	}
+	char *matrix_name = NULL;
+	
+	FILE * fd = fopen(fname, "r") ;
+	skip_comment_lines(fd) ;
+	int ret = read_plif(fd, h);
+	if (ret < 0)
+		return ret;
+
+	assert(strcmp(h.name, "h")==0);
+	h.max_len = _config.SPLICED_LONGEST_INTRON_LENGTH ;
+	for (int i = 0; i < h.len; i++)
+		if (h.limits[i] > 2)
+			h.limits[i] = 2;
+
+	skip_comment_lines(fd) ;
+	ret = read_plif(fd, d);
+	if (ret < 0)
+		return ret;
+	assert(strcmp(d.name, "d")==0);
+	d.use_svm = 1;
+
+	skip_comment_lines(fd) ;
+	ret = read_plif(fd, a);
+	assert(strcmp(a.name, "a")==0);
+	if (ret < 0)
+		return ret;
+	a.use_svm = 1;
+	for (int i = 0; i < num_qualityPlifs; i++)
+	  {
+	    skip_comment_lines(fd) ;
+	    read_plif(fd, qualityPlifs[i]);
+	  }
+
+	skip_comment_lines(fd) ;
+	ret = read_matrix(fd, matchmatrix, matrix_name, dims);
+	if (ret < 0)
+	{
+		fprintf(stderr, "init_spliced_align: reading mmatrix failed\n") ;
+		return ret;
+	}
+	assert(strcmp(matrix_name, "mmatrix")==0);
+	free(matrix_name);
+	matrix_name=NULL ;
+	
+	double *quality_offset_matrix ;
+	int quality_offset_dims[2] ;
+	skip_comment_lines(fd) ;
+	ret = read_matrix(fd, quality_offset_matrix, matrix_name, quality_offset_dims);
+	if (ret < 0)
+	{
+		fprintf(stderr, "init_spliced_align: reading quality_offset failed\n") ;
+		return ret;
+	}
+	assert(strcmp(matrix_name, "prb_offset")==0);
+	free(matrix_name);
+	assert(quality_offset_dims[0]==1) ;
+	assert(quality_offset_dims[1]==1) ;
+	quality_offset=(int)quality_offset_matrix[0] ;
+	free(quality_offset_matrix) ;
+
+	return 0;
+}
+
+
+
+int QPalma::get_splicesite_positions(std::string file_template, const char * type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
 							 std::vector<int> &positions)
 {
 	char basename[1000] ;
@@ -167,7 +644,8 @@ int get_splicesite_positions(std::string file_template, const char * type, Chrom
 	return num ;
 }
 
-int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) {
+int QPalma::get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) 
+{
 
 	assert(region->end > region->start);
 
@@ -197,7 +675,7 @@ int get_string_from_region(Chromosome const &chrN, region_t *region, std::string
 	return 0 ;
 }
 
-void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) {
+void QPalma::add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) {
 	region_t *region = regions[ori][chrN.nr()][nregion];
 
 	if (region->start <= _config.SPLICED_CLUSTER_TOLERANCE)
@@ -213,7 +691,7 @@ void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) {
 
 /** performs a quicksort on an array output of length size
  * it is sorted from in ascending (for type T) */
-void qsort(region_t** output, int size) {
+void QPalma::qsort(region_t** output, int size) {
 	if (size == 2) {
 		if (output[0]->start > output[1]->start) {
 			region_t *c = output[0];
@@ -251,7 +729,8 @@ void qsort(region_t** output, int size) {
 }
 
 
-void print_map(bool* read_map, const char *name) {
+void QPalma::print_map(bool* read_map, const char *name) 
+{
 	fprintf(stdout, "# read_map (%s): ", name);
 	for (size_t i = 0; i < _read.length(); i++)
 		if (read_map[i])
@@ -262,8 +741,121 @@ void print_map(bool* read_map, const char *name) {
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// filter
+
+
+int QPalma::get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh)
+{
+	std::vector<int> positions ;
+	return get_splicesite_positions(file_template, type, chr, strand, start, end, thresh, false, positions) ;
+}
+
+void QPalma::qpalma_filter_stat_report()
+{
+	for (int i=0; i<num_filter_reasons; i++)
+	{
+		fprintf(stdout, "[filter] reason %i:\t%i spliced\t%i unspliced\t%1.2f%%\n", i, qpalma_filter_stat_spliced[i], qpalma_filter_stat_unspliced[i], 100*((float)qpalma_filter_stat_spliced[i])/((float)qpalma_filter_stat_unspliced[i]+qpalma_filter_stat_spliced[i])) ;
+	}
+}
+
+void QPalma::qpalma_filter_stat(bool spliced)
+{
+	if (qpalma_filter_reason<0) 
+		return ;
+	
+	if (spliced)
+		qpalma_filter_stat_spliced[qpalma_filter_reason]++ ;
+	else
+		qpalma_filter_stat_unspliced[qpalma_filter_reason]++ ;
+	
+	if (((clock()-last_filter_report)/CLOCKS_PER_SEC>=10))
+	{
+		last_filter_report = clock() ;
+		qpalma_filter_stat_report() ;
+	}
+
+	qpalma_filter_reason=-1 ;
+}
+
+int QPalma::qpalma_filter(struct alignment_t *ali, int num_N)
+{
+	assert(ali->exons.size()<=2) ;
+	static bool use_ss_for_filtering = true ;
+	
+	Chromosome const &chr = *ali -> chromosome ;
+	int start = ali -> exons[0] ;
+	int end = ali -> exons[1] ;
+	
+	unsigned int num_gaps = ali -> num_gaps ;
+	unsigned int num_matches = ali -> num_matches ;
+
+	if (num_gaps > _config.FILTER_BY_MAX_GAPS || _read.length()-num_matches > _config.FILTER_BY_MAX_MISMATCHES+num_N)
+	{
+		if (verbosity>=1)
+			fprintf(stdout, "filter decides YES: num_gaps=%i, num_mismatches=%i, num_N=%i\n", num_gaps, _read.length()-num_matches, num_N) ;
+		
+		qpalma_filter_reason=2 ; // cheap positive filter
+			
+		return 1 ;
+	}
+
+	float thresh_acc = _config.FILTER_BY_SPLICE_SITES_THRESH_ACC ;
+	float thresh_don = _config.FILTER_BY_SPLICE_SITES_THRESH_DON ;
+	int region = _config.FILTER_BY_SPLICE_SITES_REGION ;
+
+	if (region==-1 || !_config.FILTER_BY_SPLICE_SITES)
+	{
+		qpalma_filter_reason=0 ; // cheap negative filter
+		return 0 ;
+	}
+
+	if ( _read.length()-num_matches < _config.FILTER_BY_SPLICE_SITES_EDIT_MIN+num_N )
+	{
+		qpalma_filter_reason=0 ; // cheap negative filter
+		return 0 ;
+	}
+	
+	if (use_ss_for_filtering)
+		try
+		{
+			int num_ss = get_num_splicesites(_config.ACC_FILES, "acc", chr, '+', start-region, end+region, thresh_acc) + 
+				get_num_splicesites(_config.ACC_FILES, "acc", chr, '-', start-region, end+region, thresh_acc) +
+				get_num_splicesites(_config.DON_FILES, "don", chr, '+', start-region, end+region, thresh_don) +
+				get_num_splicesites(_config.DON_FILES, "don", chr, '-', start-region, end+region, thresh_don) ;
+			
+			if ( num_ss>0 )
+			{
+				if (verbosity>=1)
+					fprintf(stdout, "filter decides YES: num_ss=%i, gaps=%i, num_mismatches=%i, num_N=%i\n", num_ss, num_gaps, _read.length()-num_matches, num_N) ;
+				
+				qpalma_filter_reason=3 ; // positive splice site filter
+				
+				return 1 ;
+			}
+		}
+		catch (IntervalQueryException & e)
+		{
+			fprintf(stdout, "Warning: do not use splice site files for triggering qpalma alignments\n") ;
+			use_ss_for_filtering=false ;
+		}
+	
+	if (verbosity>=1)
+		fprintf(stdout, "filter decides NO: num_gaps=%i, num_mismatches=%i, num_N=%i\n", num_gaps, _read.length()-num_matches, num_N) ;
+	
+	qpalma_filter_reason=1 ; // negative splice site filter 
+
+	return 0 ;
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// alignment
+
 /** find long regions included in the set of current regions */
-void recover_long_regions(std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions){
+void QPalma::recover_long_regions(std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions){
 
   // Sort long_regions by start position
   region_t ** arr = NULL ;
@@ -303,8 +895,8 @@ void recover_long_regions(std::vector<region_t*> &long_regions_output, std::vect
 }
 
 /** Gives the relative position on dna sequence to align  */
-int convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions){
-  
+int QPalma::convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions)
+{
   for (size_t j = 0; j < current_regions.size(); j++)
     if (real_position >= current_regions[j]->start && real_position< current_regions[j]->end)
       return real_position - current_regions[j]->start + cum_length[j];
@@ -317,7 +909,7 @@ int convert_dna_position(int real_position, size_t* cum_length, const std::vecto
   return -1;
 }
 
-int get_first_read_map(bool* read_map)
+int QPalma::get_first_read_map(bool* read_map)
 {
 
   for(unsigned int i=0; i < _read.length(); i++)
@@ -334,112 +926,20 @@ int get_first_read_map(bool* read_map)
 // spliced hits and aligns them against the region of the genome where the
 // hits were reported.
 
-inline std::string reverse(std::string str) 
-{
-	for (int i = 0; i < (int)str.length() / 2; i++) 
-	{
-		char c = str[i];
-		str[i] = str[str.length() - i - 1];
-		str[str.length() - i - 1] = c;
-	}
 
-	return str;
-}
-
-inline std::vector<int> reverse(std::vector<int> vec) 
-{
-	for (int i = 0; i < (int)vec.size() / 2; i++) 
-	{
-		int c = vec[i];
-		vec[i] = vec[vec.size() - i - 1];
-		vec[vec.size() - i - 1] = c;
-	}
-	
-	return vec;
-}
-
-inline void reverse(double *vec, int len) 
-{
-	for (int i = 0; i < (int)len / 2; i++) {
-		double c = vec[i];
-		vec[i] = vec[len - i - 1];
-		vec[len - i - 1] = c;
-	}
-}
-
-inline std::string complement(std::string str) {
-	for (int i = 0; i < (int)str.length(); i++) {
-		char c = str[i];
-		switch (c) {
-		case 'a':
-			str[i] = 't';
-			break;
-		case 'c':
-			str[i] = 'g';
-			break;
-		case 'g':
-			str[i] = 'c';
-			break;
-		case 't':
-			str[i] = 'a';
-			break;
-		case 'A':
-			str[i] = 'T';
-			break;
-		case 'C':
-			str[i] = 'G';
-			break;
-		case 'G':
-			str[i] = 'C';
-			break;
-		case 'T':
-			str[i] = 'A';
-			break;
-		case '[':
-			str[i] = ']';
-			break;
-		case ']':
-			str[i] = '[';
-			break;
-		case '-':
-			str[i] = '-';
-			break;
-		default:
-			if (c >= 'a' && c <= 'z')
-				str[i] = 'n';
-			else if (c >= 'A' && c <= 'Z')
-				str[i] = 'N';
-			else
-				assert(0);
-		}
-	}
-
-	return str;
-}
-
-void print_hit(HIT *hit) {
+void QPalma::print_hit(HIT *hit) {
 	fprintf(stdout, "# hit= {start=%i, end=%i, readpos=%i}\n", hit->start,
 			hit->end, hit->readpos);
 }
 
-void print_region(region_t *region, const char * bla) 
+void QPalma::print_region(region_t *region, const char * bla) 
 {
 	fprintf(stdout, "# region %s = {start=%i, end=%i, ori=%c, erased=%i}\n", bla,
 			region->start, region->end, region->orientation, region->erased);
 }
 
-inline int ori_map(char c) 
-{
-	if (c == '+')
-		return 0;
-	if (c == '-')
-		return 1;
-	fprintf(stdout, "ori: %c\n", c);
 
-	assert(0);
-}
-
-void delete_regions() 
+void QPalma::delete_regions() 
 {
   for (int ori = 0; ori < 2; ori++)
     for (int32_t chrN = 0; chrN < (int)regions[ori].size(); chrN++)
@@ -451,7 +951,8 @@ void delete_regions()
 	}
 }
 
-void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions){ 
+void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_regions)
+{ 
   //long_regions need to be deleted: deep copy of initial regions into long_regions
   for (int ori = 0; ori < 2; ori++)
     for (int32_t chrN = 0; chrN < (int)long_regions[ori].size(); chrN++)
@@ -463,180 +964,8 @@ void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions){
 	}
 }
 
-/*
-// CHR_SEQ / CHR_LENGTH / CHRs=regions[i].size() size(regions[i])
-// READ _read.lenght()
-// long_regions[ori_map(hit->orientation)][hit->chromosome][nregion]->read_map[bool 0..._read.lenght()-1]
-// regions[ori_map(hit->orientation)][hit->chromosome].push_back(new_region);
-
-int find_donor(char* chr_str, int32_t pos, int32_t stop)
+void QPalma::capture_hits_timing(int read_count_, float this_read) 
 {
-	while (pos<stop-2)
-	{
-		if (chr_str[pos]=='G' && (chr_str[pos+1]=='T' || chr_str[pos+1]=='C'))
-			return pos;
-	}
-
-	return -1;
-}
-
-int find_acceptor(char* chr_str, int32_t pos, int32_t stop)
-{
-	while (pos<stop-2)
-	{
-		if (chr_str[pos]=='A' && chr_str[pos+1]=='G')
-			return pos;
-	}
-
-	return -1;
-}
-
-// left_or_right -1 (left) +1 (right)
-int32_t get_search_region_boundary(int32_t strand, int32_t chr, int32_t region, int left_or_right)
-{
-	if (left_or_right==-1)
-	{
-		int32_t rs = long_regions[strand][chr][region]->start - LONG_HIT_EXTEND_REGION ;
-		if (rs<0)
-			rs=0;
-		return rs;
-	}
-	
-	if (left_or_right==+1)
-	{
-		int32_t re = long_regions[strand][chr][region]->end + LONG_HIT_EXTEND_REGION ;
-		if (re>CHR_LENGTH[i])
-			re=CHR_LENGTH[i];
-		return re;
-	}
-
-	return -1;
-}
-
-int get_first_read_mismatch(int32_t strand, int32_t chr, int32_t region)
-{
-	int32_t start=long_regions[strand][chr][region]->start;
-	int32_t end=long_regions[strand][chr][region]->end;
-	bool* read_map=long_regions[strand][chr][region]->read_map;
-
-	int32_t match_end_idx=-1;
-	for (int32_t i=0; i<_read.lenght(); i++)
-	{
-		if (!read_map[i])
-		{
-			match_end_idx=i;
-			break;
-		}
-	}
-
-	if (match_end_idx>=-1)
-		return start+match_end_idx;
-	else
-		return end;
-}
-
-int find_splice_consensus()
-{
-	int found=-1;
-
-	int start=long_regions[strand][hit->chromosome][region]->start;
-	int stop = start+MAX_SCAN_REGION-MOTIF_LEN;
-	if (stop>CHR_LENGTH[i])
-		stop=CHR_LENGTH[i];
-
-	for (int l=0; l<stop ; l++)
-	{
-		for (int m=0; m<NUM_TO_SCAN; m++)
-			matches[m]=true;
-
-		for (int i=0; i<MOTIF_LEN; i++)
-		{
-			int idx=l+i+start;
-
-			if (idx>=chr_length)
-				break;
-			char c=CHR_SEQ[idx];
-
-			for (int m=0; m<NUM_TO_SCAN; m++)
-			{
-				if (matches[m] && motfis[m][i]!=c)
-					matches[m]=false;
-			}
-		}
-
-		for (int m=0; m<NUM_TO_SCAN; m++)
-		{
-			if (matches[m])
-			{
-				found=m;
-				goto stop_search;
-			}
-		}
-	}
-}
-*/
-
-// iterate over all strands, chrs and regions
-void find_short_hits()
-{
-	/*
-	int32_t num_strands=2;
-
-	for (int32_t strand=0; strand<num_strands; strand++)
-	{
-		int32_t num_chrs=long_regions[strand].size();
-
-		for (int32_t chr=0; chr<num_chrs; chr++)
-		{
-			int32_t num_long_regions=long_regions[ori_map(hit->orientation)][hit->chromosome].size();
-
-			for (int32_t region=0; region<num_long_regionsz; region++)
-			{
-				int32_t rs = get_search_region_boundary(strand, chr, region, -1);
-				int32_t re = get_search_region_boundary(strand, chr, region, +1);
-				int32_t match_end_idx=get_first_read_mismatch(strand, chr, region);
-				int32_t start=match_end_idx-SPLICE_CONSENSUS_TOLERANCE-1;
-				int32_t stop=match_end_idx+SPLICE_CONSENSUS_TOLERANCE;
-
-				while (start<stop)				{
-					start++
-						int32_t idx=find_donor(CHR_SEQ[chr], start, stop);
-
-					if (idx<0)
-						continue;
-					int32_t found=find_splice_consenus(start, re);
-
-					if (found>=0)
-					{
-						region_t *new_region = NULL;
-						try {
-							new_region = new region_t();
-							new_region->read_map = new bool[_read.lenght()];
-						} catch (std::bad_alloc&) {
-							fprintf(stderr,
-									"[capture_hits] allocating memory for read_map failed\n");
-							delete_regions();
-							return -1;
-						}
-
-						new_region->start = found;
-						new_region->end = found+8;
-
-						for (int i = 0; i < _read.lenght(); i++)
-							new_region->read_map[i] = false;
-						for (int i = 0; i < new_region->end - new_region->start && readpos + i<_read.lenght(); i++)
-							new_region->read_map[readpos + i] = true;
-
-						regions[strand][chr].push_back(new_region);
-					}
-				}
-			}
-		}
-	}*/
-}
-
-
-void capture_hits_timing(int read_count_, float this_read) {
 	fprintf(stdout, "# [capture_hits] timing: %1.4f, %1.4f, %1.4f (%1.4f ss access; %lint and %1.1f threads per alignment)",
 			((float) region1_time) / CLOCKS_PER_SEC,
 			((float) region_align_time) / CLOCKS_PER_SEC, 
@@ -655,7 +984,7 @@ void capture_hits_timing(int read_count_, float this_read) {
 	fprintf(stdout, "\n");
 }
 
-int capture_hits() 
+int QPalma::capture_hits() 
 {
   read_count++;
   int num_alignments_reported = 0 ;
@@ -1430,25 +1759,6 @@ int capture_hits()
 
 }
 
-struct perform_alignment_t
-{
-  std::string read_string ;
-  std::string read_quality ;
-  std::string dna ; 
-  std::vector<region_t *> current_regions ;
-  std::vector<int> positions ;
-  Chromosome const *contig_idx ;
-  char strand ;
-  int ori ;
-  int num_reported ;
-  int ret ;
-  pthread_t thread ;
-  int hit_read;
-  int hit_dna;
-  int hit_length;
-} ;
-
-std::vector<perform_alignment_t*> thread_data ;
 
 void *perform_alignment_wrapper(void *data_)
 {
@@ -1456,8 +1766,11 @@ void *perform_alignment_wrapper(void *data_)
 
 	try
 	{
-		data->ret = perform_alignment(data->read_string, data->read_quality, data->dna, data->current_regions, data->positions, *data->contig_idx,
-									  data->strand, data->ori, data->num_reported,data->hit_read,data->hit_dna,data->hit_length) ;
+		assert(data->qpalma!=NULL) ;
+		data->ret = data->qpalma->perform_alignment(data->read_string, data->read_quality, data->dna, 
+													data->current_regions, data->positions, *data->contig_idx,
+													data->strand, data->ori, data->num_reported,data->hit_read,
+													data->hit_dna,data->hit_length) ;
 	}
 	catch (std::bad_alloc&)
 	{
@@ -1469,7 +1782,7 @@ void *perform_alignment_wrapper(void *data_)
 	return data ;
 }
 
-int perform_alignment_starter(std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
+int QPalma::perform_alignment_starter(std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -1489,6 +1802,7 @@ int perform_alignment_starter(std::string read_string, std::string read_quality,
 		data->hit_read = hit_read_position;
 		data->hit_dna = hit_dna_position;
 		data->hit_length = hit_length;
+		data->qpalma = this ;
 
 		int rc = pthread_create( &(data->thread), NULL, &perform_alignment_wrapper, data) ;
 		if (rc)
@@ -1511,7 +1825,7 @@ int perform_alignment_starter(std::string read_string, std::string read_quality,
     }
 }
 
-int perform_alignment_wait(int & num_reported)
+int QPalma::perform_alignment_wait(int & num_reported)
 {
 	// return 1 if no alignment was spliced, 0 when at least one alignment was spliced
 	int ret = 1 ;
@@ -1554,7 +1868,7 @@ int perform_alignment_wait(int & num_reported)
 	return ret ;
 }
 
-int rescue_alignment(std::string & read_anno, int ori, int &num_A, int &num_T, int &num)
+int QPalma::rescue_alignment(std::string & read_anno, int ori, int &num_A, int &num_T, int &num)
 {
 	unsigned int read_pos = 0 ;
 	int genome_pos = 0 ;
@@ -1628,7 +1942,7 @@ int rescue_alignment(std::string & read_anno, int ori, int &num_A, int &num_T, i
 }
 
 
-int perform_alignment(std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
+int QPalma::perform_alignment(std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
 // ori = read orientation
 // strand = dna strand/orientation
 
@@ -2369,7 +2683,7 @@ int perform_alignment(std::string &read_string, std::string &read_quality, std::
 	return (int) isunspliced;
 }
 
-float score_unspliced(const char * read_anno)
+float QPalma::score_unspliced(const char * read_anno)
 {
 	if (alignment_parameters==NULL)
 	{
