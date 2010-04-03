@@ -38,7 +38,7 @@
 class GenomeMaps
 {
 public:
-	GenomeMaps() ;
+	GenomeMaps(Genome* genome) ;
 	~GenomeMaps() ;
 
 	inline unsigned char CHR_MAP(Chromosome const &chr, size_t index)
@@ -117,6 +117,8 @@ protected:
 
 	static clock_t last_report ;
 
+	Genome* genome ;
+	
 public:
 	int REPORT_REPETITIVE_SEED_DEPTH_EXTRA ;
 

@@ -16,7 +16,8 @@
 clock_t QPalma::last_timing_report=0 ;
 clock_t QPalma::last_filter_report=0 ;
 
-QPalma::QPalma(int verbosity_): verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
+QPalma::QPalma(Genome* genome_, Hits* hits_, TopAlignments* topalignments_, GenomeMaps* genomemaps_,
+			   int verbosity_): verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 {
 	region_align_time = 0;
 	region1_time = 0;
@@ -31,6 +32,11 @@ QPalma::QPalma(int verbosity_): verbosity(verbosity_), MIN_NUM_MATCHES(_config.Q
 	total_num_threads = 0 ;
 	total_num_thread_tasks = 0 ;
 
+	genome=genome_ ;
+	hits=hits_ ;
+	topalignments = topalignments_ ;
+	genomemaps = genomemaps_ ;
+	
 	qpalma_filter_reason = -1 ;
 	for (int i=0; i<num_filter_reasons; i++)
 	{
@@ -91,7 +97,13 @@ QPalma::QPalma(int verbosity_): verbosity(verbosity_), MIN_NUM_MATCHES(_config.Q
 			}
 		}
 	}
-	
+
+	for (int ori=0; ori<2; ori++)
+		for (uint32_t i = 0; i < genome->nrChromosomes(); i++)
+		{
+			std::vector<region_t *> r;
+			regions[ori].push_back(r);
+		}
 }
 
 
@@ -105,7 +117,7 @@ int QPalma::check_splice_files(std::string file_template)
 {
 	char basename[1000] ;
 	
-	for (int chr=1; chr<(int)_genome.nrChromosomes(); chr++)
+	for (int chr=1; chr<(int)genome->nrChromosomes(); chr++)
 	{
 		char strand='+' ;
 		
@@ -154,7 +166,7 @@ int QPalma::map_splice_sites(std::string file_template, char type, float &splice
 {
 	char basename[1000] ;
 	
-	for (int chr=0; chr<(int)_genome.nrChromosomes() && (chr==0 || do_report); chr++)
+	for (int chr=0; chr<(int)genome->nrChromosomes() && (chr==0 || do_report); chr++)
 	{
 		char strand='+' ;
 		
@@ -191,7 +203,7 @@ int QPalma::map_splice_sites(std::string file_template, char type, float &splice
 				int cum_length[num_intervals + 1];
 				cum_length[0] = 0;
 				interval_matrix[0] = 0 ;
-				interval_matrix[1] = _genome.chromosome(chr).length();
+				interval_matrix[1] = genome->chromosome(chr).length();
 				
 				// acc
 				sprintf(basename, file_template.c_str(), chr+1, strand) ;
@@ -1012,7 +1024,7 @@ int QPalma::capture_hits()
   for (int32_t i = _read.length(); i >= _config.SPLICED_HIT_MIN_LENGTH_SHORT; i--) {
 
 
-    hit = *(_hits.HIT_LISTS_OPERATOR + i);
+    hit = *(hits->HIT_LISTS_OPERATOR + i);
     
     while (hit != NULL) 
       {
@@ -1155,7 +1167,7 @@ int QPalma::capture_hits()
 	{
 	  for (int32_t chrN = 0; chrN < (int)long_regions[ori].size(); chrN++)
 	    {
-		  Chromosome const &chromosome = _genome.chromosome(chrN);
+		  Chromosome const &chromosome = genome->chromosome(chrN);
 	      if (long_regions[ori][chrN].size() == 0)
 		continue;
 	      for (int i=0; i<(int)long_regions[ori][chrN].size(); i++)
@@ -1228,7 +1240,7 @@ int QPalma::capture_hits()
 		      int region_end = -1 ;
 		      for (int p=start; p<end; p+=Config::QPALMA_USE_MAP_WINDOW)//p+=1)
 			{
-			  int val = _genomemaps.CHR_MAP(chromosome,p) ;
+			  int val = genomemaps->CHR_MAP(chromosome,p) ;
 			  
 			  if ((val & take_report_map)!=0 && end-p>Config::QPALMA_USE_MAP_WINDOW)//p<end-1)
 			    {
@@ -1379,7 +1391,7 @@ int QPalma::capture_hits()
     for (int ori = 0; ori < 2; ori++){
       for (int32_t chrN = 0; chrN < (int)regions[ori].size(); chrN++) 
 	{
-      Chromosome const &chromosome = _genome.chromosome(chrN);
+      Chromosome const &chromosome = genome->chromosome(chrN);
 	  size_t nbr_regions=regions[ori][chrN].size();
 	  if (nbr_regions == 0)
 	    continue;
@@ -1506,7 +1518,7 @@ int QPalma::capture_hits()
   for (int ori = 0; ori < 2; ori++)
     for (size_t chrN = 0; chrN < regions[ori].size(); chrN++) 
       {
-    Chromosome const &chr = _genome.chromosome(chrN);
+    Chromosome const &chr = genome->chromosome(chrN);
 	std::vector<region_t *> current_regions;
 	current_regions.clear();
 	std::vector<int> current_positions;
@@ -2655,7 +2667,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 
 		strcpy(aln->read_id, _read.id());
 
-		_topalignments.add_alignment_record(aln, 1);
+		topalignments->add_alignment_record(aln, 1);
 		num_reported++ ;
 		
 		if (verbosity >= 2) 

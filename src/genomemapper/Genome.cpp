@@ -45,6 +45,8 @@ char Genome::upper_char[256];
 
 
 Genome::Genome() {
+	hits = NULL ;
+	
 	NUM_CHROMOSOMES = 0;
 	INDEX_SIZE = Config::INDEX_SIZE_13 ;
 
@@ -192,7 +194,7 @@ int Genome::build_index()
 	read_meta_index(META_INDEX_FP); // updated
 
 	// initialize with meta information
-	_hits.init_from_meta_index(); // updated
+	hits->init_from_meta_index(); // updated
 
 	// mmap map files into memory
 	mmap_indices(); // updated
@@ -259,12 +261,6 @@ int Genome::read_meta_index_header(FILE *META_INDEX_FP)
 
 	// initialize hit region mapping
 
-	for (int ori=0; ori<2; ori++)
-		for (uint32_t i = 0; i < NUM_CHROMOSOMES; i++)
-		{
-			std::vector<region_t *> r;
-			_qpalma.regions[ori].push_back(r);
-		}
 
 	////////////////////////////////////////////////////////////////////////////////////
 	// Get number of positions in index?
@@ -552,3 +548,76 @@ void Genome::mmap_indices()
 }
 
 #endif // BinaryStream_MAP
+
+
+
+int Genome::init_constants() 
+{
+	if (_config.INDEX_DEPTH == 5) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 256; //binary number: 0000 0000 0000 0001 0000 0000
+		BINARY_CODE[2] = 512; //binary number: 0000 0000 0000 0010 0000 0000
+		BINARY_CODE[3] = 768; //binary number: 0000 0000 0000 0011 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 6) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 1024; //binary number: 0000 0000 0000 0100 0000 0000
+		BINARY_CODE[2] = 2048; //binary number: 0000 0000 0000 1000 0000 0000
+		BINARY_CODE[3] = 3072; //binary number: 0000 0000 0000 1100 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 7) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 4096; //binary number: 0000 0000 0001 0000 0000 0000
+		BINARY_CODE[2] = 8192; //binary number: 0000 0000 0010 0000 0000 0000
+		BINARY_CODE[3] = 12288; //binary number: 0000 0000 0011 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 8) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 16384; //binary number: 0000 0000 0100 0000 0000 0000
+		BINARY_CODE[2] = 32768; //binary number: 0000 0000 1000 0000 0000 0000
+		BINARY_CODE[3] = 49152; //binary number: 0000 0000 1100 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 9) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 65536; //binary number: 0000 0001 0000 0000 0000 0000
+		BINARY_CODE[2] = 131072; //binary number: 0000 0010 0000 0000 0000 0000
+		BINARY_CODE[3] = 196608; //binary number: 0000 0011 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 10) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 262144; //binary number: 0000 0100 0000 0000 0000 0000
+		BINARY_CODE[2] = 524288; //binary number: 0000 1000 0000 0000 0000 0000
+		BINARY_CODE[3] = 786432; //binary number: 0000 1100 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 11) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 1048576; //binary number: 0001 0000 0000 0000 0000 0000
+		BINARY_CODE[2] = 2097152; //binary number: 0010 0000 0000 0000 0000 0000
+		BINARY_CODE[3] = 3145728; //binary number: 0011 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 12) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 4194304; //binary number: 0100 0000 0000 0000 0000 0000
+		BINARY_CODE[2] = 8388608; //binary number: 1000 0000 0000 0000 0000 0000
+		BINARY_CODE[3] = 12582912; //binary number: 1100 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 13) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 16777216; //binary number: 0001 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[2] = 33554432; //binary number: 0010 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[3] = 50331648; //binary number: 0011 0000 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH == 14) {
+		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 67108864; //binary number: 0001 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[2] = 134217728; //binary number: 0010 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[3] = 201326592; //binary number: 0011 0000 0000 0000 0000 0000 0000
+	}
+	if (_config.INDEX_DEPTH>14 || _config.INDEX_DEPTH<5)
+	  {
+	    fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
+	    exit(1) ;
+	  }
+
+	return (0);
+}

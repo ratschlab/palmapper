@@ -12,7 +12,8 @@
 
 const int TopAlignments::MAX_EXON_LEN = 100 ;
 
-TopAlignments::TopAlignments() : top_alignments(), num_spliced_alignments(0),
+TopAlignments::TopAlignments(GenomeMaps* genomemaps_, Hits* hits_) 
+  : top_alignments(), num_spliced_alignments(0),
 		num_unspliced_alignments(0), verbosity(0)
 {
 	int ret = pthread_mutex_init(&top_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
@@ -29,6 +30,10 @@ TopAlignments::TopAlignments() : top_alignments(), num_spliced_alignments(0),
 		fprintf(stderr, "[init_alignment_structures] Could not allocate memory\n");
 		exit(1);
 	}
+
+	genomemaps = genomemaps_ ;
+	hits = hits_ ;
+	qpalma = NULL ;
 }
 
 u_int8_t TopAlignments::report_unspliced_hit(HIT *hit) 
@@ -230,7 +235,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(HIT *best_hit)
 	best->max_intron_len = 0 ;
 	best->spliced = false ;
 
-	best->qpalma_score = _qpalma.score_unspliced(ALIGNSEQ) ;
+	best->qpalma_score = qpalma->score_unspliced(ALIGNSEQ) ;
 
 	return best ;
 }
@@ -303,7 +308,7 @@ void TopAlignments::end_top_alignment_record(int rtrim_cut, int polytrim_cut_sta
 	{
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 			if (top_alignments[i]->exons.size()>2)
-				_genomemaps.report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
+				genomemaps->report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
 												top_alignments[i]->num_matches, i) ;
 	}
 	if (_config.REPORT_MAPPED_READS)
@@ -311,7 +316,7 @@ void TopAlignments::end_top_alignment_record(int rtrim_cut, int polytrim_cut_sta
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
 			if (top_alignments[i]->exons.size()<=2) 
-				_genomemaps.report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
+				genomemaps->report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
 											   top_alignments[i]->num_matches, i) ;
 		}
 	}
@@ -848,40 +853,40 @@ int TopAlignments::print_hits()
 	//u_int32_t num_other_hits = 0;
 	int reported_reads = 0 ;
 
-	for (i = 0; i != (int)_hits.NUM_SCORE_INTERVALS; ++i) {
+	for (i = 0; i != (int)hits->NUM_SCORE_INTERVALS; ++i) {
 
 		if (printed && !_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY)
 			break; // best hit strategy
 
-		if (_hits.HITS_BY_SCORE[i].hitpointer != NULL) 
+		if (hits->HITS_BY_SCORE[i].hitpointer != NULL) 
 		{
 			// only _config.REPEATMAP numbers of alignment will be chosen randomly:
-			if (!_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY && _config.REPEATMAP < 0 && _hits.HITS_BY_SCORE[i].num > -_config.REPEATMAP) 
+			if (!_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY && _config.REPEATMAP < 0 && hits->HITS_BY_SCORE[i].num > -_config.REPEATMAP) 
 			{
 				srand((unsigned) time(NULL));
 				
 				int j, k, n;
-				int hits[-_config.REPEATMAP];
+				int lhits[-_config.REPEATMAP];
 				for (j = 0; j != -_config.REPEATMAP; ++j) {
 					n = 1;
 					while (n != 0) {
 						n = 0;
-						hits[j] = rand() % _hits.HITS_BY_SCORE[i].num;
+						lhits[j] = rand() % hits->HITS_BY_SCORE[i].num;
 						for (k = 0; k != j; ++k) {
-							if (hits[j] == hits[k])
+							if (lhits[j] == lhits[k])
 								++n;
 						}
 					}
 				}
 
-				qsort(hits, -_config.REPEATMAP, sizeof(int), compare_int);
+				qsort(lhits, -_config.REPEATMAP, sizeof(int), compare_int);
 
-				hit = _hits.HITS_BY_SCORE[i].hitpointer;
+				hit = hits->HITS_BY_SCORE[i].hitpointer;
 
 				nr = 0;
-				for (j = 0; j != _hits.HITS_BY_SCORE[i].num; ++j) {
+				for (j = 0; j != hits->HITS_BY_SCORE[i].num; ++j) {
 
-					if (hits[nr] == j) {
+					if (lhits[nr] == j) {
 						printed += print_alignment(hit, -_config.REPEATMAP);
 						nr++;
 					}
@@ -894,27 +899,27 @@ int TopAlignments::print_hits()
 
 			} else if (_config.SUMMARY_HIT_STRATEGY) {
 
-				hit = _hits.HITS_BY_SCORE[i].hitpointer;
+				hit = hits->HITS_BY_SCORE[i].hitpointer;
 
 				// iterate over all hits for this score and collect data to generate a summary
 				// This somewhat counter-intuitive code works because of the way the pre-existing
 				// code was set up: we see the hits in the order of their score here - better hits first.
 				while (hit != NULL) 
 				{
-					_topalignments.report_unspliced_hit(hit) ;
+					report_unspliced_hit(hit) ;
 					hit = hit->same_eo_succ;
 				}
 
 			} else { // no random selection of output alignments:
 
-				hit = _hits.HITS_BY_SCORE[i].hitpointer;
+				hit = hits->HITS_BY_SCORE[i].hitpointer;
 
 				while (hit != NULL) {
 
 					if (!_config.ALL_HIT_STRATEGY)
-						nr = _hits.HITS_BY_SCORE[i].num;
+						nr = hits->HITS_BY_SCORE[i].num;
 					else
-						nr = _hits.HITS_IN_SCORE_LIST;
+						nr = hits->HITS_IN_SCORE_LIST;
 
 					if (_config.REPEATMAP == 0) { // no max nr of hits per read was specified, print all
 						printed += print_alignment(hit, nr);
@@ -930,11 +935,11 @@ int TopAlignments::print_hits()
 
 			if (_config.REPORT_MAPPED_READS)
 			{
-				hit = _hits.HITS_BY_SCORE[i].hitpointer;
+				hit = hits->HITS_BY_SCORE[i].hitpointer;
 
 				while (hit != NULL) {
 
-					nr = _hits.HITS_IN_SCORE_LIST;
+					nr = hits->HITS_IN_SCORE_LIST;
 
 					printed += report_read_alignment(hit, reported_reads);
 					reported_reads++ ;
@@ -948,4 +953,60 @@ int TopAlignments::print_hits()
 		return 1; // read could have been mapped
 	else
 		return 0; // read couldn't be mapped
+}
+
+int TopAlignments::report_read_alignment(HIT* hit, int nbest) 
+{
+	int hitlength = hit->end - hit->start + 1;
+	unsigned int readstart;
+	if (hit->orientation == '+') 
+	{
+		readstart = hit->start - hit->readpos + hit->start_offset; // start pos of read in genome	0-initialized
+	} else 
+	{
+		readstart = hit->start - (((int)_read.length()) - hit->readpos - hitlength + 2) + hit->start_offset; // 0-initialized
+	}
+
+	// PERFECT HITS:
+	if (hit->mismatches == 0) 
+	{
+		genomemaps->report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
+	}
+	// HITS WITH MISMATCHES:
+	else 
+	{
+		char gap_offset = 0;
+		char gap_in_read = 0;
+		char gap_in_chr = 0;
+		
+		// sort mismatches in ascending order according to their abs positions and 'gap before mm'-strategy if equal
+		qsort(hit->edit_op, hit->mismatches, sizeof(EDIT_OPS), compare_editops);
+		
+		int j ;
+		for (j = 0; j != hit->mismatches; ++j) 
+		{
+			if (hit->edit_op[j].pos < 0) 
+			{
+				gap_in_chr = 1;
+			}
+			gap_in_read = 0;
+			if (!hit->edit_op[j].mm) 
+			{
+				if (gap_in_chr) 
+				{
+					gap_offset--;
+					gap_in_chr = 0;
+				}
+				else 
+				{
+					gap_offset++;
+					gap_in_read = 1;
+				}
+			}
+		}
+		
+		genomemaps->report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length())+gap_offset, ((int)_read.length()) - hit->mismatches, nbest) ;
+	}
+
+	return 1;
 }

@@ -79,12 +79,28 @@ typedef struct hit_container_structure {
 	struct hit_container_structure *next;
 } HIT_CONTAINER;
 
+class QPalma ;
+class Genome ;
+class GenomeMaps ;
+class TopAlignments ;
+
+
 class Hits {
 
 public:
 	
 	Hits();
-	int map_reads() ;
+	void set_genome(Genome * genome_)
+	{
+		genome = genome_ ;
+	}
+
+	void set_genomemaps(GenomeMaps * genomemaps_)
+	{
+		genomemaps = genomemaps_ ;
+	}
+
+	int map_reads(TopAlignments* topalignments, QPalma* qpalma) ;
 	int size_hit(HIT *hit, unsigned int *oldlength, char num) ;
 	int seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos, char reverse) ;
 	void printgenome() ;
@@ -125,6 +141,9 @@ protected:
 	char HAS_SLOT;
 	int SLOT;
 
+	Genome * genome ;
+	GenomeMaps * genomemaps ;
+	
 /*
 	unsigned short int readpos;
 	unsigned int start;

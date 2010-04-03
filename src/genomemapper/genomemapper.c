@@ -13,11 +13,6 @@ FILE *TRIGGERED_LOG_FP; // #A#
 
 Config _config;
 Statistics _stats;
-Genome _genome(false);
-TopAlignments _topalignments ;
-QPalma _qpalma ;
-GenomeMaps _genomemaps ;
-Hits _hits ;
 Read _read;
 
 int main(int argc, char *argv[]) 
@@ -33,9 +28,19 @@ int main(int argc, char *argv[])
   	//printf("The current time is %s",asctime(localtime(&timer)));
 	////////////////////////
 
-	init(argc, argv);
+	Hits _hits ;
+	init(argc, argv, &_config, &_hits);
 
-	new (&_genome) Genome();
+	Genome _genome;
+	_genome.set_hits(&_hits) ;
+	_hits.set_genome(&_genome) ;
+	
+	GenomeMaps _genomemaps(&_genome) ;
+	TopAlignments _topalignments(&_genomemaps, &_hits) ;
+	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps) ;
+	_topalignments.set_qpalma(&_qpalma) ;
+
+//	new (&_genome) Genome();
 
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
 	{
@@ -93,7 +98,7 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	_hits.map_reads();
+	_hits.map_reads(&_topalignments, &_qpalma);
 
 	if (_config.STATISTICS)	{
 		print_stats();

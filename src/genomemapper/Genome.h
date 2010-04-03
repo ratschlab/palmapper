@@ -29,11 +29,18 @@ typedef struct position_structure {
 	unsigned int chr;
 } POS;
 
+class Hits ;
 
 class Genome {
 public:
 	Genome();
-	Genome(bool dontCare) {}
+	Genome(bool dontCare) {hits=NULL ;}
+
+	void set_hits(Hits* hits_)
+	{
+		hits=hits_ ;
+	}
+	
 	Chromosome &chromosome(int index) {
 		return _chromosomes[index];
 	}
@@ -82,6 +89,8 @@ public:
 
 	POS *BLOCK_TABLE;
 	unsigned int BLOCK_TABLE_SIZE;
+	
+	int init_constants()  ;
 
 #if 1 // dd
 	INDEX_ENTRY *INDEX;
@@ -97,6 +106,8 @@ public:
 #endif // dd
 
 	unsigned long int MAX_POSITIONS;
+
+	Hits* hits ;
 };
 
 inline char unique_base(char c)

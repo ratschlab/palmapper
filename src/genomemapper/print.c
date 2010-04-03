@@ -100,61 +100,6 @@ void print_stats() {
 }*/
 
 
-int report_read_alignment(HIT* hit, int nbest) 
-{
-	int hitlength = hit->end - hit->start + 1;
-	unsigned int readstart;
-	if (hit->orientation == '+') 
-	{
-		readstart = hit->start - hit->readpos + hit->start_offset; // start pos of read in genome	0-initialized
-	} else 
-	{
-		readstart = hit->start - (((int)_read.length()) - hit->readpos - hitlength + 2) + hit->start_offset; // 0-initialized
-	}
-
-	// PERFECT HITS:
-	if (hit->mismatches == 0) 
-	{
-		_genomemaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
-	}
-	// HITS WITH MISMATCHES:
-	else 
-	{
-		char gap_offset = 0;
-		char gap_in_read = 0;
-		char gap_in_chr = 0;
-		
-		// sort mismatches in ascending order according to their abs positions and 'gap before mm'-strategy if equal
-		qsort(hit->edit_op, hit->mismatches, sizeof(EDIT_OPS), compare_editops);
-		
-		int j ;
-		for (j = 0; j != hit->mismatches; ++j) 
-		{
-			if (hit->edit_op[j].pos < 0) 
-			{
-				gap_in_chr = 1;
-			}
-			gap_in_read = 0;
-			if (!hit->edit_op[j].mm) 
-			{
-				if (gap_in_chr) 
-				{
-					gap_offset--;
-					gap_in_chr = 0;
-				}
-				else 
-				{
-					gap_offset++;
-					gap_in_read = 1;
-				}
-			}
-		}
-		
-		_genomemaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length())+gap_offset, ((int)_read.length()) - hit->mismatches, nbest) ;
-	}
-
-	return 1;
-}
 
 
 // sorts by position, if it's identical, then gaps have to be before mismatches

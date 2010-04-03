@@ -10,7 +10,7 @@
 
 clock_t GenomeMaps::last_report = 0 ;
 
-GenomeMaps::GenomeMaps()
+GenomeMaps::GenomeMaps(Genome* genome_)
 {
 	CHR_MAP_c = NULL ;
 
@@ -31,6 +31,9 @@ GenomeMaps::GenomeMaps()
     //covered_splice_site_positions = 0 ;
 
 	REPORT_REPETITIVE_SEED_DEPTH_EXTRA = 31 - MAX_INDEX_DEPTH ;
+
+	genome=genome_ ;
+	
 }
 
 GenomeMaps::~GenomeMaps()
@@ -50,7 +53,7 @@ void GenomeMaps::to_dnaarray(int chr=-1)
 	if (chr==-1)
 	{
 		start=0 ;
-		end = _genome.nrChromosomes() ;
+		end = genome->nrChromosomes() ;
 	} 
 	else
 	{
@@ -95,7 +98,7 @@ void GenomeMaps::from_dnaarray(int chr = -1)
 	if (chr==-1)
 	{
 		start=0 ;
-		end = _genome.nrChromosomes() ;
+		end = genome->nrChromosomes() ;
 	} 
 	else
 	{
@@ -140,7 +143,7 @@ int GenomeMaps::init_reporting()
 {
 	try
 	{
-		CHR_MAP_c = new unsigned char*[_genome.nrChromosomes()] ;
+		CHR_MAP_c = new unsigned char*[genome->nrChromosomes()] ;
 	}
 	catch (std::bad_alloc&) 
 	{
@@ -157,9 +160,9 @@ int GenomeMaps::init_reporting()
 	fprintf(stdout, "MASK_SPLICED_READ=%i\n", MASK_SPLICED_READ) ;
 #endif
 
-	for (size_t i=0; i!=_genome.nrChromosomes(); ++i) 
+	for (size_t i=0; i!=genome->nrChromosomes(); ++i) 
 	{
-		Chromosome &chr = _genome.chromosome(i);
+		Chromosome &chr = genome->chromosome(i);
 #ifdef CHR_MAP_DNAARRAY
 		CHR_MAP_a.push_back(new CHR_MAP_DNAARRAY_CLASS(CHR_LENGTH[i])) ;
 		CHR_MAP_c[i]=NULL ;
@@ -477,9 +480,9 @@ int GenomeMaps::read_reporting()
 #endif
 #endif
 
-	for (size_t i=0; i<_genome.nrChromosomes(); i++)
+	for (size_t i=0; i<genome->nrChromosomes(); i++)
 	{
-		Chromosome &chr = _genome.chromosome(i);
+		Chromosome &chr = genome->chromosome(i);
 #ifdef CHR_MAP_DNAARRAY
 		bool to_be_transfered=false ;
 		if (CHR_MAP_c[i]==NULL)
@@ -537,9 +540,9 @@ int GenomeMaps::write_reporting()
 	if (!fd)
 		return -1 ;
 	fprintf(stdout, "writing reporting map to %s:\n", fname) ;
-	for (size_t i=0; i<_genome.nrChromosomes(); i++)
+	for (size_t i=0; i<genome->nrChromosomes(); i++)
 	{
-		Chromosome &chr = _genome.chromosome(i);
+		Chromosome &chr = genome->chromosome(i);
 #ifdef CHR_MAP_DNAARRAY
 		bool to_be_deleted=false ;
 		if (CHR_MAP_c[i]==NULL)
@@ -574,7 +577,7 @@ int GenomeMaps::clean_reporting()
 {
 	if (CHR_MAP_c!=NULL)
 	{
-		for (size_t i=0; i!=_genome.nrChromosomes(); ++i) 
+		for (size_t i=0; i!=genome->nrChromosomes(); ++i) 
 			delete[] CHR_MAP_c[i] ;
 		
 		delete[] CHR_MAP_c ;

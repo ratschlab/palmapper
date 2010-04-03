@@ -1,6 +1,12 @@
 #pragma once
 
+#include "genomemapper.h"
+#include "GenomeMaps.h"
 #include <pthread.h>
+
+class Hits ;
+class GenomeMaps ;
+class QPalma ;
 
 typedef struct alignment_t {
   double qpalma_score;
@@ -22,7 +28,11 @@ typedef struct alignment_t {
 class TopAlignments
 {
 public:
-    TopAlignments() ;
+    TopAlignments(GenomeMaps* genomemaps_, Hits* hits_) ;
+	void set_qpalma(QPalma* qpalma_)
+	{
+		qpalma = qpalma_ ;
+	}
 
 	u_int8_t report_unspliced_hit(HIT *hit)  ;
 	int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
@@ -41,6 +51,7 @@ public:
 
 	int print_alignment(HIT* hit, unsigned int num)  ;
 	int print_hits() ;
+	int report_read_alignment(HIT* hit, int nbest)  ;
 		
 	size_t size()
 	{
@@ -69,4 +80,7 @@ protected:
 	int num_spliced_best ;
 	int num_spliced_suboptimal ;
 
+	GenomeMaps* genomemaps ;
+	Hits* hits ;
+	QPalma* qpalma ;
 } ;
