@@ -2,6 +2,7 @@
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
 #include "genomemapper.h"
+#include "print.h"
 #include <assert.h>
 #include <vector>
 

@@ -5,6 +5,11 @@
 #include <genomemapper/Read.h>
 
 #define CONTAINER_SIZE 100000
+#define SCORE_INTERVAL 1
+
+extern char *get_seq(unsigned int n);
+extern void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_);
+
 
 typedef struct edit_op_structure {
 	signed int pos;
@@ -95,6 +100,8 @@ public:
 	int init_from_meta_index() ;
 	int init_hit_lists()  ;
 
+	int REDUNDANT;
+
 protected:
 	int init_constants()  ;
 	int init_statistic_vars() ;
@@ -114,9 +121,9 @@ protected:
 	MAPPING_ENTRY_CONTAINER* alloc_mapping_entry_container() ;
 	MAPPING_ENTRY* alloc_mapping_entry() ;
 	
-	
-
 	CHROMOSOME_ENTRY **GENOME;
+	char HAS_SLOT;
+	int SLOT;
 
 /*
 	unsigned short int readpos;
@@ -142,6 +149,9 @@ public:
 	HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
 	unsigned int HITS_IN_SCORE_LIST;
 
+	unsigned int NUM_SCORE_INTERVALS;
+	unsigned int MAX_USED_SLOTS;
+
 protected:
 	HIT **READSTART_BINS;
 
@@ -152,6 +162,7 @@ protected:
 	HIT_CONTAINER* HIT_OPERATOR;
 	CHROMOSOME_ENTRY_CONTAINER* CHROMOSOME_ENTRY_OPERATOR;
 	
-	unsigned int MAX_USED_SLOTS;
 	unsigned int NUM_MAPPING_ENTRIES;
 };
+
+

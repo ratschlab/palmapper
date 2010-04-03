@@ -38,6 +38,9 @@ public:
 	void print_top_alignment_records_bed(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
 	void print_top_alignment_records_shore(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
 	void print_top_alignment_records_sam(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
+
+	int print_alignment(HIT* hit, unsigned int num)  ;
+	int print_hits() ;
 		
 	size_t size()
 	{
@@ -57,6 +60,7 @@ protected:
 	int num_unspliced_alignments;
 	const int verbosity ;
 	static const int MAX_EXON_LEN ;
+	char *ALIGNSEQ;
 
 	pthread_mutex_t top_mutex;
 

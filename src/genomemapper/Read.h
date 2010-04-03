@@ -2,7 +2,6 @@
 
 #include <genomemapper/Config.h>
 #include <genomemapper/Statistics.h>
-#include <genomemapper/Structs.h>
 #include <genomemapper/Util.h>
 
 class Read {
@@ -111,19 +110,4 @@ private:
 	char *READ_ID;
 	int READ_PE_FLAG;
 
-
-/*
-#ifndef BinaryStream_MAP
-	STORAGE_ENTRY *INDEX_REV_MMAP;
-	STORAGE_ENTRY *INDEX_FWD_MMAP;
-#else
-	CBinaryStream<STORAGE_ENTRY>* INDEX_REV_MMAP;
-	CBinaryStream<STORAGE_ENTRY>* INDEX_FWD_MMAP;
-#endif
-	INDEX_ENTRY *INDEX;
-	INDEX_ENTRY *INDEX_REV;
-
-	bool HAS_SLOT;
-	int SLOT;
-*/
 };

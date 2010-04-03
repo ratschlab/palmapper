@@ -5,6 +5,7 @@
 #include <pthread.h>
 
 #include "genomemapper.h"
+#include "print.h"
 #include "dyn_prog/qpalma_dp.h"
 
 #include "TopAlignments.h"
@@ -21,6 +22,13 @@ TopAlignments::TopAlignments() : top_alignments(), num_spliced_alignments(0),
 	num_unspliced_suboptimal=0 ;
 	num_spliced_best=0 ;
 	num_spliced_suboptimal=0 ;
+
+	ALIGNSEQ = (char *) malloc((_config.MAX_READ_LENGTH + 3 * Config::MAX_EDIT_OPS)
+			* sizeof(char));
+	if (ALIGNSEQ == NULL) {
+		fprintf(stderr, "[init_alignment_structures] Could not allocate memory\n");
+		exit(1);
+	}
 }
 
 u_int8_t TopAlignments::report_unspliced_hit(HIT *hit) 
@@ -563,7 +571,8 @@ void TopAlignments::print_top_alignment_records_sam(int rtrim_cut, int polytrim_
 
 int report_read_alignment(HIT* hit, int nbest)  ;
 
-int print_alignment(HIT* hit, unsigned int num) {
+int TopAlignments::print_alignment(HIT* hit, unsigned int num) 
+{
 
 	if (_config.STATISTICS)
 		_stats.HITS_MM[hit->mismatches]++;
@@ -579,6 +588,8 @@ int print_alignment(HIT* hit, unsigned int num) {
 				+ hit->start_offset; // 0-initialized
 	}
 
+	char FLANK_SEQ[Config::MAX_READ_LENGTH + 200];
+
 	// PERFECT HITS:
 	if (hit->mismatches == 0) {
 
@@ -591,6 +602,7 @@ int print_alignment(HIT* hit, unsigned int num) {
 			//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + readstart, ((int)_read.lenght()));
 		}
 		ALIGNSEQ[((int)_read.length())] = '\0';
+
 
 		// print in file:
 		if (_config.OUTPUT_FORMAT == 0) {
@@ -824,7 +836,8 @@ int print_alignment(HIT* hit, unsigned int num) {
 
 // prints out all hits which have been inserted into HITS_BY_EDITOPS
 // called once for each read (?)
-int print_hits() {
+int TopAlignments::print_hits() 
+{
 	int i, printed = 0, nr;
 	HIT *hit;
 
@@ -835,7 +848,7 @@ int print_hits() {
 	//u_int32_t num_other_hits = 0;
 	int reported_reads = 0 ;
 
-	for (i = 0; i != (int)NUM_SCORE_INTERVALS; ++i) {
+	for (i = 0; i != (int)_hits.NUM_SCORE_INTERVALS; ++i) {
 
 		if (printed && !_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY)
 			break; // best hit strategy

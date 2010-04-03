@@ -2,10 +2,11 @@
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
 #include "genomemapper.h"
+#include "align.h"
 
+double WORST_SCORE;
+double WORST_MM_SCORE;
 
-int kbound_overhang_alignment(HIT* hit, int offset, int readstart, int start, int end, unsigned short int hitreadpos, Chromosome const &chromosome, char orientation, unsigned char mismatches);
-int kbound_global_alignment(HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation);
 
 int check_mm(Chromosome const &chr, int genome_pos, int readpos, int ori)
 {

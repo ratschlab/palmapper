@@ -3,6 +3,8 @@
 // Copyright (C) 2009-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include "genomemapper.h"
+#include "align.h"
+#include "print.h"
 
 //config
 
@@ -322,7 +324,7 @@ int Hits::map_reads()
 			{
 				_topalignments.start_top_alignment_record();
 
-				read_mapped = print_hits();	// returns 1 if at least one hit is printed, 0 otherwise
+				read_mapped = _topalignments.print_hits();	// returns 1 if at least one hit is printed, 0 otherwise
 				if (_config.VERBOSE)
 					printf("%i unspliced alignment found\n", (int)_topalignments.size()); 
 
@@ -600,13 +602,13 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 	while (reverse > 0) {
 
 		if (reverse != 2) {
-			index_mmap = INDEX_FWD_MMAP;
-			index_entry = *(INDEX+index_slot);
+			index_mmap = _genome.INDEX_FWD_MMAP;
+			index_entry = *(_genome.INDEX+index_slot);
 			direction = -1;
 		}
 		else {
-			index_mmap = INDEX_REV_MMAP;
-			index_entry = *(INDEX_REV+index_slot);
+			index_mmap = _genome.INDEX_REV_MMAP;
+			index_entry = *(_genome.INDEX_REV+index_slot);
 			direction = 1;
 		}
 
@@ -658,7 +660,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 			{
 				TIME_CODE(clock_t start_time = clock()) ;
 #ifndef BinaryStream_MAP
-				index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
 				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
@@ -718,9 +720,9 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 				p_block[2]=p_id[2];
 				pos = p_id[3];
 
-				unsigned int genome_pos = pos + BLOCK_TABLE[block].pos;
+				unsigned int genome_pos = pos + _genome.BLOCK_TABLE[block].pos;
 				//unsigned int genome_chr = BLOCK_TABLE[block].chr;
-				Chromosome &genome_chr = _genome.chromosome(BLOCK_TABLE[block].chr);
+				Chromosome &genome_chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
 
 				// Check that read doesn't cross chrom borders
 				if ((reverse != 2 && (genome_pos < readpos-1 || genome_pos+_read.length()-readpos >= genome_chr.length())) ||
@@ -2016,12 +2018,12 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 
 			for (rev=0; rev <= /*_config.*/_config.MAP_REVERSE; ++rev) {
 				if (!rev) {
-					index_entry = INDEX[slot];
-					index_mmap = INDEX_FWD_MMAP;
+					index_entry = _genome.INDEX[slot];
+					index_mmap = _genome.INDEX_FWD_MMAP;
 				}
 				else  {
-					index_entry = INDEX_REV[slot];
-					index_mmap = INDEX_REV_MMAP;
+					index_entry = _genome.INDEX_REV[slot];
+					index_mmap = _genome.INDEX_REV_MMAP;
 				}
 
 				// for each mapping position
@@ -2051,7 +2053,7 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 
 					time_t start_time = clock() ;
 #ifndef BinaryStream_MAP
-					index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
 					index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
@@ -2081,8 +2083,8 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 						p_block[1]=p_id[1];
 						p_block[2]=p_id[2];
 						position = p_id[3];
-						pos = (unsigned int) position + BLOCK_TABLE[block].pos;	// 0-initialized
-						Chromosome &chr = _genome.chromosome(BLOCK_TABLE[block].chr);
+						pos = (unsigned int) position + _genome.BLOCK_TABLE[block].pos;	// 0-initialized
+						Chromosome &chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
 
 						//if (_config.REPORT_REPETITIVE_SEEDS)
 						//	report_repetitive_seed(chr, pos, index_entry.num)  ;
@@ -2297,9 +2299,9 @@ int Hits::map_short_read(Read& read, unsigned int num, int first_slot, int first
 		slot = first_slot;
 
 		reverse = 0;
-		if (INDEX[slot].num != 0)
+		if (_genome.INDEX[slot].num != 0)
 			reverse = 1;
-		if (/*_config.*/_config.MAP_REVERSE && INDEX_REV[slot].num != 0)
+		if (/*_config.*/_config.MAP_REVERSE && _genome.INDEX_REV[slot].num != 0)
 			reverse = (reverse + reverse) + 2;
 
 		if (reverse > 0)
@@ -2356,10 +2358,10 @@ int Hits::map_short_read(Read& read, unsigned int num, int first_slot, int first
 				// reverse: 0: slot doesnt match in either index or index_rev, 1: only index, 2: only index_rev, 4: both
 				reverse = 0;
 				//if (INDEX[slot].last_entry != NULL) {
-				if (INDEX[slot].num != 0) {
+				if (_genome.INDEX[slot].num != 0) {
 					reverse = 1;
 				}
-				if (/*_config.*/_config.MAP_REVERSE && INDEX_REV[slot].num != 0) {
+				if (/*_config.*/_config.MAP_REVERSE && _genome.INDEX_REV[slot].num != 0) {
 					reverse = (reverse + reverse) + 2;
 				}
 

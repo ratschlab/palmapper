@@ -5,7 +5,11 @@
 // Copyright (C) 2008 by Friedrich Miescher Laboratory of the Max Planck Society
 
 #include "genomemapper.h"
-#include "genomemapper_symbols.c"
+#include "print.h"
+
+FILE *OUT_FP;
+FILE *SP_OUT_FP;
+FILE *TRIGGERED_LOG_FP; // #A#
 
 Config _config;
 Statistics _stats;
@@ -14,6 +18,7 @@ TopAlignments _topalignments ;
 QPalma _qpalma ;
 GenomeMaps _genomemaps ;
 Hits _hits ;
+Read _read;
 
 int main(int argc, char *argv[]) 
 {
@@ -92,8 +97,8 @@ int main(int argc, char *argv[])
 
 	if (_config.STATISTICS)	{
 		print_stats();
-		printf("R E D U N D A N T : %d\n",REDUNDANT);
-		printf("Max used slots: %d\n", MAX_USED_SLOTS);
+		printf("R E D U N D A N T : %d\n", _hits.REDUNDANT);
+		printf("Max used slots: %d\n", _hits.MAX_USED_SLOTS);
 		printf("\nList iterations: %d\n", _stats.listcount);
 		printf("List iterations occurrences: %d\n",_stats.listocc);
 	}

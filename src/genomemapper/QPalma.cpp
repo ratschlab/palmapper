@@ -16,7 +16,7 @@
 clock_t QPalma::last_timing_report=0 ;
 clock_t QPalma::last_filter_report=0 ;
 
-QPalma::QPalma(int verbosity_): verbosity(verbosity_)
+QPalma::QPalma(int verbosity_): verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 {
 	region_align_time = 0;
 	region1_time = 0;
@@ -2342,7 +2342,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 				* alignment_parameters->matchmatrix_dim[1], donor, d_len,
 				acceptor, a_len, alignment_parameters->qualityPlifs,
 				remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
-				_config.NUM_GAPS,_config.NUM_MISMATCHES,_config.NUM_EDIT_OPS,NUM_MATCHES); 
+				_config.NUM_GAPS,_config.NUM_MISMATCHES,_config.NUM_EDIT_OPS, MIN_NUM_MATCHES); 
 
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;

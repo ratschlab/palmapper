@@ -2,12 +2,12 @@
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
 #include "genomemapper.h"
+#include "align.h"
 #include <assert.h>
 
 int init_defaults();
 int init_output_file();
 int init_spliced_output_file();
-int init_statistic_vars();
 int init_alignment_structures();
 
 int valid_char[256] ;
@@ -28,7 +28,7 @@ int init(int argc, char *argv[]) {
 }
 
 int init_alignment_structures() {
-	REDUNDANT = 0;
+	_hits.REDUNDANT = 0;
 
 	/////////////////////////////
 	////// if you change _config.NUM_EDIT_OPS here, then put alloc_hits_by_editops in init_hit_lists_operator() after this function!!!
@@ -63,19 +63,13 @@ int init_alignment_structures() {
 				_config.OVERHANG_ALIGNMENT ? "with" : "without");
 
 	if (_config.GAP_SCORE > _config.MM_SCORE)
-		WORST_SCORE = _config.NUM_GAPS * _config.GAP_SCORE + (_config.NUM_EDIT_OPS - _config.NUM_GAPS)
+	WORST_SCORE = _config.NUM_GAPS * _config.GAP_SCORE + (_config.NUM_EDIT_OPS - _config.NUM_GAPS)
 				* _config.MM_SCORE;
 	else
 		WORST_SCORE = _config.NUM_MISMATCHES * _config.MM_SCORE + (_config.NUM_EDIT_OPS
 				- _config.NUM_MISMATCHES) * _config.GAP_SCORE;
 	WORST_MM_SCORE = _config.NUM_MISMATCHES * _config.MM_SCORE;
-
-	ALIGNSEQ = (char *) malloc((_config.MAX_READ_LENGTH + 3 * Config::MAX_EDIT_OPS)
-			* sizeof(char));
-	if (ALIGNSEQ == NULL) {
-		fprintf(stderr, "[init_alignment_structures] Could not allocate memory\n");
-		exit(1);
-	}
+  
 
 	//only for debugging purposes:
 	//chrseq = (char *) malloc (_config.MAX_READ_LENGTH * sizeof(char));
@@ -103,7 +97,6 @@ int init_defaults() {
 	_config.NUM_EDIT_OPS = 4;
 	_config.NUM_GAPS = 1;
 	_config.NUM_MISMATCHES = 3;
-	NUM_MATCHES = 3;
 	_config.M_SCORE = 0;
 	_config.MM_SCORE = 4;
 	_config.GAP_SCORE = 5;

@@ -30,7 +30,6 @@ DYNPROG_OBJ = $(ObjDir)/genomemapper/dyn_prog/Mathmatics_dp.o \
 GM_OBJ = $(ObjDir)/genomemapper/GenomeMaps.o \
 	$(ObjDir)/genomemapper/QPalma.o \
 	$(ObjDir)/genomemapper/align.o \
-	$(ObjDir)/genomemapper/alloc.o \
 	$(ObjDir)/genomemapper/TopAlignments.o \
 	$(ObjDir)/genomemapper/IntervalQuery.o \
 	$(ObjDir)/genomemapper/genomemapper.o \
@@ -58,7 +57,7 @@ IDX_OBJ = $(ObjDir)/mkindex/init.o \
 	$(ObjDir)/mkindex/alloc.o \
 	$(ObjDir)/mkindex/mkindex.o
 
-genomemapper: $(GM_OBJ) src/genomemapper/*.h src/genomemapper/genomemapper_symbols.c
+genomemapper: $(GM_OBJ) src/genomemapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o genomemapper $(GM_OBJ) -lpthread -lz -lm
 
 gmindex:  $(IDX_OBJ) src/mkindex/*.h src/mkindex/mkindex_symbols.c

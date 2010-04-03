@@ -6,7 +6,28 @@
 
 #include <genomemapper/Chromosome.h>
 
+
 #define CHR_DESC_LENGTH 50
+
+struct STORAGE_ENTRY{
+	unsigned char id[4];
+};
+
+struct INDEX_ENTRY {
+	unsigned int num;
+	//STORAGE_ENTRY *last_entry;
+	unsigned int offset;
+};
+
+typedef struct meta_idx_file_entry {
+	int slot;
+	unsigned int num;
+} META_INDEX_ENTRY;
+
+typedef struct position_structure {
+	unsigned int pos;
+	unsigned int chr;
+} POS;
 
 
 class Genome {
@@ -23,7 +44,12 @@ public:
 	int BINARY_CODE[4];
 	unsigned int LONGEST_CHROMOSOME;
 
+#ifndef BinaryStream_MAP
+	void index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) ;
+#endif
+
 private:
+	int alloc_index_memory() ;
 	int build_index();
 	int load_genome();
 	int read_meta_index_header(FILE *META_INDEX_FP);
@@ -49,6 +75,28 @@ private:
 		return Genome::valid_char[(int)cc] ;
 	}
 	friend char get_compl_base(char c);
+
+public:
+	size_t INDEX_SIZE ;
+
+
+	POS *BLOCK_TABLE;
+	unsigned int BLOCK_TABLE_SIZE;
+
+#if 1 // dd
+	INDEX_ENTRY *INDEX;
+	INDEX_ENTRY *INDEX_REV;
+	
+#ifndef BinaryStream_MAP
+	STORAGE_ENTRY *INDEX_REV_MMAP;
+	STORAGE_ENTRY *INDEX_FWD_MMAP;
+#else
+	CBinaryStream<STORAGE_ENTRY>* INDEX_REV_MMAP;
+	CBinaryStream<STORAGE_ENTRY>* INDEX_FWD_MMAP;
+#endif
+#endif // dd
+
+	unsigned long int MAX_POSITIONS;
 };
 
 inline char unique_base(char c)
