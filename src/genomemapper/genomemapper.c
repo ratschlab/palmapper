@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
   	//printf("The current time is %s",asctime(localtime(&timer)));
 	////////////////////////
 
+	// initialize variables
 	Hits _hits ;
 	init(argc, argv, &_config, &_hits);
 
@@ -42,6 +43,8 @@ int main(int argc, char *argv[])
 
 //	new (&_genome) Genome();
 
+
+	// initialize GenomeMaps
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
 	{
 		_genomemaps.init_reporting() ;
