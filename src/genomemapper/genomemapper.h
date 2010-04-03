@@ -1,4 +1,4 @@
-// Authors: Korbinian Schneeberger, Stephan Ossowski and Joerg Hagmann
+// Authors: Korbinian Schneeberger, Stephan Ossowski, Joerg Hagmann, Gunnar Raetsch
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
 #ifndef GENOMEMAPPER_H_
