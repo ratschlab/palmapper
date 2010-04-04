@@ -38,7 +38,7 @@ GM_OBJ = $(ObjDir)/genomemapper/GenomeMaps.o \
 	$(ObjDir)/genomemapper/Chromosome.o \
 	$(ObjDir)/genomemapper/Config.o \
 	$(ObjDir)/genomemapper/Genome.o \
-	$(ObjDir)/genomemapper/Hit.o \
+	$(ObjDir)/genomemapper/Hits.o \
 	$(ObjDir)/genomemapper/Read.o \
 	$(ObjDir)/genomemapper/Statistics.o \
 	$(ObjDir)/genomemapper/Util.o \

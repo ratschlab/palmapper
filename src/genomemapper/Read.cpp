@@ -11,7 +11,7 @@
 
 #include <iostream>
 
-#include <genomemapper/Hit.h>
+#include <genomemapper/Hits.h>
 #include <genomemapper/Read.h>
 #include <genomemapper/genomemapper.h>
 

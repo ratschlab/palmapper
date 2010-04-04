@@ -33,7 +33,7 @@
 
 #include <genomemapper/Config.h>
 #include <genomemapper/Genome.h>
-#include <genomemapper/Hit.h>
+#include <genomemapper/Hits.h>
 #include <genomemapper/Read.h>
 #include <genomemapper/Statistics.h>
 #include <genomemapper/Util.h>
