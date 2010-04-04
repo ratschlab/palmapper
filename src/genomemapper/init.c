@@ -53,7 +53,7 @@ int init_defaults(Config * config) {
 	config->FLANKING = 0;
     config->LOG_TRIGGERED = 0;   // #A#
 
-	config->OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE;
+	config->OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	config->SCORES_OUT = 1;
 	config->OUTPUT_FILTER_NUM_RANDOM = 0;
 	config->OUTPUT_FILTER_NUM_TOP=1 ;

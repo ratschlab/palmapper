@@ -1034,7 +1034,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 
 	if (REPORT_SPLICED_READS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
 	{
-		fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM)\n") ;
+		fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM) %i\n", (int)OUTPUT_FORMAT) ;
 		exit(1) ;
 	}
 
