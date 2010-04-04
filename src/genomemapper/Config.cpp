@@ -8,7 +8,7 @@ Config::Config() {
 	NUM_THREADS = 0;
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP=1 ;
-	OUTPUT_FILTER_NUM_RANDOM = 0 ;
+	OUTPUT_FILTER_NUM_RANDOM = 0 ; // all
 	//ALL_HIT_STRATEGY = 0;
 	//SUMMARY_HIT_STRATEGY = 0;
 	RTRIM_STRATEGY=0 ;
@@ -91,6 +91,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -i\n") ;
 				usage();
 				exit(1);
 			}
@@ -118,7 +119,11 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		 //chr index file
 		 if(strcmp(argv[i],"-x")==0){
 		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
+		 if(i+1 > argc - 1) 
+		 { 
+		 fprintf(stderr, "ERROR: Argument missing for option -i\n") ;
+		 usage(); exit(1); 
+		 }
 		 i++;
 		 strcpy(CHR_INDEX_FILE_NAME, argv[i]);
 		 has_index = 1;
@@ -158,7 +163,11 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		{
 			not_defined = 0;
 			if(i+1 > argc - 1) 
-			{ usage(); exit(1); }
+			{ 
+				fprintf(stderr, "ERROR: Argument missing for option -threads\n") ;
+				usage(); 
+				exit(1); 
+			}
 			i++;
 		    NUM_THREADS = atoi(argv[i]) ;
 			if (NUM_THREADS<1)
@@ -172,6 +181,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-q") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -q\n") ;
 				usage();
 				exit(1);
 			}
@@ -184,6 +194,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-o") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -o\n") ;
 				usage();
 				exit(1);
 			}
@@ -195,6 +206,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-rtrim") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -rtrim\n") ;
 				usage();
 				exit(1);
 			}
@@ -212,6 +224,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-polytrim") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -polytrim\n") ;
 				usage();
 				exit(1);
 			}
@@ -229,6 +242,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-report") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -report\n") ;
 				usage();
 				exit(1);
 			}
@@ -241,6 +255,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-report-ro") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -report-ro\n") ;
 				usage();
 				exit(1);
 			}
@@ -277,6 +292,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		//report splice sites - confidence threshold
 		if (strcmp(argv[i], "-report-splice-sites") == 0) {
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -report-splice-sites\n") ;
 				usage();
 				exit(1);
 			}
@@ -292,6 +308,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		//report splice sites - percentile threshold
 		if (strcmp(argv[i], "-report-splice-sites-top-perc") == 0) {
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -report-splice-sites-top-perc\n") ;
 				usage();
 				exit(1);
 			}
@@ -307,6 +324,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		// filter by splice sites - percentile threshold
 		if (strcmp(argv[i], "-filter-splice-sites-top-perc") == 0) {
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -filter-splice-sites-top-perc\n") ;
 				usage();
 				exit(1);
 			}
@@ -321,6 +339,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		// filter by mismatches
 		if (strcmp(argv[i], "-filter-max-mismatches") == 0) {
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -filter-max-mismatches\n") ;
 				usage();
 				exit(1);
 			}
@@ -333,6 +352,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		// splice-site based filter: require at least this many edits
 		if (strcmp(argv[i], "-filter-splice-min-edit") == 0) {
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -filter-splice-min-edit\n") ;
 				usage();
 				exit(1);
 			}
@@ -346,6 +366,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-filter-splice-region") == 0)
 		{
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -filter-splice-region\n") ;
 				usage();
 				exit(1);
 			}
@@ -361,6 +382,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		// filter by mismatches
 		if (strcmp(argv[i], "-filter-max-gaps") == 0) {
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -filter-max-gaps\n") ;
 				usage();
 				exit(1);
 			}
@@ -386,6 +408,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-qpalma-use-map-max-len") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -qpalma-use-map-max-len\n") ;
 				usage();
 				exit(1);
 			}
@@ -397,6 +420,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-H") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -H\n") ;
 				usage();
 				exit(1);
 			}
@@ -408,6 +432,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-C") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -C\n") ;
 				usage();
 				exit(1);
 			}
@@ -419,6 +444,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-K") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -K\n") ;
 				usage();
 				exit(1);
 			}
@@ -430,6 +456,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-L") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -L\n") ;
 				usage();
 				exit(1);
 			}
@@ -441,6 +468,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-I") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -I\n") ;
 				usage();
 				exit(1);
 			}
@@ -452,12 +480,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-SA") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -SA\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -SA too small\n") ;
 				usage();
 				exit(1);
 			}
@@ -468,12 +498,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-NI") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -NI\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -NI too small\n") ;
 				usage();
 				exit(1);
 			}
@@ -485,12 +517,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-CT") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -CT\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -CT too small\n") ;
 				usage();
 				exit(1);
 			}
@@ -501,12 +535,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-rlim") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -rlim\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -rlim too small\n") ;
 				usage();
 				exit(1);
 			}
@@ -523,6 +559,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-f") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -f\n") ;
 				usage();
 				exit(1);
 			}
@@ -548,6 +585,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-u") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -u\n") ;
 				usage();
 				exit(1);
 			}
@@ -583,12 +621,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-index-extend") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -index-extend\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -index-extend too small\n") ;
 				usage();
 				exit(1);
 			}
@@ -599,12 +639,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-index-extend-threshold") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -index-extend-threshold\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -index-extend-threshold too small\n") ;
 				usage();
 				exit(1);
 			}
@@ -616,12 +658,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		{
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -seed-hit-cancel-threshold\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -seed-hit-cancel-threshold too small\n") ;
 				usage();
 				exit(1);
 			}
@@ -647,15 +691,17 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				exit(1) ;
 			}
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -z\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
 			
 			if ((OUTPUT_FILTER_NUM_TOP = atoi(argv[i])) == 0) {
-				if (argv[i][0] != '0') {
+				if (argv[i][0] != '0' || OUTPUT_FILTER_NUM_TOP<0) 
+				{
 					fprintf(stderr,
-							"ERROR: Number of alignments must be an integer value!\n");
+							"ERROR: Number of alignments must be a positive integer value!\n");
 					exit(1);
 				}
 			}
@@ -671,6 +717,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				exit(1) ;
 			}
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -ar\n") ;
 				usage();
 				exit(1);
 			}
@@ -699,6 +746,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				exit(1) ;
 			}
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -n\n") ;
 				usage();
 				exit(1);
 			}
@@ -723,6 +771,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-E") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -E\n") ;
 				usage();
 				exit(1);
 			}
@@ -747,6 +796,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-M") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -M\n") ;
 				usage();
 				exit(1);
 			}
@@ -771,6 +821,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-G") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -G\n") ;
 				usage();
 				exit(1);
 			}
@@ -795,6 +846,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-match_score") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -match_score\n") ;
 				usage();
 				exit(1);
 			}
@@ -806,6 +858,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-m") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -m\n") ;
 				usage();
 				exit(1);
 			}
@@ -824,6 +877,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-g") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -g\n") ;
 				usage();
 				exit(1);
 			}
@@ -842,6 +896,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-l") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -l\n") ;
 				usage();
 				exit(1);
 			}
@@ -857,6 +912,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-c") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -c\n") ;
 				usage();
 				exit(1);
 			}
@@ -980,6 +1036,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		if (strcmp(argv[i], "-log-triggered-reads") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -log-triggered-reads\n") ;
 				usage();
 				exit(1);
 			}
@@ -989,6 +1046,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		}                                                   // #A#
 
 		if (not_defined == 1) {
+			fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
 			usage();
 			exit(1);
 		}

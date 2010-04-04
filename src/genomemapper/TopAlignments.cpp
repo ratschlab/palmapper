@@ -246,7 +246,14 @@ alignment_t *TopAlignments::gen_alignment_from_hit(HIT *best_hit, QPalma * qpalm
 	best->max_intron_len = 0 ;
 	best->spliced = false ;
 
-	best->qpalma_score = qpalma->score_unspliced(ALIGNSEQ) ;
+	if (qpalma)
+		best->qpalma_score = qpalma->score_unspliced(ALIGNSEQ) ;
+	best->rtrim_cut=0 ;
+	best->polytrim_cut_start=0 ;
+	best->polytrim_cut_end=0 ;
+
+	best->hit = NULL ;
+	best->num = 0 ;
 
 	return best ;
 }
