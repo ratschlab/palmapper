@@ -36,6 +36,7 @@ QPalma::QPalma(Genome* genome_, Hits* hits_, TopAlignments* topalignments_, Geno
 	hits=hits_ ;
 	topalignments = topalignments_ ;
 	genomemaps = genomemaps_ ;
+	alignment_parameters = NULL;
 	
 	qpalma_filter_reason = -1 ;
 	for (int i=0; i<num_filter_reasons; i++)
@@ -292,7 +293,7 @@ int QPalma::map_splice_sites(std::string file_template, char type, float &splice
 int QPalma::init_alignment_parameters(std::string qpalma_file)
 {
 	// initialize parameters for alignment
-	if (alignment_parameters == NULL) 
+	if (alignment_parameters == NULL)
 	{
 		alignment_parameters = (struct alignment_parameter_struct*) malloc(
 			sizeof(struct alignment_parameter_struct));

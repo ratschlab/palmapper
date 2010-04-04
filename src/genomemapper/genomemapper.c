@@ -29,14 +29,12 @@ int main(int argc, char *argv[])
 	////////////////////////
 
 	// initialize variables
-	Hits _hits ;
-	init(argc, argv, &_config, &_hits);
+	init(argc, argv, &_config);
 
 	Genome _genome;
-	_genome.set_hits(&_hits) ;
-	_hits.set_genome(&_genome) ;
-	
 	GenomeMaps _genomemaps(&_genome) ;
+	Hits _hits(_genome, _genomemaps);
+	
 	TopAlignments _topalignments(&_genomemaps, &_hits) ;
 	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps) ;
 	_topalignments.set_qpalma(&_qpalma) ;

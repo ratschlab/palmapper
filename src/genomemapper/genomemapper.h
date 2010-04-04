@@ -59,6 +59,6 @@ extern FILE *SP_OUT_FP;
 extern FILE *TRIGGERED_LOG_FP; // #A#
 
 // init.c
-extern int init(int argc, char *argv[], Config * config, Hits * hits);
+extern int init(int argc, char *argv[], Config * config);
 
 #endif

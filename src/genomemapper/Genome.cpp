@@ -46,6 +46,7 @@ char Genome::upper_char[256];
 
 Genome::Genome() {
 	hits = NULL ;
+	MAX_POSITIONS = 0;
 	
 	NUM_CHROMOSOMES = 0;
 	INDEX_SIZE = Config::INDEX_SIZE_13 ;
@@ -55,7 +56,6 @@ Genome::Genome() {
 
 	if (_config.VERBOSE) printf("Reading in genome\n");
 	load_genome();
-
 }
 
 
@@ -114,7 +114,7 @@ int Genome::load_genome()
 	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) {
 		Chromosome &chr = _chromosomes[i];
 		chr._nr = i;
-		char *data = new char[chr.length()];
+		char *data = new char[chr.length() + 1];
 //		if ((chr._data = (char*) malloc ((chr._length + 1) * sizeof(char))) == NULL) {
 //			fprintf(stderr, "ERROR : not enough memory for genome\n");
 //			exit(1);
@@ -192,9 +192,6 @@ int Genome::build_index()
 	alloc_index_memory(); // updated
 
 	read_meta_index(META_INDEX_FP); // updated
-
-	// initialize with meta information
-	hits->init_from_meta_index(); // updated
 
 	// mmap map files into memory
 	mmap_indices(); // updated
@@ -312,49 +309,48 @@ int Genome::read_meta_index_header(FILE *META_INDEX_FP)
 
 int Genome::read_meta_index(FILE *META_INDEX_FP)
 {
- 	META_INDEX_ENTRY *file_entry = new META_INDEX_ENTRY ;;
+ 	META_INDEX_ENTRY file_entry;
 	int used_slots = 0;
 	int old_slot = _config.INDEX_SIZE_12+1;
 	int slot_rev;
 	unsigned int index_offset = 0, index_rev_offset = 0;
 
-	while (fread(file_entry, sizeof(META_INDEX_ENTRY), 1, META_INDEX_FP) == 1)
+	while (fread(&file_entry, sizeof(file_entry), 1, META_INDEX_FP) == 1)
 	{
-		if (old_slot != -file_entry->slot)
+		if (old_slot != -file_entry.slot)
 			used_slots++;
 
-		if (file_entry->slot >= 0) {
+		if (file_entry.slot >= 0) {
 
-			index_offset += file_entry->num;
+			index_offset += file_entry.num;
 
-			INDEX[file_entry->slot].num = file_entry->num;
-			INDEX[file_entry->slot].offset = index_offset ;
+			INDEX[file_entry.slot].num = file_entry.num;
+			INDEX[file_entry.slot].offset = index_offset ;
 
-			if (file_entry->num > MAX_POSITIONS)
-				MAX_POSITIONS = file_entry->num;
+			if (file_entry.num > MAX_POSITIONS)
+				MAX_POSITIONS = file_entry.num;
 
 		}
 		else if (_config.MAP_REVERSE) {
 
-			if (file_entry->slot == -2147483647)
+			if (file_entry.slot == -2147483647)
 				slot_rev = 0;
 			else
-				slot_rev = -file_entry->slot;
+				slot_rev = -file_entry.slot;
 
-			index_rev_offset += file_entry->num;
+			index_rev_offset += file_entry.num;
 
-			INDEX_REV[slot_rev].num = file_entry->num;
+			INDEX_REV[slot_rev].num = file_entry.num;
 			INDEX_REV[slot_rev].offset = index_rev_offset;
 
-			if (file_entry->num > MAX_POSITIONS)
-				MAX_POSITIONS = file_entry->num;
+			if (file_entry.num > MAX_POSITIONS)
+				MAX_POSITIONS = file_entry.num;
 
 		}
 
-		old_slot = file_entry->slot;
+		old_slot = file_entry.slot;
 
 	}
-	delete file_entry ;
 
 	fclose(META_INDEX_FP);
 

@@ -8,7 +8,7 @@
 
 //config
 
-Hits::Hits() {
+Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_) {
 /*
 	readpos = 0;
 	start = 0;
@@ -29,7 +29,15 @@ Hits::Hits() {
 	next = NULL;
 	last = NULL;
 */
-	genome = NULL ;
+	genome = &genome_;
+	genomemaps = &genomemaps_;
+	REDUNDANT = 0;
+	SLOT = 0;
+	HAS_SLOT = 0;
+	// initialize with meta information
+	init_from_meta_index(); // updated
+	init_alignment_structures(&_config);
+	init_hit_lists();
 }
 
 static std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
@@ -53,6 +61,57 @@ void printhit(HIT* hit) {
 	}
 	printf("/ID: %s]", _read.id());
 }
+
+int Hits::init_alignment_structures(Config * config) {
+
+	/////////////////////////////
+	////// if you change config->NUM_EDIT_OPS here, then put alloc_hits_by_editops in init_hit_lists_operator() after this function!!!
+	/////////////////////////////
+
+	if (config->NUM_MISMATCHES > config->NUM_EDIT_OPS) {
+		fprintf(
+				stderr,
+				"\n!!! WARNING: Nr. of allowed mismatches is set to nr. of allowed edit operations!\n\n");
+		config->NUM_MISMATCHES = config->NUM_EDIT_OPS;
+	}
+	if (config->NUM_GAPS > config->NUM_EDIT_OPS) {
+		fprintf(
+				stderr,
+				"\n!!! WARNING: Nr. of allowed gaps is set to nr. of allowed edit operations!\n\n");
+		config->NUM_GAPS = config->NUM_EDIT_OPS;
+	}
+
+	if (config->M_SCORE == config->MM_SCORE) {
+		fprintf(
+				stderr,
+				"ERROR: Sorry, until now, program cannot handle equal mismatch- and match-scores! Please restart with different values!\n");
+		exit(1);
+	}
+
+	if (config->VERBOSE)
+		printf(
+				"allowed edit operations: %d / allowed mismatches: %d / allowed gaps: %d\n%s strategy%s\t%s overhang alignment\n------------------\n",
+				config->NUM_EDIT_OPS, config->NUM_MISMATCHES, config->NUM_GAPS,
+				config->ALL_HIT_STRATEGY ? "all hit" : "best hit",
+				config->SUMMARY_HIT_STRATEGY ? " (summary)" : "",
+				config->OVERHANG_ALIGNMENT ? "with" : "without");
+
+	if (config->GAP_SCORE > config->MM_SCORE)
+	WORST_SCORE = config->NUM_GAPS * config->GAP_SCORE + (config->NUM_EDIT_OPS - config->NUM_GAPS)
+				* config->MM_SCORE;
+	else
+		WORST_SCORE = config->NUM_MISMATCHES * config->MM_SCORE + (config->NUM_EDIT_OPS
+				- config->NUM_MISMATCHES) * config->GAP_SCORE;
+	WORST_MM_SCORE = config->NUM_MISMATCHES * config->MM_SCORE;
+
+
+	//only for debugging purposes:
+	//chrseq = (char *) malloc (config->MAX_READ_LENGTH * sizeof(char));
+	//chrseq[0] = '\0';
+
+	return (0);
+}
+
 
 void Hits::printhits() 
 {

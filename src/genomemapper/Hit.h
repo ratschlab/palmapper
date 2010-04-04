@@ -89,16 +89,7 @@ class Hits {
 
 public:
 	
-	Hits();
-	void set_genome(Genome * genome_)
-	{
-		genome = genome_ ;
-	}
-
-	void set_genomemaps(GenomeMaps * genomemaps_)
-	{
-		genomemaps = genomemaps_ ;
-	}
+	Hits(Genome &genome, GenomeMaps &genomemaps);
 
 	int map_reads(TopAlignments* topalignments, QPalma* qpalma) ;
 	int size_hit(HIT *hit, unsigned int *oldlength, char num) ;
@@ -119,6 +110,7 @@ public:
 	int REDUNDANT;
 
 protected:
+	int init_alignment_structures(Config * config);
 	int init_constants()  ;
 	int init_statistic_vars() ;
 	int init_operators() ;
