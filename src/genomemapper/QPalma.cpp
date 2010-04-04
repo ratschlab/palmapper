@@ -1800,6 +1800,19 @@ int QPalma::perform_alignment_starter(std::string read_string, std::string read_
 	struct perform_alignment_t* data = NULL ;
 	try
 	{
+		// limit the number of threads to NUM_THREADS-1
+		if (thread_data.size()>=_config.NUM_THREADS)
+		{
+			unsigned int num_running = thread_data.size();
+			for (unsigned int i=0; i<thread_data.size(); i++)
+			{
+				pthread_join( thread_data[i]->thread, NULL);
+				num_running-- ;
+				if (num_running<_config.NUM_THREADS)
+					break ;
+			}
+		}
+
 		data = new struct perform_alignment_t ;
 		
 		data->read_string=read_string ;
@@ -1827,6 +1840,7 @@ int QPalma::perform_alignment_starter(std::string read_string, std::string read_
 		//fprintf(stderr, "thread #%i started\n", (int)thread_data.size()) ;
 		
 		thread_data.push_back(data) ;
+		
 		
 		return 0 ; // in the meaning of perform_alignment this corresponds to a spliced alignment
 	}

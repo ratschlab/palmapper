@@ -5,12 +5,10 @@
 #include <genomemapper/Config.h>
 
 Config::Config() {
-	NUM_THREADS = 0;
+	NUM_THREADS = 4;
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
-	OUTPUT_FILTER_NUM_TOP=1 ;
-	OUTPUT_FILTER_NUM_RANDOM = 0 ; // all
-	//ALL_HIT_STRATEGY = 0;
-	//SUMMARY_HIT_STRATEGY = 0;
+	OUTPUT_FILTER_NUM_TOP = 1 ;
+	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
 	RTRIM_STRATEGY=0 ;
 	RTRIM_STRATEGY_MIN_LEN=25 ;
 	POLYTRIM_STRATEGY=0 ;
@@ -681,6 +679,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				exit(1) ;
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
+			ALL_HIT_STRATEGY = 1 ;
 		}
 
 		if (strcmp(argv[i], "-z") == 0) {
@@ -706,6 +705,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				}
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_TOP ;
+			SUMMARY_HIT_STRATEGY=1 ;
 		}
 
 		//max nr of alignments per read
@@ -722,19 +722,19 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				exit(1);
 			}
 			i++;
-			if (OUTPUT_FILTER_NUM_RANDOM != 0) {
+			if (OUTPUT_FILTER_NUM_LIMIT != 0) {
 				fprintf(stderr,
 						"ERROR: options -a and -ar exclude themselves!\n");
 				exit(1);
 			}
-			if ((OUTPUT_FILTER_NUM_RANDOM = atoi(argv[i])) == 0) {
+			if ((OUTPUT_FILTER_NUM_LIMIT = atoi(argv[i])) == 0) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
 							"ERROR: Number of alignments must be an integer value!\n");
 					exit(1);
 				}
 			}
-			OUTPUT_FILTER = OUTPUT_FILTER_RANDOM ;
+			OUTPUT_FILTER = OUTPUT_FILTER_LIMIT ;
 		}
 
 		//max nr of alignments per read, randomly chosen!
@@ -751,19 +751,19 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				exit(1);
 			}
 			i++;
-			if (OUTPUT_FILTER_NUM_RANDOM != 0) {
+			if (OUTPUT_FILTER_NUM_LIMIT != 0) {
 				fprintf(stderr,
 						"ERROR: options -a and -ar exclude themselves!\n");
 				exit(1);
 			}
-			if ((OUTPUT_FILTER_NUM_RANDOM = atoi(argv[i])) == 0) {
+			if ((OUTPUT_FILTER_NUM_LIMIT = atoi(argv[i])) == 0) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
 							"ERROR: Number of alignments must be an integer value!\n");
 					exit(1);
 				}
 			}
-			OUTPUT_FILTER_NUM_RANDOM = -OUTPUT_FILTER_NUM_RANDOM ;
+			OUTPUT_FILTER_NUM_LIMIT = -OUTPUT_FILTER_NUM_LIMIT ;
 			OUTPUT_FILTER = OUTPUT_FILTER_RANDOM ;
 		}
 
@@ -1090,7 +1090,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		exit(1) ;
 	}
 
-	if (REPORT_SPLICED_READS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
+	if (SPLICED_HITS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
 	{
 		fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM) %i\n", (int)OUTPUT_FORMAT) ;
 		exit(1) ;

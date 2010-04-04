@@ -53,7 +53,7 @@ class QPalma
 
 public:
 
-	QPalma(Genome* genome_, Hits * hits, TopAlignments* topalignments_, GenomeMaps* genomemaps_, int verbosity_=0) ;
+	QPalma(Genome* genome_, Hits * hits, TopAlignments* topalignments_, GenomeMaps* genomemaps_, int verbosity_=2) ;
 	~QPalma() ;
 
 	int map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report) ;

@@ -84,10 +84,9 @@ int Hits::init_alignment_structures(Config * config) {
 
 	if (config->VERBOSE)
 		printf(
-				"allowed edit operations: %d / allowed mismatches: %d / allowed gaps: %d\n%s strategy%s\t%s overhang alignment\n------------------\n",
+				"allowed edit operations: %d / allowed mismatches: %d / allowed gaps: %d\n%s strategy\t%s overhang alignment\n------------------\n",
 				config->NUM_EDIT_OPS, config->NUM_MISMATCHES, config->NUM_GAPS,
-				config->ALL_HIT_STRATEGY ? "all hit" : "best hit",
-				config->SUMMARY_HIT_STRATEGY ? " (summary)" : "",
+				config->OUTPUT_FILTER==OUTPUT_FILTER_ALL ? "all hit" : ((config->OUTPUT_FILTER==OUTPUT_FILTER_ALL) ? "top hit" : "all hit"),
 				config->OVERHANG_ALIGNMENT ? "with" : "without");
 
 	if (config->GAP_SCORE > config->MM_SCORE)
@@ -333,7 +332,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 				reset_num_edit_ops(num_edit_ops) ;
 					
 			read_mapped = 0 ;
-
+			
 			if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
 			{
 				topalignments->start_top_alignment_record();
@@ -2793,15 +2792,15 @@ int Hits::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 
 		if (HITS_BY_SCORE[i].hitpointer != NULL) 
 		{
-			// only _config.OUTPUT_FILTER_NUM_RANDOM numbers of alignment will be chosen randomly:
-			if (!(_config.OUTPUT_FILTER==OUTPUT_FILTER_ALL) && !(_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP) && 
-				(_config.OUTPUT_FILTER_NUM_RANDOM < 0) && (HITS_BY_SCORE[i].num > -_config.OUTPUT_FILTER_NUM_RANDOM)) 
+			// only _config.OUTPUT_FILTER_NUM_LIMIT numbers of alignment will be chosen randomly:
+			if ((_config.OUTPUT_FILTER==OUTPUT_FILTER_RANDOM) && 
+				(_config.OUTPUT_FILTER_NUM_LIMIT < 0) && (HITS_BY_SCORE[i].num > -_config.OUTPUT_FILTER_NUM_LIMIT)) 
 			{
 				srand((unsigned) time(NULL));
 				
 				int j, k, n;
-				int lhits[-_config.OUTPUT_FILTER_NUM_RANDOM];
-				for (j = 0; j != -_config.OUTPUT_FILTER_NUM_RANDOM; ++j) {
+				int lhits[-_config.OUTPUT_FILTER_NUM_LIMIT];
+				for (j = 0; j != -_config.OUTPUT_FILTER_NUM_LIMIT; ++j) {
 					n = 1;
 					while (n != 0) {
 						n = 0;
@@ -2813,7 +2812,7 @@ int Hits::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 					}
 				}
 
-				qsort(lhits, -_config.OUTPUT_FILTER_NUM_RANDOM, sizeof(int), compare_int);
+				qsort(lhits, -_config.OUTPUT_FILTER_NUM_LIMIT, sizeof(int), compare_int);
 
 				hit = HITS_BY_SCORE[i].hitpointer;
 
@@ -2821,11 +2820,11 @@ int Hits::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 				for (j = 0; j != HITS_BY_SCORE[i].num; ++j) {
 
 					if (lhits[nr] == j) {
-						printed += topalignments->report_unspliced_hit(hit, -_config.OUTPUT_FILTER_NUM_RANDOM, qpalma);
+						printed += topalignments->report_unspliced_hit(hit, -_config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
 						nr++;
 					}
 
-					if (nr == -_config.OUTPUT_FILTER_NUM_RANDOM)
+					if (nr == -_config.OUTPUT_FILTER_NUM_LIMIT)
 						break;
 
 					hit = hit->same_eo_succ;
@@ -2855,11 +2854,11 @@ int Hits::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 					else
 						nr = HITS_IN_SCORE_LIST;
 
-					if (_config.OUTPUT_FILTER_NUM_RANDOM == 0) { // no max nr of hits per read was specified, print all
+					if (_config.OUTPUT_FILTER_NUM_LIMIT == 0) { // no max nr of hits per read was specified, print all
 						printed += topalignments->report_unspliced_hit(hit, nr, qpalma);
-					} else if (_config.OUTPUT_FILTER_NUM_RANDOM > 0 && printed < _config.OUTPUT_FILTER_NUM_RANDOM) {
-						printed += topalignments->report_unspliced_hit(hit, (nr < _config.OUTPUT_FILTER_NUM_RANDOM) ? nr : _config.OUTPUT_FILTER_NUM_RANDOM, qpalma);
-					} else if (_config.OUTPUT_FILTER_NUM_RANDOM == printed) { // repeatmap many alignments already printed out -> stop printing -> next read
+					} else if (_config.OUTPUT_FILTER_NUM_LIMIT > 0 && printed < _config.OUTPUT_FILTER_NUM_LIMIT) {
+						printed += topalignments->report_unspliced_hit(hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+					} else if (_config.OUTPUT_FILTER_NUM_LIMIT == printed) { // repeatmap many alignments already printed out -> stop printing -> next read
 						return 1;
 					}
 

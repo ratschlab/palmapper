@@ -23,7 +23,8 @@ enum OutputFilterEnum
 	OUTPUT_FILTER_DEFAULT=-1,
 	OUTPUT_FILTER_ALL=0,
 	OUTPUT_FILTER_TOP=1,
-	OUTPUT_FILTER_RANDOM=2,
+	OUTPUT_FILTER_LIMIT=2,
+	OUTPUT_FILTER_RANDOM=3
 }  ;
 
 class Config {
@@ -46,10 +47,10 @@ public:
 	static int const MAX_READ_ID_LENGTH = 1000;
 	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
 
-	int NUM_THREADS;
+	unsigned int NUM_THREADS;
 	OutputFilterEnum OUTPUT_FILTER ;
 	unsigned int OUTPUT_FILTER_NUM_TOP ;
-	int OUTPUT_FILTER_NUM_RANDOM ;
+	int OUTPUT_FILTER_NUM_LIMIT ;
 	
 	char ALL_HIT_STRATEGY;
 	char SUMMARY_HIT_STRATEGY;

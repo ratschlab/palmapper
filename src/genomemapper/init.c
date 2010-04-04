@@ -55,8 +55,8 @@ int init_defaults(Config * config) {
 
 	config->OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	config->SCORES_OUT = 1;
-	config->OUTPUT_FILTER_NUM_RANDOM = 0;
-	config->OUTPUT_FILTER_NUM_TOP=1 ;
+	config->OUTPUT_FILTER_NUM_LIMIT = 0;
+	config->OUTPUT_FILTER_NUM_TOP = 10 ;
 	config->CHROM_CONTAINER_SIZE = 15000000;
 	config->STATISTICS = 0;
 
