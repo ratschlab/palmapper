@@ -1,18 +1,18 @@
 // Authors: Korbinian Schneeberger and Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
-#include "genomemapper.h"
+#include "Hit.h"
 #include "align.h"
+#include "Genome.h"
 
 double WORST_SCORE;
 double WORST_MM_SCORE;
 
-
-int check_mm(Chromosome const &chr, int genome_pos, int readpos, int ori)
+int check_mm(Read & read, Chromosome const &chr, int genome_pos, int readpos, int ori)
 {
-	if ( (ori == 1  && (chr[genome_pos] != _read.data()[readpos])) ||
-	     (ori == -1 && get_compl_base(chr[genome_pos]) != _read.data()[readpos]) ||
-	     !(unique_base(_read.data()[readpos]))
+	if ( (ori == 1  && (chr[genome_pos] != read.data()[readpos])) ||
+	     (ori == -1 && get_compl_base(chr[genome_pos]) != read.data()[readpos]) ||
+	     !(unique_base(read.data()[readpos]))
 	   )
 	{
 		return 1;
@@ -21,370 +21,12 @@ int check_mm(Chromosome const &chr, int genome_pos, int readpos, int ori)
 	}
 }
 
-
-int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches)
-{
-	int Read_length = _read.length();
-	char const * const READ = _read.data();
-	//int Chr_length = CHR_LENGTH[chromosome];
-	//int Num_edit_ops = _config.NUM_EDIT_OPS;
-	int Num_mismatches = _config.NUM_MISMATCHES;
-	// MAX_EDIT_OPS and _config.ALL_HIT_STRATEGY are used only once -> no global var
-
-	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
-	memcpy(edit_op, hit->edit_op, mismatches * sizeof(EDIT_OPS));
-
-	int hitlength = end - start + 1;
-	int afterhit_len = Read_length - readpos - hitlength + 1;
-
-	// checking if read fits on the start or end of chromosome:
-	//@TODO small overlaps should be mapped
-	/*if (orientation == '+') {
-		if (start < readpos) {
-			//printf("Read cannot be mapped on plus strand at start of chromosome %d!\n", hit->chromosome+1);
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-		if (end + afterhit_len > Chr_length) {
-			//printf("Read cannot be mapped on plus strand at end of chromosome %d!\n", hit->chromosome+1);
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-	}
-
-	if (orientation == '-') {
-		if (afterhit_len >= start) {
-			//printf("Read cannot be mapped on minus strand at start of chromosome %d!\n", hit->chromosome+1);
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-		if (end + readpos - 1 > Chr_length) {
-			//printf("Read cannot be mapped on minus strand at end of chromosome %d!\n", hit->chromosome+1);
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-	}*/
-
-	//if (_config.STATISTICS) _stats.NUM_ALIGNMENTS++;
-
-	int j;
-	//int val;
-
-	int readstart;
-	if (orientation == '+') {
-		readstart = start - readpos;	// 0-initialized
-	}
-	else {
-		readstart = start - afterhit_len - 1;	//changed		0-initialized
-	}
-
-
-	// from read[0] to read[hit->readpos]
-	for (j=0; j!=readpos-1; ++j) {
-
-		if (	(orientation == '+')
-				&& (	(chromosome[start - readpos + j] != READ[j])
-				 	 || !(unique_base(READ[j]))		// [XX] should also be a mismatch!
-					// if read[j]=X and chr_seq not, then first or-condition is automatically true -> genome sequence doesn't have to be checked
-				   )
-		   )
-		{
-			// create mismatch:
-			if (mismatches < _config.NUM_EDIT_OPS) {
-				(edit_op[mismatches]).pos = j+1;
-				(edit_op[mismatches]).mm = 1;
-			}
-
-			mismatches++;
-			assert(mismatches<Config::MAX_EDIT_OPS) ;
-		}
-
-		if (	(orientation == '-')
-			 	&& (    (get_compl_base(chromosome[end + readpos - 2 - j]) != READ[j])
-					 || !(unique_base(READ[j]))
-				   )
-		   )
-		{
-			// create mismatch:
-			if (mismatches < _config.NUM_EDIT_OPS) {
-				edit_op[mismatches].pos = Read_length - j;
-				edit_op[mismatches].mm = 1;
-			}
-
-			mismatches++;
-			assert(mismatches<Config::MAX_EDIT_OPS) ;
-		}
-
-		if (mismatches > _config.NUM_EDIT_OPS) {
-			/*if (hit->orientation == '+') val = readstart;
-				else val = readstart * 2;
-			if (READSTART[val]) REDUNDANT++;
-				else READSTART[val] = 1;*/
-			return 0;
-		}
-	}
-
-	// from read[hit->readpos + hitlength] to read[_read.lenght() - 1]
-	int i = 0;
-	j = readpos + hitlength - 1;
-
-
-	while ((mismatches <= _config.NUM_EDIT_OPS) && (j < Read_length)) {
-
-		if (	(orientation == '+')
-			 	&& (    (hit->chromosome->operator [](end + i) != READ[j])
-					 || !(unique_base(READ[j]))		// [XX] should also be a mismatch!
-					// if read[j]=X and chr_seq not, then first or-condition is automatically true -> genome sequence doesn't have to be checked
-				   )
-		   )
-		{
-			// create mismatch:
-			if (mismatches < _config.NUM_EDIT_OPS) {
-				(edit_op[mismatches]).pos = j+1;
-				(edit_op[mismatches]).mm = 1;
-			}
-
-			mismatches++;
-			assert(mismatches<Config::MAX_EDIT_OPS) ;
-		}
-
-
-		if (	(orientation == '-')
-			 	&& (    (get_compl_base(chromosome[start - 2 - i]) != READ[j])
-					 || !(unique_base(READ[j]))
-				   )
-		   )
-		{
-			// create mismatch:
-			if (mismatches < _config.NUM_EDIT_OPS) {
-				(edit_op[mismatches]).pos = Read_length - j;
-				(edit_op[mismatches]).mm = 1;
-			}
-
-			mismatches++;
-			assert(mismatches<Config::MAX_EDIT_OPS) ;
-		}
-
-		if (mismatches > _config.NUM_EDIT_OPS) {
-			/*if (hit->orientation == '+') val = readstart;
-				else val = readstart * 2;
-			if (READSTART[val]) REDUNDANT++;
-				else READSTART[val] = 1;*/
-			return 0;
-		}
-
-		++i;
-		++j;
-	}
-
-	if (mismatches <= Num_mismatches) {	// there can't be gaps
-
-		assert(mismatches<Config::MAX_EDIT_OPS) ;
-
-		// write in hit-structure:
-		hit->mismatches = mismatches;
-
-//		memcpy(hit->edit_op, edit_op, mismatches * sizeof(EDIT_OPS));
-
-		// this version leads to seg faults later on ... quite unclear why
-		for (int ii=0; ii<mismatches; ii++)
-		{
-			assert(edit_op[ii].pos>=-((int)_read.length()) && edit_op[ii].pos<=((int)_read.length())) ;
-			hit->edit_op[ii]=edit_op[ii] ;
-			assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
-		}
-		
-		update_num_edit_ops(mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
-
-		return 1;
-	}
-
-	return 0;
-}
-
-
-// returns if aligned hit fulfills MM and gap-criterias, thus is printed out (alignments are called in this method)
-int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches)
-{
-	// global vars -> local vars
-	int Read_length = _read.length();
-	int Chr_length = chromosome.length();
-	char All_hit_strategy = _config.ALL_HIT_STRATEGY;
-	//int Num_edit_ops = _config.NUM_EDIT_OPS;
-	int Num_gaps = _config.NUM_GAPS;
-	// variable _config.OVERHANG_ALIGNMENT is used only once -> no local variable
-
-	int hitlength = end - start + 1;
-	int afterhit_len = Read_length - readpos - hitlength + 1;
-
-	// checking if read fits on the start or end of chromosome:
-	//@TODO small overlaps should be mapped
-	/*if (orientation == '+') {
-		if (start < readpos) {
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-		if (end + afterhit_len > Chr_length) {
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-	}
-
-	if (orientation == '-') {
-		if (afterhit_len >= start) {
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-		if (end + readpos - 1 > Chr_length) {
-			//if (_config.STATISTICS) _stats.ENDSTART_MAPPED[0]++;
-			return 0;
-		}
-	}*/
-
-	// just perform global alignment if gap heuristic/speedup was disabled:
-	if (!_config.OVERHANG_ALIGNMENT) 
-	{
-		//if (_config.STATISTICS) _stats.NUM_WHOLE_ALIGNMENTS++;
-		/*if (kbound_global_alignment(hit, readpos, start, end, chromosome, orientation)) {
-			mismatches = hit->mismatches;
-			if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS) _config.NUM_EDIT_OPS = mismatches;
-			return insert_into_scorelist(hit, 1);
-		}
-		else return 0;*/
-		mismatches = kbound_global_alignment(hit, readpos, start, end, chromosome, orientation);
-		if (mismatches < 0) return 0;
-		assert(mismatches<Config::MAX_EDIT_OPS) ;
-
-		//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
-		//	_config.NUM_EDIT_OPS = mismatches;
-		update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
-
-		return 1;
-	}
-
-
-	// perform whole alignment pipeline:
-
-	char k1_aligned;
-	int offset;
-
-	int readstart;	// start pos of read on genome
-	if (orientation == '+') {
-		readstart = start - readpos;		//	0-initialized
-	}
-	else {
-		readstart = start - afterhit_len - 1;	//changed		0-initialized
-	}
-	int readend = readstart + Read_length;	// end pos of read on genome	1-initialized
-
-
-	if (readpos != 1) {
-
-			if (orientation == '+') {
-				if (readstart - Num_gaps < 0) offset = readstart;
-					else offset = Num_gaps;
-			}
-			else {
-				if (readend + Num_gaps > Chr_length) offset = Chr_length - readend;
-					else offset = Num_gaps;
-			}
-
-			// perform alignment
-			k1_aligned = kbound_overhang_alignment(hit, offset, 0, start, end, readpos, chromosome, orientation, mismatches);
-			mismatches = hit->mismatches;
-			assert(mismatches<Config::MAX_EDIT_OPS) ;
-
-			// there are gaps on best path in alignment -> perform whole global alignment
-			if (k1_aligned == 0) {
-
-				//if (_config.STATISTICS) _stats.NUM_WHOLE_ALIGNMENTS++;
-				/*if (kbound_global_alignment(hit, readpos, start, end, chromosome, orientation)) {
-					mismatches = hit->mismatches;
-					if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS) _config.NUM_EDIT_OPS = mismatches;
-					return insert_into_scorelist(hit, 1);
-				}
-				else return 0;*/
-				mismatches = kbound_global_alignment(hit, readpos, start, end, chromosome, orientation);
-				if (mismatches < 0) return 0;
-				assert(mismatches<Config::MAX_EDIT_OPS) ;
-				//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
-				//_config.NUM_EDIT_OPS = mismatches;
-				update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
-				return 1;
-			}
-
-			// too many mismatches in aligned read already:
-			if (k1_aligned == -1) {
-				return 0;
-			}
-
-	}
-
-	if (readpos + hitlength != Read_length + 1) {
-
-			if (orientation == '+') {
-				if (readend + Num_gaps > Chr_length) offset = Chr_length - readend;
-					else offset = Num_gaps;
-			}
-			else {
-				if (readstart - Num_gaps < 0) offset = readstart;
-					else offset = Num_gaps;
-			}
-
-			// perform alignment if at least one edit op can still be afforded:
-			if (mismatches < _config.NUM_EDIT_OPS || _config.NOT_MAXIMAL_HITS) {
-				k1_aligned = kbound_overhang_alignment(hit, offset, readpos+hitlength-1, start, end, readpos, chromosome, orientation, mismatches);
-				mismatches = hit->mismatches;
-				assert(mismatches<Config::MAX_EDIT_OPS) ;
-			}
-			else {
-				return 0;
-			}
-
-			// there are gaps on best path in alignment -> perform whole global alignment
-			if (k1_aligned == 0) {
-
-				//if (_config.STATISTICS) _stats.NUM_WHOLE_ALIGNMENTS++;
-				/*if (kbound_global_alignment(hit, readpos, start, end, chromosome, orientation)) {
-					mismatches = hit->mismatches;
-					if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS) _config.NUM_EDIT_OPS = mismatches;
-					return insert_into_scorelist(hit, 1);
-				}
-				else return 0;*/
-				mismatches = kbound_global_alignment(hit, readpos, start, end, chromosome, orientation);
-				if (mismatches < 0) return 0;
-				assert(mismatches<Config::MAX_EDIT_OPS) ;
-				//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
-				//_config.NUM_EDIT_OPS = mismatches;
-				update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
-
-				return 1;
-			}
-
-			// too many mismatches?
-			if (k1_aligned == -1) {
-				return 0;
-			}
-	}
-
-	// gapless alignment was successful -> insert hit into HITS_BY_SCORE:
-	//insert_into_scorelist(hit, 1);
-
-	//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
-	//_config.NUM_EDIT_OPS = mismatches;
-	update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
-
-	// successful alignment:
-	return 1;
-}
-
-
 // returns 1 if alignment is gapless, 0 if there are gaps and -1 if nr of allowed MMs is exceeded
-int kbound_overhang_alignment(HIT* hit, int offset, int readstart, int start, int end, unsigned short int hitreadpos, Chromosome const &chromosome, char orientation, unsigned char mismatches)
+int kbound_overhang_alignment(Read & read, HIT* hit, int offset, int readstart, int start, int end, unsigned short int hitreadpos, Chromosome const &chromosome, char orientation, unsigned char mismatches)
 {
 	// global vars -> local vars
-	char const * const READ = _read.data();
-	int Read_length = _read.length();
+	char const * const READ = read.data();
+	int Read_length = read.length();
 	int K = _config.NUM_GAPS;
 	int Max_read_length = _config.MAX_READ_LENGTH;
 	double Mismatch_score = _config.MM_SCORE;
@@ -698,11 +340,11 @@ int kbound_overhang_alignment(HIT* hit, int offset, int readstart, int start, in
 
 
 // k-bound global alignment algorithm:
-int kbound_global_alignment(HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation)
+int kbound_global_alignment(Read & read, HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation)
 {
 	// global vars -> local vars
-	char const * const READ = _read.data();
-	int Read_length = _read.length();
+	char const * const READ = read.data();
+	int Read_length = read.length();
 	unsigned int Chr_length = chromosome.length();
 	double Gap_score = _config.GAP_SCORE;
 	double Mismatch_score = _config.MM_SCORE;

@@ -6,8 +6,11 @@
 
 Config::Config() {
 	NUM_THREADS = 0;
-	ALL_HIT_STRATEGY = 0;
-	SUMMARY_HIT_STRATEGY = 0;
+	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
+	OUTPUT_FILTER_NUM_TOP=1 ;
+	OUTPUT_FILTER_NUM_RANDOM = 0 ;
+	//ALL_HIT_STRATEGY = 0;
+	//SUMMARY_HIT_STRATEGY = 0;
 	RTRIM_STRATEGY=0 ;
 	RTRIM_STRATEGY_MIN_LEN=25 ;
 	POLYTRIM_STRATEGY=0 ;
@@ -16,14 +19,14 @@ Config::Config() {
 	HITLEN_LIMIT = 0;
 	VERBOSE = 0;
 	MAP_REVERSE = 0;
-	REPEATMAP = 0;
+	//REPEATMAP = 0;
 	STRINGENT_GAPLIMIT = 0;
 	PRINT_SEQ = 0;
 	INDEX_DEPTH = 0;
 	INDEX_DEPTH_EXTRA = 3 ;
 	INDEX_DEPTH_EXTRA_THRESHOLD = 100000000 ;
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
-	OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE ;
+	OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
 	REPORT_REPETITIVE_SEEDS = 0 ;
@@ -150,6 +153,21 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 
 		 */
 
+		 //meta index file
+		if(strcmp(argv[i],"-threads")==0)
+		{
+			not_defined = 0;
+			if(i+1 > argc - 1) 
+			{ usage(); exit(1); }
+			i++;
+		    NUM_THREADS = atoi(argv[i]) ;
+			if (NUM_THREADS<1)
+			{
+				fprintf(stderr,	"ERROR: number of threads too small\n");
+				exit(1) ;
+			}
+		}
+
 		//query file
 		if (strcmp(argv[i], "-q") == 0) {
 			not_defined = 0;
@@ -183,8 +201,11 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			i++;
 			RTRIM_STRATEGY = 1 ;
 			RTRIM_STRATEGY_MIN_LEN = atoi(argv[i]) ;
-			if ((int)RTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
+			if (RTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
+			{
 				fprintf(stderr,	"ERROR: minimal rtrim alignment length too short\n");
+				exit(1) ;
+			}
 		}
 
 		//polyA/T trimming
@@ -197,8 +218,11 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			i++;
 			POLYTRIM_STRATEGY = 1 ;
 			POLYTRIM_STRATEGY_MIN_LEN = atoi(argv[i]) ;
-			if ((int)POLYTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
+			if (POLYTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
+			{
 				fprintf(stderr,	"ERROR: minimal polytrim alignment length too short\n");
+				exit(1) ;
+			}
 		}
 
 		//report output file
@@ -509,12 +533,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE ;
 			} else if (strcmp(output, "bed") == 0 || strcmp(output, "BED") == 0) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_BED;
+			} else if (strcmp(output, "bedx") == 0 || strcmp(output, "BEDX") == 0) {
+				OUTPUT_FORMAT = OUTPUT_FORMAT_BEDX;
 			} else if (strcmp(output, "sam") == 0 || strcmp(output, "SAM") == 0) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_SAM;
 			} else {
 				fprintf(stderr,
 						"ERROR: Output file format must either be \"shore\" or \"bed\"\n");
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -535,13 +561,13 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			VERBOSE = 1;
 		}
 
-		//scores out
+		/*//scores out
 		if (strcmp(argv[i], "-e") == 0) {
 			not_defined = 0;
 			SCORES_OUT = 0;
-		}
+			}*/
 
-		//build reverse index
+		// do not align using reverse index
 		if (strcmp(argv[i], "-r") == 0) {
 			not_defined = 0;
 			MAP_REVERSE = 0;
@@ -605,63 +631,92 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		//report all hits-strategy
 		if (strcmp(argv[i], "-a") == 0) {
 			not_defined = 0;
-			ALL_HIT_STRATEGY = 1;
+			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
+			{
+				fprintf(stderr, "ERROR: output filter already defined\n") ;
+				exit(1) ;
+			}
+			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
 		}
 
-		// report summary of hits-strategy, which is the same as ALL_HIT_STRATEGY
-		// throughout the alignment process, but extracts a summary from all hits
-		// when printing the results instead of printing all hits.
 		if (strcmp(argv[i], "-z") == 0) {
 			not_defined = 0;
-			//ALL_HIT_STRATEGY = 1;
-			SUMMARY_HIT_STRATEGY = 1;
-		}
-		// if neither ALL_HIT_STRATEGY nor SUMMARY_HIT_STRATEGY are defined,
-		// then the strategy is to print the best hit only
-
-		//max nr of alignments per read
-		if (strcmp(argv[i], "-ar") == 0) {
-			not_defined = 0;
+			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
+			{
+				fprintf(stderr, "ERROR: output filter already defined\n") ;
+				exit(1) ;
+			}
 			if (i + 1 > argc - 1) {
 				usage();
 				exit(1);
 			}
 			i++;
-			if (REPEATMAP != 0) {
-				fprintf(stderr,
-						"ERROR: options -a and -ar exclude themselves!\n");
-				exit(0);
-			}
-			if ((REPEATMAP = atoi(argv[i])) == 0) {
+			
+			if ((OUTPUT_FILTER_NUM_TOP = atoi(argv[i])) == 0) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
 							"ERROR: Number of alignments must be an integer value!\n");
-					exit(0);
+					exit(1);
 				}
 			}
+			OUTPUT_FILTER=OUTPUT_FILTER_TOP ;
+		}
+
+		//max nr of alignments per read
+		if (strcmp(argv[i], "-ar") == 0) {
+			not_defined = 0;
+			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
+			{
+				fprintf(stderr, "ERROR: output filter already defined\n") ;
+				exit(1) ;
+			}
+			if (i + 1 > argc - 1) {
+				usage();
+				exit(1);
+			}
+			i++;
+			if (OUTPUT_FILTER_NUM_RANDOM != 0) {
+				fprintf(stderr,
+						"ERROR: options -a and -ar exclude themselves!\n");
+				exit(1);
+			}
+			if ((OUTPUT_FILTER_NUM_RANDOM = atoi(argv[i])) == 0) {
+				if (argv[i][0] != '0') {
+					fprintf(stderr,
+							"ERROR: Number of alignments must be an integer value!\n");
+					exit(1);
+				}
+			}
+			OUTPUT_FILTER = OUTPUT_FILTER_RANDOM ;
 		}
 
 		//max nr of alignments per read, randomly chosen!
 		if (strcmp(argv[i], "-n") == 0) {
 			not_defined = 0;
+			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
+			{
+				fprintf(stderr, "ERROR: output filter already defined\n") ;
+				exit(1) ;
+			}
 			if (i + 1 > argc - 1) {
 				usage();
 				exit(1);
 			}
 			i++;
-			if (REPEATMAP != 0) {
+			if (OUTPUT_FILTER_NUM_RANDOM != 0) {
 				fprintf(stderr,
 						"ERROR: options -a and -ar exclude themselves!\n");
-				exit(0);
+				exit(1);
 			}
-			if ((REPEATMAP = atoi(argv[i])) == 0) {
+			if ((OUTPUT_FILTER_NUM_RANDOM = atoi(argv[i])) == 0) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
 							"ERROR: Number of alignments must be an integer value!\n");
-					exit(0);
+					exit(1);
 				}
 			}
-			REPEATMAP = -REPEATMAP;
+			OUTPUT_FILTER_NUM_RANDOM = -OUTPUT_FILTER_NUM_RANDOM ;
+			OUTPUT_FILTER = OUTPUT_FILTER_RANDOM ;
 		}
 
 		//max number of allowed edit operations
@@ -676,7 +731,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
 							"ERROR: Number of edit operations must be an integer value!\n");
-					exit(0);
+					exit(1);
 				}
 			}
 			if (NUM_EDIT_OPS > MAX_EDIT_OPS) {
@@ -684,7 +739,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 						stderr,
 						"ERROR: Number of allowed mismatches exceeds maximal number of edit operations (=%d)! Please restart with a lower value!\n",
 						MAX_EDIT_OPS);
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -700,7 +755,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
 							"ERROR: Number of mismatches must be an integer value!\n");
-					exit(0);
+					exit(1);
 				}
 			}
 			if (NUM_MISMATCHES > MAX_EDIT_OPS) {
@@ -708,7 +763,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 						stderr,
 						"ERROR: Number of allowed mismatches exceeds maximal number of edit operations (=%d)! Please restart with a lower value!\n",
 						MAX_EDIT_OPS);
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -724,7 +779,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
 							"ERROR: Number of gaps must be an integer value!\n");
-					exit(0);
+					exit(1);
 				}
 			}
 			if (NUM_GAPS > MAX_EDIT_OPS) {
@@ -732,7 +787,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 						stderr,
 						"ERROR: Number of allowed gaps exceeds maximal number of edit operations (=%d)! Please restart with a lower value!\n",
 						MAX_EDIT_OPS);
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -758,7 +813,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			MM_SCORE = atof(argv[i]);
 			if (MM_SCORE < 0) {
 				fprintf(stderr, "ERROR: Mismatch score must be positive!\n");
-				exit(0);
+				exit(1);
 			}
 			if (MM_SCORE == 0)
 				fprintf(stderr,
@@ -776,7 +831,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			GAP_SCORE = atof(argv[i]);
 			if (GAP_SCORE < 0) {
 				fprintf(stderr, "ERROR: Gap score must be positive!\n");
-				exit(0);
+				exit(1);
 			}
 			if (GAP_SCORE == 0)
 				fprintf(stderr,
@@ -794,7 +849,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			if ((HITLEN_LIMIT = atoi(argv[i])) == 0) {
 				fprintf(stderr,
 						"ERROR: Hitlength limit must be an integer value unequal to 0!\n");
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -809,7 +864,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			if ((CHROM_CONTAINER_SIZE += atoi(argv[i])) == 0) {
 				fprintf(stderr,
 						"ERROR: Chromosome Container Size must be an integer value unequal to 0!\n");
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -820,7 +875,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		 i++;
 		 if ((NUM_UNALLOWED_CHARS = atoi(argv[i])) == 0 && argv[i][0] != '0') {
 		 fprintf(stderr, "ERROR: Number of non-base symbols in read must be an integer value!\n");
-		 exit(0);
+		 exit(1);
 		 }
 		 }*/
 
@@ -854,13 +909,13 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
 						"-target_info needs an integer value (1: length only, 2: length+sequence)\n");
-				exit(0);
+				exit(1);
 			}
 			i++;
 			if (((PRINT_SEQ = atoi(argv[i])) == 0) || PRINT_SEQ < 1
 					|| PRINT_SEQ > 2) {
 				fprintf(stderr, "-target_info value must be either 1 or 2!\n");
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -871,14 +926,14 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				fprintf(
 						stderr,
 						"-flanking needs an integer value, the length of one of the symmetric flanking regions of a hit\n");
-				exit(0);
+				exit(1);
 			}
 			i++;
 			if (((FLANKING = atoi(argv[i])) == 0) || FLANKING < 0 || FLANKING
 					> 100) {
 				fprintf(stderr,
 						"-flanking value must be a positive integer and must not exceed 100!\n");
-				exit(0);
+				exit(1);
 			}
 		}
 
@@ -888,7 +943,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
 						"-qpalma needs an argument\n");
-				exit(0);
+				exit(1);
 			}
 			i++;
 			QPALMA_FILE.assign(argv[i]);
@@ -899,7 +954,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
 						"-acc needs an argument\n");
-				exit(0);
+				exit(1);
 			}
 			i++;
 			ACC_FILES.assign(argv[i]);
@@ -910,7 +965,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
 						"-don needs an argument\n");
-				exit(0);
+				exit(1);
 			}
 			i++;
 			DON_FILES.assign(argv[i]);
@@ -944,12 +999,12 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	if (REPEATMAP < 0 && ALL_HIT_STRATEGY) {
-		fprintf(
-				stderr,
-				"ERROR: All hit strategy and randomly chosen output alignments exclude each other (options -A and -ar)!\n");
-		exit(0);
-	}
+	// determine default output format
+	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT)
+		if (SPLICED_HITS)
+			OUTPUT_FORMAT=OUTPUT_FORMAT_BEDX ;
+		else
+			OUTPUT_FORMAT=OUTPUT_FORMAT_SHORE ;
 
 	if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
 	{
@@ -976,9 +1031,20 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		fprintf(stderr, "ERROR: RTRIM and POLYTRIM cannot be combined\n") ;
 		exit(1) ;
 	}
-	
-	return 0;
 
+	if (REPORT_SPLICED_READS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
+	{
+		fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM)\n") ;
+		exit(1) ;
+	}
+
+	if (OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
+	{
+		fprintf(stderr, "ERROR: SAM format not implemented yet\n") ;
+		exit(1) ;
+	}
+
+	return 0;
 }
 
 int Config::usage() {
@@ -993,24 +1059,25 @@ int Config::usage() {
 	printf(" -cfg FILENAME  path to configuration file\n");
 	printf("\n\n");
 	printf("optional:\n");
-		printf(" -a         report all hits (best hits only)\n");
-		printf(" -z         report a summary of all hits\n");
-		printf(" -S         report spliced hits\n\n");
+	printf(" -a         report all alignments (best alignments only)\n");
+	printf(" -z INT     report a number of top alignments\n");
+	printf(" -S         report spliced alignments\n\n");
 
-	printf(" -f STRING  output format (\"shore\" or \"bed\")\n");
+	printf(" -f STRING  output format (\"shore\", \"bed\", \"bedx\", or \"sam\")\n");
 	printf(" -o STRING  output filename (stdout)\n");
 	printf(" -H STRING  output filename for spliced hits (stdout)\n");
 	printf(" -u STRING  unmapped reads filename\n\n");
 
 	printf(" -r         disable reverse alignment\n");
-	printf(" -h         always perform alignment on entire read\n");
-	printf(" -d         align gaps most right (most left)\n");
-	printf(" -w         allow more gaps for best hit\n");
-	printf(" -e         report edit operations (alignment scores)\n");
+	printf(" -h         always perform alignment on entire read (implied for spliced alignments)\n");
+	printf(" -d         align gaps most right (most left) (ignored for spliced alignments)\n");
+	printf(" -w         allow more gaps for best hit (ignored for spliced alignments)\n");
+	//printf(" -e         report edit operations (alignment scores)\n");
 	printf(" -l INT     seed length (index size)\n");
 	printf(" -n INT     max number of best alignments (all)\n");
 	printf(" -c INT     seed container size (15.000.000)\n\n");
 
+	printf(" -threads INT                       maximal number of threads (4) \n");
 	printf(" -seed-hit-cancel-threshold INT     number of hits of a seed that lead to its ignoration\n");
 	printf(" -index-extend-threshold INT        number of hits of a seed that lead to an seed-length extension\n");
 	printf(" -index-extend INT                  length of seed-length extension\n");

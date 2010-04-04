@@ -10,9 +10,8 @@
 
 #include "TopAlignments.h"
 
-const int TopAlignments::MAX_EXON_LEN = 100 ;
 
-TopAlignments::TopAlignments(GenomeMaps* genomemaps_, Hits* hits_) 
+TopAlignments::TopAlignments(GenomeMaps* genomemaps_) 
   : top_alignments(), num_spliced_alignments(0),
 		num_unspliced_alignments(0), verbosity(0)
 {
@@ -32,15 +31,27 @@ TopAlignments::TopAlignments(GenomeMaps* genomemaps_, Hits* hits_)
 	}
 
 	genomemaps = genomemaps_ ;
-	hits = hits_ ;
-	qpalma = NULL ;
+	MAX_EXON_LEN = 100 ;
 }
 
-u_int8_t TopAlignments::report_unspliced_hit(HIT *hit) 
+u_int8_t TopAlignments::report_unspliced_hit(HIT *hit, int num, QPalma* qpalma) 
 {
-	alignment_t *algn_hit = gen_alignment_from_hit(hit) ;
-	add_alignment_record(algn_hit, 1) ;
-	return 1;
+	alignment_t *algn_hit = gen_alignment_from_hit(hit, qpalma) ;
+	algn_hit->hit = hit ;
+	algn_hit->num = num ;
+	
+	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
+	{
+		add_alignment_record(algn_hit, 1) ;
+		return 1 ;
+	} 
+	else
+	{
+		top_alignments.push_back(algn_hit) ;
+		unsigned int printed = print_top_alignment_records() ;
+		start_top_alignment_record() ;
+		return printed ;
+	}
 }
 
 int TopAlignments::construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p)
@@ -200,7 +211,7 @@ int TopAlignments::construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_
 
 }
 
-alignment_t *TopAlignments::gen_alignment_from_hit(HIT *best_hit)
+alignment_t *TopAlignments::gen_alignment_from_hit(HIT *best_hit, QPalma * qpalma)
 {
 	int hitlength = best_hit->end - best_hit->start + 1;
 	unsigned int readstart;
@@ -257,7 +268,7 @@ int32_t TopAlignments::compare_score(alignment_t *a1, alignment_t *a2) {
 		return 0;
 }
 
-void TopAlignments::start_top_alignment_record() 
+void TopAlignments::clean_top_alignment_record() 
 {
 	pthread_mutex_lock( &top_mutex) ;
 	
@@ -272,6 +283,11 @@ void TopAlignments::start_top_alignment_record()
 	num_unspliced_alignments = 0;
 
 	pthread_mutex_unlock( &top_mutex) ;
+}
+
+void TopAlignments::start_top_alignment_record() 
+{
+	clean_top_alignment_record() ;
 }
 
 
@@ -301,6 +317,9 @@ void TopAlignments::end_top_alignment_record(int rtrim_cut, int polytrim_cut_sta
 
 	for (unsigned int i=0; i<top_alignments.size(); i++)
 	{
+		top_alignments[i]->rtrim_cut=rtrim_cut ;
+		top_alignments[i]->polytrim_cut_start=polytrim_cut_start ;
+		top_alignments[i]->polytrim_cut_end=polytrim_cut_end ;
 		check_alignment(top_alignments[i]) ;
 	}
 
@@ -321,15 +340,15 @@ void TopAlignments::end_top_alignment_record(int rtrim_cut, int polytrim_cut_sta
 		}
 	}
 
-	print_top_alignment_records(rtrim_cut, polytrim_cut_start, polytrim_cut_end);
+	print_top_alignment_records() ;
 	
 	pthread_mutex_unlock( &top_mutex) ;
 
-	start_top_alignment_record();
+	clean_top_alignment_record();
 }
 
-void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments) {
-
+void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments) 
+{
 	if (alignment == NULL || !alignment->spliced)
 		num_unspliced_alignments += num_alignments;
 	else
@@ -345,6 +364,9 @@ void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignme
 		printf("entering alignment with score %f\n", alignment->qpalma_score);
 
 	pthread_mutex_lock( &top_mutex) ;
+
+	if ((int)_read.length()>MAX_EXON_LEN)
+		MAX_EXON_LEN = _read.length() ;
 
 	// seems duplicated (its already done in end_top_alignment_record)
 	//if (_config.REPORT_SPLICED_READS)
@@ -390,14 +412,14 @@ void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignme
 			top_alignments.insert(it, alignment);
 			inserted = true;
 
-			if (top_alignments.size() > _config.NUM_TOP_ALIGNMENTS)
+			if (top_alignments.size() > _config.OUTPUT_FILTER_NUM_TOP)
 				top_alignments.pop_back();
 
 			break;
 		}
 	}
 
-	if (!inserted && top_alignments.size() < _config.NUM_TOP_ALIGNMENTS)
+	if (!inserted && top_alignments.size() < _config.OUTPUT_FILTER_NUM_TOP)
 	{
 		top_alignments.push_back(alignment);
 		inserted = true;
@@ -409,31 +431,40 @@ void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignme
 	pthread_mutex_unlock( &top_mutex) ;
 }
 
-void TopAlignments::print_top_alignment_records(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end)
+int TopAlignments::print_top_alignment_records()
 {
-	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_BED)
-		print_top_alignment_records_bed(rtrim_cut, polytrim_cut_start, polytrim_cut_end) ;
+	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_BEDX)
+	{
+		return print_top_alignment_records_bedx() ;
+	}
 
-	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE)
-		print_top_alignment_records_shore(rtrim_cut, polytrim_cut_start, polytrim_cut_end) ;
+	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || _config.OUTPUT_FORMAT==OUTPUT_FORMAT_BED)
+	{
+		return print_top_alignment_records_shorebed() ;
+	}
 
 	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
-		print_top_alignment_records_sam(rtrim_cut, polytrim_cut_start, polytrim_cut_end) ;
-
+	{
+		return print_top_alignment_records_sam() ;
+	}
+	
+	fprintf(stderr, "ERROR: unknow output format\n") ;
+	exit(1) ;
+	return 0 ;
 }
 
 
-void TopAlignments::print_top_alignment_records_bed(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end)
+int TopAlignments::print_top_alignment_records_bedx()
 {
-	if (rtrim_cut!=0)
-		assert(polytrim_cut_start==0 && polytrim_cut_end==0) ;
-	if (polytrim_cut_start!=0)
-		assert(polytrim_cut_end==0) ;
-
 	if (top_alignments.size()==0)
-		return ;
+		return 0 ;
 	alignment_t * best = top_alignments[0] ;
 	assert(best->exons.size() >= 2);
+
+	if (best->rtrim_cut!=0)
+		assert(best->polytrim_cut_start==0 && best->polytrim_cut_end==0) ;
+	if (best->polytrim_cut_start!=0)
+		assert(best->polytrim_cut_end==0) ;
 
 	FILE* MY_OUT_FP = OUT_FP ;
 	if (best->spliced)
@@ -488,9 +519,9 @@ void TopAlignments::print_top_alignment_records_bed(int rtrim_cut, int polytrim_
 
 	if (_config.RTRIM_STRATEGY)
 	{
-		fprintf(MY_OUT_FP, "\ttrimmed=%i", rtrim_cut) ;
+		fprintf(MY_OUT_FP, "\ttrimmed=%i", best->rtrim_cut) ;
 		fprintf(MY_OUT_FP, "\n");
-		return ;
+		return 1 ;
 	} 
 	else
 	{
@@ -510,10 +541,10 @@ void TopAlignments::print_top_alignment_records_bed(int rtrim_cut, int polytrim_
 		}
 		if (_config.POLYTRIM_STRATEGY)
 		{
-			if (polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimStart=%i", polytrim_cut_start) ;
-			if (polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimEnd=%i", polytrim_cut_end) ;
+			if (best->polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimStart=%i", best->polytrim_cut_start) ;
+			if (best->polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimEnd=%i", best->polytrim_cut_end) ;
 		}
 	}
 	
@@ -555,30 +586,29 @@ void TopAlignments::print_top_alignment_records_bed(int rtrim_cut, int polytrim_
 
 		if (_config.POLYTRIM_STRATEGY)
 		{
-			if (polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimStart=%i", polytrim_cut_start) ;
-			if (polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimEnd=%i", polytrim_cut_end) ;
+			if (second->polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimStart=%i", second->polytrim_cut_start) ;
+			if (second->polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimEnd=%i", second->polytrim_cut_end) ;
 		}
 	}
 
 	fprintf(MY_OUT_FP, "\n");
+	return top_alignments.size() ;
 }
 
-void TopAlignments::print_top_alignment_records_shore(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end)
+int TopAlignments::print_top_alignment_records_shorebed()
 {
+	int printed = 0 ;
+	for (unsigned int i=0; i<top_alignments.size(); i++)
+	{
+		printed+= print_alignment_shorebed(top_alignments[i]->hit, top_alignments[i]->num)  ;
+	}
+	return printed ;
 }
 
-void TopAlignments::print_top_alignment_records_sam(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end)
+int TopAlignments::print_alignment_shorebed(HIT* hit, unsigned int num) 
 {
-}
-
-
-int report_read_alignment(HIT* hit, int nbest)  ;
-
-int TopAlignments::print_alignment(HIT* hit, unsigned int num) 
-{
-
 	if (_config.STATISTICS)
 		_stats.HITS_MM[hit->mismatches]++;
 
@@ -838,175 +868,10 @@ int TopAlignments::print_alignment(HIT* hit, unsigned int num)
 	return 1;
 }
 
-
-// prints out all hits which have been inserted into HITS_BY_EDITOPS
-// called once for each read (?)
-int TopAlignments::print_hits() 
+// SAM format
+int TopAlignments::print_top_alignment_records_sam()
 {
-	int i, printed = 0, nr;
-	HIT *hit;
-
-	//HIT *best_hit = NULL;
-	//u_int32_t num_best_hits = 0;
-	//vector<HIT *> found_hits ;
-	//u_int32_t num_2nd_best_hits = 0;
-	//u_int32_t num_other_hits = 0;
-	int reported_reads = 0 ;
-
-	for (i = 0; i != (int)hits->NUM_SCORE_INTERVALS; ++i) {
-
-		if (printed && !_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY)
-			break; // best hit strategy
-
-		if (hits->HITS_BY_SCORE[i].hitpointer != NULL) 
-		{
-			// only _config.REPEATMAP numbers of alignment will be chosen randomly:
-			if (!_config.ALL_HIT_STRATEGY && !_config.SUMMARY_HIT_STRATEGY && _config.REPEATMAP < 0 && hits->HITS_BY_SCORE[i].num > -_config.REPEATMAP) 
-			{
-				srand((unsigned) time(NULL));
-				
-				int j, k, n;
-				int lhits[-_config.REPEATMAP];
-				for (j = 0; j != -_config.REPEATMAP; ++j) {
-					n = 1;
-					while (n != 0) {
-						n = 0;
-						lhits[j] = rand() % hits->HITS_BY_SCORE[i].num;
-						for (k = 0; k != j; ++k) {
-							if (lhits[j] == lhits[k])
-								++n;
-						}
-					}
-				}
-
-				qsort(lhits, -_config.REPEATMAP, sizeof(int), compare_int);
-
-				hit = hits->HITS_BY_SCORE[i].hitpointer;
-
-				nr = 0;
-				for (j = 0; j != hits->HITS_BY_SCORE[i].num; ++j) {
-
-					if (lhits[nr] == j) {
-						printed += print_alignment(hit, -_config.REPEATMAP);
-						nr++;
-					}
-
-					if (nr == -_config.REPEATMAP)
-						break;
-
-					hit = hit->same_eo_succ;
-				}
-
-			} else if (_config.SUMMARY_HIT_STRATEGY) {
-
-				hit = hits->HITS_BY_SCORE[i].hitpointer;
-
-				// iterate over all hits for this score and collect data to generate a summary
-				// This somewhat counter-intuitive code works because of the way the pre-existing
-				// code was set up: we see the hits in the order of their score here - better hits first.
-				while (hit != NULL) 
-				{
-					report_unspliced_hit(hit) ;
-					hit = hit->same_eo_succ;
-				}
-
-			} else { // no random selection of output alignments:
-
-				hit = hits->HITS_BY_SCORE[i].hitpointer;
-
-				while (hit != NULL) {
-
-					if (!_config.ALL_HIT_STRATEGY)
-						nr = hits->HITS_BY_SCORE[i].num;
-					else
-						nr = hits->HITS_IN_SCORE_LIST;
-
-					if (_config.REPEATMAP == 0) { // no max nr of hits per read was specified, print all
-						printed += print_alignment(hit, nr);
-					} else if (_config.REPEATMAP > 0 && printed < _config.REPEATMAP) {
-						printed += print_alignment(hit, (nr < _config.REPEATMAP) ? nr : _config.REPEATMAP);
-					} else if (_config.REPEATMAP == printed) { // repeatmap many alignments already printed out -> stop printing -> next read
-						return 1;
-					}
-
-					hit = hit->same_eo_succ;
-				}
-			}
-
-			if (_config.REPORT_MAPPED_READS)
-			{
-				hit = hits->HITS_BY_SCORE[i].hitpointer;
-
-				while (hit != NULL) {
-
-					nr = hits->HITS_IN_SCORE_LIST;
-
-					printed += report_read_alignment(hit, reported_reads);
-					reported_reads++ ;
-					hit = hit->same_eo_succ;
-				}
-			}
-		}
-	}
-
-	if (printed != 0)
-		return 1; // read could have been mapped
-	else
-		return 0; // read couldn't be mapped
+	fprintf(stderr, "WARNING: SAM format not implemented yet\n") ;
+	return 0 ;
 }
 
-int TopAlignments::report_read_alignment(HIT* hit, int nbest) 
-{
-	int hitlength = hit->end - hit->start + 1;
-	unsigned int readstart;
-	if (hit->orientation == '+') 
-	{
-		readstart = hit->start - hit->readpos + hit->start_offset; // start pos of read in genome	0-initialized
-	} else 
-	{
-		readstart = hit->start - (((int)_read.length()) - hit->readpos - hitlength + 2) + hit->start_offset; // 0-initialized
-	}
-
-	// PERFECT HITS:
-	if (hit->mismatches == 0) 
-	{
-		genomemaps->report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
-	}
-	// HITS WITH MISMATCHES:
-	else 
-	{
-		char gap_offset = 0;
-		char gap_in_read = 0;
-		char gap_in_chr = 0;
-		
-		// sort mismatches in ascending order according to their abs positions and 'gap before mm'-strategy if equal
-		qsort(hit->edit_op, hit->mismatches, sizeof(EDIT_OPS), compare_editops);
-		
-		int j ;
-		for (j = 0; j != hit->mismatches; ++j) 
-		{
-			if (hit->edit_op[j].pos < 0) 
-			{
-				gap_in_chr = 1;
-			}
-			gap_in_read = 0;
-			if (!hit->edit_op[j].mm) 
-			{
-				if (gap_in_chr) 
-				{
-					gap_offset--;
-					gap_in_chr = 0;
-				}
-				else 
-				{
-					gap_offset++;
-					gap_in_read = 1;
-				}
-			}
-		}
-		
-		genomemaps->report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length())+gap_offset, ((int)_read.length()) - hit->mismatches, nbest) ;
-	}
-
-	return 1;
-}

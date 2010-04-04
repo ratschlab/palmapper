@@ -23,36 +23,40 @@ typedef struct alignment_t {
   bool spliced ;
   //bool rescued ;
   //int rescue_start, rescue_end ;
+  int rtrim_cut ;
+  int polytrim_cut_start ;
+  int polytrim_cut_end ;
+
+  HIT* hit ;
+  int num ;
+	
 } ALIGNMENT;
 
 class TopAlignments
 {
 public:
-    TopAlignments(GenomeMaps* genomemaps_, Hits* hits_) ;
-	void set_qpalma(QPalma* qpalma_)
+    TopAlignments(GenomeMaps* genomemaps_) ;
+	~TopAlignments()
 	{
-		qpalma = qpalma_ ;
+		clean_top_alignment_record() ;
 	}
 
-	u_int8_t report_unspliced_hit(HIT *hit)  ;
+	u_int8_t report_unspliced_hit(HIT *hit, int num, QPalma * qpalma)  ;
 	int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
-	alignment_t *gen_alignment_from_hit(HIT *best_hit) ;
+	alignment_t *gen_alignment_from_hit(HIT *best_hit, QPalma * qpalma) ;
 
+	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
 	void end_top_alignment_record(int rtrim_cut, int polytrim_start, int polytrim_end) ;
 	void add_alignment_record(alignment_t *alignment, int num_alignments) ;
 
-	void print_top_alignment_records(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
+	int print_top_alignment_records() ;
+	int print_top_alignment_records_bedx() ;
+	int print_top_alignment_records_shorebed() ;
+	int print_alignment_shorebed(HIT* hit, unsigned int num)  ;
+	int print_top_alignment_records_sam() ;
 
-	void print_top_alignment_records_bed(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
-	void print_top_alignment_records_shore(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
-	void print_top_alignment_records_sam(int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) ;
-
-	int print_alignment(HIT* hit, unsigned int num)  ;
-	int print_hits() ;
-	int report_read_alignment(HIT* hit, int nbest)  ;
-		
 	size_t size()
 	{
 		return top_alignments.size() ;
@@ -70,7 +74,7 @@ protected:
 	int num_spliced_alignments;
 	int num_unspliced_alignments;
 	const int verbosity ;
-	static const int MAX_EXON_LEN ;
+	int MAX_EXON_LEN ;
 	char *ALIGNSEQ;
 
 	pthread_mutex_t top_mutex;
@@ -81,6 +85,4 @@ protected:
 	int num_spliced_suboptimal ;
 
 	GenomeMaps* genomemaps ;
-	Hits* hits ;
-	QPalma* qpalma ;
 } ;

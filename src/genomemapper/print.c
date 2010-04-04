@@ -17,15 +17,15 @@ int report_read_alignment(HIT* hit, int num)  ;
 void print_stats() {
 	printf("\n########### _config.STATISTICS ###########\n");
 	printf("Mapped Reads: %i of all %d reads\n", _stats.READS_MAPPED, _stats.NUM_READS);
-	int i;
-	for (i = 0; i != _config.NUM_MISMATCHES + 1; ++i)
+	unsigned int i;
+	for (i = 0; i != (unsigned int)_config.NUM_MISMATCHES + 1; ++i)
 		printf(" Reads with %d mismatches: %u\n", i, _stats.HITS_MM[i]);
 	printf(
 			"  Perfect Plus-Hits: %i\n  Perfect Minus-Hits:\t%i\n  Total:\t\t%i\n",
 			_stats.PERFECT_HITS, _stats.PERFECT_HITS_REV, _stats.PERFECT_HITS + _stats.PERFECT_HITS_REV);
 	printf("   Perfect matching reads (+ or -): %i\n", _stats.PERFECT_READS);
 
-	for (i = _config.INDEX_DEPTH; i != ASSUMED_READ_LENGTH; ++i)
+	for (i = _config.INDEX_DEPTH; i != _read.max_length(); ++i)
 		printf("    Total Hits of length %d: %u - %.4f%%\n", i, _stats.HITS_LEN[i],
 				((double) (100 * _stats.HITS_LEN[i]) / _stats.NUM_HITS));
 	printf("\n    Total number of hits:                  %lu\n", _stats.NUM_HITS);
@@ -44,7 +44,7 @@ void print_stats() {
 			_stats.BREAK_GLOBAL_ALIGNMENT[1]);
 	printf("      Breaks after global alignment:       %lu\n\n",
 			_stats.BREAK_TB_IN_GLOBAL_ALIGNMENT);
-	printf("      Hits of len %d, not aligned:         %d\n", ASSUMED_READ_LENGTH - 1, _stats.NOT_ALIGNED[0]);
+	printf("      Hits of len %d, not aligned:         %d\n", _read.max_length() - 1, _stats.NOT_ALIGNED[0]);
 	printf("      Mappings of fast mapping:            %d\n", _stats.NOT_ALIGNED[1]);
 	//printf("      hits of len 36, not aligned (with 1MM at start/beg of read): %d\n",_stats.NOT_ALIGNED[1]);
 	//printf("        Number of unmapped hits at beg/end of chrom: %d and in align-step: %d\n", _stats.ENDSTART_MAPPED[0], _stats.ENDSTART_MAPPED[1]);

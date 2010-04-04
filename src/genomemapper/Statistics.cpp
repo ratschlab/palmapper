@@ -5,7 +5,7 @@ Statistics::Statistics() {
 	PERFECT_HITS = 0;
 	PERFECT_HITS_REV = 0;
 	NUM_HITS = 0;
-	for (int i = 0; i < ASSUMED_READ_LENGTH; ++i)
+	for (unsigned int i = 0; i < Config::MAX_READ_LENGTH; ++i)
 		HITS_LEN[i] = 0;
 	for (int i = 0; i != Config::MAX_EDIT_OPS + 1; ++i)
 		HITS_MM[i] = 0;

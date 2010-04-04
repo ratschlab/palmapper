@@ -129,7 +129,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 			return -1;
 		}
 
-		if ((int)strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
+		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
 			return -1;
 		}
@@ -216,7 +216,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 			return -1;
 		}
 
-		if ((int)strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
+		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
 			return -1;
 		}
@@ -265,7 +265,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 
 		strcpy(READ, tok);
 		READ_LENGTH = strlen(tok);
-		if ((int)READ_LENGTH < /*_config.*/_config.INDEX_DEPTH) {
+		if (READ_LENGTH < /*_config.*/_config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
 			return -1;
 		}
@@ -316,6 +316,9 @@ int Read::read_short_read(FILE *QUERY_FP)
 
 		READ_FORMAT = 2;
 	}
+	
+	if (READ_LENGTH>ASSUMED_READ_LENGTH)
+		ASSUMED_READ_LENGTH=READ_LENGTH ;
 
 	return 0;
 }

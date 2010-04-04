@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <genomemapper/Config.h>
 #include <genomemapper/Chromosome.h>
 #include <genomemapper/Read.h>
@@ -7,8 +8,9 @@
 #define CONTAINER_SIZE 100000
 #define SCORE_INTERVAL 1
 
+extern Config _config ;
+
 extern char *get_seq(unsigned int n);
-extern void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_);
 
 
 typedef struct edit_op_structure {
@@ -107,8 +109,61 @@ public:
 	int init_from_meta_index() ;
 	int init_hit_lists()  ;
 
+	int analyze_hits(TopAlignments* topalignments, QPalma * qpalma) ;
+	int report_read_alignment(HIT* hit, int nbest)  ;
+
 	int REDUNDANT;
 
+	int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches) ;
+	int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches) ;
+
+	inline void reset_num_edit_ops(int num_edit_ops)
+	{
+		SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.resize(0) ;
+	}
+
+	inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_)
+	{
+		assert(num_edit_ops<Config::MAX_EDIT_OPS) ;
+		
+		if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_)
+			NUM_EDIT_OPS_ = num_edit_ops ;
+		
+		if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
+		{
+			// keep a list of minimal edit operation (assuming that each hit is only reported once)
+			// the list is twice as long as NUM_TOP_ALIGNMENTS, as will be filtered later according to
+			// the qpalma-alignment score (this is a heuristic, which may work well enough; alternatively, one
+			// would need to compute the qpalma score for each hit, which will be too expensive
+			
+			bool inserted = false ;
+			
+			std::vector<int>::iterator it = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.begin();
+			
+			for (uint8_t i = 0; i < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size(); i++, it++)
+			{
+				if ( num_edit_ops < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[i] )
+				{
+					SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.insert(it, num_edit_ops);
+					inserted = true;
+					
+					if (SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() > _config.OUTPUT_FILTER_NUM_TOP*2)
+						SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.pop_back();
+					
+					break;
+				}
+			}
+			if (!inserted && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() < _config.OUTPUT_FILTER_NUM_TOP*2)
+			{
+				SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.push_back(num_edit_ops) ;
+				inserted = true ;
+			}
+		}
+		
+		if (!all_hit_strategy && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()>0)
+			NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ;
+	}
+	
 protected:
 	int init_alignment_structures(Config * config);
 	int init_constants()  ;
@@ -135,6 +190,8 @@ protected:
 
 	Genome * genome ;
 	GenomeMaps * genomemaps ;
+
+	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	
 /*
 	unsigned short int readpos;

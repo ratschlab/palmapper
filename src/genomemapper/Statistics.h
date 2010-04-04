@@ -10,7 +10,7 @@ public:
 	unsigned int PERFECT_HITS;
 	unsigned int PERFECT_HITS_REV;
 	unsigned long int NUM_HITS;
-	unsigned int HITS_LEN[ASSUMED_READ_LENGTH]; // TODO Refactoring needed. Should be a parameter.
+	unsigned int HITS_LEN[Config::MAX_READ_LENGTH]; // TODO Refactoring needed. Should be a parameter.
 	unsigned int HITS_MM[Config::MAX_EDIT_OPS + 1];
 	unsigned int READS_MAPPED;
 	unsigned long int NUM_ALIGNMENTS;

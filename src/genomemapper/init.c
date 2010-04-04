@@ -53,30 +53,11 @@ int init_defaults(Config * config) {
 	config->FLANKING = 0;
     config->LOG_TRIGGERED = 0;   // #A#
 
-	// lt: Previously, there was no minimum distance for spliced hits.
-	// In effect, this meant that a pair of spliced hits could overlap.
-	// In order to preserve the original behaviour if the
-	// user does not explicitly define a minimum distance for spliced hits,
-	// we define the default minimum distance to be -ASSUMED_READ_LENGTH.
-	// The effect is that overlapping pairs of spliced hits will still pass
-	// the test in print.c:comp_hits_4_splicing:
-	// if (hit1->start < hit2->start) {
-	//	  dist = (hit2->start - hit1->end + 1);
-	// } else {
-	// 	  dist = (hit1->start - hit2->end + 1);
-	// }
-	// if (dist > SPLICED_HIT_MAX_DIST || dist < SPLICED_HIT_MIN_DIST) {
-	// 	  return count;
-	// }
-
 	config->OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE;
-
 	config->SCORES_OUT = 1;
-
-	config->REPEATMAP = 0;
-
+	config->OUTPUT_FILTER_NUM_RANDOM = 0;
+	config->OUTPUT_FILTER_NUM_TOP=1 ;
 	config->CHROM_CONTAINER_SIZE = 15000000;
-
 	config->STATISTICS = 0;
 
 	_stats.listcount = 0;
@@ -84,7 +65,6 @@ int init_defaults(Config * config) {
 
 	return (0);
 }
-
 
 int init_output_file(Config * config) {
 	if (config->OUT_FILE_NAME.length() > 0) {

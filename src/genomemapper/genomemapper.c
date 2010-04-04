@@ -35,9 +35,8 @@ int main(int argc, char *argv[])
 	GenomeMaps _genomemaps(&_genome) ;
 	Hits _hits(_genome, _genomemaps);
 	
-	TopAlignments _topalignments(&_genomemaps, &_hits) ;
+	TopAlignments _topalignments(&_genomemaps) ;
 	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps) ;
-	_topalignments.set_qpalma(&_qpalma) ;
 
 //	new (&_genome) Genome();
 

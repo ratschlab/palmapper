@@ -12,6 +12,9 @@ public:
 	unsigned int length() {
 		return READ_LENGTH;
 	}
+	unsigned int max_length() {
+		return ASSUMED_READ_LENGTH;
+	}
 
 	char *data() {
 		return READ;
@@ -110,4 +113,5 @@ private:
 	char *READ_ID;
 	int READ_PE_FLAG;
 
+	unsigned int ASSUMED_READ_LENGTH ;
 };

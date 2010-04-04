@@ -1,21 +1,29 @@
 #pragma once
 
 #include <stdint.h>
-
 #include <string>
 #include <vector>
 
 //#define MAX_READ_LENGTH 1000
 //#define MAX_READ_ID_LENGTH 100
 #define MAX_INDEX_DEPTH 13
-#define ASSUMED_READ_LENGTH 76 // TODO Refactoring needed. This should be a parameter.
 #define VERSION "0.4"
 
 enum OutputFormatEnum
 {
+	OUTPUT_FORMAT_DEFAULT=-1,
 	OUTPUT_FORMAT_SHORE=0,
 	OUTPUT_FORMAT_BED=1,
-	OUTPUT_FORMAT_SAM=2
+	OUTPUT_FORMAT_BEDX=2,
+	OUTPUT_FORMAT_SAM=3
+}  ;
+
+enum OutputFilterEnum
+{
+	OUTPUT_FILTER_DEFAULT=-1,
+	OUTPUT_FILTER_ALL=0,
+	OUTPUT_FILTER_TOP=1,
+	OUTPUT_FILTER_RANDOM=2,
 }  ;
 
 class Config {
@@ -35,10 +43,14 @@ public:
 	static size_t const INDEX_SIZE_12 = 16777216; //4^12
 	static size_t const INDEX_SIZE_13 = 67108864; //4^13
 	static size_t const MAX_READ_LENGTH = 1000;
-	static int const MAX_READ_ID_LENGTH = 100;
-	static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
+	static int const MAX_READ_ID_LENGTH = 1000;
+	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
 
 	int NUM_THREADS;
+	OutputFilterEnum OUTPUT_FILTER ;
+	unsigned int OUTPUT_FILTER_NUM_TOP ;
+	int OUTPUT_FILTER_NUM_RANDOM ;
+	
 	char ALL_HIT_STRATEGY;
 	char SUMMARY_HIT_STRATEGY;
 
@@ -49,17 +61,17 @@ public:
 
 	//int SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[2] ;
 	//int SUMMARY_HIT_STRATEGY_HIT_FOUND[2] ;
-	int HITLEN_LIMIT;
+	unsigned int HITLEN_LIMIT;
 	char VERBOSE;
 	char MAP_REVERSE;
-	char REPEATMAP;
+	//char REPEATMAP;
 	char STRINGENT_GAPLIMIT;
 	int PRINT_SEQ;
-	int INDEX_DEPTH;
-	int INDEX_DEPTH_EXTRA;
+	unsigned int INDEX_DEPTH;
+	unsigned int INDEX_DEPTH_EXTRA;
 
-	int INDEX_DEPTH_EXTRA_THRESHOLD;
-	int SEED_HIT_CANCEL_THRESHOLD;
+	unsigned int INDEX_DEPTH_EXTRA_THRESHOLD;
+	unsigned int SEED_HIT_CANCEL_THRESHOLD;
 	bool NOT_MAXIMAL_HITS;
 	std::string CHR_INDEX_FILE_NAME;
 	std::string INDEX_FWD_FILE_NAME;
@@ -90,7 +102,7 @@ public:
 	float QPALMA_USE_SPLICE_SITES_THRESH_ACC;
 	float QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC;
 
-	int READ_COUNT_LIMIT; // limits the number of reads for alignment
+	unsigned int READ_COUNT_LIMIT; // limits the number of reads for alignment
 
 
 	bool LOG_TRIGGERED;  // #A#
