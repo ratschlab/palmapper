@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	Hits _hits(_genome, _genomemaps);
 	
 	TopAlignments _topalignments(&_genomemaps) ;
-	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps, 3) ;
+	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps, 0) ;
 
 //	new (&_genome) Genome();
 
