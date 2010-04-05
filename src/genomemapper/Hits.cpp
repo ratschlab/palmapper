@@ -2,6 +2,7 @@
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 // Copyright (C) 2009-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
+#include <limits.h>
 #include "genomemapper.h"
 #include "Hits.h"
 #include "align.h"
