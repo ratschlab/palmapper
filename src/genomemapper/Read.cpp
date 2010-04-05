@@ -323,3 +323,15 @@ int Read::read_short_read(FILE *QUERY_FP)
 	return 0;
 }
 
+int Read::determine_read_length(const std::string & query_file)
+{
+    FILE *QUERY_FP = Util::openFile(query_file, "r") ;
+	const unsigned sample_size = 10000 ;
+
+	int sum_read_length=0 ;
+	for (unsigned int i=0; i<sample_size; i++)
+		sum_read_length += read_short_read(QUERY_FP) ;
+
+	return sum_read_length/sample_size ;
+}
+

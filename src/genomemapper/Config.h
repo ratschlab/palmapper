@@ -27,11 +27,16 @@ enum OutputFilterEnum
 	OUTPUT_FILTER_RANDOM=3
 }  ;
 
+const int DEFAULT_SETTING=123456789 ;
+class Genome ;
+
 class Config {
 public:
 	
 	Config();
 	int parseCommandLine(int argc, char *argv[]);
+	int applyDefaults(Genome* genome) ;
+	int checkConfig() ;
 
 	static int const REPORT_REPETITIVE_SEED_COUNT = 2 ;
 	static int const REPORT_REPETITIVE_SEED_COUNT_MANY1 = 10 ;

@@ -4,6 +4,8 @@
 #include <genomemapper/Statistics.h>
 #include <genomemapper/Util.h>
 
+#include <string>
+
 class Read {
 public:
 	Read();
@@ -100,6 +102,8 @@ public:
 	
 	int read_short_read(FILE *QUERY_FP);
 
+	int determine_read_length(const std::string & query_fname) ;
+	
 
 private:
 //	Statistics _stats;

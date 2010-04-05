@@ -964,13 +964,12 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 					// MISMATCH extension
 
 					//combine with possible hit at position seedlength+1 to the left(+) or right(-) to span hit over mismatch
-					if (!_config.NOT_MAXIMAL_HITS && hit == NULL && _config.NUM_MISMATCHES != 0) {
+					if (/*(!_config.NOT_MAXIMAL_HITS) &&*/ hit == NULL && _config.NUM_MISMATCHES != 0) {
 						if (read_num == num) printf("Now checking if hit can be extended over mismatch\n");
 						mmoffset = (reverse != 2)? -_config.INDEX_DEPTH - 1: _config.INDEX_DEPTH + 1;
 
 						if ( (genome_pos + mmoffset > 0) && (genome_pos + mmoffset < genome_chr.length()) && (*(GENOME + (genome_pos + mmoffset)) != NULL) ) {
 							chromosome_director_neighbor = *(GENOME + (genome_pos + mmoffset));
-
 
 
 							// Is the chrom director from actual read?
@@ -1031,7 +1030,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 				TIME_CODE(start_time = clock()) ;
 
 				// for MM=0: if potential hit doesn't start at readpos 1, it cannot become perfect, thus it is not even allocated:
-				if ( !(_config.NUM_MISMATCHES == 0 && readpos != 1 && !_config.NOT_MAXIMAL_HITS) ) {
+				if ( !(_config.NUM_MISMATCHES == 0 && readpos != 1 && (!_config.NOT_MAXIMAL_HITS)) ) {
 
 					// create new hit:
 					if (hit == NULL) {

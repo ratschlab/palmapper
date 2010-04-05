@@ -28,11 +28,19 @@ int main(int argc, char *argv[])
 	////////////////////////
 
 	// initialize variables
-	init(argc, argv, &_config);
+	_config.parseCommandLine(argc, argv);
+	
+	init_output_file(&_config);
+	init_spliced_output_file(&_config);
 
 	Genome _genome;
 	GenomeMaps _genomemaps(&_genome) ;
+
+	_config.applyDefaults(&_genome) ;
+	_config.checkConfig() ;
+
 	Hits _hits(_genome, _genomemaps);
+
 	
 	TopAlignments _topalignments(&_genomemaps) ;
 	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps, 0) ;

@@ -3,11 +3,13 @@
 #include <string.h>
 
 #include <genomemapper/Config.h>
+#include <genomemapper/Read.h>
+#include <genomemapper/Genome.h>
 
 Config::Config() {
 	NUM_THREADS = 4;
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
-	OUTPUT_FILTER_NUM_TOP = 1 ;
+	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
 	RTRIM_STRATEGY=0 ;
 	RTRIM_STRATEGY_MIN_LEN=25 ;
@@ -16,9 +18,8 @@ Config::Config() {
 	//int SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[2] ;
 	HITLEN_LIMIT = 0;
 	VERBOSE = 0;
-	MAP_REVERSE = 0;
-	//REPEATMAP = 0;
-	STRINGENT_GAPLIMIT = 0;
+	MAP_REVERSE = 1 ;
+	STRINGENT_GAPLIMIT = 1 ;
 	PRINT_SEQ = 0;
 	INDEX_DEPTH = 0;
 	INDEX_DEPTH_EXTRA = 3 ;
@@ -32,8 +33,8 @@ Config::Config() {
 	REPORT_MAPPED_READS = 0 ;
 	REPORT_SPLICED_READS = 0 ;
 	REPORT_RESET = 0 ;
-	QPALMA_USE_MAP = 0 ;
-	QPALMA_USE_MAP_MAX_SIZE = 100000 ;
+	QPALMA_USE_MAP = 1 ;
+	QPALMA_USE_MAP_MAX_SIZE = 10000 ;
 	QPALMA_USE_SPLICE_SITES = 0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_DON = 0.0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_ACC = 0.0 ;
@@ -41,39 +42,160 @@ Config::Config() {
 	QPALMA_MIN_NUM_MATCHES = 3 ;
 	READ_COUNT_LIMIT = 0 ; // limits the number of reads for alignment
 	LOG_TRIGGERED = false;  // #A#
-	FILTER_BY_MAX_MISMATCHES = 2 ;
+	FILTER_BY_MAX_MISMATCHES = 3 ;
 	FILTER_BY_MAX_GAPS = 0 ;
 	FILTER_BY_SPLICE_SITES = 5 ;
 	FILTER_BY_SPLICE_SITES_REGION = 5 ;
-	FILTER_BY_SPLICE_SITES_EDIT_MIN = 1 ;
+	FILTER_BY_SPLICE_SITES_EDIT_MIN = 2 ;
 	FILTER_BY_SPLICE_SITES_THRESH_ACC=0.8 ;
 	FILTER_BY_SPLICE_SITES_THRESH_DON=0.8 ;
 	FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC = 0.0;
 	NO_SPLICE_PREDICTIONS=0 ;
 	INDEX_PRECACHE = 0 ;
 	FLANKING = 0;
-	NUM_EDIT_OPS = 0;
-	NUM_MISMATCHES = 0;
-	NUM_GAPS = 0;
-	MM_SCORE = 0;
+	NUM_EDIT_OPS = DEFAULT_SETTING ;
+	NUM_MISMATCHES = DEFAULT_SETTING ;
+	NUM_GAPS = DEFAULT_SETTING ;
+	MM_SCORE = 4;
 	M_SCORE = 0;
-	GAP_SCORE = 0;
+	GAP_SCORE = 5;
 	GAPS_MOST_RIGHT = 0;
-	OVERHANG_ALIGNMENT = 0;
-	SCORES_OUT = 0;
+	OVERHANG_ALIGNMENT = 1;
+	SCORES_OUT = 1;
 	SPLICED_HITS = 0 ;
-	SPLICED_HIT_MIN_LENGTH_SHORT = 12 ;
-	SPLICED_HIT_MIN_LENGTH_COMB = 25 ;
-	SPLICED_HIT_MIN_LENGTH_LONG = 17 ;
-	SPLICED_LONGEST_INTRON_LENGTH = 50000 ;
+	SPLICED_HIT_MIN_LENGTH_SHORT = DEFAULT_SETTING ;
+	SPLICED_HIT_MIN_LENGTH_COMB = DEFAULT_SETTING ;
+	SPLICED_HIT_MIN_LENGTH_LONG = DEFAULT_SETTING ;
+	SPLICED_LONGEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
 	SPLICED_CLUSTER_TOLERANCE = 10 ;
-	SPLICED_MAX_INTRONS = 2 ;
+	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
 	STATISTICS = 0;
-	CHROM_CONTAINER_SIZE = 0;
+	CHROM_CONTAINER_SIZE = 15000000 ;
+
+	ALL_HIT_STRATEGY = 0 ;
+	SUMMARY_HIT_STRATEGY= 0 ;
+	HITLEN_LIMIT = 0 ;
 };
 
-int Config::parseCommandLine(int argc, char *argv[]) {
+int Config::applyDefaults(Genome * genome)
+{
+	{
+		Read read ;
+		int read_length = read.determine_read_length(QUERY_FILE_NAME) ;
+		fprintf(stdout, "Automatically determining alignment parameters based on read length (%int):", read_length) ;
+		if (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
+		{
+			SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
+			fprintf(stdout, " -K %i", SPLICED_HIT_MIN_LENGTH_SHORT) ;
+		}
+		if (SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
+		{
+			SPLICED_HIT_MIN_LENGTH_LONG = (read_length/4<20) ? 20 : read_length/4 ;
+			fprintf(stdout, " -L %i", SPLICED_HIT_MIN_LENGTH_LONG) ;
+		}
+		if (SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING)
+		{
+			SPLICED_HIT_MIN_LENGTH_COMB = (read_length/2<30) ? 30 : read_length/2 ;
+			fprintf(stdout, " -C %i", SPLICED_HIT_MIN_LENGTH_COMB) ;
+		}
+		if (SPLICED_MAX_INTRONS == DEFAULT_SETTING)
+		{
+			SPLICED_MAX_INTRONS = (read_length>50) ? (read_length>=100 ? 3 : 2) : 1 ;
+			if (read_length>200) SPLICED_MAX_INTRONS = 6 ;
+			fprintf(stdout, "-NI %i", SPLICED_MAX_INTRONS) ;
+		}
+		if (NUM_EDIT_OPS == DEFAULT_SETTING)
+		{
+			NUM_EDIT_OPS = read_length*0.08 ;
+			fprintf(stdout, "-E %i", NUM_EDIT_OPS) ;
+		}
+		if (NUM_MISMATCHES == DEFAULT_SETTING)
+		{
+			NUM_MISMATCHES = read_length*0.08 ;
+			fprintf(stdout, "-M %i", NUM_MISMATCHES) ;
+		}
+		if (NUM_GAPS == DEFAULT_SETTING)
+		{
+			NUM_GAPS = read_length*0.03 ;
+			fprintf(stdout, "-G %i", NUM_GAPS) ;
+		}
+		fprintf(stdout, "\n") ;
+	}
+	
+	if (SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING)
+	{
+		unsigned long int genome_size = 0 ;
+		for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+			genome_size+=genome->chromosome(i).length() ;
+
+		if (genome_size<900000000)
+			SPLICED_LONGEST_INTRON_LENGTH = 10000 ;
+		else if (genome_size<500000000)
+			SPLICED_LONGEST_INTRON_LENGTH = 50000 ;
+		else
+			SPLICED_LONGEST_INTRON_LENGTH = 200000 ;
+		fprintf(stdout, "Automatically determined maximal intron size based on genome size (%ikb)\n", SPLICED_LONGEST_INTRON_LENGTH/1000) ;
+	}
+	
+	// determine default output format
+	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT)
+		if (SPLICED_HITS)
+		{
+			OUTPUT_FORMAT=OUTPUT_FORMAT_BEDX ;
+			fprintf(stdout, "Selecting BEDX output format\n") ;
+		}
+		else
+		{
+			OUTPUT_FORMAT=OUTPUT_FORMAT_SHORE ;
+			fprintf(stdout, "Selecting SHORE output format\n") ;
+		}
+
+	return 0 ;
+}
+
+int Config::checkConfig()
+{
+	if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
+	{
+		fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
+		exit(1);
+	}
+
+	if (SPLICED_HITS && !(NO_SPLICE_PREDICTIONS || (ACC_FILES.length()>0 && DON_FILES.length()>0)))
+	{
+		fprintf(stderr, "ERROR: for spliced alignments either -acc and -don or -no-ss-pred need to be given as argument\n");
+		exit(1);
+	}
+
+	if (NO_SPLICE_PREDICTIONS && (ACC_FILES.length()>0 || DON_FILES.length()>0))
+	{
+		fprintf(stderr, "ERROR: the options -acc/-don and -no-ss-pred have to be used exclusively\n");
+		exit(1);
+	}
+
+	if (RTRIM_STRATEGY && POLYTRIM_STRATEGY)
+	{
+		fprintf(stderr, "ERROR: RTRIM and POLYTRIM cannot be combined\n") ;
+		exit(1) ;
+	}
+
+	if (SPLICED_HITS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
+	{
+		fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM) %i\n", (int)OUTPUT_FORMAT) ;
+		exit(1) ;
+	}
+
+	if (OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
+	{
+		fprintf(stderr, "ERROR: SAM format not implemented yet\n") ;
+		exit(1) ;
+	}
+	return 0 ;
+}
+
+int Config::parseCommandLine(int argc, char *argv[]) 
+{
 	int i;
 	char not_defined;
 	char has_index = 0;
@@ -397,10 +519,10 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		}
 
 		// use regions around mapped reads for qpalma alignment
-		if (strcmp(argv[i], "-qpalma-use-map") == 0) {
+		/*if (strcmp(argv[i], "-qpalma-use-map") == 0) {
 			not_defined = 0;
 			QPALMA_USE_MAP = 1 ;
-		}
+			}*/
 
 		// use regions around mapped reads for qpalma alignment
 		if (strcmp(argv[i], "-qpalma-use-map-max-len") == 0) {
@@ -508,6 +630,24 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 				exit(1);
 			}
 			SPLICED_MAX_INTRONS = tmp;
+		}
+
+		// How many matches are necessary for identifying a possible splice site in QPALMA recursive alignment algorithm?
+		if (strcmp(argv[i], "-QMM") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -QMM\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			int tmp = atoi(argv[i]);
+			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -QMM too small\n") ;
+				usage();
+				exit(1);
+			}
+			QPALMA_MIN_NUM_MATCHES = tmp;
 		}
 
 		// how much distance to tolerate between a hit and an existing
@@ -1057,50 +1197,7 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	// determine default output format
-	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT)
-		if (SPLICED_HITS)
-			OUTPUT_FORMAT=OUTPUT_FORMAT_BEDX ;
-		else
-			OUTPUT_FORMAT=OUTPUT_FORMAT_SHORE ;
-
-	if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
-	{
-		fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
-		exit(1);
-	}
-
-	if (SPLICED_HITS && !(NO_SPLICE_PREDICTIONS || (ACC_FILES.length()>0 && DON_FILES.length()>0)))
-	{
-		fprintf(stderr, "ERROR: for spliced alignments either -acc and -don or -no-ss-pred need to be given as argument\n");
-		exit(1);
-	}
-
-	if (NO_SPLICE_PREDICTIONS && (ACC_FILES.length()>0 || DON_FILES.length()>0))
-	{
-		fprintf(stderr, "ERROR: the options -acc/-don and -no-ss-pred have to be used exclusively\n");
-		exit(1);
-	}
-
 	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
-
-	if (RTRIM_STRATEGY && POLYTRIM_STRATEGY)
-	{
-		fprintf(stderr, "ERROR: RTRIM and POLYTRIM cannot be combined\n") ;
-		exit(1) ;
-	}
-
-	if (SPLICED_HITS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
-	{
-		fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM) %i\n", (int)OUTPUT_FORMAT) ;
-		exit(1) ;
-	}
-
-	if (OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
-	{
-		fprintf(stderr, "ERROR: SAM format not implemented yet\n") ;
-		exit(1) ;
-	}
 
 	return 0;
 }
@@ -1119,28 +1216,28 @@ int Config::usage()
 	printf("USAGE: genomemapper [options]\n");
 	printf("\n");
 	printf("mandatory:\n");
-	printf(" -i STRING      reference sequence (fasta)\n");
+	printf(" -i STRING      reference sequence (fasta file and prefix to index files)\n");
 	printf(" -q STRING      query filename (fasta, fastq, SHORE flat file)\n");
-	printf(" -cfg FILENAME  path to configuration file\n");
 	printf("\n\n");
 	printf("optional:\n");
-	printf(" -a         report all alignments (best alignments only)\n");
-	printf(" -z INT     report a number of top alignments\n");
-	printf(" -S         report spliced alignments\n\n");
+	printf(" -S             report spliced alignments (detailed options below)\n\n");
+	printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")\n");
+	printf(" -o STRING      output filename (stdout)\n");
+	printf(" -H STRING      output filename for spliced hits (stdout)\n");
+	printf(" -u STRING      unmapped reads filename\n\n");
 
-	printf(" -f STRING  output format (\"shore\", \"bed\", \"bedx\", or \"sam\")\n");
-	printf(" -o STRING  output filename (stdout)\n");
-	printf(" -H STRING  output filename for spliced hits (stdout)\n");
-	printf(" -u STRING  unmapped reads filename\n\n");
+	printf(" -a             report all alignments (best alignments only)\n");
+	printf(" -ar INT        report a limited number of alignments (best alignments only)\n");
+	printf(" -z INT         report a number of top alignments\n\n");
 
-	printf(" -r         disable reverse alignment\n");
-	printf(" -h         always perform alignment on entire read (implied for spliced alignments)\n");
-	printf(" -d         align gaps most right (most left) (ignored for spliced alignments)\n");
-	printf(" -w         allow more gaps for best hit (ignored for spliced alignments)\n");
+	printf(" -r             disable reverse alignment\n");
+	printf(" -h             always perform alignment on entire read (implied for spliced alignments)\n");
+	printf(" -d             align gaps most right (most left) (ignored for spliced alignments)\n");
+	printf(" -w             allow more gaps for best hit (ignored for spliced alignments)\n");
 	//printf(" -e         report edit operations (alignment scores)\n");
-	printf(" -l INT     seed length (index size)\n");
-	printf(" -n INT     max number of best alignments (all)\n");
-	printf(" -c INT     seed container size (15.000.000)\n\n");
+	printf(" -l INT         seed length (index size)\n");
+	printf(" -n INT         max number of best alignments (all)\n");
+	printf(" -c INT         seed container size (15.000.000)\n\n");
 
 	printf(" -threads INT                       maximal number of threads (4) \n");
 	printf(" -seed-hit-cancel-threshold INT     number of hits of a seed that lead to its ignoration\n");
@@ -1151,43 +1248,46 @@ int Config::usage()
 	printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n");
 	printf(" -polytrim INT                      trims polyA or polyT ends until a hit is found or the minimal length is reached (INT)\n\n");
 
-	printf(" -rlim INT  limit the number of reads for alignment\n\n");
+	printf(" -rlim INT      limit the number of reads for alignment\n\n");
 
-	printf(" -report STRING                  file for map reporting\n");
-	printf(" -report-ro STRING               file for map reporting (read only)\n");
-	printf(" -report-rep-seed                switch on reporting of repetitive seeds\n");
-	printf(" -report-map-region              switch on reporting of mapped regions\n");
-	printf(" -report-map-read                switch on reporting of mapped reads\n");
-	printf(" -report-spliced-read            switch on reporting of spliced reads\n");
-	printf(" -report-splice-sites FLOAT      report splice sites with confidence not less that threshold\n");
-	printf(" -report-splice-sites-top-perc FLOAT   report splice sites with confidence in top percentile (between 0 and 1)\n");
-	printf(" -qpalma-use-map                 use map for qpalma alignments\n");
-	printf(" -qpalma-use-map-max-len         limit the map extension up- and downstream to the given length (100.000)\n");
+	printf(" -M INT         max number of mismatches (3)\n");
+	printf(" -G INT         max number of gaps (1)\n");
+	printf(" -E INT         max edit operations(3)\n");
+	printf(" -m DOUBLE      mismatch penalty (4)\n");
+	printf(" -g DOUBLE      gap penalty (5)\n");
 
-	printf(" -acc STRING                           path name to acceptor splice site predictions\n");
-	printf(" -don STRING                           path name to donor splice site predictions\n");
-	printf(" -no-ss-pred                           indicates that no splice site predictions should be used\n");
+	printf(" -v             verbose (silent)\n\n");
+
+	printf("spliced hits definitions: (-S required)\n");
+	printf(" -qpalma STRING                        file name with qpalma parameters (essential)\n");
+	printf(" -qpalma-use-map-max-len INT           limit the map extension up- and downstream to the given length (10.000)\n\n");
+
+	printf(" -acc STRING                           path name to acceptor splice site predictions (essential)\n");
+	printf(" -don STRING                           path name to donor splice site predictions (essential)\n");
+	printf(" -no-ss-pred                           indicates that no splice site predictions should be used\n\n");
 
 	printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1)\n");
 	printf(" -filter-max-mismatches INT            trigger spliced alignment, if unspliced alignment has at least this many mismatches\n");
-	printf(" -filter-max-gaps INT                  trigger spliced alignment, if unspliced alignment has at least this many mismatches\n");
+	printf(" -filter-max-gaps INT                  trigger spliced alignment, if unspliced alignment has at least this many mismatches\n\n");
 
-	printf(" -M INT     max number of mismatches (3)\n");
-	printf(" -G INT     max number of gaps (1)\n");
-	printf(" -E INT     max edit operations(3)\n");
-	printf(" -m DOUBLE  mismatch penalty (4)\n");
-	printf(" -g DOUBLE  gap penalty (5)\n");
+	printf(" -C INT                                min combined length (auto)\n");
+	printf(" -L INT                                min length of long hit (auto)\n");
+	printf(" -K INT                                min length of short hit (auto)\n");
+	printf(" -I INT                                longest intron length  (auto)\n");
+	printf(" -SA INT                               maximum number of spliced alignments per read (10)\n");
+	printf(" -NI INT                               maximum number of introns in spliced alignments (auto)\n");
+	printf(" -CT INT                               distance to tolerate between hit and existing hit cluster (10)\n");
+	printf(" -QMM INT                              number of matches required for identifying a splice site (3)\n\n");
 
-	printf(" -v         verbose (silent)\n\n");
-
-	printf("spliced hits definitions: (-S required)\n");
-	printf(" -C INT     min combined length (25)\n");
-	printf(" -L INT     min length of long hit (17)\n");
-	printf(" -K INT     min length of short hit (12)\n");
-	printf(" -I INT     longest intron length  (50000)\n");
-	printf(" -SA INT    maximum number of spliced alignments per read (10)\n");
-	printf(" -NI INT    maximum number of introns in spliced alignments (2)\n");
-	printf(" -CT POSINT distance to tolerate between hit and existing hit cluster\n\n");
+	printf(" -report STRING                        file for map reporting\n");
+	printf(" -report-ro STRING                     file for map reporting (read only)\n");
+	printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
+	printf(" -report-map-region                    switch on reporting of mapped regions\n");
+	printf(" -report-map-read                      switch on reporting of mapped reads\n");
+	printf(" -report-spliced-read                  switch on reporting of spliced reads\n");
+	printf(" -report-splice-sites FLOAT            report splice sites with confidence not less that threshold\n");
+	printf(" -report-splice-sites-top-perc FLOAT   report splice sites with confidence in top percentile (between 0 and 1)\n");
+	//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
 
 	return 0;
 }
