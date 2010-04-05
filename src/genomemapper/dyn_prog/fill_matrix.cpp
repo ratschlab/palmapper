@@ -1,3 +1,6 @@
+// Authors: Uta Schulze, Fabio De Bona, Gunnar Raetsch, Geraldine Jean
+// Copyright (C) 2006-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+
 /*********************************************************************************************/
 // fast_fill_matrix 
 // Not fills the entire matrix: based on a banded Smith-Waterman algorithm adapted to spliced alignment

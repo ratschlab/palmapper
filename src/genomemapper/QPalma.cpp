@@ -1,3 +1,6 @@
+// Authors: Gunnar Raetsch, Geraldine Jean, Lisa Thalheim
+// Copyright (C) 2009-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+
 #include <assert.h>
 #include <string>
 #include <sys/time.h>

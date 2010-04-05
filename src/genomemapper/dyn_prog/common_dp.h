@@ -1,3 +1,6 @@
+// Authors: Uta Schulze, Fabio De Bona, Gunnar Raetsch, Geraldine Jean
+// Copyright (C) 2006-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+
 #ifndef __COMMON_DP_H__
 #define __COMMON_DP_H__
 

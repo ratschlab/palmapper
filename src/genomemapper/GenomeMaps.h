@@ -47,13 +47,6 @@ public:
 		return CHR_MAP_a[chr.nr()]->get_elem(index) ;
 #else
 		assert(CHR_MAP_c!=NULL) ;
-		
-		/*if (CHR_MAP_c[chr][index] != CHR_MAP_a[chr]->get_elem(index))
-		  {
-		  fprintf(stdout, "get: chr=%i, index=%i: %i != %i\n", (int)chr, (int)index,  (int)CHR_MAP_c[chr][index], (int)CHR_MAP_a[chr]->get_elem(index)) ;
-		  exit(-1) ;
-		  }*/
-		
 		return CHR_MAP_c[chr.nr()][index] ;
 #endif
 	}
@@ -70,12 +63,6 @@ public:
 #else // CHR_MAP_DNAARRAY
 		CHR_MAP_c[chr.nr()][index]=c ;
 		//CHR_MAP_a[chr]->set_elem(index, c) ;
-		
-		/*if (CHR_MAP_c[chr][index] != CHR_MAP_a[chr]->get_elem(index))
-		  {
-		  fprintf(stdout, "set: chr=%i, index=%i: %i != %i\n", (int)chr, (int)index,  (int)CHR_MAP_c[chr][index], (int)CHR_MAP_a[chr]->get_elem(index)) ;
-		  exit(-1) ;
-		  }*/
 #endif // CHR_MAP_DNAARRAY
 	}
 	
@@ -85,7 +72,6 @@ public:
 	int report_mapped_region(Chromosome const &chr, int chr_start, int chr_end, int num_matches)  ;
 	int report_mapped_read(Chromosome const &chr, int start, int end, int num_matches, int nbest_hit) ;
 	int report_spliced_read(Chromosome const &chr, std::vector<int> & exons, int num_matches, int nbest_hit) ;
-    //extern int report_splice_site(int chr, int pos, char strand, char type) ;
 	int do_reporting(int force=0) ;
 	int read_reporting() ;
 	int write_reporting() ;
@@ -99,11 +85,11 @@ protected:
 	void to_dnaarray(int chr=-1) ;
 	void from_dnaarray(int chr = -1) ;
 
+	// stats
 	int reported_repetitive_seeds  ;
 	int reported_mapped_regions  ;
 	int reported_mapped_reads  ;
 	int reported_spliced_reads  ;
-    //int reported_splice_sites  ;
 	
 	int covered_mapped_read_positions  ;
 	int covered_mapped_read_positions_best  ;
@@ -113,7 +99,6 @@ protected:
 	int covered_repetitive_seed_positions_many1  ;
 	int covered_repetitive_seed_positions_many2  ;
 	int covered_mapped_region_positions  ;
-    //int covered_splice_site_positions  ;
 
 	static clock_t last_report ;
 

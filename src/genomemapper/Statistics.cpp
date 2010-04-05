@@ -1,6 +1,7 @@
 #include <genomemapper/Statistics.h>
 
-Statistics::Statistics() {
+Statistics::Statistics() 
+{
 	PERFECT_READS = 0;
 	PERFECT_HITS = 0;
 	PERFECT_HITS_REV = 0;
