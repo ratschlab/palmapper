@@ -17,8 +17,7 @@ Read _read;
 
 int main(int argc, char *argv[]) 
 {
-	
-	//fprintf(stdout, "\nGenomemapper/QPALMA version 0.1.2 (August 31, 2009)\n") ;
+	_config.VersionHeader() ;
 
 	init_shogun() ;
 	
@@ -37,9 +36,6 @@ int main(int argc, char *argv[])
 	
 	TopAlignments _topalignments(&_genomemaps) ;
 	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps, 0) ;
-
-//	new (&_genome) Genome();
-
 
 	// initialize GenomeMaps
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)

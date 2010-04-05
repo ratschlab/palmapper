@@ -145,8 +145,9 @@ public:
 	char STATISTICS;
 	unsigned int CHROM_CONTAINER_SIZE;
 
+	static void VersionHeader() ;
+	static int usage();
 private:
-	int usage();
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;
 };

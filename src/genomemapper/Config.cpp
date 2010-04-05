@@ -1105,10 +1105,17 @@ int Config::parseCommandLine(int argc, char *argv[]) {
 	return 0;
 }
 
-int Config::usage() {
+void Config::VersionHeader()
+{
 	printf("\nGenomeMapper/QPALMA v%s\n", VERSION);
-	printf("written by Korbinian Schneeberger, Stephan Ossowski, Joerg Hagmann, Gunnar Raetsch, Lisa Thalheim, Fabio De Bona\n");
+	printf("written by Korbinian Schneeberger, Stephan Ossowski, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Lisa Thalheim, Fabio De Bona\n");
 	printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
+}
+
+int Config::usage() 
+{
+	//VersionHeader() ;
+
 	printf("USAGE: genomemapper [options]\n");
 	printf("\n");
 	printf("mandatory:\n");
