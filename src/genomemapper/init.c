@@ -2,16 +2,6 @@
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
 #include "genomemapper.h"
-#include "align.h"
-#include <assert.h>
-
-int init_output_file(Config * config);
-int init_spliced_output_file(Config * config);
-
-int valid_char[256] ;
-char compl_char[256] ;
-char upper_char[256] ;
-
 
 int init_output_file(Config * config) 
 {
