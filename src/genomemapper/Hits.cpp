@@ -279,9 +279,9 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
  			// map_complete IF 1) all hit strategy 2) best hit strategy and no mappings found in map_fast BUT NOT IF MM < RL/ID AND gaps=0 (since map_fast has already found them)
 			if (!cancel)
 			{
-				if ((_config.ALL_HIT_STRATEGY!=0 ||
+				if (((_config.ALL_HIT_STRATEGY!=0) || _config.NOT_MAXIMAL_HITS ||
 					 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()==0)) &&
-				    (!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0) || _config.NOT_MAXIMAL_HITS) )
+				    (!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0) ) )
 				{
 
 					c_map_short_read++;
