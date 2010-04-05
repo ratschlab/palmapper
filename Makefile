@@ -4,9 +4,9 @@ ObjDir = $(OutDir)/o
 ExeDir = $OutDir/a
 
 CC = g++
-# CFLAGS = -Wall -g 
-#CFLAGS = -Wno-sign-compare -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread
-CFLAGS = -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow 
+#CFLAGS = -Wall -g 
+CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread
+#CFLAGS = -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow 
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS = 
 
@@ -73,17 +73,17 @@ $(ObjDir)/%.o : $(SrcDir)/%.cpp
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
-	
+
 $(ObjDir)/%.o : $(SrcDir)/%.cpp $(SrcDir)/%.h
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
-	
+
 $(ObjDir)/%.o : $(SrcDir)/%.c
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
-	
+
 #src/genomemapper/%.o: src/genomemapper/%.c
 #	$(CC) $(CFLAGS) $(INCLUDE) -c $? -o $@
 #

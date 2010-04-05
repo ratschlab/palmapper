@@ -64,7 +64,9 @@ public:
 	unsigned int RTRIM_STRATEGY_MIN_LEN;
 	unsigned int POLYTRIM_STRATEGY;
 	unsigned int POLYTRIM_STRATEGY_MIN_LEN;
-
+	unsigned int POLYTRIM_STRATEGY_STEP ;
+	unsigned int POLYTRIM_STRATEGY_POLY_MIN_LEN;
+	
 	//int SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[2] ;
 	//int SUMMARY_HIT_STRATEGY_HIT_FOUND[2] ;
 	unsigned int HITLEN_LIMIT;

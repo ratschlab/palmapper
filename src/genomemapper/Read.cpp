@@ -330,7 +330,10 @@ int Read::determine_read_length(const std::string & query_file)
 
 	int sum_read_length=0 ;
 	for (unsigned int i=0; i<sample_size; i++)
-		sum_read_length += read_short_read(QUERY_FP) ;
+	{
+		read_short_read(QUERY_FP) ;
+		sum_read_length += READ_LENGTH ;
+	}
 
 	return sum_read_length/sample_size ;
 }

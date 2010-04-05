@@ -202,6 +202,8 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 		int rtrim_cut = 0 ;
 		int polytrim_cut_start = 0 ;
 		int polytrim_cut_end = 0 ;
+		int polytrim_cut_start_curr = 0 ;
+		int polytrim_cut_end_curr = 0 ;
 		int poly_length_start=0 ;
 		int poly_length_end=0 ;
 		Read* poly_orig_read = NULL ;
@@ -398,7 +400,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 				//if (_config.VERBOSE && read_mapped)
 				//	printf("unspliced or spliced alignment found\n"); 
 				
-				topalignments->end_top_alignment_record(rtrim_cut, polytrim_cut_start, polytrim_cut_end);
+				topalignments->end_top_alignment_record(rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 				
 				if (read_mapped)
 					_stats.READS_MAPPED++ ;
@@ -432,31 +434,45 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 							// copy original read
 							delete poly_orig_read ;
 							poly_orig_read=new Read(_read) ;
+							//if (poly_length_start>=10 || poly_length_end>=10)
+							//	fprintf(stdout, "read %s: %i %i\n", _read.data(), poly_length_start, poly_length_end) ;
 						}
 						assert(poly_orig_read!=NULL) ;
 
-						// determine which side to cut
+						if (poly_length_start<=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
+							poly_length_start=0 ;
+						if (poly_length_end<=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
+							poly_length_end=0 ;
+
 						bool restart=false ;
-						bool start_cond = (polytrim_cut_start < poly_length_start &&
-										   _read.length() - polytrim_cut_start >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
-						bool end_cond = (polytrim_cut_end < poly_length_end &&
-										 _read.length() - polytrim_cut_end >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
-
-						if (start_cond && (polytrim_cut_start<polytrim_cut_end || !end_cond))
+						if (poly_length_start>=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN || poly_length_end>=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
 						{
-							polytrim_cut_start += 1 ;
-							_read.trim_read_start(poly_orig_read, polytrim_cut_start) ;
-							restart = true ;
+							// determine which side to cut
+							bool start_cond = (polytrim_cut_start < poly_length_start &&
+											   _read.length() - polytrim_cut_start >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
+							bool end_cond = (polytrim_cut_end < poly_length_end &&
+											 _read.length() - polytrim_cut_end >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
+							
+							if (start_cond && (polytrim_cut_start<polytrim_cut_end || !end_cond))
+							{
+								polytrim_cut_start += _config.POLYTRIM_STRATEGY_STEP ;
+								_read.trim_read_start(poly_orig_read, polytrim_cut_start) ;
+								restart = true ;
+								polytrim_cut_start_curr = polytrim_cut_start ;
+								polytrim_cut_end_curr = 0 ;
+							}
+							if (end_cond && !restart)
+							{
+								polytrim_cut_end += _config.POLYTRIM_STRATEGY_STEP ;
+								_read.trim_read_end(poly_orig_read, polytrim_cut_end) ;
+								restart = true ;
+								polytrim_cut_start_curr = 0 ;
+								polytrim_cut_end_curr = polytrim_cut_end ;
+							}
 						}
-						if (end_cond && !restart)
-						{
-							polytrim_cut_end += 1 ;
-							_read.trim_read_end(poly_orig_read, polytrim_cut_end) ;
-							restart = true ;
-						}
-
 						if (restart)
 						{
+							//fprintf(stdout, "polytrim_cut_start_curr=%i, polytrim_cut_end_curr=%i: %s\n", polytrim_cut_start_curr, polytrim_cut_end_curr, _read.data()) ;
 							dealloc_mapping_entries();
 							dealloc_hits();
 							dealloc_hits_by_score();

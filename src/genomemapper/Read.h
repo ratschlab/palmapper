@@ -82,8 +82,10 @@ public:
 
 	void find_poly(int &poly_length_start, int &poly_length_end, float frac=0.8)
 	{
+		int num_a_start = 0 ;
 		int num_t_start = 0 ;
 		int num_a_end = 0 ;
+		int num_t_end = 0 ;
 		poly_length_start = 0 ;
 		poly_length_end = 0 ;
 		
@@ -91,11 +93,19 @@ public:
 		{
 			if (READ[i]=='T' || READ[i]=='t')
 				num_t_start++ ;
+			if (READ[i]=='A' || READ[i]=='a')
+				num_a_start++ ;
 			if (READ[READ_LENGTH-i]=='A' || READ[READ_LENGTH-i]=='a')
 				num_a_end++ ;
+			if (READ[READ_LENGTH-i]=='T' || READ[READ_LENGTH-i]=='t')
+				num_t_end++ ;
 			if (((float)num_t_start)/i >= frac)
 				poly_length_start = i ;
+			if (((float)num_a_start)/i >= frac)
+				poly_length_start = i ;
 			if (((float)num_a_end)/i >= frac)
+				poly_length_end = i ;
+			if (((float)num_t_end)/i >= frac)
 				poly_length_end = i ;
 		}
 	}

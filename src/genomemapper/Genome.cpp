@@ -74,7 +74,8 @@ int Genome::alloc_index_memory()
 	if (_config.INDEX_DEPTH==12)
 		INDEX_SIZE = _config.INDEX_SIZE_12 ;
 	
-	fprintf(stdout, "_config.INDEX_DEPTH=%i, INDEX_SIZE=%ld, sizeof(INDEX_ENTRY)=%ld, index size=%ld\n",  (int)_config.INDEX_DEPTH, (long int)INDEX_SIZE, sizeof(INDEX_ENTRY), sizeof(INDEX_ENTRY)*INDEX_SIZE) ;
+	if (_config.VERBOSE>0)
+		fprintf(stdout, "_config.INDEX_DEPTH=%i, INDEX_SIZE=%ld, sizeof(INDEX_ENTRY)=%ld, index size=%ld\n",  (int)_config.INDEX_DEPTH, (long int)INDEX_SIZE, sizeof(INDEX_ENTRY), sizeof(INDEX_ENTRY)*INDEX_SIZE) ;
 
 	if ( (INDEX = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY)) ) == NULL) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (2)\n");

@@ -15,6 +15,9 @@ Config::Config() {
 	RTRIM_STRATEGY_MIN_LEN=25 ;
 	POLYTRIM_STRATEGY=0 ;
 	POLYTRIM_STRATEGY_MIN_LEN=25 ;
+	POLYTRIM_STRATEGY_STEP = DEFAULT_SETTING ;
+	POLYTRIM_STRATEGY_POLY_MIN_LEN = 10 ;
+
 	//int SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[2] ;
 	HITLEN_LIMIT = 0;
 	VERBOSE = 0;
@@ -76,6 +79,7 @@ Config::Config() {
 	ALL_HIT_STRATEGY = 0 ;
 	SUMMARY_HIT_STRATEGY= 0 ;
 	HITLEN_LIMIT = 0 ;
+
 };
 
 int Config::applyDefaults(Genome * genome)
@@ -103,22 +107,22 @@ int Config::applyDefaults(Genome * genome)
 		{
 			SPLICED_MAX_INTRONS = (read_length>50) ? (read_length>=100 ? 3 : 2) : 1 ;
 			if (read_length>200) SPLICED_MAX_INTRONS = 6 ;
-			fprintf(stdout, "-NI %i", SPLICED_MAX_INTRONS) ;
+			fprintf(stdout, " -NI %i", SPLICED_MAX_INTRONS) ;
 		}
 		if (NUM_EDIT_OPS == DEFAULT_SETTING)
 		{
 			NUM_EDIT_OPS = read_length*0.08 ;
-			fprintf(stdout, "-E %i", NUM_EDIT_OPS) ;
+			fprintf(stdout, " -E %i", NUM_EDIT_OPS) ;
 		}
 		if (NUM_MISMATCHES == DEFAULT_SETTING)
 		{
 			NUM_MISMATCHES = read_length*0.08 ;
-			fprintf(stdout, "-M %i", NUM_MISMATCHES) ;
+			fprintf(stdout, " -M %i", NUM_MISMATCHES) ;
 		}
 		if (NUM_GAPS == DEFAULT_SETTING)
 		{
 			NUM_GAPS = read_length*0.03 ;
-			fprintf(stdout, "-G %i", NUM_GAPS) ;
+			fprintf(stdout, " -G %i", NUM_GAPS) ;
 		}
 		fprintf(stdout, "\n") ;
 	}
@@ -150,6 +154,15 @@ int Config::applyDefaults(Genome * genome)
 			OUTPUT_FORMAT=OUTPUT_FORMAT_SHORE ;
 			fprintf(stdout, "Selecting SHORE output format\n") ;
 		}
+
+	if (POLYTRIM_STRATEGY)
+	{
+		if (POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING)
+		{
+			POLYTRIM_STRATEGY_STEP = (NUM_EDIT_OPS>=1) ? NUM_EDIT_OPS : 1 ;
+			fprintf(stdout, "Automatically selecting polytrim step size: %int\n", POLYTRIM_STRATEGY_STEP) ;
+		}
+	}
 
 	return 0 ;
 }
@@ -1204,8 +1217,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 
 void Config::VersionHeader()
 {
-	printf("\nGenomeMapper/QPALMA v%s\n", VERSION);
-	printf("written by Korbinian Schneeberger, Stephan Ossowski, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Lisa Thalheim, Fabio De Bona\n");
+	printf("\nPALMapper version %s   (PALMapper is a fusion of GenomeMapper & QPALMA)\n", VERSION);
+	printf("written by Fabio De Bona, Joerg Hagmann, Geraldine Jean, Stephan Ossowski, Gunnar Raetsch, Korbinian Schneeberger, Lisa Thalheim\n");
 	printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
 }
 

@@ -441,10 +441,14 @@ int GenomeMaps::do_reporting(int force)
 		last_report=clock() ;
 
 		fprintf(stdout, "\n") ;
-		fprintf(stdout, "[report] repetitive_seeds (%i)\t=\t %8i\t(%8i, %8i, %8i positions)\n", REPORT_REPETITIVE_SEED_DEPTH_EXTRA+_config.INDEX_DEPTH, reported_repetitive_seeds, covered_repetitive_seed_positions, covered_repetitive_seed_positions_many1, covered_repetitive_seed_positions_many2) ;
-		fprintf(stdout, "[report] mapped_regions   \t=\t %8i\t(%8i positions)\n", reported_mapped_regions, covered_mapped_region_positions) ;
-		fprintf(stdout, "[report] mapped_reads     \t=\t %8i\t(%8i, %8i positions)\n", reported_mapped_reads, covered_mapped_read_positions_best, covered_mapped_read_positions) ;
-		fprintf(stdout, "[report] spliced_reads     \t=\t %8i\t(%8i, %8i positions)\n", reported_spliced_reads, covered_spliced_read_positions_best, covered_spliced_read_positions) ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "[report] repetitive_seeds (%i)\t=\t %8i\t(%8i, %8i, %8i positions)\n", REPORT_REPETITIVE_SEED_DEPTH_EXTRA+_config.INDEX_DEPTH, reported_repetitive_seeds, covered_repetitive_seed_positions, covered_repetitive_seed_positions_many1, covered_repetitive_seed_positions_many2) ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "[report] mapped_regions   \t=\t %8i\t(%8i positions)\n", reported_mapped_regions, covered_mapped_region_positions) ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "[report] mapped_reads     \t=\t %8i\t(%8i, %8i positions)\n", reported_mapped_reads, covered_mapped_read_positions_best, covered_mapped_read_positions) ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "[report] spliced_reads     \t=\t %8i\t(%8i, %8i positions)\n", reported_spliced_reads, covered_spliced_read_positions_best, covered_spliced_read_positions) ;
 		//fprintf(stderr, "[report] splice_sites     =\t %8i\t(%8i positions)\n\n", reported_splice_sites, covered_splice_site_positions) ;
 	}
 
@@ -524,7 +528,7 @@ int GenomeMaps::read_reporting()
 	}
 	gzclose(fd) ;
 
-	fprintf(stdout, "read_reporting: read reporting map from %s\n", fname) ;
+	fprintf(stdout, "read QPALMA reporting map from %s\n", fname) ;
 	return 0 ;
 }
 
@@ -539,7 +543,7 @@ int GenomeMaps::write_reporting()
 	gzFile fd = gzopen(fname, "wb6") ;
 	if (!fd)
 		return -1 ;
-	fprintf(stdout, "writing reporting map to %s:\n", fname) ;
+	fprintf(stdout, "writing QPALMA reporting map to %s:\n", fname) ;
 	for (size_t i=0; i<genome->nrChromosomes(); i++)
 	{
 		Chromosome &chr = genome->chromosome(i);
@@ -557,7 +561,8 @@ int GenomeMaps::write_reporting()
 		for (size_t p=0; p<chr.length(); p++)
 			if (CHR_MAP_c[i][p])
 				num_covered++ ;
-		fprintf(stdout, "  chr\t%s\thas \t%i\t/\t%i\t(%2.1f%%) covered positions\n", chr.desc(), num_covered, chr.length(), 100.0*num_covered/chr.length()) ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "  chr\t%s\thas \t%i\t/\t%i\t(%2.1f%%) covered positions\n", chr.desc(), num_covered, chr.length(), 100.0*num_covered/chr.length()) ;
 
 #ifdef CHR_MAP_DNAARRAY
 		if (to_be_deleted)
@@ -569,7 +574,8 @@ int GenomeMaps::write_reporting()
 	}
 	gzclose(fd) ;
 
-	fprintf(stdout, "done.\n") ;
+	if (_config.VERBOSE>0)
+		fprintf(stdout, "done.\n") ;
 	return 0 ;
 }
 
