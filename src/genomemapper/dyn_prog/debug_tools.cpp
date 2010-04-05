@@ -1,4 +1,4 @@
-// Authors: Uta Schulze, Fabio De Bona, Gunnar Raetsch, Geraldine Jean
+// Authors: Uta Schulze, Cheng Soon Ong, Fabio De Bona, Gunnar Raetsch, Geraldine Jean
 // Copyright (C) 2006-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include <cstdio>

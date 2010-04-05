@@ -1,3 +1,6 @@
+// Authors: Uta Schulze, Cheng Soon Ong, Fabio De Bona, Gunnar Raetsch, Geraldine Jean
+// Copyright (C) 2006-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+
 #include <assert.h>
 #include "config_dp.h"
 //#include "features/CharFeatures.h"

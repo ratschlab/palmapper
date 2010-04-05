@@ -1,3 +1,6 @@
+// Authors: Bettina Hepp, Uta Schulze, Cheng Soon Ong, Fabio De Bona, Gunnar Raetsch, Geraldine Jean, Soeren Sonnenburg
+// Copyright (C) 2005-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+
 #ifndef _QPALMA_DP_H_
 #define _QPALMA_DP_H_
 

@@ -1,5 +1,5 @@
-// Authors: Uta Schulze, Fabio De Bona, Gunnar Raetsch, Geraldine Jean
-// Copyright (C) 2006-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Authors: Bettina Hepp, Uta Schulze, Cheng Soon Ong, Fabio De Bona, Gunnar Raetsch, Geraldine Jean, Soeren Sonnenburg
+// Copyright (C) 2005-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 /*********************************************************************************************/
 // fast_fill_matrix 
