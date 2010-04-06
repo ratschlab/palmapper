@@ -436,17 +436,15 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 							delete poly_orig_read ;
 							poly_orig_read=new Read(_read) ;
 							_read.set_orig(poly_orig_read) ;
-							//if (poly_length_start>=10 || poly_length_end>=10)
-							//	fprintf(stdout, "read %s: %i %i\n", _read.data(), poly_length_start, poly_length_end) ;
+							if (_read.is_full_poly())
+								poly_length_start=poly_length_end=0 ;
 						}
 						assert(poly_orig_read!=NULL) ;
 
-						if (poly_length_start<=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
+						if (poly_length_start <= _config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
 							poly_length_start=0 ;
-						if (poly_length_end<=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
+						if (poly_length_end <= _config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
 							poly_length_end=0 ;
-						if (_read.is_full_poly())
-							poly_length_start=poly_length_end=0 ;
 
 						bool restart=false ;
 						if (poly_length_start>=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN || poly_length_end>=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)

@@ -110,7 +110,7 @@ public:
 		}
 	}
 
-	bool is_full_poly(float frac=0.8)
+	bool is_full_poly(float frac=0.9)
 		{
 			int num_t=0, num_a=0 ;
 			
