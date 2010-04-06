@@ -199,11 +199,11 @@ int Config::checkConfig()
 		exit(1) ;
 	}
 
-	if (OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
+/*	if (OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
 	{
 		fprintf(stderr, "ERROR: SAM format not implemented yet\n") ;
 		exit(1) ;
-	}
+	}*/
 	return 0 ;
 }
 

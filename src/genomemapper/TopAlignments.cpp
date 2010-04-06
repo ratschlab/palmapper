@@ -907,7 +907,223 @@ int TopAlignments::print_alignment_shorebed(HIT* hit, unsigned int num)
 // SAM format
 int TopAlignments::print_top_alignment_records_sam()
 {
-	fprintf(stderr, "WARNING: SAM format not implemented yet\n") ;
-	return 0 ;
+	if (top_alignments.size()==0)
+		return 0 ;
+
+    FILE* MY_OUT_FP = OUT_FP ;
+
+	for (unsigned int j=0; j<top_alignments.size(); j++)
+	{
+		alignment_t * curr_align  = top_alignments[j] ;
+		assert(curr_align->exons.size() >= 2);
+
+        if (j == 0) 
+        {
+            if (curr_align->rtrim_cut!=0)
+                assert(curr_align->polytrim_cut_start==0 && curr_align->polytrim_cut_end==0) ;
+            if (curr_align->polytrim_cut_start!=0)
+                assert(curr_align->polytrim_cut_end==0) ;
+
+            if (curr_align->spliced)
+            {
+                assert(_config.SPLICED_HITS) ;
+                MY_OUT_FP = SP_OUT_FP ;
+                num_spliced_best++ ;
+            }
+            else
+                num_unspliced_best++ ;
+
+            for (int i=1; i<(int)top_alignments.size(); i++)
+                if (top_alignments[i]->spliced)
+                    num_spliced_suboptimal+=1 ;
+                else
+                    num_unspliced_suboptimal+= 1 ;
+
+            print_alignment_stats(num_unspliced_best, num_unspliced_suboptimal, 
+                                  num_spliced_best, num_spliced_suboptimal) ;
+        }
+
+
+		fprintf(MY_OUT_FP, "%s", curr_align->read_id) ;
+		uint32_t flag=0 ;
+		flag+=((curr_align->orientation=='-')*16) ;
+        /* flag+=SEQUENCING_WAS_PAIRED ;
+         * flag+=(MAPPED_AS_PAIR*2) ;
+         * flag+=(IS_UNMAPPED*4) ;
+         * flag+=(MATE_IS_UNMAPPED*8) ;
+         * flag+=(STRAND_OF_MATE*32) ;
+         * flag+=(FIRST_IN_PAIR)?64:128 ;
+         */
+		fprintf(MY_OUT_FP, "\t%d\t%s\t%d\t255", 
+				flag, 
+				curr_align->chromosome->desc(),
+				curr_align->exons[0] + 1);
+
+        // determine CIGAR
+        char __cigar[500] ; 
+        uint32_t idx = 0 ;
+        for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
+        {
+            if (curr_align->read_anno[i] != '[') 
+                __cigar[idx] = 'M' ;	
+            else
+            {
+                if (curr_align->read_anno[i+1] == '-')
+                    __cigar[idx] = 'I' ;
+                else if (curr_align->read_anno[i+2] == '-')
+                    __cigar[idx] = 'D' ;
+                else
+                    __cigar[idx] = 'M' ;
+                i += 3 ;
+            }
+            idx += 1 ;
+        }
+        __cigar[idx] = 0 ;
+
+        char cigar[500] ;
+        char cig_buf[255] ;
+        uint32_t last = __cigar[0] ;
+        idx = 0 ;
+        uint32_t pos = 0;
+        uint32_t cum_size = curr_align->exons[idx + 1] - curr_align->exons[idx] ;
+        uint32_t count = 1 ;
+        uint32_t ii = 0;
+        uint32_t indel_offset = 0 ;
+
+        for (uint32_t i = 1; i < strlen(__cigar); i++)
+        {
+            if (i == cum_size + indel_offset && idx + 2 < curr_align->exons.size())
+            {
+                snprintf (cig_buf, (size_t) 255, "%d", count) ;
+                for (ii=0; ii < strlen(cig_buf); ii++)
+                    cigar[pos + ii] = cig_buf[ii] ;
+                pos += strlen(cig_buf) ;
+                cigar[pos++] = last ;
+                count = 0 ;
+                last = ' ' ;
+                snprintf (cig_buf, (size_t) 255, "%d", curr_align->exons[idx + 2] - curr_align->exons[idx + 1]) ;
+                for (ii=0; ii < strlen(cig_buf); ii++)
+                    cigar[pos + ii] = cig_buf[ii] ;
+                pos += strlen(cig_buf) ;
+                cigar[pos++] = 'N' ;
+                idx += 2 ;
+                cum_size += (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
+                assert(curr_align->exons[idx+1] - curr_align->exons[idx] >  0) ;
+                assert(curr_align->exons[idx+1] - curr_align->exons[idx] <= MAX_EXON_LEN) ;
+            }
+
+            if (__cigar[i] != last) 
+            {
+                if (last != ' ')
+                {
+                    snprintf (cig_buf, (size_t) 255, "%d", count) ;
+                    for(ii=0; ii < strlen(cig_buf); ii++)
+                        cigar[pos + ii] = cig_buf[ii] ;
+                    pos += strlen(cig_buf) ;
+                    cigar[pos++] = last ;
+                }
+                if (last == 'D')
+                    indel_offset -= count;
+                if (last == 'I')
+                    indel_offset += count;
+                count = 1 ;
+                last = __cigar[i] ;
+            }
+            else
+                count += 1 ;
+
+           }
+        snprintf (cig_buf, (size_t) 255, "%d", count) ;
+        for (ii=0; ii < strlen(cig_buf); ii++)
+            cigar[pos + ii] = cig_buf[ii] ;
+        pos += ii ;
+        cigar[pos++] = last ;
+        cigar[pos] = 0 ;
+        if (last == 'D')
+            indel_offset -= count ; 
+        else if (last == 'I')
+            indel_offset += count ; 
+        assert(cum_size + indel_offset == _read.length()) ;
+
+		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
+			fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
+		else
+		{
+			// reverse order of cigar
+            char rcigar[500] ;
+            uint32_t marker = 0 ;
+            for (int k=1; k<strlen(cigar); k++)
+            {
+                if (cigar[strlen(cigar)-k-1] <= '9')
+                    continue ;
+                else
+                {
+                    for (uint32_t kk = 0; kk < k - marker; kk++)
+                        rcigar[marker+kk]=cigar[strlen(cigar)-k+kk] ;
+                    marker = k;
+                }
+            }
+            for (uint32_t kk = 0; kk < strlen(cigar) - marker; kk++)
+                rcigar[marker+kk]=cigar[kk] ;
+            
+			rcigar[strlen(cigar)]=0 ;
+			fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", rcigar) ; 
+		}
+	//	double qpalma_score = best->qpalma_score ;
+
+		if (_config.RTRIM_STRATEGY)
+		{
+	//		fprintf(MY_OUT_FP, "\ttrimmed=%i", best->rtrim_cut) ;
+			fprintf(MY_OUT_FP, "\n");
+			return 1 ;
+		} 
+		else
+		{
+			if (curr_align->orientation=='+')
+		    	fprintf(MY_OUT_FP, "\t%s\t%s", _read.data(), _read.quality()[0]) ;
+			//	fprintf(MY_OUT_FP, "\tDUMMY\tDUMMY") ;
+			else
+			{
+				// reverse order of quality and complementary reverse read 
+                char qual[500] ;
+                for (int k=0; k<((int)_read.length()); k++)
+                    qual[k]=_read.quality()[0][((int)_read.length())-k-1] ;
+				qual[((int)_read.length())]=0 ;
+				char read[500] ;
+				for (int i=0; i<((int)_read.length()); i++)
+                {
+                    switch(_read.data()[((int)_read.length())-i-1])
+                    {
+                        case 'a': read[i] = 't'; break;
+                        case 'c': read[i] = 'g'; break;
+                        case 'g': read[i] = 'c'; break;
+                        case 't': read[i] = 'a'; break;
+                        case 'A': read[i] = 'T'; break;
+                        case 'C': read[i] = 'G'; break;
+                        case 'G': read[i] = 'C'; break;
+                        case 'T': read[i] = 'A'; break;
+                        default: read[i] = 'N';
+                    }
+                }
+				read[((int)_read.length())]=0 ;
+
+				fprintf(MY_OUT_FP, "\t%s\t%s", read, qual) ;
+			}
+		}	
+
+        fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i\tXS:A:%c", curr_align->num_matches, _read.length() - curr_align->num_matches, top_alignments[0]->strand) ;
+
+/*		if (_config.POLYTRIM_STRATEGY)
+		{
+			if (curr_align->polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimStart=%i", curr_align->polytrim_cut_start) ;
+			if (curr_align->polytrim_cut_start)
+				fprintf(MY_OUT_FP, ";polytrimEnd=%i", curr_align->polytrim_cut_end) ;
+		}*/
+		fprintf(MY_OUT_FP, "\n");
+	}
+
+	return top_alignments.size() ;
 }
+
 
