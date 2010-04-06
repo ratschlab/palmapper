@@ -431,6 +431,8 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 						{
 							// determine the number of T's at beginning or A's at end
 							_read.find_poly(poly_length_start, poly_length_end) ;
+							//fprintf(stdout, "poly_length_start=%i, poly_length_end=%i\n", poly_length_start, poly_length_end) ;
+
 							// copy original read
 							_read.set_orig(NULL) ;
 							delete poly_orig_read ;
@@ -475,6 +477,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 						if (restart)
 						{
 							//fprintf(stdout, "polytrim_cut_start_curr=%i, polytrim_cut_end_curr=%i: %s\n", polytrim_cut_start_curr, polytrim_cut_end_curr, _read.data()) ;
+
 							dealloc_mapping_entries();
 							dealloc_hits();
 							dealloc_hits_by_score();

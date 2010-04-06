@@ -577,7 +577,7 @@ int TopAlignments::print_top_alignment_records_bedx()
 			{
 				if (best->polytrim_cut_start)
 					fprintf(MY_OUT_FP, ";polytrimStart=%i", best->polytrim_cut_start) ;
-				if (best->polytrim_cut_start)
+				if (best->polytrim_cut_end)
 					fprintf(MY_OUT_FP, ";polytrimEnd=%i", best->polytrim_cut_end) ;
 			}
 		}
