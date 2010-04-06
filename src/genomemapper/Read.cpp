@@ -22,7 +22,8 @@ extern clock_t time2a_seed2genome  ;
 
 int get_slot(int pos);
 
-Read::Read() {
+Read::Read() 
+{
 	READ_ID = new char[_config.MAX_READ_ID_LENGTH];
 	for (int i = 0; i < 3; ++i) {
 		READ_QUALITY[i] = (char*) calloc(_config.MAX_READ_LENGTH + 1, sizeof(char));
@@ -33,6 +34,8 @@ Read::Read() {
 	}
 	linenr = 0;
 	READ_LENGTH = 0;
+	ASSUMED_READ_LENGTH = 0 ;
+	orig_read = NULL ;
 }
 
 Read::Read(const Read& read) 
@@ -54,7 +57,8 @@ Read::Read(const Read& read)
 	}
 	READ_FORMAT=read.READ_FORMAT ;
 	READ_PE_FLAG = read.READ_PE_FLAG ;
-	
+
+	orig_read = NULL ;
 }
 
 /** Parses one line of read descriptions in either FASTA, FASTQ or FLATFILE

@@ -522,39 +522,68 @@ int TopAlignments::print_top_alignment_records_bedx()
 		assert(best->exons[i] - best->exons[0] > 0) ;
 	}
 	
-	double qpalma_score = best->qpalma_score ;
-
-	if (_config.RTRIM_STRATEGY)
 	{
-		fprintf(MY_OUT_FP, "\ttrimmed=%i", best->rtrim_cut) ;
-		fprintf(MY_OUT_FP, "\n");
-		return 1 ;
-	} 
-	else
-	{
-		if (best->orientation=='+')
-			fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
-					qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, best->read_anno, _read.quality()[0]) ;
+		char *read_anno=new char[strlen(best->read_anno)+(best->polytrim_cut_start+best->polytrim_cut_end)*4+2] ;
+		if (_config.POLYTRIM_STRATEGY && (best->polytrim_cut_start>0 || best->polytrim_cut_end>0))
+		{
+			char* orig_read = _read.get_orig()->data() ;
+			int orig_len = _read.get_orig()->length() ;
+			for (int i=0; i<best->polytrim_cut_start; i++)
+			{
+				read_anno[4*i]='[' ;
+				read_anno[4*i+1]='=' ;
+				read_anno[4*i+2]=orig_read[i] ;
+				read_anno[4*i+3]=']' ;
+			}
+			strcpy(read_anno+4*best->polytrim_cut_start, best->read_anno) ;
+			int len=strlen(read_anno) ;
+			for (int i=0; i<best->polytrim_cut_end; i++)
+			{
+				read_anno[len+4*i]='[' ;
+				read_anno[len+4*i+1]='=' ;
+				read_anno[len+4*i+2]=orig_read[orig_len-i-1] ;
+				read_anno[len+4*i+3]=']' ;
+			}
+			read_anno[len+4*best->polytrim_cut_end]=0 ;
+		}
+		else
+			strcpy(read_anno, best->read_anno) ;
+		
+		double qpalma_score = best->qpalma_score ;
+		
+		if (_config.RTRIM_STRATEGY)
+		{
+			fprintf(MY_OUT_FP, "\ttrimmed=%i", best->rtrim_cut) ;
+			fprintf(MY_OUT_FP, "\n");
+			return 1 ;
+		} 
 		else
 		{
-			// reverse order of quality 
-			char qual[500] ;
-			for (int i=0; i<((int)_read.length()); i++)
-				qual[i]=_read.quality()[0][((int)_read.length())-i-1] ;
-			qual[((int)_read.length())]=0 ;
-			
-			fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
-					qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, best->read_anno, qual) ;
-		}
-		if (_config.POLYTRIM_STRATEGY)
-		{
-			if (best->polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimStart=%i", best->polytrim_cut_start) ;
-			if (best->polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimEnd=%i", best->polytrim_cut_end) ;
+			if (best->orientation=='+')
+				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
+						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, read_anno, _read.quality()[0]) ;
+			else
+			{
+				// reverse order of quality 
+				char qual[500] ;
+				for (int i=0; i<((int)_read.length()); i++)
+					qual[i]=_read.quality()[0][((int)_read.length())-i-1] ;
+				qual[((int)_read.length())]=0 ;
+				
+				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
+						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, read_anno, qual) ;
+			}
+			if (_config.POLYTRIM_STRATEGY)
+			{
+				if (best->polytrim_cut_start)
+					fprintf(MY_OUT_FP, ";polytrimStart=%i", best->polytrim_cut_start) ;
+				if (best->polytrim_cut_start)
+					fprintf(MY_OUT_FP, ";polytrimEnd=%i", best->polytrim_cut_end) ;
+			}
 		}
 	}
-	
+
+
 	for (unsigned int j=1; j<top_alignments.size(); j++)
 	{
 		alignment_t * second  = top_alignments[j] ;

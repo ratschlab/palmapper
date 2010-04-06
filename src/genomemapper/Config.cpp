@@ -157,7 +157,7 @@ int Config::applyDefaults(Genome * genome)
 
 	if (POLYTRIM_STRATEGY)
 	{
-		if (POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING)
+		if ((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING)
 		{
 			POLYTRIM_STRATEGY_STEP = (NUM_EDIT_OPS>=1) ? NUM_EDIT_OPS : 1 ;
 			fprintf(stdout, "Automatically selecting polytrim step size: %int\n", POLYTRIM_STRATEGY_STEP) ;

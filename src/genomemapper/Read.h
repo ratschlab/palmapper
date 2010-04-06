@@ -80,7 +80,7 @@ public:
 	}
 
 
-	void find_poly(int &poly_length_start, int &poly_length_end, float frac=0.8)
+	void find_poly(unsigned int &poly_length_start, unsigned int &poly_length_end, float frac=0.8)
 	{
 		int num_a_start = 0 ;
 		int num_t_start = 0 ;
@@ -109,11 +109,31 @@ public:
 				poly_length_end = i ;
 		}
 	}
+
+	bool is_full_poly(float frac=0.8)
+		{
+			int num_t=0, num_a=0 ;
+			
+			for (unsigned int i=0; i<READ_LENGTH; i++)
+			{
+				if (READ[i]=='T' || READ[i]=='t')
+					num_t++ ;
+				if (READ[i]=='A' || READ[i]=='a')
+					num_a++ ;
+			}
+			if (((float)num_a/READ_LENGTH)>=frac)
+				return true ;
+			if (((float)num_t/READ_LENGTH)>=frac)
+				return true ;
+			return false ;
+		}
 	
 	int read_short_read(FILE *QUERY_FP);
 
 	int determine_read_length(const std::string & query_fname) ;
-	
+
+	Read* get_orig() { return orig_read ; } ;
+	void set_orig(Read* orig) { orig_read=orig ; } ;
 
 private:
 //	Statistics _stats;
@@ -126,6 +146,8 @@ private:
 	char READ_FORMAT;	// 0: fq, 1: fa, 2: flat
 	char *READ_ID;
 	int READ_PE_FLAG;
+	
+	Read* orig_read ;
 
 	unsigned int ASSUMED_READ_LENGTH ;
 };

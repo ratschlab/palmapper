@@ -1613,36 +1613,36 @@ int QPalma::capture_hits()
 		    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 		    bool isunspliced ;
 		    {
-		       		      int ret = perform_alignment_starter(read_seq[ori], read_quality[ori], current_seq, current_regions, 
-		       							  current_positions, chr, '+', ori, hit_read_position,
-		       							  corres_long_regions[0]->start, hit_len);
-		       		      /*, num_alignments_reported*/
-		       		      if (ret < 0)
-		       			{
-		       			  perform_alignment_wait(num_alignments_reported) ;
-		       			  delete_regions();
-		       			  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-		       			  return ret;
-		       			}
-		      isunspliced = ret;
+				int ret = perform_alignment_starter(read_seq[ori], read_quality[ori], current_seq, current_regions, 
+													current_positions, chr, '+', ori, hit_read_position,
+													corres_long_regions[0]->start, hit_len);
+				/*, num_alignments_reported*/
+				if (ret < 0)
+				{
+					perform_alignment_wait(num_alignments_reported) ;
+					delete_regions();
+					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+					return ret;
+				}
+				isunspliced = ret;
 		    }
 		    
 		    if (!isunspliced) {
-		      //fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
-		      //      corres_long_regions[0]->end, hit_len);					  
-		      //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-		       		      int ret = perform_alignment_starter(read_seq[1 - ori],
-		       							  read_quality[1 - ori], current_seq,
-		       							  current_regions, current_positions, chr, '-', ori, _read.length()-(hit_read_position+hit_len),
-		       							  corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
-		       		      /* , num_alignments_reported */
-		       		      if (ret < 0)
-		       			{
-		       			  perform_alignment_wait(num_alignments_reported) ;
-		       			  delete_regions();								
-		       			  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-		       			  return ret;
-		       			}							
+				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
+				//      corres_long_regions[0]->end, hit_len);					  
+				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+				int ret = perform_alignment_starter(read_seq[1 - ori],
+													read_quality[1 - ori], current_seq,
+													current_regions, current_positions, chr, '-', ori, _read.length()-(hit_read_position+hit_len),
+													corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
+				/* , num_alignments_reported */
+				if (ret < 0)
+				{
+					perform_alignment_wait(num_alignments_reported) ;
+					delete_regions();								
+					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+					return ret;
+				}							
 		    }
 		  
 		  } else {
@@ -1713,36 +1713,36 @@ int QPalma::capture_hits()
 	    //    corres_long_regions[0]->start, hit_len);
 	    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 	    {
-	       	      int ret = perform_alignment_starter(read_seq[ori], read_quality[ori],
-	       						  current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
-	       						  corres_long_regions[0]->start, hit_len); 
-	       	      /*, num_alignments_reported */
-	       	      if (ret < 0)
-	       		{
-	       		  perform_alignment_wait(num_alignments_reported) ;
-	       		  delete_regions();
-	       		  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-	       		  return ret;
-	       		}
-
-	      isunspliced = ret;
+			int ret = perform_alignment_starter(read_seq[ori], read_quality[ori],
+												current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
+												corres_long_regions[0]->start, hit_len); 
+			/*, num_alignments_reported */
+			if (ret < 0)
+			{
+				perform_alignment_wait(num_alignments_reported) ;
+				delete_regions();
+				delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+				return ret;
+			}
+			
+			isunspliced = ret;
 	    }
 	    if (!isunspliced) {
-	      //fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
-	      //      corres_long_regions[0]->end, hit_len);					  
-	      //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-	       	      int ret = perform_alignment_starter(read_seq[1 - ori],
-	       						  read_quality[1 - ori], current_seq,
-	       						  current_regions, current_positions, chr, '-', ori,_read.length()-(hit_read_position+hit_len),
-	       						  corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
-		/* , num_alignments_reported */
-		       if (ret < 0)
-		 		{
-		 		  perform_alignment_wait(num_alignments_reported) ;
-		 		  delete_regions();						
-		 		  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-		 		  return ret;
-		 		}
+			//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
+			//      corres_long_regions[0]->end, hit_len);					  
+			//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+			int ret = perform_alignment_starter(read_seq[1 - ori],
+												read_quality[1 - ori], current_seq,
+												current_regions, current_positions, chr, '-', ori,_read.length()-(hit_read_position+hit_len),
+												corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
+			/* , num_alignments_reported */
+			if (ret < 0)
+			{
+				perform_alignment_wait(num_alignments_reported) ;
+				delete_regions();						
+				delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+				return ret;
+			}
 	    }
 	  
 	  } else {
@@ -1809,7 +1809,11 @@ int QPalma::perform_alignment_starter(std::string read_string, std::string read_
 			unsigned int num_running = thread_data.size();
 			for (unsigned int i=0; i<thread_data.size(); i++)
 			{
-				pthread_join( thread_data[i]->thread, NULL);
+				if (!thread_data[i]->joined)
+					pthread_join( thread_data[i]->thread, NULL);
+				assert(thread_data[i]->ret!=-1000) ;
+				thread_data[i]->joined = true ;
+
 				num_running-- ;
 				if (num_running<_config.NUM_THREADS)
 					break ;
@@ -1832,6 +1836,7 @@ int QPalma::perform_alignment_starter(std::string read_string, std::string read_
 		data->hit_dna = hit_dna_position;
 		data->hit_length = hit_length;
 		data->qpalma = this ;
+		data->joined=false ;
 
 		int rc = pthread_create( &(data->thread), NULL, &perform_alignment_wrapper, data) ;
 		if (rc)
@@ -1844,11 +1849,11 @@ int QPalma::perform_alignment_starter(std::string read_string, std::string read_
 		
 		thread_data.push_back(data) ;
 		
-		
 		return 0 ; // in the meaning of perform_alignment this corresponds to a spliced alignment
 	}
 	catch (std::bad_alloc&)
     {
+		fprintf(stdout, "WARNING: Thread creating failed\n") ;
 		delete data ;
 		
         return -1 ;
@@ -1869,9 +1874,12 @@ int QPalma::perform_alignment_wait(int & num_reported)
 	for (unsigned int i=0; i<thread_data.size(); i++)
 	{
 		//fprintf(stderr, "thread #%i join\n", (int)thread_data.size()) ;
-		pthread_join( thread_data[i]->thread, NULL);
+		if (!thread_data[i]->joined)
+			pthread_join( thread_data[i]->thread, NULL);
 		//fprintf(stderr, "thread #%i finished: %i %i\n", (int)thread_data.size(), thread_data[i]->ret, thread_data[i]->num_reported) ;
 		assert(thread_data[i]->ret!=-1000) ;
+		thread_data[i]->joined = true ;
+
 		// return value <0: failure; 0: spliced alignment; 1: unspliced alignment
 		//fprintf(stderr, "wait pre ret=%i\n", ret) ;
 

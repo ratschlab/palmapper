@@ -33,6 +33,7 @@ struct perform_alignment_t
 	int hit_dna;
 	int hit_length;
 	QPalma * qpalma ;
+	bool joined ;
 } ;
 
 struct alignment_parameter_struct {

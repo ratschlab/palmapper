@@ -199,13 +199,13 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 		int cancel = 0 ;
 
 		LONGEST_HIT = 0;
-		int rtrim_cut = 0 ;
-		int polytrim_cut_start = 0 ;
-		int polytrim_cut_end = 0 ;
-		int polytrim_cut_start_curr = 0 ;
-		int polytrim_cut_end_curr = 0 ;
-		int poly_length_start=0 ;
-		int poly_length_end=0 ;
+		unsigned int rtrim_cut = 0 ;
+		unsigned int polytrim_cut_start = 0 ;
+		unsigned int polytrim_cut_end = 0 ;
+		unsigned int polytrim_cut_start_curr = 0 ;
+		unsigned int polytrim_cut_end_curr = 0 ;
+		unsigned int poly_length_start=0 ;
+		unsigned int poly_length_end=0 ;
 		Read* poly_orig_read = NULL ;
 
 		clock_t start_time = clock() ;
@@ -432,8 +432,10 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 							// determine the number of T's at beginning or A's at end
 							_read.find_poly(poly_length_start, poly_length_end) ;
 							// copy original read
+							_read.set_orig(NULL) ;
 							delete poly_orig_read ;
 							poly_orig_read=new Read(_read) ;
+							_read.set_orig(poly_orig_read) ;
 							//if (poly_length_start>=10 || poly_length_end>=10)
 							//	fprintf(stdout, "read %s: %i %i\n", _read.data(), poly_length_start, poly_length_end) ;
 						}
@@ -443,6 +445,8 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 							poly_length_start=0 ;
 						if (poly_length_end<=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
 							poly_length_end=0 ;
+						if (_read.is_full_poly())
+							poly_length_start=poly_length_end=0 ;
 
 						bool restart=false ;
 						if (poly_length_start>=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN || poly_length_end>=_config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
@@ -509,6 +513,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 			CHROMOSOME_ENTRY_OPERATOR->used = 0;
 			if (LONGEST_HIT != 0)
 				dealloc_hit_lists_operator();
+			_read.set_orig(NULL) ;
 			delete poly_orig_read ;
 
 			if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
@@ -2081,7 +2086,7 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 							readpos = 0;
 							chrpos = chrstart;
 
-							for (j=1; (int)j!=run; ++j) {
+							for (j=1; (int)j<run; ++j) {
 
 								mm = 0;
 
