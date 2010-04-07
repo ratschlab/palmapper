@@ -986,7 +986,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 					// MISMATCH extension
 
 					//combine with possible hit at position seedlength+1 to the left(+) or right(-) to span hit over mismatch
-					if (/*(!_config.NOT_MAXIMAL_HITS) &&*/ hit == NULL && _config.NUM_MISMATCHES != 0) {
+					if ((!_config.NOT_MAXIMAL_HITS) && hit == NULL && _config.NUM_MISMATCHES != 0) {
 						if (read_num == num) printf("Now checking if hit can be extended over mismatch\n");
 						mmoffset = (reverse != 2)? -_config.INDEX_DEPTH - 1: _config.INDEX_DEPTH + 1;
 
