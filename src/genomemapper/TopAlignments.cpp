@@ -1073,9 +1073,9 @@ int TopAlignments::print_top_alignment_records_sam()
             indel_offset += count ; 
         assert(cum_size + indel_offset == _read.length()) ;
 
-		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
-			fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
-		else
+	//	if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
+        fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
+	/*	else
 		{
 			// reverse order of cigar
             char rcigar[500] ;
@@ -1096,7 +1096,7 @@ int TopAlignments::print_top_alignment_records_sam()
             
 			rcigar[strlen(cigar)]=0 ;
 			fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", rcigar) ; 
-		}
+		}*/
 	//	double qpalma_score = best->qpalma_score ;
 
 		if (_config.RTRIM_STRATEGY)
