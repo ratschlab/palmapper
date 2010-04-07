@@ -937,8 +937,11 @@ int TopAlignments::print_top_alignment_records_sam()
 {
 	if (top_alignments.size()==0)
 		return 0 ;
+    if (_config.RTRIM_STRATEGY)
+        return 0;
 
     FILE* MY_OUT_FP = OUT_FP ;
+    Read* curr_read;
 
 	for (unsigned int j=0; j<top_alignments.size(); j++)
 	{
@@ -955,7 +958,7 @@ int TopAlignments::print_top_alignment_records_sam()
             if (curr_align->spliced)
             {
                 assert(_config.SPLICED_HITS) ;
-                MY_OUT_FP = SP_OUT_FP ;
+                //MY_OUT_FP = SP_OUT_FP ;
                 num_spliced_best++ ;
             }
             else
@@ -971,16 +974,20 @@ int TopAlignments::print_top_alignment_records_sam()
                                   num_spliced_best, num_spliced_suboptimal) ;
         }
 
+        if (_config.POLYTRIM_STRATEGY && (curr_align->polytrim_cut_start>0 || curr_align->polytrim_cut_end>0))
+            curr_read = _read.get_orig() ;
+        else
+            curr_read = &_read ;
 
 		fprintf(MY_OUT_FP, "%s", curr_align->read_id) ;
 		uint32_t flag=0 ;
 		flag+=((curr_align->orientation=='-')*16) ;
-        /* flag+=SEQUENCING_WAS_PAIRED ;
-         * flag+=(MAPPED_AS_PAIR*2) ;
+        /* flag+=_config.SEQUENCING_WAS_PAIRED ;
+         * flag+=(_read.MAPPED_AS_PAIR*2) ;
          * flag+=(IS_UNMAPPED*4) ;
-         * flag+=(MATE_IS_UNMAPPED*8) ;
-         * flag+=(STRAND_OF_MATE*32) ;
-         * flag+=(FIRST_IN_PAIR)?64:128 ;
+         * flag+=(_read.MATE_IS_UNMAPPED*8) ;
+         * flag+=(_read.STRAND_OF_MATE*32) ;
+         * flag+=(_read.FIRST_IN_PAIR)?64:128 ;
          */
 		fprintf(MY_OUT_FP, "\t%d\t%s\t%d\t%i", 
 				flag, 
@@ -988,9 +995,29 @@ int TopAlignments::print_top_alignment_records_sam()
 				curr_align->exons[0] + 1,
                 254 - j);
 
+	    //	double qpalma_score = best->qpalma_score ;
+        
         // determine CIGAR
         char __cigar[500] ; 
+        char cigar[500] ;
+        char cig_buf[255] ;
+
+        uint32_t pos = 0;
         uint32_t idx = 0 ;
+        
+        // handle trimmed start as soft clips
+        //uint32_t start_pos = 0 ;
+		if (_config.POLYTRIM_STRATEGY && curr_align->polytrim_cut_start>0 )
+        {
+            //start_pos = curr_align->polytrim_cut_start ;
+            snprintf (cig_buf, (size_t) 255, "%d", curr_align->polytrim_cut_start) ;
+            for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
+                cigar[pos + ii] = cig_buf[ii] ;
+            pos += strlen(cig_buf) ;
+            cigar[pos++] = 'S' ;
+        //    cum_size += curr_align->polytrim_cut_start ;
+        }
+
         for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
         {
             if (curr_align->read_anno[i] != '[') 
@@ -1009,15 +1036,13 @@ int TopAlignments::print_top_alignment_records_sam()
         }
         __cigar[idx] = 0 ;
 
-        char cigar[500] ;
-        char cig_buf[255] ;
         uint32_t last = __cigar[0] ;
-        idx = 0 ;
-        uint32_t pos = 0;
-        uint32_t cum_size = curr_align->exons[idx + 1] - curr_align->exons[idx] ;
         uint32_t count = 1 ;
         uint32_t ii = 0;
         uint32_t indel_offset = 0 ;
+        idx = 0 ;
+        uint32_t cum_size = (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
+
 
         for (uint32_t i = 1; i < strlen(__cigar); i++)
         {
@@ -1060,23 +1085,35 @@ int TopAlignments::print_top_alignment_records_sam()
             }
             else
                 count += 1 ;
-
-           }
+        }
         snprintf (cig_buf, (size_t) 255, "%d", count) ;
         for (ii=0; ii < strlen(cig_buf); ii++)
             cigar[pos + ii] = cig_buf[ii] ;
         pos += ii ;
         cigar[pos++] = last ;
-        cigar[pos] = 0 ;
         if (last == 'D')
             indel_offset -= count ; 
         else if (last == 'I')
             indel_offset += count ; 
-        assert(cum_size + indel_offset == _read.length()) ;
 
-	//	if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
+        // handle trimmed reads end
+		if (_config.POLYTRIM_STRATEGY && curr_align->polytrim_cut_end>0)
+        {
+            snprintf (cig_buf, (size_t) 255, "%d", curr_align->polytrim_cut_end) ;
+            for (ii=0; ii < strlen(cig_buf); ii++)
+                cigar[pos + ii] = cig_buf[ii] ;
+            pos += strlen(cig_buf) ;
+            cigar[pos++] = 'S' ;
+            //cum_size += curr_align->polytrim_cut_end ;
+        }
+        if (cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end != curr_read->length()) 
+            fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s \n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno) ;
+        assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
+        cigar[pos] = 0 ;
+
+//		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
         fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
-	/*	else
+/*		else
 		{
 			// reverse order of cigar
             char rcigar[500] ;
@@ -1098,58 +1135,29 @@ int TopAlignments::print_top_alignment_records_sam()
 			rcigar[strlen(cigar)]=0 ;
 			fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", rcigar) ; 
 		}*/
-	//	double qpalma_score = best->qpalma_score ;
 
-		if (_config.RTRIM_STRATEGY)
-		{
-	//		fprintf(MY_OUT_FP, "\ttrimmed=%i", best->rtrim_cut) ;
-			fprintf(MY_OUT_FP, "\n");
-			return 1 ;
-		} 
-		else
-		{
-			if (curr_align->orientation=='+')
-		    	fprintf(MY_OUT_FP, "\t%s\t%s", _read.data(), _read.quality()[0]) ;
-			//	fprintf(MY_OUT_FP, "\tDUMMY\tDUMMY") ;
-			else
-			{
-				// reverse order of quality and complementary reverse read 
-                char qual[500] ;
-                for (int k=0; k<((int)_read.length()); k++)
-                    qual[k]=_read.quality()[0][((int)_read.length())-k-1] ;
-				qual[((int)_read.length())]=0 ;
-				char read[500] ;
-				for (int i=0; i<((int)_read.length()); i++)
-                {
-                    switch(_read.data()[((int)_read.length())-i-1])
-                    {
-                        case 'a': read[i] = 't'; break;
-                        case 'c': read[i] = 'g'; break;
-                        case 'g': read[i] = 'c'; break;
-                        case 't': read[i] = 'a'; break;
-                        case 'A': read[i] = 'T'; break;
-                        case 'C': read[i] = 'G'; break;
-                        case 'G': read[i] = 'C'; break;
-                        case 'T': read[i] = 'A'; break;
-                        default: read[i] = 'N';
-                    }
-                }
-				read[((int)_read.length())]=0 ;
+        if (curr_align->orientation=='+')
+            fprintf(MY_OUT_FP, "\t%s\t%s", curr_read->data(), curr_read->quality()[0]) ;
+        else
+        {
+            // reverse order of quality
+            char qual[500] ;
+            for (int k=0; k<((int)_read.length()); k++)
+                //qual[k]=_read.get_orig()->quality()[0][((int)_read.get_orig()->length())-k-1] ;
+                qual[k]=(curr_read->quality())[0][((int)(curr_read->length()))-k-1] ;
+            qual[((int)(curr_read->length()))]=0 ;
+            
+            // complementary reverse read 
+            char read[500] ;
+            for (int i=0; i<((int)curr_read->length()); i++)
+                read[i] = get_compl_base(curr_read->data()[((int)(curr_read->length()))-i-1]) ; 
 
-				fprintf(MY_OUT_FP, "\t%s\t%s", read, qual) ;
-			}
-		}	
+            read[((int)(curr_read->length()))]=0 ;
 
-        fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i\tXS:A:%c", curr_align->num_matches, _read.length() - curr_align->num_matches, top_alignments[0]->strand) ;
+            fprintf(MY_OUT_FP, "\t%s\t%s", read, qual) ;
+        }
 
-/*		if (_config.POLYTRIM_STRATEGY)
-		{
-			if (curr_align->polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimStart=%i", curr_align->polytrim_cut_start) ;
-			if (curr_align->polytrim_cut_start)
-				fprintf(MY_OUT_FP, ";polytrimEnd=%i", curr_align->polytrim_cut_end) ;
-		}*/
-		fprintf(MY_OUT_FP, "\n");
+        fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i\tXS:A:%c\n", curr_align->num_matches, _read.length() - curr_align->num_matches, top_alignments[0]->strand) ;
 	}
 
 	return top_alignments.size() ;
