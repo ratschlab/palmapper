@@ -1,4 +1,4 @@
-// Authors: Korbinian Schneeberger and Joerg Hagmann
+// authors: Korbinian Schneeberger and Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
 // Authors: Gunnar R\"atsch and Lisa Thalheim

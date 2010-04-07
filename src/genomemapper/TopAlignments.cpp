@@ -524,27 +524,55 @@ int TopAlignments::print_top_alignment_records_bedx()
 	
 	{
 		char *read_anno=new char[strlen(best->read_anno)+(best->polytrim_cut_start+best->polytrim_cut_end)*4+2] ;
-		if (_config.POLYTRIM_STRATEGY && (best->polytrim_cut_start>0 || best->polytrim_cut_end>0))
+		int polytrim_cut_start=best->polytrim_cut_start ;
+		int polytrim_cut_end=best->polytrim_cut_start ;
+		
+		if (_config.POLYTRIM_STRATEGY && (polytrim_cut_start>0 || polytrim_cut_end>0))
 		{
-			char* orig_read = _read.get_orig()->data() ;
-			int orig_len = _read.get_orig()->length() ;
-			for (int i=0; i<best->polytrim_cut_start; i++)
+			if (best->orientation=='+')
 			{
-				read_anno[4*i]='[' ;
-				read_anno[4*i+1]='=' ;
-				read_anno[4*i+2]=orig_read[i] ;
-				read_anno[4*i+3]=']' ;
+				char* orig_read = _read.get_orig()->data() ;
+				int orig_len = _read.get_orig()->length() ;
+				for (int i=0; i<polytrim_cut_start; i++)
+				{
+					read_anno[4*i]='[' ;
+					read_anno[4*i+1]='=' ;
+					read_anno[4*i+2]=orig_read[i] ;
+					read_anno[4*i+3]=']' ;
+				}
+				strcpy(read_anno+4*polytrim_cut_start, read_anno) ;
+				int len=strlen(read_anno) ;
+				for (int i=0; i<polytrim_cut_end; i++)
+				{
+					read_anno[len+4*i]='[' ;
+					read_anno[len+4*i+1]='=' ;
+					read_anno[len+4*i+2]=orig_read[orig_len-i-1] ;
+					read_anno[len+4*i+3]=']' ;
+				}
+				read_anno[len+4*polytrim_cut_end]=0 ;
 			}
-			strcpy(read_anno+4*best->polytrim_cut_start, best->read_anno) ;
-			int len=strlen(read_anno) ;
-			for (int i=0; i<best->polytrim_cut_end; i++)
-			{
-				read_anno[len+4*i]='[' ;
-				read_anno[len+4*i+1]='=' ;
-				read_anno[len+4*i+2]=orig_read[orig_len-i-1] ;
-				read_anno[len+4*i+3]=']' ;
+			else
+			{ // in this case read_anno is reverse complemented
+				char* orig_read = _read.get_orig()->data() ;
+				int orig_len = _read.get_orig()->length() ;
+				for (int i=0; i<polytrim_cut_end; i++)
+				{
+					read_anno[4*i]='[' ;
+					read_anno[4*i+1]='=' ;
+					read_anno[4*i+2]=get_compl_base(orig_read[orig_len-i-1]) ;
+					read_anno[4*i+3]=']' ;
+				}
+				strcpy(read_anno+4*polytrim_cut_end, read_anno) ;
+				int len=strlen(read_anno) ;
+				for (int i=0; i<polytrim_cut_start; i++)
+				{
+					read_anno[len+4*i]='[' ;
+					read_anno[len+4*i+1]='=' ;
+					read_anno[len+4*i+2]=get_compl_base(orig_read[i]) ;
+					read_anno[len+4*i+3]=']' ;
+				}
+				read_anno[len+4*polytrim_cut_start]=0 ;
 			}
-			read_anno[len+4*best->polytrim_cut_end]=0 ;
 		}
 		else
 			strcpy(read_anno, best->read_anno) ;

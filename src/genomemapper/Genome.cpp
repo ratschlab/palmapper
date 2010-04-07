@@ -9,7 +9,6 @@
 
 #include <genomemapper/Genome.h>
 
-
 inline char get_compl_base_(char c)
 {
 	switch (c)
