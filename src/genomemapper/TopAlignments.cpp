@@ -982,10 +982,11 @@ int TopAlignments::print_top_alignment_records_sam()
          * flag+=(STRAND_OF_MATE*32) ;
          * flag+=(FIRST_IN_PAIR)?64:128 ;
          */
-		fprintf(MY_OUT_FP, "\t%d\t%s\t%d\t255", 
+		fprintf(MY_OUT_FP, "\t%d\t%s\t%d\t%i", 
 				flag, 
 				curr_align->chromosome->desc(),
-				curr_align->exons[0] + 1);
+				curr_align->exons[0] + 1,
+                254 - j);
 
         // determine CIGAR
         char __cigar[500] ; 
