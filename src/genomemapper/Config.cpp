@@ -1210,7 +1210,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		exit(1);
 	}
 
-	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
+	NOT_MAXIMAL_HITS = false ;//SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
 
 	return 0;
 }
