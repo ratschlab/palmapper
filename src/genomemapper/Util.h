@@ -10,7 +10,11 @@
 class Util {
 public:
 	static int POWER[MAX_INDEX_DEPTH+1];
-	static FILE *openFile(std::string const &name, char const *mode);
+	static FILE *openFile(std::string const &name, char const *mode) {
+		return openFile(name.c_str(), mode);
+	}
+
+	static FILE *openFile(char const *name, char const *mode);
 private:
 	static bool _isInitialized;
 	static bool doInit();

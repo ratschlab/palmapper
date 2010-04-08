@@ -464,7 +464,7 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 	}
 	char *matrix_name = NULL;
 	
-	FILE * fd = fopen(fname, "r") ;
+	FILE * fd = Util::openFile(fname, "r");
 	skip_comment_lines(fd) ;
 	int ret = read_plif(fd, h);
 	if (ret < 0)

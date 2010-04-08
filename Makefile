@@ -83,14 +83,3 @@ $(ObjDir)/%.o : $(SrcDir)/%.c
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
-
-#src/genomemapper/%.o: src/genomemapper/%.c
-#	$(CC) $(CFLAGS) $(INCLUDE) -c $? -o $@
-#
-#src/genomemapper/%.o: src/genomemapper/%.cpp
-#	$(CC) $(CFLAGS) $(INCLUDE) -c $? -o $@
-#
-#src/mkindex/%.o: src/mkindex/%.c
-#	$(CC) $(CFLAGS) $(INCLUDE) -c $? -o $@
-
-
