@@ -88,22 +88,22 @@ int Config::applyDefaults(Genome * genome)
 		Read read ;
 		int read_length = read.determine_read_length(QUERY_FILE_NAME) ;
 		fprintf(stdout, "Automatically determining alignment parameters based on read length (%int):", read_length) ;
-		if (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
+		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
 		{
 			SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
 			fprintf(stdout, " -K %i", SPLICED_HIT_MIN_LENGTH_SHORT) ;
 		}
-		if (SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
+		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
 		{
 			SPLICED_HIT_MIN_LENGTH_LONG = (read_length/4<20) ? 20 : read_length/4 ;
 			fprintf(stdout, " -L %i", SPLICED_HIT_MIN_LENGTH_LONG) ;
 		}
-		if (SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING)
+		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING)
 		{
 			SPLICED_HIT_MIN_LENGTH_COMB = (read_length/2<30) ? 30 : read_length/2 ;
 			fprintf(stdout, " -C %i", SPLICED_HIT_MIN_LENGTH_COMB) ;
 		}
-		if (SPLICED_MAX_INTRONS == DEFAULT_SETTING)
+		if (SPLICED_HITS && SPLICED_MAX_INTRONS == DEFAULT_SETTING)
 		{
 			SPLICED_MAX_INTRONS = (read_length>50) ? (read_length>=100 ? 3 : 2) : 1 ;
 			if (read_length>200) SPLICED_MAX_INTRONS = 6 ;

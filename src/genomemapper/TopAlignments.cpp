@@ -540,7 +540,7 @@ int TopAlignments::print_top_alignment_records_bedx()
 					read_anno[4*i+2]=orig_read[i] ;
 					read_anno[4*i+3]=']' ;
 				}
-				strcpy(read_anno+4*polytrim_cut_start, read_anno) ;
+				strcpy(read_anno+4*polytrim_cut_start, best->read_anno) ;
 				int len=strlen(read_anno) ;
 				for (int i=0; i<polytrim_cut_end; i++)
 				{
@@ -562,7 +562,7 @@ int TopAlignments::print_top_alignment_records_bedx()
 					read_anno[4*i+2]=get_compl_base(orig_read[orig_len-i-1]) ;
 					read_anno[4*i+3]=']' ;
 				}
-				strcpy(read_anno+4*polytrim_cut_end, read_anno) ;
+				strcpy(read_anno+4*polytrim_cut_end, best->read_anno) ;
 				int len=strlen(read_anno) ;
 				for (int i=0; i<polytrim_cut_start; i++)
 				{
@@ -1067,7 +1067,7 @@ int TopAlignments::print_top_alignment_records_sam()
                 assert(curr_align->exons[idx+1] - curr_align->exons[idx] <= MAX_EXON_LEN) ;
             }
 
-            if (__cigar[i] != last) 
+            if (__cigar[i] != (int)last) 
             {
                 if (last != ' ')
                 {
