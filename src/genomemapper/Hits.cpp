@@ -622,7 +622,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 	unsigned char pos;
 	char strand;
 	unsigned int direction;
-	unsigned int mmoffset; //Mismatch-Offset
+	int mmoffset; //Mismatch-Offset
 	unsigned int read_num = INT_MAX ;
 	char flag = 0;
 
@@ -986,9 +986,10 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 					// MISMATCH extension
 
 					//combine with possible hit at position seedlength+1 to the left(+) or right(-) to span hit over mismatch
-					if ((!_config.NOT_MAXIMAL_HITS) && hit == NULL && _config.NUM_MISMATCHES != 0) {
+					if ((!_config.NOT_MAXIMAL_HITS) && hit == NULL && _config.NUM_MISMATCHES != 0) 
+					{
 						if (read_num == num) printf("Now checking if hit can be extended over mismatch\n");
-						mmoffset = (reverse != 2)? -_config.INDEX_DEPTH - 1: _config.INDEX_DEPTH + 1;
+						mmoffset = (reverse != 2)? -(int)_config.INDEX_DEPTH - 1: (int)_config.INDEX_DEPTH + 1;
 
 						if ( (genome_pos + mmoffset > 0) && (genome_pos + mmoffset < genome_chr.length()) && (*(GENOME + (genome_pos + mmoffset)) != NULL) ) {
 							chromosome_director_neighbor = *(GENOME + (genome_pos + mmoffset));
