@@ -87,7 +87,9 @@ int Config::applyDefaults(Genome * genome)
 	{
 		Read read ;
 		int read_length = read.determine_read_length(QUERY_FILE_NAME) ;
-		fprintf(stdout, "Automatically determining alignment parameters based on read length (%int):", read_length) ;
+		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
+			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
+			fprintf(stdout, "Automatically determining alignment parameters based on read length (%int):", read_length) ;
 		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
 		{
 			SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
