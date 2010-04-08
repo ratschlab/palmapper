@@ -1947,6 +1947,11 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 
 	bool seed_already_inspected_fwd[nr_runs+1];
 	bool seed_already_inspected_rev[nr_runs+1];
+	for (int ii=0; ii<nr_runs+1; ii++)
+	{
+		seed_already_inspected_fwd[ii]=false;
+		seed_already_inspected_rev[ii]=false;
+	}
 
 	int max_mms = nr_runs - 1;
 	int mmpos[max_mms];
