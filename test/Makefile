@@ -34,10 +34,10 @@ $(DnaFile) :
 	gunzip $(DnaFile).gz
 
 $(IndexFiles): $(DnaFile) # gmindex
-	time $(binDir)/gmindex -i $(DnaFile) -v
+	bash -c "time $(binDir)/gmindex -i $(DnaFile) -v"
 
 map: $(binDir)/genomemapper $(DnaFile) $(IndexFiles)
-	time $(MapCmd)
+	bash -c "time $(MapCmd)"
 	(cd $(resultDir) ; md5sum -c $(CurrentDir)/result.md5)
 	
 
