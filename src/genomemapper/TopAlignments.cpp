@@ -983,12 +983,13 @@ int TopAlignments::print_top_alignment_records_sam()
 		uint32_t flag=0 ;
 		flag+=((curr_align->orientation=='-')*16) ;
         /* flag+=_config.SEQUENCING_WAS_PAIRED ;
-         * flag+=(_read.MAPPED_AS_PAIR*2) ;
+         * flag+=(curr_read.MAPPED_AS_PAIR*2) ;
          * flag+=(IS_UNMAPPED*4) ;
-         * flag+=(_read.MATE_IS_UNMAPPED*8) ;
-         * flag+=(_read.STRAND_OF_MATE*32) ;
-         * flag+=(_read.FIRST_IN_PAIR)?64:128 ;
+         * flag+=(curr_read.MATE_IS_UNMAPPED*8) ;
+         * flag+=(curr_read.STRAND_OF_MATE*32) ;
+         * flag+=(curr_read.FIRST_IN_PAIR)?64:128 ;
          */
+        flag+=((top_alignments.size()>1)*256) ;
 		fprintf(MY_OUT_FP, "\t%d\t%s\t%d\t%i", 
 				flag, 
 				curr_align->chromosome->desc(),
@@ -1107,8 +1108,9 @@ int TopAlignments::print_top_alignment_records_sam()
             //cum_size += curr_align->polytrim_cut_end ;
         }
         if (cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end != curr_read->length()) 
-            fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s \n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno) ;
-        assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
+            fprintf(stderr, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
+            //fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s \n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno) ;
+        //assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
         cigar[pos] = 0 ;
 
 //		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
