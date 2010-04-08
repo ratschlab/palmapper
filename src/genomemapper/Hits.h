@@ -44,18 +44,17 @@ typedef struct mapping_entry_structure {
 	struct mapping_entry_structure *succ;
 } MAPPING_ENTRY;
 
-typedef struct chromosome_entry {
-
+struct CHROMOSOME_ENTRY {
 	int chromosome; // @TODO? Minus values indicate reverse hits (would save strand var = 1 byte, ~15MB)
 	unsigned int genome_pos;
 	char strand;
 
-	struct chromosome_entry *next;
+	CHROMOSOME_ENTRY *next;
 	MAPPING_ENTRY *mapping_entries;
 
 	// It seems to be cheaper to store the back-pointer information (pos)
 	// in each of these entries rather than having a superior structure.
-} CHROMOSOME_ENTRY;
+};
 
 
 typedef struct mapping_entry_container_structure {
@@ -65,10 +64,14 @@ typedef struct mapping_entry_container_structure {
 } MAPPING_ENTRY_CONTAINER;
 
 
-typedef struct chromosome_entry_container_structure {
+struct CHROMOSOME_ENTRY_CONTAINER {
+	CHROMOSOME_ENTRY_CONTAINER(int nrEntries) {
+		entries = new CHROMOSOME_ENTRY[nrEntries];
+		used = 0;
+	}
 	CHROMOSOME_ENTRY* entries;
 	unsigned int used;
-} CHROMOSOME_ENTRY_CONTAINER;
+};
 
 typedef struct hits_by_score_structure {
 	HIT *hitpointer;
@@ -179,7 +182,6 @@ protected:
 	int alloc_hit_lists_operator() ;
 	HIT_CONTAINER* alloc_hit_container() ;
 	HIT* alloc_hit() ;
-	CHROMOSOME_ENTRY_CONTAINER* alloc_chromosome_entry_container() ;
 	CHROMOSOME_ENTRY* alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand) ;
 	MAPPING_ENTRY_CONTAINER* alloc_mapping_entry_container() ;
 	MAPPING_ENTRY* alloc_mapping_entry() ;
@@ -228,7 +230,7 @@ protected:
 	MAPPING_ENTRY_CONTAINER* MAPPING_ENTRY_OPERATOR;
 	HIT_CONTAINER* HIT_OPERATOR_FIRST;
 	HIT_CONTAINER* HIT_OPERATOR;
-	CHROMOSOME_ENTRY_CONTAINER* CHROMOSOME_ENTRY_OPERATOR;
+	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
 	
 	unsigned int NUM_MAPPING_ENTRIES;
 };
