@@ -563,6 +563,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 			SPLICED_OUT_FILE_NAME.assign(argv[i]);
 		}
 
+		if (strcmp(argv[i], "-read-id-prefix") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -read-id-prefix\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			READ_ID_PREFIX.assign(argv[i]);
+		}
+
 		//spliced hits min combined length
 		if (strcmp(argv[i], "-C") == 0) {
 			not_defined = 0;

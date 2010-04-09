@@ -108,6 +108,13 @@ int Read::read_short_read(FILE *QUERY_FP)
 		memset(READ_QUALITY[0], 0, /*_config.*/_config.MAX_READ_LENGTH) ;
 		memset(READ_ID, 0, /*_config.*/_config.MAX_READ_ID_LENGTH) ;
 		strncpy(READ_ID, line+1, strcspn(line, " \t\n")-1);
+		
+		{
+			char READ_ID_[_config.MAX_READ_ID_LENGTH] ;
+			strcpy(READ_ID_, _config.READ_ID_PREFIX.c_str()) ;
+			strcpy(&(READ_ID_[strlen(READ_ID_)]), READ_ID) ;
+			strcpy(READ_ID, READ_ID_) ;
+		}
 
 		do {
 			if (fgets(line, 10000, QUERY_FP) == NULL) {

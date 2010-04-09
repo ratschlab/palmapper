@@ -77,6 +77,7 @@ public:
 	int PRINT_SEQ;
 	unsigned int INDEX_DEPTH;
 	unsigned int INDEX_DEPTH_EXTRA;
+	std::string READ_ID_PREFIX ;
 
 	unsigned int INDEX_DEPTH_EXTRA_THRESHOLD;
 	unsigned int SEED_HIT_CANCEL_THRESHOLD;
