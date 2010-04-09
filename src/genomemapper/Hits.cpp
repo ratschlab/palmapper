@@ -36,10 +36,17 @@ Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_) : CHROMOSOME_ENTRY_OPERATOR
 	REDUNDANT = 0;
 	SLOT = 0;
 	HAS_SLOT = 0;
+	GENOME = new CHROMOSOME_ENTRY *[genome->LONGEST_CHROMOSOME];
+	for (int i=0; i!=genome->LONGEST_CHROMOSOME; ++i)
+		GENOME[i] = NULL;
 	// initialize with meta information
 	init_from_meta_index(); // updated
 	init_alignment_structures(&_config);
 	init_hit_lists();
+}
+
+Hits::~Hits() {
+	delete[] GENOME;
 }
 
 // for debugging purposes only
@@ -1615,28 +1622,24 @@ char *get_seq(unsigned int n)
 
 // alloc
 
-int Hits::alloc_genome_memory()
-{
-	if ((GENOME = (CHROMOSOME_ENTRY **) calloc (genome->LONGEST_CHROMOSOME, sizeof(CHROMOSOME_ENTRY**))) == NULL) {
-		fprintf(stderr, "ERROR : not enough memory for genome memory\n");
-		exit(1);
-	}
-		
-	//@TODO is this really necessary? why isn't it already NULL
-	unsigned int i;
-	for (i=0; i!=genome->LONGEST_CHROMOSOME; ++i) {
-		*(GENOME+i) = NULL;
-	}
-
-	return(0);
-}
+//int Hits::alloc_genome_memory()
+//{
+//	if ((GENOME = (CHROMOSOME_ENTRY **) calloc (genome->LONGEST_CHROMOSOME, sizeof(CHROMOSOME_ENTRY**))) == NULL) {
+//		fprintf(stderr, "ERROR : not enough memory for genome memory\n");
+//		exit(1);
+//	}
+//
+//	//@TODO is this really necessary? why isn't it already NULL
+//	unsigned int i;
+//	for (i=0; i!=genome->LONGEST_CHROMOSOME; ++i) {
+//		*(GENOME+i) = NULL;
+//	}
+//
+//	return(0);
+//}
 
 int Hits::init_from_meta_index() 
 {
-	genome->init_constants(); // updated
-
-	alloc_genome_memory(); // updated
-
 	init_operators(); //updated
 
 	if (_config.STATISTICS) {

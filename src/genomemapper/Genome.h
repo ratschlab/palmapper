@@ -56,6 +56,7 @@ public:
 #endif
 
 private:
+	int init_constants();
 	int alloc_index_memory() ;
 	int build_index();
 	int load_genome();
@@ -90,8 +91,6 @@ public:
 	POS *BLOCK_TABLE;
 	unsigned int BLOCK_TABLE_SIZE;
 	
-	int init_constants()  ;
-
 #if 1 // dd
 	INDEX_ENTRY *INDEX;
 	INDEX_ENTRY *INDEX_REV;

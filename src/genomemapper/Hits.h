@@ -18,7 +18,7 @@ typedef struct edit_op_structure {
 	int mm: 1;
 } EDIT_OPS;
 
-typedef struct hit_structure {
+struct HIT {
 	unsigned short int readpos;
 	unsigned int start;
 	unsigned int end;
@@ -30,19 +30,19 @@ typedef struct hit_structure {
 	signed char end_offset;
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
 	char aligned;
-	struct hit_structure *same_eo_succ;	// the list of HITS_BY_SCORE - only forward pointer for now
-	struct hit_structure *next;
-	struct hit_structure *last;
-} HIT;
+	HIT *same_eo_succ;	// the list of HITS_BY_SCORE - only forward pointer for now
+	HIT *next;
+	HIT *last;
+};
 
 
 
-typedef struct mapping_entry_structure {
+struct MAPPING_ENTRY {
 	unsigned int readpos;
 	HIT *hit;
-	struct mapping_entry_structure *pred;
-	struct mapping_entry_structure *succ;
-} MAPPING_ENTRY;
+	struct MAPPING_ENTRY *pred;
+	struct MAPPING_ENTRY *succ;
+};
 
 struct CHROMOSOME_ENTRY {
 	int chromosome; // @TODO? Minus values indicate reverse hits (would save strand var = 1 byte, ~15MB)
@@ -57,17 +57,20 @@ struct CHROMOSOME_ENTRY {
 };
 
 
-typedef struct mapping_entry_container_structure {
-	struct mapping_entry_structure entries[CONTAINER_SIZE];
+struct MAPPING_ENTRY_CONTAINER{
+	MAPPING_ENTRY entries[CONTAINER_SIZE];
 	unsigned int used;
-	struct mapping_entry_container_structure *next;
-} MAPPING_ENTRY_CONTAINER;
+	MAPPING_ENTRY_CONTAINER *next;
+};
 
 
 struct CHROMOSOME_ENTRY_CONTAINER {
 	CHROMOSOME_ENTRY_CONTAINER(int nrEntries) {
 		entries = new CHROMOSOME_ENTRY[nrEntries];
 		used = 0;
+	}
+	~CHROMOSOME_ENTRY_CONTAINER() {
+		delete[] entries;
 	}
 	CHROMOSOME_ENTRY* entries;
 	unsigned int used;
@@ -78,11 +81,11 @@ typedef struct hits_by_score_structure {
 	int num;
 } HITS_BY_SCORE_STRUCT;
 
-typedef struct hit_container_structure {
+struct HIT_CONTAINER {
 	HIT entries[CONTAINER_SIZE];
 	unsigned int used;
-	struct hit_container_structure *next;
-} HIT_CONTAINER;
+	HIT_CONTAINER *next;
+};
 
 class QPalma ;
 class Genome ;
@@ -95,12 +98,13 @@ class Hits {
 public:
 	
 	Hits(Genome &genome, GenomeMaps &genomemaps);
+	~Hits();
 
 	int map_reads(TopAlignments* topalignments, QPalma* qpalma) ;
 	int size_hit(HIT *hit, unsigned int *oldlength, char num) ;
 	int seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos, char reverse) ;
 	void printgenome() ;
-	int alloc_genome_memory() ;
+//	int alloc_genome_memory() ;
 	int duplicate(HIT* hit) ;
 	int insert_into_scorelist(HIT* hit, char d) ;
 	int browse_hits() ;

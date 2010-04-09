@@ -42,7 +42,6 @@ int Genome::valid_char[256];
 char Genome::compl_char[256];
 char Genome::upper_char[256];
 
-
 Genome::Genome() {
 	hits = NULL ;
 	MAX_POSITIONS = 0;
@@ -55,6 +54,7 @@ Genome::Genome() {
 
 	if (_config.VERBOSE) printf("Reading in genome\n");
 	load_genome();
+	init_constants(); // updated
 }
 
 
