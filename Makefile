@@ -69,7 +69,7 @@ clean:
 	rm -rf $(OutDir) genomemapper gmindex
 
 test:
-	(cd test; make test)
+	(cd testcase; make test)
 
 # generic rule for compiling c++
 $(ObjDir)/%.o : $(SrcDir)/%.cpp
