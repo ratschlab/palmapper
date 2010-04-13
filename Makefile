@@ -68,7 +68,8 @@ gmindex:  $(IDX_OBJ) src/mkindex/*.h src/mkindex/mkindex_symbols.c
 clean:
 	rm -rf $(OutDir) genomemapper gmindex
 
-all: genomemapper gmindex
+test:
+	(cd test; make test)
 
 # generic rule for compiling c++
 $(ObjDir)/%.o : $(SrcDir)/%.cpp
