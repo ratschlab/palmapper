@@ -29,7 +29,7 @@ other = -M 6 -G 2 -E 6 -l 18 -L 35 -K 12 -C 55 -I 25000 -NI 2 -SA 5 -CT 10 -z 10
 
 allFlags=$(inFiles) $(accDon) $(outFiles) $(filter) $(qpalma) $(report) $(other)
 
-MapCmd = $(binDir)/genomemapper $(allFlags)
+MapCmd = $(binDir)/palmapper $(allFlags)
 
 test: map
 
@@ -40,16 +40,16 @@ $(DnaFile): $(SpliceFiles)
 	bzip2 -d $(dataDir)/C_elegans_SpliceSitePred_WS200/genome/C_elegans_WS200_genome.fasta.bz2
 	mv $(dataDir)/C_elegans_SpliceSitePred_WS200/genome/C_elegans_WS200_genome.fasta $(DnaFile)
 
-$(IndexFiles): $(DnaFile) # gmindex
+$(IndexFiles): $(DnaFile) # pmindex
 	mkdir -p $(dataDir)
-	bash -c "time $(binDir)/gmindex -i $(DnaFile) -v"
+	bash -c "time $(binDir)/pmindex -i $(DnaFile) -v"
 
 $(SpliceFiles):
 	mkdir -p $(dataDir)
 	wget -c ftp://ftp.tuebingen.mpg.de/pub/fml/raetsch-lab/predictions/splice/C_elegans/C_elegans_SpliceSitePred_WS200.tar.bz2
 	(cd $(dataDir) && tar xvf ../C_elegans_SpliceSitePred_WS200.tar.bz2 && rm ../C_elegans_SpliceSitePred_WS200.tar.bz2) 
 
-map: $(binDir)/genomemapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 	mkdir -p $(dataDir)
 	bash -c "time $(MapCmd)"
 	(cd $(resultDir) ; md5sum -c $(CurrentDir)/result.md5)

@@ -57,16 +57,16 @@ IDX_OBJ = $(ObjDir)/mkindex/init.o \
 	$(ObjDir)/mkindex/alloc.o \
 	$(ObjDir)/mkindex/mkindex.o
 
-all: genomemapper gmindex
+all: palmapper pmindex
 
-genomemapper: $(GM_OBJ) src/genomemapper/*.h 
-	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o genomemapper $(GM_OBJ) -lpthread -lz -lm
+palmapper: $(GM_OBJ) src/genomemapper/*.h 
+	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(GM_OBJ) -lpthread -lz -lm
 
-gmindex:  $(IDX_OBJ) src/mkindex/*.h src/mkindex/mkindex_symbols.c
-	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o gmindex $(IDX_OBJ) 
+pmindex:  $(IDX_OBJ) src/mkindex/*.h src/mkindex/mkindex_symbols.c
+	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o pmindex $(IDX_OBJ) 
 
 clean:
-	rm -rf $(OutDir) genomemapper gmindex
+	rm -rf $(OutDir) palmapper pmindex
 
 test:
 	(cd testcase; make test)
