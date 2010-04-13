@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include <string>
+#include <assert.h>
 
 #include <genomemapper/Config.h>
 
@@ -37,8 +38,9 @@ public:
 	static std::string read_line(FILE* fd)
 		{
 			char buf[10000] ;
-			
-			int narg = fscanf(fd, "%10000s:\t", buf);
+			int narg = fscanf(fd, "%10000s", buf);
+			if (narg!=1)
+				fprintf(stderr, "narg=%i\n", narg) ;
 			assert(narg==1);
 			return std::string(buf) ;
 		}

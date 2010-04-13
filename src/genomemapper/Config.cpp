@@ -555,7 +555,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-report-gff-init") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -H\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option -report-gff-init\n") ;
 				usage();
 				exit(1);
 			}
