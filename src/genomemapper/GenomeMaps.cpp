@@ -596,3 +596,73 @@ int GenomeMaps::clean_reporting()
 
 	return 0 ;
 }
+
+int GenomeMaps::init_with_gff(std::string &gff_fname)
+{
+	FILE * fd=Util::openFile(gff_fname.c_str(), "r") ;
+	if (!fd)
+		return -1 ;
+
+	while (!feof(fd))
+	{
+		std::string line = Util::read_line(fd) ;
+		char chr_name[1000], source[1000], type[1000], properties[1000], strand, tmp1, tmp2 ;
+		int start, end ;
+		
+		sscanf(line.c_str(), "%s\t%s\t%s\t%i\t%i\t%c\t%c\t%c\t%s\n", chr_name, source, type, &start, &end, &tmp1, &strand, &tmp2, properties) ; 
+		if (strcmp(type, "exon")==0)
+		{
+			int chr_idx = genome->find_desc(chr_name) ;
+			if (chr_idx==-1)
+			{
+				fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
+				genome->print_desc(stderr) ;
+				return -1 ;
+			}
+			Chromosome & chr = genome->chromosome(chr_idx) ;
+			
+			if (!(start>=0 && (size_t)start<=chr.length()))
+			{
+				fprintf(stderr, "init_with_gff: start out of bounds\n") ;
+				if (start<0)
+					start = 0 ;
+				else
+					start = chr.length() ;
+			}
+			
+			if (!(end>=0 && (size_t)end<=chr.length()))
+			{
+				fprintf(stderr, "init_with_gff: end out of bounds\n") ;
+				if (end<0)
+					end = 0 ;
+				else
+					end = chr.length() ;
+			}
+
+			for (int i=start; i<end; i++)
+			{
+				if ( (CHR_MAP(chr,i) & MASK_MAPPED_READ_BEST) == 0 )
+				{
+					CHR_MAP_set(chr, i, CHR_MAP(chr,i)+MASK_MAPPED_READ_BEST) ;
+				}
+#ifndef CHR_MAP_DNAARRAY
+				if ((CHR_MAP(chr,i) & MASK_MAPPED_READ) == 0 )
+				{
+					CHR_MAP_set(chr, i, CHR_MAP(chr,i)+ MASK_MAPPED_READ) ;
+				}
+#else
+#ifndef CHR_MAP_DNAARRAY_2BIT
+				if ((CHR_MAP(chr,i) & MASK_MAPPED_READ) == 0 )
+				{
+					CHR_MAP_set(chr, i, CHR_MAP(chr,i)+ MASK_MAPPED_READ) ;
+				}
+#endif
+#endif
+				
+			}
+		}
+	}
+	fclose(fd) ;
+
+	return 0 ;
+}

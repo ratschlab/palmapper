@@ -552,6 +552,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//spliced output file
+		if (strcmp(argv[i], "-report-gff-init") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -H\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			REPORT_GFF_FILE_NAME.assign(argv[i]);
+		}
+
+		//spliced output file
 		if (strcmp(argv[i], "-H") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
@@ -1313,6 +1325,7 @@ int Config::usage()
 	printf(" -report-spliced-read                  switch on reporting of spliced reads\n");
 	printf(" -report-splice-sites FLOAT            report splice sites with confidence not less that threshold\n");
 	printf(" -report-splice-sites-top-perc FLOAT   report splice sites with confidence in top percentile (between 0 and 1)\n");
+	printf(" -report-gff-init STRING               initialize map with exons from GFF file\n");
 	//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
 
 	return 0;

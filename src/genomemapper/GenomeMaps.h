@@ -76,6 +76,7 @@ public:
 	int read_reporting() ;
 	int write_reporting() ;
 	int clean_reporting() ;
+	int init_with_gff(std::string &gff_fname) ;
 	
 protected:
 	unsigned char **CHR_MAP_c ;

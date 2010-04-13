@@ -431,23 +431,6 @@ int QPalma::read_matrix(FILE* fd, double *& matrix, char*& name, int dims[2]) {
 	return 0;
 }
 
-void QPalma::skip_comment_lines(FILE* fd)
-{
-  const int buffer_len=1000 ;
-  char buffer[buffer_len] ;
-  
-  while (!feof(fd))
-    {
-      long pos = ftell(fd) ;
-      fgets(buffer, buffer_len, fd) ;
-      if (buffer[0]!='#' && buffer[0]!=0)
-	{
-	  fseek(fd, pos, SEEK_SET) ;
-	  break ;
-	}
-      //fprintf(stdout, "skipped comment line: %s\n", buffer) ;
-    }
-}
 
 int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 		struct penalty_struct &a, struct penalty_struct &d,
@@ -465,7 +448,7 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 	char *matrix_name = NULL;
 	
 	FILE * fd = Util::openFile(fname, "r");
-	skip_comment_lines(fd) ;
+	Util::skip_comment_lines(fd) ;
 	int ret = read_plif(fd, h);
 	if (ret < 0)
 		return ret;
@@ -476,14 +459,14 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 		if (h.limits[i] > 2)
 			h.limits[i] = 2;
 
-	skip_comment_lines(fd) ;
+	Util::skip_comment_lines(fd) ;
 	ret = read_plif(fd, d);
 	if (ret < 0)
 		return ret;
 	assert(strcmp(d.name, "d")==0);
 	d.use_svm = 1;
 
-	skip_comment_lines(fd) ;
+	Util::skip_comment_lines(fd) ;
 	ret = read_plif(fd, a);
 	assert(strcmp(a.name, "a")==0);
 	if (ret < 0)
@@ -491,11 +474,11 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 	a.use_svm = 1;
 	for (int i = 0; i < num_qualityPlifs; i++)
 	  {
-	    skip_comment_lines(fd) ;
+	    Util::skip_comment_lines(fd) ;
 	    read_plif(fd, qualityPlifs[i]);
 	  }
 
-	skip_comment_lines(fd) ;
+	Util::skip_comment_lines(fd) ;
 	ret = read_matrix(fd, matchmatrix, matrix_name, dims);
 	if (ret < 0)
 	{
@@ -508,7 +491,7 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 	
 	double *quality_offset_matrix ;
 	int quality_offset_dims[2] ;
-	skip_comment_lines(fd) ;
+	Util::skip_comment_lines(fd) ;
 	ret = read_matrix(fd, quality_offset_matrix, matrix_name, quality_offset_dims);
 	if (ret < 0)
 	{

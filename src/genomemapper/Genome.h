@@ -55,6 +55,22 @@ public:
 	void index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) ;
 #endif
 
+	int find_desc(const char * desc)
+		{
+			for (unsigned int i=0; i<NUM_CHROMOSOMES; i++)
+				if (strcmp(desc, _chromosomes[i].desc())==0)
+					return i ;
+			return -1 ;
+		}
+
+	void print_desc(FILE * fd = stdout)
+		{
+			for (unsigned int i=0; i<NUM_CHROMOSOMES; i++)
+			{
+				fprintf(fd, "%s\n", _chromosomes[i].desc()) ;
+			}
+		}
+
 private:
 	int init_constants();
 	int alloc_index_memory() ;
@@ -84,6 +100,7 @@ private:
 	}
 	friend char get_compl_base(char c);
 
+	
 public:
 	size_t INDEX_SIZE ;
 

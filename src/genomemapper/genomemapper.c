@@ -95,6 +95,9 @@ int main(int argc, char *argv[])
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> donor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_DON) ;
 	}
+
+	if (_config.REPORT_GFF_FILE_NAME.size()>0)
+		_genomemaps.init_with_gff(_config.REPORT_GFF_FILE_NAME) ;
 	
 	// timing //////////////
 	timer_mid=time(NULL);

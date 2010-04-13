@@ -2371,7 +2371,7 @@ int Hits::get_slot(Read & read, int pos)
 	if (HAS_SLOT == 0)
 	{
 
-		for (i = 0; i < /*_config.*/_config.INDEX_DEPTH; i++)
+		for (i = 0; i < _config.INDEX_DEPTH; i++)
 		{
 			read_data[pos + i] = mytoupper(read_data[pos + i]);
 
