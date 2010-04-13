@@ -30,6 +30,8 @@ allFlags=$(inFiles) $(accDon) $(outFiles) $(filter) $(qpalma) $(report) $(other)
 
 MapCmd = $(binDir)/genomemapper $(allFlags)
 
+test: map
+
 dnaFile : $(DnaFile)
 
 $(dataDir)/split_1m.000: 

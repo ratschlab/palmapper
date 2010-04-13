@@ -265,6 +265,18 @@ int32_t TopAlignments::compare_score(alignment_t *a1, alignment_t *a2) {
 
 	assert(a1->qpalma_score!=1000) ;
 	assert(a2->qpalma_score!=1000) ;
+
+	if (fabs(a1->qpalma_score-a2->qpalma_score)<1e-6)
+	{
+		// scores are numerically identical, use start position as sorting criterion
+		if (a1->exons[0] > a2->exons[0])
+			return 1;
+		else if (a1->exons[0] < a2->exons[0])
+			return -1;
+		else
+			return 0;
+	}
+	
 	
 	if (a1->qpalma_score > a2->qpalma_score)
 		return 1;

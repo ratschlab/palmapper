@@ -57,6 +57,8 @@ IDX_OBJ = $(ObjDir)/mkindex/init.o \
 	$(ObjDir)/mkindex/alloc.o \
 	$(ObjDir)/mkindex/mkindex.o
 
+all: genomemapper gmindex
+
 genomemapper: $(GM_OBJ) src/genomemapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o genomemapper $(GM_OBJ) -lpthread -lz -lm
 
