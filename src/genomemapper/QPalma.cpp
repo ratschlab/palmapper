@@ -157,10 +157,8 @@ int QPalma::check_splice_files(std::string file_template)
 				//else
 				//	fprintf(stdout, "last_pos=%i, size=%i\n", buf, genome->chromosome(chr-1).length()) ;
 			}
-			else
-			{
-				fprintf(stderr, "fseek %s failed\n", posname) ;
-			}
+			//else
+				//fprintf(stderr, "fseek %s failed\n", posname) ;
 			fclose(fd) ;
 
 			fd=fopen(confcumname, "r") ;
