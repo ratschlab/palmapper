@@ -63,7 +63,14 @@ int IntervalQuery::find_interval(unsigned *pos_map, off_t num_entries,
 		fprintf(stderr, "[find_interval] Warning: begin=%i > end=%i\n", begin, end) ;
 		return 0 ;
 	}
-	assert(num_entries > 0);
+
+	if (num_entries==0)
+	{
+		*lindex=0 ;
+		*rindex=0 ;
+		return 0 ;
+	}
+	
 	if (pos_map[right] < begin || pos_map[left] > end) {
 #ifdef DEBUG
 	  printf("ret 0\n\n");
@@ -182,8 +189,13 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 	if (!*size)
 	{
 		char buf[1000] ;
-		sprintf(buf, "mmap error: %s is empty\n", filename) ;
-		throw IntervalQueryException(buf) ;
+		fprintf(stdout, "mmap warning: %s is empty\n", filename) ;
+		*map = NULL ;
+		ret = 1 ;
+		close(fd) ;
+		return ret ;
+		
+		//throw IntervalQueryException(buf) ;
 	}
 	*map = mmap(NULL, *size, mmap_prot, mmap_flags, fd, 0);
 	if (*map == MAP_FAILED)

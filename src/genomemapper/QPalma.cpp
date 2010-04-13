@@ -139,6 +139,28 @@ int QPalma::check_splice_files(std::string file_template)
 				fprintf(stderr, "%s does not exist\n", posname) ;
 				return -1 ;
 			}
+			int ret = fseek(fd, -4, SEEK_END) ;
+			if (ret==0) // file may be empty
+			{
+				int buf;
+				int retu = fread(&buf, sizeof(int), 1, fd) ;
+				if (retu!=1)
+				{
+					fprintf(stderr, "fread error on %s\n", posname) ;
+					return -1 ;
+				}
+				if (buf>genome->chromosome(chr-1).length())
+				{
+					fprintf(stderr, "splice site position (%i) greater than chromosome length (%i)\n", buf, genome->chromosome(chr-1).length()) ;
+					return -1 ;
+				}
+				//else
+				//	fprintf(stdout, "last_pos=%i, size=%i\n", buf, genome->chromosome(chr-1).length()) ;
+			}
+			else
+			{
+				fprintf(stderr, "fseek %s failed\n", posname) ;
+			}
 			fclose(fd) ;
 
 			fd=fopen(confcumname, "r") ;
