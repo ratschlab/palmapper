@@ -49,7 +49,8 @@ public:
 			_entries.push_back(_current = new Entry[CONTAINER_SIZE]);
 			_end = _current + CONTAINER_SIZE;
 		}
-		::memset(_current, 0, sizeof(Entry));
+		if (clearNew)
+			::memset(_current, 0, sizeof(Entry));
 		return _current++;
 	}
 	void clear() {
