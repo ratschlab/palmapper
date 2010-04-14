@@ -188,13 +188,11 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 	*size = file_status.st_size;
 	if (!*size)
 	{
-		char buf[1000] ;
 		fprintf(stdout, "mmap warning: %s is empty\n", filename) ;
 		*map = NULL ;
 		ret = 1 ;
 		close(fd) ;
 		return ret ;
-		
 		//throw IntervalQueryException(buf) ;
 	}
 	*map = mmap(NULL, *size, mmap_prot, mmap_flags, fd, 0);

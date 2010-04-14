@@ -18,9 +18,9 @@ int index_chromosome(unsigned int chr)
 	
 	HAS_SLOT = 0;
 
-	while (spacer < CHR_LENGTH) {
+	while (spacer < (int)CHR_LENGTH) {
 		
-		if (spacer < pos + INDEX_DEPTH - 1) {
+		if (spacer < (int)pos + INDEX_DEPTH - 1) {
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') {
 				spacer++;
 			}
@@ -211,7 +211,7 @@ int get_slot(char *seq, int pos)
 	
 	if (HAS_SLOT == 0) { 
 		SLOT_REV = 0;
-		for (i=0; i<INDEX_DEPTH; i++) {
+		for (i=0; (int)i<INDEX_DEPTH; i++) {
 			if (seq[pos+i] == 'A') {
 				c = 0;
 			}

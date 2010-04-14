@@ -148,7 +148,7 @@ int QPalma::check_splice_files(std::string file_template)
 					fprintf(stderr, "fread error on %s\n", posname) ;
 					return -1 ;
 				}
-				if (buf>genome->chromosome(chr-1).length())
+				if (buf>(int)genome->chromosome(chr-1).length())
 				{
 					fprintf(stderr, "splice site position (%i) greater than chromosome length (%i)\n", buf, genome->chromosome(chr-1).length()) ;
 					return -1 ;
