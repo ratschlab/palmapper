@@ -31,7 +31,7 @@ TopAlignments::TopAlignments(GenomeMaps* genomemaps_)
 	}
 
 	genomemaps = genomemaps_ ;
-	MAX_EXON_LEN = 150 ;
+	MAX_EXON_LEN = 200 ;
 }
 
 u_int8_t TopAlignments::report_unspliced_hit(HIT *hit, int num, QPalma* qpalma) 
