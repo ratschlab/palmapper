@@ -419,9 +419,9 @@ int QPalma::read_plif(FILE *fd, struct penalty_struct &plif) {
 }
 
 int QPalma::read_matrix(FILE* fd, double *& matrix, char*& name, int dims[2]) {
-	char buf[100];
+	char buf[1000];
 
-	int narg = fscanf(fd, "%100s:\t", buf);
+	int narg = fscanf(fd, "%1000s:\t", buf);
 	assert(narg==1);
 	if (buf[strlen(buf) - 1] == ':')
 		buf[strlen(buf) - 1] = '\0';
