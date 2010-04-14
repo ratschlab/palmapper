@@ -6,7 +6,7 @@ binDir = ..
 Unmapped = split_1m.000.unmapped$(ext)
 Mapped = split_1m.000.mapped$(ext)
 Spliced = split_1m.000.spliced$(ext)
-ResultFiles = $(resultDir)/$(Unmapped) $(resultDir)/$(Spliced) $(resultDir)/$(Unmapped)
+ResultFiles = $(resultDir)/$(Mapped) $(resultDir)/$(Spliced) $(resultDir)/$(Unmapped)
 
 DnaFile = $(dataDir)/c_elegans.WS200.dna.fa
 SpliceAccFile = $(dataDir)/C_elegans_SpliceSitePred_WS200/acc_pred.bspf
