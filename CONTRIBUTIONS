@@ -1,27 +1,27 @@
 We integrated the work of the following people:
 
- Korbinian Schneeberger, Joerg Hagmann, Stephan Ossowski
+Korbinian Schneeberger, Joerg Hagmann, Stephan Ossowski
 	- the genomemapper base 
 
- Gunnar Raetsch
-    - QPalma/GenomeMapper integration
-    - Code cleanup/porting to C++
+Gunnar Raetsch
+	- QPalma/GenomeMapper integration
+	- Code cleanup/porting to C++
  
- Geraldine Jean
+Geraldine Jean
 	- Banded spliced alignments in dyn_prog
 
- Fabio De Bona, Uta Schulze, Bettina Hepp
-    - original spliced alignments in dyn_prog + infrastructure
+Fabio De Bona, Uta Schulze, Bettina Hepp
+	- original spliced alignments in dyn_prog + infrastructure
 
- Soeren Sonnenburg
+Soeren Sonnenburg
 	- Optimizations in Index access
- 	- Code in shogun/
+	- Code in shogun/
 
- Lisa Thalheim
+Lisa Thalheim
 	- Contributions to QPAlma/GenomeMapper integration
 
- Dominik Diesch
+Dominik Diesch
 	- Code cleanup/porting to C++
 
- Andre Kahles
+Andre Kahles
 	- implemented option -log-triggered-reads
