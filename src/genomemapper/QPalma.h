@@ -54,7 +54,7 @@ class QPalma
 
 public:
 
-	QPalma(Genome* genome_, Hits * hits, TopAlignments* topalignments_, GenomeMaps* genomemaps_, int verbosity_=2) ;
+	QPalma(Genome* genome_, TopAlignments* topalignments_, GenomeMaps* genomemaps_, int verbosity_=2) ;
 	~QPalma() ;
 
 	int map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report) ;
@@ -87,7 +87,7 @@ protected:
 	////////////////////
 
 public:
-	int capture_hits();
+	int capture_hits(ReadMappings &hits);
 	int perform_alignment(std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) ;
 	float score_unspliced(const char * read_anno) ;
@@ -247,7 +247,6 @@ protected:
 	int qpalma_filter_stat_unspliced[num_filter_reasons] ;
 
 	Genome * genome ;
-	Hits * hits ;
 	TopAlignments* topalignments ;
 	GenomeMaps* genomemaps ;
 	

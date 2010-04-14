@@ -19,7 +19,7 @@
 clock_t QPalma::last_timing_report=0 ;
 clock_t QPalma::last_filter_report=0 ;
 
-QPalma::QPalma(Genome* genome_, Hits* hits_, TopAlignments* topalignments_, GenomeMaps* genomemaps_,
+QPalma::QPalma(Genome* genome_, TopAlignments* topalignments_, GenomeMaps* genomemaps_,
 			   int verbosity_): verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 {
 	region_align_time = 0;
@@ -36,7 +36,6 @@ QPalma::QPalma(Genome* genome_, Hits* hits_, TopAlignments* topalignments_, Geno
 	total_num_thread_tasks = 0 ;
 
 	genome=genome_ ;
-	hits=hits_ ;
 	topalignments = topalignments_ ;
 	genomemaps = genomemaps_ ;
 	alignment_parameters = NULL;
@@ -1003,7 +1002,7 @@ void QPalma::capture_hits_timing(int read_count_, float this_read)
 	fprintf(stdout, "\n");
 }
 
-int QPalma::capture_hits() 
+int QPalma::capture_hits(ReadMappings &hits)
 {
   read_count++;
   int num_alignments_reported = 0 ;
@@ -1031,7 +1030,7 @@ int QPalma::capture_hits()
   for (int32_t i = _read.length(); i >= _config.SPLICED_HIT_MIN_LENGTH_SHORT; i--) {
 
 
-    hit = *(hits->HIT_LISTS_OPERATOR + i);
+    hit = *(hits.HIT_LISTS_OPERATOR + i);
     
     while (hit != NULL) 
       {

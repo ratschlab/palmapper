@@ -8,9 +8,12 @@
 #include "align.h"
 #include "print.h"
 
-//config
+unsigned int Hits::MAX_USED_SLOTS;
 
-Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_) : CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE) {
+
+Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_, Read &read)
+:	_genome(genome_), _genomeMaps(genomemaps_), CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _read(read)
+{
 /*
 	readpos = 0;
 	start = 0;
@@ -31,27 +34,56 @@ Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_) : CHROMOSOME_ENTRY_OPERATOR
 	next = NULL;
 	last = NULL;
 */
-	genome = &genome_;
-	genomemaps = &genomemaps_;
 	REDUNDANT = 0;
-	SLOT = 0;
-	HAS_SLOT = 0;
-	GENOME = new CHROMOSOME_ENTRY *[genome->LONGEST_CHROMOSOME];
-	for (int i=0; i!=genome->LONGEST_CHROMOSOME; ++i)
+	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
+	for (unsigned int i=0; i!=_genome.LONGEST_CHROMOSOME; ++i)
 		GENOME[i] = NULL;
+//	MAPPING_ENTRY_OPERATOR = MAPPING_ENTRY_OPERATOR_FIRST = new MAPPING_ENTRY_CONTAINER();
 	// initialize with meta information
-	init_from_meta_index(); // updated
+	LONGEST_HIT = 0;
+	if (_config.STATISTICS) {
+		init_statistic_vars(); //updated
+	}
 	init_alignment_structures(&_config);
-	init_hit_lists();
 }
 
 Hits::~Hits() {
 	delete[] GENOME;
+//	dealloc_chromosome_entries();
+}
+
+char ReadMappings::HAS_SLOT;
+int ReadMappings::SLOT;
+ReadMappings::ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Hits &hits, Read const &read)
+:	_genome(genome), _genomeMaps(genomeMaps), _outer(hits), _read(read), CHROMOSOME_ENTRY_OPERATOR(hits.CHROMOSOME_ENTRY_OPERATOR)
+{
+	GENOME = hits.GENOME;
+	HITS_IN_SCORE_LIST = 0;
+//	SLOT = 0;
+//	HAS_SLOT = 0;
+	alloc_hit_lists_operator();
+	dealloc_hit_lists_operator();
+	alloc_hits_by_score();
+}
+
+ReadMappings::~ReadMappings() {
+	dealloc_hit_lists_operator();
+	dealloc_hits_by_score();
+//	for (unsigned int i=0; i!=NUM_SCORE_INTERVALS; ++i) {
+//		for (HIT *hit = HITS_BY_SCORE[i].hitpointer; hit != NULL; ) {
+//			HIT *next = hit->same_eo_succ;
+//			delete hit;
+//			hit = next;
+//		}
+//	}
+
+	free( HITS_BY_SCORE);
+	free(HIT_LISTS_OPERATOR);
 }
 
 // for debugging purposes only
 
-void printhit(HIT* hit) {
+void printhit(Read const &read, HIT* hit) {
 	printf("[%i: %i-%i/%c/chr%i/rp%i/%imm", hit->end - hit->start + 1,
 			hit->start, hit->end, hit->orientation, hit->chromosome->nr() + 1,
 			hit->readpos, hit->mismatches);
@@ -61,7 +93,7 @@ void printhit(HIT* hit) {
 		for (i = 0; i != hit->mismatches; ++i) 
 			printf(" %i%c", hit->edit_op[i].pos, (hit->edit_op[i].mm) ? 'M' : 'G');
 	}
-	printf("/ID: %s]", _read.id());
+	printf("/ID: %s]", read.id());
 }
 
 int Hits::init_alignment_structures(Config * config) {
@@ -114,7 +146,7 @@ int Hits::init_alignment_structures(Config * config) {
 }
 
 
-void Hits::printhits() 
+void ReadMappings::printhits()
 {
 	//printf("list:\n");
 	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
@@ -177,7 +209,7 @@ void map_reads_timing(int count_reads, float this_read=-1)
 		fprintf(stdout, "\n") ;
 }
 
-int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
+int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topalignments, QPalma* qpalma)
 {
 	char eof = 0, read_mapped;
 	unsigned int count_reads = 0;
@@ -218,11 +250,12 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 		clock_t start_time = clock() ;
 
 		eof = _read.read_short_read(QUERY_FP);
+		ReadMappings hits(genome, genomeMaps, *this, _read);
 
 	restart:
 
 		// make it somehow dependent on the read length, the index depth and the number of mismatches 
-		genomemaps->REPORT_REPETITIVE_SEED_DEPTH_EXTRA = _read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
+		genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA = _read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
 	
 		if (eof != 0)
 			continue;
@@ -238,7 +271,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 			break ;
 		
 		int num_N=0 ;
-		for (unsigned int i=0; i<_read.length(); i++)
+		for (unsigned int i=0; i < _read.length(); i++)
 			if (READ[i]!='A' && READ[i]!='C' && READ[i]!='G' && READ[i]!='T')
 				num_N++ ;
 		if (num_N>_config.NUM_MISMATCHES)
@@ -248,7 +281,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 			continue ;
 		}
 
-		if (_read.length() < _config.HITLEN_LIMIT) 
+		if (_read.length() < _config.HITLEN_LIMIT)
 		{
 			fprintf(stderr, "\n!!! WARNING! Read %d (%s) with length %d is shorter than the hitlength limit (=%d) and will not be processed!\n\n",
 				count_reads, _read.id(), _read.length(), _config.HITLEN_LIMIT);
@@ -268,14 +301,14 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 
 			if (_config.STATISTICS) _stats.HITS_PER_READ = 0;
 
-			HITS_IN_SCORE_LIST = 0;
+			hits.HITS_IN_SCORE_LIST = 0;
 
 			// map_fast IF 1) best hit strategy 2) only hits up to RL/ID mismatches without gaps should be found
 			// READ_LENGTH / _config.INDEX_DEPTH is the number of seeds fitting in the current read
 			int nr_seeds = (int) (_read.length() / _config.INDEX_DEPTH);
  			if (!_config.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0)) 
 			{
-				int ret	= map_fast(_read, first_slot, first_pos);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
+				int ret	= hits.map_fast(_read, first_slot, first_pos);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 				if (ret<0)
 					cancel = 1 ;
 				else
@@ -295,7 +328,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 				{
 
 					c_map_short_read++;
-					int ret = map_short_read(_read, count_reads, first_slot, first_pos);
+					int ret = hits.map_short_read(_read, count_reads, first_slot, first_pos);
 					
 					if (ret<0)
 						cancel=2 ;
@@ -303,14 +336,14 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 					time2a+= clock()-start_time ;
 					
 					// removing duplicates:
-					dealloc_mapping_entries();
+					hits.dealloc_mapping_entries();
 					
 					CHROMOSOME_ENTRY_OPERATOR.used = 0;
 					
 					time2b += clock()-start_time ;
 					
 					if (!_config.REPORT_REPETITIVE_SEEDS)
-						ret = browse_hits();
+						ret = hits.browse_hits();
 					if (ret<0)
 						cancel = 3 ;
 					
@@ -347,7 +380,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 			{
 				topalignments->start_top_alignment_record();
 
-				read_mapped = analyze_hits(topalignments, qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+				read_mapped = hits.analyze_hits(topalignments, qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
 				if (_config.VERBOSE)
 					printf("%i unspliced alignment found\n", (int)topalignments->size()); 
 
@@ -377,7 +410,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 						//(top_alignments.size()==0 || top_alignments[0]->num_matches <= _read.lenght() - _config.NUM_EDIT_OPS/2) )
 						try
 							{
-								int ret = qpalma->capture_hits();
+								int ret = qpalma->capture_hits(hits);
 								//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 								if (ret<0)
 									cancel=4 ;
@@ -419,12 +452,12 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 
 						rtrim_cut += 1 ;
 						
-						dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
-						dealloc_hits();
-						dealloc_hits_by_score();
+						hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
+						hits.dealloc_hits();
+						hits.dealloc_hits_by_score();
 						CHROMOSOME_ENTRY_OPERATOR.used = 0;
 						if (LONGEST_HIT != 0)
-							dealloc_hit_lists_operator();
+							hits.dealloc_hit_lists_operator();
 
 						goto restart ;
 					}
@@ -485,12 +518,12 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 						{
 							//fprintf(stdout, "polytrim_cut_start_curr=%i, polytrim_cut_end_curr=%i: %s\n", polytrim_cut_start_curr, polytrim_cut_end_curr, _read.data()) ;
 
-							dealloc_mapping_entries();
-							dealloc_hits();
-							dealloc_hits_by_score();
+							hits.dealloc_mapping_entries();
+							hits.dealloc_hits();
+							hits.dealloc_hits_by_score();
 							CHROMOSOME_ENTRY_OPERATOR.used = 0;
 							if (LONGEST_HIT != 0)
-								dealloc_hit_lists_operator();
+								hits.dealloc_hit_lists_operator();
 							
 							goto restart ;
 						}
@@ -515,12 +548,12 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 					print_leftovers(" (read mapping failed)", LEFTOVER_FP);
 			}
 
-			dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
-			dealloc_hits();
-			dealloc_hits_by_score();
+			hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
+			hits.dealloc_hits();
+			hits.dealloc_hits_by_score();
 			CHROMOSOME_ENTRY_OPERATOR.used = 0;
 			if (LONGEST_HIT != 0)
-				dealloc_hit_lists_operator();
+				hits.dealloc_hit_lists_operator();
 			_read.set_orig(NULL) ;
 			delete poly_orig_read ;
 
@@ -567,7 +600,7 @@ int Hits::map_reads(TopAlignments * topalignments, QPalma* qpalma)
 }
 
 
-unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosome &chr, int genome_pos, int readpos)
+unsigned int extend_seed(Read const &read, int direction, unsigned int seed_depth_extra, Chromosome &chr, int genome_pos, int readpos)
 {
 	unsigned int e = 0 ;
 	if (direction==-1)	// forward strand
@@ -575,14 +608,14 @@ unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosom
 		for (e=0; e<seed_depth_extra; e++)
 		{
 			int readpos_ = readpos+_config.INDEX_DEPTH+e-1 ;
-			if (readpos_>=(int)_read.length())
+			if (readpos_>=(int)read.length())
 				break ;
 			int genome_pos_ = genome_pos+_config.INDEX_DEPTH+e ;
 			if (genome_pos_>=(int)chr.length())
 				break ;
 			
 //fprintf(stdout,"%c - %c +\n", READ[readpos_], CHR_SEQ(genome_chr,genome_pos_)) ;
-			if (_read.data()[readpos_]!=chr[genome_pos_])
+			if (read.data()[readpos_]!=chr[genome_pos_])
 				break ;
 		}
 	}
@@ -591,14 +624,14 @@ unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosom
 		for (e=0; e<seed_depth_extra; e++)
 		{
 			int readpos_ = readpos+_config.INDEX_DEPTH+e-1;
-			if (readpos_>=(int)_read.length())
+			if (readpos_>=(int)read.length())
 				break ;
 			int genome_pos_ = genome_pos-e-1;
 			if (genome_pos_ < 0)
 				break ;
 			
 //fprintf(stdout,"%c - %c -\n", get_compl_base(READ[readpos_]), CHR_SEQ(genome_chr,genome_pos_)) ;
-			if (get_compl_base(_read.data()[readpos_])!=chr[genome_pos_])
+			if (get_compl_base(read.data()[readpos_])!=chr[genome_pos_])
 				break ;
 		}
 	}
@@ -616,7 +649,7 @@ struct seedlist
 	int pos ;
 } ;
 
-int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos, char reverse)
+int ReadMappings::seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos, char reverse)
 {
 #ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
@@ -645,20 +678,20 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 	while (reverse > 0) {
 
 		if (reverse != 2) {
-			index_mmap = genome->INDEX_FWD_MMAP;
-			index_entry = *(genome->INDEX+index_slot);
+			index_mmap = _genome.INDEX_FWD_MMAP;
+			index_entry = *(_genome.INDEX+index_slot);
 			direction = -1;
 		}
 		else {
-			index_mmap = genome->INDEX_REV_MMAP;
-			index_entry = *(genome->INDEX_REV+index_slot);
+			index_mmap = _genome.INDEX_REV_MMAP;
+			index_entry = *(_genome.INDEX_REV+index_slot);
 			direction = 1;
 		}
 
 		if (read_num == num) 
 		{
 			printf("###############################################\n");
-			printf("Add seed to genomepositions from slot # %d (%s) containing %d genomepositions\n", index_slot, get_seq(index_slot), index_entry.num);
+			printf("Add seed to genomepositions from slot # %d (%s) containing %d genomepositions\n", index_slot, get_seq(_read, index_slot), index_entry.num);
 		}
 
 		
@@ -703,7 +736,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 			{
 				TIME_CODE(clock_t start_time = clock()) ;
 #ifndef BinaryStream_MAP
-				genome->index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
 				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
@@ -722,7 +755,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 				}
 
 				// Every mapping gets an entry
-				mapping_entry = alloc_mapping_entry();
+				mapping_entry = _mappings.newEntry();
 				if (!mapping_entry)
 				{
 					delete[] se_buffer;
@@ -763,9 +796,9 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 				p_block[2]=p_id[2];
 				pos = p_id[3];
 
-				unsigned int genome_pos = pos + genome->BLOCK_TABLE[block].pos;
+				unsigned int genome_pos = pos + _genome.BLOCK_TABLE[block].pos;
 				//unsigned int genome_chr = BLOCK_TABLE[block].chr;
-				Chromosome &genome_chr = genome->chromosome(genome->BLOCK_TABLE[block].chr);
+				Chromosome &genome_chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
 
 				// Check that read doesn't cross chrom borders
 				if ((reverse != 2 && (genome_pos < readpos-1 || genome_pos+_read.length()-readpos >= genome_chr.length())) ||
@@ -779,9 +812,9 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 				if (report_repetitive_seeds)
 				{   // check every seed, whether it is extendable by REPORT_REPETITIVE_SEED_DEPTH_EXTRA nucleotides 
 					/// and report it
-					int e = extend_seed(direction, genomemaps->REPORT_REPETITIVE_SEED_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
+					int e = extend_seed(_read, direction, _genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
 
-					if (e==genomemaps->REPORT_REPETITIVE_SEED_DEPTH_EXTRA)
+					if (e==_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA)
 					{
 						struct seedlist seed;
 						seed.chr= &genome_chr ;
@@ -795,7 +828,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 
 				if (index_entry.num>=_config.INDEX_DEPTH_EXTRA_THRESHOLD)
 				{
-					unsigned int ee = extend_seed(direction, _config.INDEX_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
+					unsigned int ee = extend_seed(_read, direction, _config.INDEX_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
 					if (ee!=_config.INDEX_DEPTH_EXTRA)
 						continue ;
 				}
@@ -966,7 +999,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 								if (read_num == num) {
 									printf("  Neighbour info: readpos %d \n", neighbor->readpos);
 								}
-								if (read_num == num) { printf("neighbor hit: "); if (neighbor->hit!=NULL) printhit(neighbor->hit); else printf("null\n"); }
+								if (read_num == num) { printf("neighbor hit: "); if (neighbor->hit!=NULL) printhit(_read, neighbor->hit); else printf("null\n"); }
 								if (neighbor->readpos == mapping_entry->readpos-1) { // is the neighbored mapping entry also neighbored in the read?
 									hit = neighbor->hit;
 									if (hit != NULL) {
@@ -974,7 +1007,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 										mapping_entry->hit = neighbor->hit;
 										if (reverse != 2) hit->end++;
 										else hit->start--;
-										if (read_num == num) printhit(hit);
+										if (read_num == num) printhit(_read, hit);
 									}
 								}
 
@@ -1022,7 +1055,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 									chromosome_director_neighbor->strand == strand) {
 									neighbor = chromosome_director_neighbor->mapping_entries;
 									if (read_num == num) printf("MM neighbor hit: ");
-									if (read_num == num) printhit(neighbor->hit);
+									if (read_num == num) printhit(_read, neighbor->hit);
 									if (read_num == num) printf("  Found a potential entry, readops(neighbor)=%d, (actual)=%d\n",neighbor->readpos,readpos);
 									if (neighbor->readpos == mapping_entry->readpos - _config.INDEX_DEPTH - 1) {
 										if (read_num == num) printf("  Readpos matches\n");
@@ -1047,7 +1080,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 											hit->mismatches++;
 											assert(hit->mismatches<Config::MAX_EDIT_OPS) ;
 											if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
-											if (read_num == num) printhit(hit);
+											if (read_num == num) printhit(_read, hit);
 										}
 									}
 								}
@@ -1065,7 +1098,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 					// create new hit:
 					if (hit == NULL) {
 
-						hit = alloc_hit();
+						hit = _hits.newEntry();
 						if (!hit)
 						{
 							return -1 ;
@@ -1109,7 +1142,7 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 			{
 				//fprintf(stdout, "report %i/%i repetitive seeds\n", (int)extended_seedlist.size(), (int)index_entry.num) ;
 				for (unsigned int ii=0; ii<extended_seedlist.size(); ii++)
-					genomemaps->report_repetitive_seed(*extended_seedlist[ii].chr, extended_seedlist[ii].pos, extended_seedlist.size())  ;
+					_genomeMaps.report_repetitive_seed(*extended_seedlist[ii].chr, extended_seedlist[ii].pos, extended_seedlist.size())  ;
 			}
 			
 			//if (index_entry.num>_config.INDEX_DEPTH_EXTRA_THRESHOLD)
@@ -1124,13 +1157,13 @@ int Hits::seed2genome(unsigned int num, unsigned int index_slot, unsigned int re
 	return(1);
 }
 
-void Hits::printgenome()
+void ReadMappings::printgenome()
 {
 	printf("G E N O M E: \n");
 	unsigned int i,c;
 	HIT *hit;
 	CHROMOSOME_ENTRY *ce;
-	for (i=0; i!=genome->LONGEST_CHROMOSOME; ++i) {
+	for (i=0; i!=_genome.LONGEST_CHROMOSOME; ++i) {
 		c=0;
 		ce = *(GENOME+i);
 		if (ce != NULL) {
@@ -1139,7 +1172,7 @@ void Hits::printgenome()
 				++c;
 				printf("(%d, %d, %d, %d) ", ce->chromosome+1, ce->strand, ce->genome_pos, (ce->next!=NULL));
 				hit = ce->mapping_entries->hit;
-				printhit(hit);
+				printhit(_read, hit);
 				ce = ce->next;
 			}
 			printf("((%d))\n",c);
@@ -1148,7 +1181,7 @@ void Hits::printgenome()
 }
 
 //@TODO remove num
-int Hits::size_hit(HIT *hit, unsigned int *oldlength, char num)
+int ReadMappings::size_hit(HIT *hit, unsigned int *oldlength, char num)
 {
 	HIT *last, *next;
 
@@ -1194,15 +1227,15 @@ int Hits::size_hit(HIT *hit, unsigned int *oldlength, char num)
 		*(HIT_LISTS_OPERATOR+length) = hit;
 	}
 
-	if (length > LONGEST_HIT) {
-		LONGEST_HIT = length;
+	if (length > _outer.LONGEST_HIT) {
+		_outer.LONGEST_HIT = length;
 	}
 
 	return(1);
 }
 
 
-int Hits::browse_hits()
+int ReadMappings::browse_hits()
 {
 	HIT* hit;
 	int i;
@@ -1324,7 +1357,7 @@ int Hits::browse_hits()
 					{
 						if (_config.REPORT_MAPPED_REGIONS && hitlength >= Config::REPORT_MAPPED_REGIONS_MIN_LENGTH)
 						{
-							genomemaps->report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
+							_genomeMaps.report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
 						}
 						
 						// insert hit into HITS_BY_SCORE
@@ -1337,7 +1370,7 @@ int Hits::browse_hits()
 						
 						//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _config.NUM_EDIT_OPS)
 						//	_config.NUM_EDIT_OPS = hit->mismatches;
-						update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
+						_outer.update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
 					}
 				}
 				// 2) Hit has to be aligned:
@@ -1358,7 +1391,7 @@ int Hits::browse_hits()
 
 						if (_config.REPORT_MAPPED_REGIONS && hitlength>=Config::REPORT_MAPPED_REGIONS_MIN_LENGTH)
 						{
-							genomemaps->report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
+							_genomeMaps.report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
 						}
 
 						if (_config.NUM_GAPS != 0) 
@@ -1433,7 +1466,7 @@ int Hits::browse_hits()
  *
  */
 
-int Hits::insert_into_scorelist(HIT* hit, char d)
+int ReadMappings::insert_into_scorelist(HIT* hit, char d)
 {
 	if (d)
 	{
@@ -1462,13 +1495,13 @@ int Hits::insert_into_scorelist(HIT* hit, char d)
 
 	//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _config.NUM_EDIT_OPS)
 	//_config.NUM_EDIT_OPS = hit->mismatches;
-	update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
+	_outer.update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
 
 	return 1;
 }
 
 
-int Hits::duplicate(HIT* hit)
+int ReadMappings::duplicate(HIT* hit)
 {
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart, readend;
@@ -1543,7 +1576,7 @@ int Hits::duplicate(HIT* hit)
 
 	if (chromosome_director->mapping_entries == NULL)
 	{
-		mapping_entry = alloc_mapping_entry();
+		mapping_entry = _mappings.newEntry(); // alloc_mapping_entry();
 		if (!mapping_entry)
 			return(-1) ;
 		chromosome_director->mapping_entries = mapping_entry;
@@ -1567,7 +1600,7 @@ int Hits::duplicate(HIT* hit)
 					 + existing_entry->hit->gaps * _config.GAP_SCORE - (((int)_read.length()) - existing_entry->hit->mismatches) * _config.M_SCORE;
 
 			if (existing_entry->readpos == readend && score1 == score2) {
-				if (_config.STATISTICS) REDUNDANT++;
+				if (_config.STATISTICS) _outer.REDUNDANT++;
 				return 1;
 			}
 
@@ -1576,7 +1609,7 @@ int Hits::duplicate(HIT* hit)
 
 		// no hit with same end pos of read and same score could have been found -> create another entry:
 		existing_entry = chromosome_director->mapping_entries;
-		mapping_entry = alloc_mapping_entry();
+		mapping_entry = _mappings.newEntry(); //alloc_mapping_entry();
 		if (!mapping_entry)
 			return -1 ;
 
@@ -1593,11 +1626,11 @@ int Hits::duplicate(HIT* hit)
 }
 
 // for debugging
-char *get_seq(unsigned int n)
+char *get_seq(Read const &read, unsigned int n)
 {
 	char *seq = (char *) malloc ((_config.INDEX_DEPTH+1)*sizeof(char));
 	if (seq == NULL) {
-		fprintf(stderr, "[get_seq] Could not allocate memory (_read.id() = %s)\n", _read.id());
+		fprintf(stderr, "[get_seq] Could not allocate memory (read.id() = %s)\n", read.id());
 		exit(1);
 	}
 	int i, c;
@@ -1624,27 +1657,24 @@ char *get_seq(unsigned int n)
 
 //int Hits::alloc_genome_memory()
 //{
-//	if ((GENOME = (CHROMOSOME_ENTRY **) calloc (genome->LONGEST_CHROMOSOME, sizeof(CHROMOSOME_ENTRY**))) == NULL) {
+//	if ((GENOME = (CHROMOSOME_ENTRY **) calloc (_genome.LONGEST_CHROMOSOME, sizeof(CHROMOSOME_ENTRY**))) == NULL) {
 //		fprintf(stderr, "ERROR : not enough memory for genome memory\n");
 //		exit(1);
 //	}
 //
 //	//@TODO is this really necessary? why isn't it already NULL
 //	unsigned int i;
-//	for (i=0; i!=genome->LONGEST_CHROMOSOME; ++i) {
+//	for (i=0; i!=_genome.LONGEST_CHROMOSOME; ++i) {
 //		*(GENOME+i) = NULL;
 //	}
 //
 //	return(0);
 //}
 
-int Hits::init_from_meta_index() 
+int ReadMappings::init_from_meta_index()
 {
-	init_operators(); //updated
+//	init_operators(); //updated
 
-	if (_config.STATISTICS) {
-		init_statistic_vars(); //updated
-	}
 	if (!_config.HITLEN_LIMIT)
 		_config.HITLEN_LIMIT = _config.INDEX_DEPTH;
 
@@ -1652,14 +1682,9 @@ int Hits::init_from_meta_index()
 }
 
 int Hits::init_operators() {
-	MAPPING_ENTRY_OPERATOR = alloc_mapping_entry_container();
-	assert(MAPPING_ENTRY_OPERATOR!=NULL) ;
-
-	MAPPING_ENTRY_OPERATOR_FIRST = MAPPING_ENTRY_OPERATOR;
-
-	HIT_OPERATOR = alloc_hit_container();
-	assert(HIT_OPERATOR!=NULL) ;
-	HIT_OPERATOR_FIRST = HIT_OPERATOR;
+//	HIT_OPERATOR = alloc_hit_container();
+//	assert(HIT_OPERATOR!=NULL) ;
+//	HIT_OPERATOR_FIRST = HIT_OPERATOR;
 
 // dd	alloc_chromosome_entry_container();
 
@@ -1672,7 +1697,7 @@ int Hits::init_statistic_vars() {
 }
 
 
-int Hits::init_hit_lists() {
+int ReadMappings::init_hit_lists() {
 	alloc_hit_lists_operator();
 	alloc_hits_by_score(); // A T T E N T I O N ! ! !   needs correct _config.NUM_EDIT_OPS which can be changed in init_alignment_structures() !!!
 
@@ -1681,46 +1706,27 @@ int Hits::init_hit_lists() {
 
 
 
-MAPPING_ENTRY* Hits::alloc_mapping_entry()
-{
-	MAPPING_ENTRY_CONTAINER *container;
-	MAPPING_ENTRY *entry;
-
-	if (MAPPING_ENTRY_OPERATOR->used >= CONTAINER_SIZE - 1) {
-		container = alloc_mapping_entry_container();
-		if (!container)
-			return NULL ;
-		MAPPING_ENTRY_OPERATOR->next = container;
-		MAPPING_ENTRY_OPERATOR = container;
-	}
-	
-	entry = &(MAPPING_ENTRY_OPERATOR->entries[MAPPING_ENTRY_OPERATOR->used]);
-	MAPPING_ENTRY_OPERATOR->used++;
-
-	entry->hit = NULL;
-	entry->pred = NULL;
-	entry->succ = NULL;
-	entry->readpos = -1;
-	
-	return(entry);
-}
-
-MAPPING_ENTRY_CONTAINER* Hits::alloc_mapping_entry_container()
-{
-	MAPPING_ENTRY_CONTAINER *container;
-
-	if ((container =  (MAPPING_ENTRY_CONTAINER *) calloc(1, sizeof(MAPPING_ENTRY_CONTAINER))) == NULL) {
-		//fprintf(stderr, "ERROR : not enough memory for mapping entry container memory (alloc_mapping_entry_container)\n");
-		fprintf(stderr, "WARNING : not enough memory for mapping entry container memory (alloc_mapping_entry_container)\n");
-		return NULL ;
-	}
-
-	container->used = 0;
-	container->next = NULL;
-
-	return(container);
-}
-
+//MAPPING_ENTRY* Hits::alloc_mapping_entry()
+//{
+//	MAPPING_ENTRY_CONTAINER *container;
+//	MAPPING_ENTRY *entry;
+//
+//	if (MAPPING_ENTRY_OPERATOR->used >= CONTAINER_SIZE - 1) {
+//		container = new (std::nothrow) MAPPING_ENTRY_CONTAINER();
+//		if (!container)
+//			return NULL ;
+//	}
+//
+//	entry = &(MAPPING_ENTRY_OPERATOR->entries[MAPPING_ENTRY_OPERATOR->used]);
+//	MAPPING_ENTRY_OPERATOR->used++;
+//
+//	entry->hit = NULL;
+//	entry->pred = NULL;
+//	entry->succ = NULL;
+//	entry->readpos = -1;
+//
+//	return(entry);
+//}
 
 CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand)
 {
@@ -1746,42 +1752,42 @@ CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(unsigned int pos, Chromosome cons
 	return(entry);
 }
 
-HIT* Hits::alloc_hit()
-{
-	HIT_CONTAINER *container;
-	HIT *hit;
+//HIT* Hits::alloc_hit()
+//{
+//	HIT_CONTAINER *container;
+//	HIT *hit;
+//
+//	if (HIT_OPERATOR->used >= CONTAINER_SIZE - 1) {
+//		container = alloc_hit_container();
+//		if (!container)
+//			return NULL ;
+//		HIT_OPERATOR->next = container;
+//		HIT_OPERATOR = container;
+//	}
+//
+//	hit = &(HIT_OPERATOR->entries[HIT_OPERATOR->used]);
+//	HIT_OPERATOR->used++;
+//
+//	new (hit) HIT();
+//	return(hit);
+//}
 
-	if (HIT_OPERATOR->used >= CONTAINER_SIZE - 1) {
-		container = alloc_hit_container();
-		if (!container)
-			return NULL ;
-		HIT_OPERATOR->next = container;
-		HIT_OPERATOR = container;
-	}
-	
-	hit = &(HIT_OPERATOR->entries[HIT_OPERATOR->used]);
-	HIT_OPERATOR->used++;
+//HIT_CONTAINER* Hits::alloc_hit_container()
+//{
+//	HIT_CONTAINER *container;
+//
+//	if ((container =  (HIT_CONTAINER *) calloc (1, sizeof(HIT_CONTAINER))) == NULL) {
+//		fprintf(stderr, "WARNING: not enough memory for mapping entry container memory (alloc_hit_container)\n");
+//		return NULL ;
+//	}
+//
+//	container->used = 0;
+//	container->next = NULL;
+//
+//	return(container);
+//}
 
-	new (hit) HIT();
-	return(hit);
-}
-
-HIT_CONTAINER* Hits::alloc_hit_container()
-{
-	HIT_CONTAINER *container;
-
-	if ((container =  (HIT_CONTAINER *) calloc (1, sizeof(HIT_CONTAINER))) == NULL) {
-		fprintf(stderr, "WARNING: not enough memory for mapping entry container memory (alloc_hit_container)\n");
-		return NULL ;
-	}
-
-	container->used = 0;
-	container->next = NULL;
-
-	return(container);
-}
-
-int Hits::alloc_hit_lists_operator()
+int ReadMappings::alloc_hit_lists_operator()
 {
 	if ((HIT_LISTS_OPERATOR = (HIT **) calloc (_config.MAX_READ_LENGTH, sizeof(HIT*))) == NULL) {
 		fprintf(stderr, "ERROR : not enough memory for hitlist (alloc_hit_lists_operator)\n");
@@ -1791,7 +1797,7 @@ int Hits::alloc_hit_lists_operator()
 	return(0);
 }
 
-int Hits::alloc_hits_by_score()
+int ReadMappings::alloc_hits_by_score()
 {
 	double max_score = _config.NUM_GAPS * _config.GAP_SCORE + (_config.NUM_EDIT_OPS - _config.NUM_GAPS) * _config.MM_SCORE;
 	NUM_SCORE_INTERVALS = max_score / SCORE_INTERVAL;
@@ -1812,77 +1818,77 @@ int Hits::alloc_hits_by_score()
 	return(0);
 }
 
-int Hits::alloc_readstart_bins()
-{
-	if ((READSTART_BINS = (HIT **) calloc ((genome->LONGEST_CHROMOSOME / ((_config.NUM_GAPS==0)? 1: _config.NUM_GAPS)), sizeof(HIT*) )) == NULL) {
-		fprintf(stderr, "ERROR : not enough memory for readstart bin structure (alloc_readstart_bins)\n");
-		exit(1);
-	}
+//int Hits::alloc_readstart_bins()
+//{
+//	if ((READSTART_BINS = (HIT **) calloc ((_genome.LONGEST_CHROMOSOME / ((_config.NUM_GAPS==0)? 1: _config.NUM_GAPS)), sizeof(HIT*) )) == NULL) {
+//		fprintf(stderr, "ERROR : not enough memory for readstart bin structure (alloc_readstart_bins)\n");
+//		exit(1);
+//	}
+//
+//	return(0);
+//}
 
-	return(0);
-} 
+//int Hits::dealloc_mapping_entries()
+//{
+//	NUM_MAPPING_ENTRIES = 0;
+//
+//	MAPPING_ENTRY_CONTAINER *container, *next;
+//	container = MAPPING_ENTRY_OPERATOR_FIRST->next;
+//
+//	while (container != NULL) {
+//		next = container->next;
+//		NUM_MAPPING_ENTRIES += container->used;
+//		free(container);
+//		container = next;
+//	}
+//
+//	NUM_MAPPING_ENTRIES += MAPPING_ENTRY_OPERATOR_FIRST->used;
+//
+//	MAPPING_ENTRY_OPERATOR = MAPPING_ENTRY_OPERATOR_FIRST;
+//	MAPPING_ENTRY_OPERATOR->used = 0;
+//	MAPPING_ENTRY_OPERATOR->next = NULL;
+//
+//	return(0);
+//}
 
-int Hits::dealloc_mapping_entries()
-{
-	NUM_MAPPING_ENTRIES = 0;
-	
-	MAPPING_ENTRY_CONTAINER *container, *next;
-	container = MAPPING_ENTRY_OPERATOR_FIRST->next;
+//int Hits::dealloc_hits()
+//{
+//	HIT_CONTAINER *container, *next;
+//	container = HIT_OPERATOR_FIRST->next;
+//
+//	while (container != NULL) {
+//		next = container->next;
+//		free(container);
+//		container = next;
+//	}
+//
+//
+//	HIT_OPERATOR = HIT_OPERATOR_FIRST;
+//	HIT_OPERATOR->used = 0;
+//	HIT_OPERATOR->next = NULL;
+//
+//	return(0);
+//}
 
-	while (container != NULL) {
-		next = container->next;
-		NUM_MAPPING_ENTRIES += container->used;
-		free(container);
-		container = next;
-	}
+//int Hits::dealloc_chromosome_entries()
+//{
+//	unsigned int i;
+//
+//	for (i=0; i < _config.CHROM_CONTAINER_SIZE; i++) {
+//		free(CHROMOSOME_ENTRY_OPERATOR.entries[i].mapping_entries);
+////		free(CHROMOSOME_ENTRY_OPERATOR.entries+i);
+//	}
+//	//free(CHROMOSOME_ENTRY_OPERATOR);
+//
+//	return(0);
+//}
 
-	NUM_MAPPING_ENTRIES += MAPPING_ENTRY_OPERATOR_FIRST->used;
-	
-	MAPPING_ENTRY_OPERATOR = MAPPING_ENTRY_OPERATOR_FIRST;
-	MAPPING_ENTRY_OPERATOR->used = 0;
-	MAPPING_ENTRY_OPERATOR->next = NULL;
-
-	return(0);
-}
-
-int Hits::dealloc_hits()
-{
-	HIT_CONTAINER *container, *next;
-	container = HIT_OPERATOR_FIRST->next;
-
-	while (container != NULL) {
-		next = container->next;
-		free(container);
-		container = next;
-	}
-
-
-	HIT_OPERATOR = HIT_OPERATOR_FIRST;
-	HIT_OPERATOR->used = 0;
-	HIT_OPERATOR->next = NULL;
-
-	return(0);
-}
-
-int Hits::dealloc_chromosome_entries()
-{
-	unsigned int i;
-	
-	for (i=0; i < _config.CHROM_CONTAINER_SIZE; i++) {
-		free(CHROMOSOME_ENTRY_OPERATOR.entries[i].mapping_entries);
-		free(CHROMOSOME_ENTRY_OPERATOR.entries+i);
-	}
-	//free(CHROMOSOME_ENTRY_OPERATOR);
-
-	return(0);
-}
-
-int Hits::dealloc_hit_lists_operator()
+int ReadMappings::dealloc_hit_lists_operator()
 {
 	unsigned int i;
 
 	//for (i = _config.INDEX_DEPTH; i <= LONGEST_HIT; i++) {
-	for (i = 0; i <= LONGEST_HIT; i++) 
+	for (i = 0; i <= _outer.LONGEST_HIT; i++)
 	{
 		*(HIT_LISTS_OPERATOR+i) = NULL;
 	}
@@ -1890,7 +1896,7 @@ int Hits::dealloc_hit_lists_operator()
 	return(0);
 }
 
-int Hits::dealloc_hits_by_score()
+int ReadMappings::dealloc_hits_by_score()
 {
 	unsigned int i;
 
@@ -1907,7 +1913,7 @@ int Hits::dealloc_hits_by_score()
 // read
 
 
-int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
+int ReadMappings::map_fast(Read & read, int & firstslot, int & firstpos)
 {
 #ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
@@ -1979,12 +1985,12 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 
 			for (rev=0; rev <= /*_config.*/_config.MAP_REVERSE; ++rev) {
 				if (!rev) {
-					index_entry = genome->INDEX[slot];
-					index_mmap = genome->INDEX_FWD_MMAP;
+					index_entry = _genome.INDEX[slot];
+					index_mmap = _genome.INDEX_FWD_MMAP;
 				}
 				else  {
-					index_entry = genome->INDEX_REV[slot];
-					index_mmap = genome->INDEX_REV_MMAP;
+					index_entry = _genome.INDEX_REV[slot];
+					index_mmap = _genome.INDEX_REV_MMAP;
 				}
 
 				// for each mapping position
@@ -2014,7 +2020,7 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 
 					time_t start_time = clock() ;
 #ifndef BinaryStream_MAP
-					genome->index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
 					index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
@@ -2044,8 +2050,8 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 						p_block[1]=p_id[1];
 						p_block[2]=p_id[2];
 						position = p_id[3];
-						pos = (unsigned int) position + genome->BLOCK_TABLE[block].pos;	// 0-initialized
-						Chromosome &chr = genome->chromosome(genome->BLOCK_TABLE[block].chr);
+						pos = (unsigned int) position + _genome.BLOCK_TABLE[block].pos;	// 0-initialized
+						Chromosome &chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
 
 						//if (_config.REPORT_REPETITIVE_SEEDS)
 						//	report_repetitive_seed(chr, pos, index_entry.num)  ;
@@ -2180,7 +2186,7 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 								//if (!_config.ALL_HIT_STRATEGY && nr_mms < max_mms)
 								//	max_mms = nr_mms;
 
-								update_num_edit_ops(nr_mms, _config.ALL_HIT_STRATEGY, max_mms) ;
+								_outer.update_num_edit_ops(nr_mms, _config.ALL_HIT_STRATEGY, max_mms) ;
 
 								// perfect matching read
 								if (/*_config.*/_config.STATISTICS) {
@@ -2235,7 +2241,7 @@ int Hits::map_fast(Read & read, int & firstslot, int & firstpos)
 }
 
 
-int Hits::map_short_read(Read& read, unsigned int num, int first_slot, int first_pos)
+int ReadMappings::map_short_read(Read& read, unsigned int num, int first_slot, int first_pos)
 {
 	char reverse;
 	unsigned int readpos = first_pos ;
@@ -2260,9 +2266,9 @@ int Hits::map_short_read(Read& read, unsigned int num, int first_slot, int first
 		slot = first_slot;
 
 		reverse = 0;
-		if (genome->INDEX[slot].num != 0)
+		if (_genome.INDEX[slot].num != 0)
 			reverse = 1;
-		if (/*_config.*/_config.MAP_REVERSE && genome->INDEX_REV[slot].num != 0)
+		if (/*_config.*/_config.MAP_REVERSE && _genome.INDEX_REV[slot].num != 0)
 			reverse = (reverse + reverse) + 2;
 
 		if (reverse > 0)
@@ -2319,10 +2325,10 @@ int Hits::map_short_read(Read& read, unsigned int num, int first_slot, int first
 				// reverse: 0: slot doesnt match in either index or index_rev, 1: only index, 2: only index_rev, 4: both
 				reverse = 0;
 				//if (INDEX[slot].last_entry != NULL) {
-				if (genome->INDEX[slot].num != 0) {
+				if (_genome.INDEX[slot].num != 0) {
 					reverse = 1;
 				}
-				if (/*_config.*/_config.MAP_REVERSE && genome->INDEX_REV[slot].num != 0) {
+				if (/*_config.*/_config.MAP_REVERSE && _genome.INDEX_REV[slot].num != 0) {
 					reverse = (reverse + reverse) + 2;
 				}
 
@@ -2361,7 +2367,7 @@ int Hits::map_short_read(Read& read, unsigned int num, int first_slot, int first
  *  \return A slot
  */
 
-int Hits::get_slot(Read & read, int pos)
+int ReadMappings::get_slot(Read & read, int pos)
 {
     unsigned int slot = 0;
 	unsigned int i;
@@ -2405,16 +2411,16 @@ int Hits::get_slot(Read & read, int pos)
 
 		switch (read_data[pos + /*_config.*/_config.INDEX_DEPTH - 1]) {
 		case 'A':
-			slot = slot | genome->BINARY_CODE[0];
+			slot = slot | _genome.BINARY_CODE[0];
 			break;
 		case 'C':
-			slot = slot | genome->BINARY_CODE[1];
+			slot = slot | _genome.BINARY_CODE[1];
 			break;
 		case 'G':
-			slot = slot | genome->BINARY_CODE[2];
+			slot = slot | _genome.BINARY_CODE[2];
 			break;
 		case 'T':
-			slot = slot | genome->BINARY_CODE[3];
+			slot = slot | _genome.BINARY_CODE[3];
 			break;
 		default:
 			return -1;
@@ -2426,7 +2432,7 @@ int Hits::get_slot(Read & read, int pos)
 	return (slot);
 }
 
-int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches)
+int ReadMappings::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches)
 {
 	int Read_length = _read.length();
 	char const * const READ = _read.data();
@@ -2598,7 +2604,7 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 			assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
 		}
 		
-		update_num_edit_ops(mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
+		_outer.update_num_edit_ops(mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
 
 		return 1;
 	}
@@ -2608,7 +2614,7 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 
 
 // returns if aligned hit fulfills MM and gap-criterias, thus is printed out (alignments are called in this method)
-int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches)
+int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches)
 {
 	// global vars -> local vars
 	int Read_length = _read.length();
@@ -2661,7 +2667,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 		//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 		//	_config.NUM_EDIT_OPS = mismatches;
-		update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+		_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 
 		return 1;
 	}
@@ -2713,7 +2719,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 				assert(mismatches<Config::MAX_EDIT_OPS) ;
 				//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 				//_config.NUM_EDIT_OPS = mismatches;
-				update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+				_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 				return 1;
 			}
 
@@ -2760,7 +2766,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 				assert(mismatches<Config::MAX_EDIT_OPS) ;
 				//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 				//_config.NUM_EDIT_OPS = mismatches;
-				update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+				_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 
 				return 1;
 			}
@@ -2776,7 +2782,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 	//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 	//_config.NUM_EDIT_OPS = mismatches;
-	update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+	_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 
 	// successful alignment:
 	return 1;
@@ -2786,7 +2792,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 // prints out all hits which have been inserted into HITS_BY_EDITOPS
 // called once for each read (?)
-int Hits::analyze_hits(TopAlignments* topalignments, QPalma* qpalma) 
+int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 {
 	int i, printed = 0, nr;
 	HIT *hit;
@@ -2903,7 +2909,7 @@ int Hits::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 
 
 
-int Hits::report_read_alignment(HIT* hit, int nbest) 
+int ReadMappings::report_read_alignment(HIT* hit, int nbest)
 {
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart;
@@ -2918,7 +2924,7 @@ int Hits::report_read_alignment(HIT* hit, int nbest)
 	// PERFECT HITS:
 	if (hit->mismatches == 0) 
 	{
-		genomemaps->report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
+		_genomeMaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
 	}
 	// HITS WITH MISMATCHES:
 	else 
@@ -2953,7 +2959,7 @@ int Hits::report_read_alignment(HIT* hit, int nbest)
 			}
 		}
 		
-		genomemaps->report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length())+gap_offset, ((int)_read.length()) - hit->mismatches, nbest) ;
+		_genomeMaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length())+gap_offset, ((int)_read.length()) - hit->mismatches, nbest) ;
 	}
 
 	return 1;

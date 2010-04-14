@@ -39,11 +39,11 @@ int main(int argc, char *argv[])
 	_config.applyDefaults(&_genome) ;
 	_config.checkConfig() ;
 
-	Hits _hits(_genome, _genomemaps);
+	Hits hits(_genome, _genomemaps, _read);
 
 	
 	TopAlignments _topalignments(&_genomemaps) ;
-	QPalma _qpalma(&_genome, &_hits, &_topalignments, &_genomemaps, 0) ;
+	QPalma _qpalma(&_genome, &_topalignments, &_genomemaps, 0) ;
 
 	// initialize GenomeMaps
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
@@ -105,12 +105,12 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	_hits.map_reads(&_topalignments, &_qpalma);
+	hits.map_reads(_genome, _genomemaps, &_topalignments, &_qpalma);
 
 	if (_config.STATISTICS)	{
 		print_stats();
-		printf("R E D U N D A N T : %d\n", _hits.REDUNDANT);
-		printf("Max used slots: %d\n", _hits.MAX_USED_SLOTS);
+		printf("R E D U N D A N T : %d\n", hits.REDUNDANT);
+		printf("Max used slots: %d\n", Hits::MAX_USED_SLOTS);
 		printf("\nList iterations: %d\n", _stats.listcount);
 		printf("List iterations occurrences: %d\n",_stats.listocc);
 	}

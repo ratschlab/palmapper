@@ -11,10 +11,10 @@ public:
 	Read();
 	Read(const Read & read); // copy constructor
 
-	unsigned int length() {
+	unsigned int length() const {
 		return READ_LENGTH;
 	}
-	unsigned int max_length() {
+	unsigned int max_length() const {
 		return ASSUMED_READ_LENGTH;
 	}
 
@@ -22,19 +22,23 @@ public:
 		return READ;
 	}
 
-	char const *id() {
+	char const *data() const {
+		return READ;
+	}
+
+	char const *id() const {
 		return READ_ID;
 	}
 
-	char const * const *quality() {
+	char const * const *quality() const {
 		return READ_QUALITY;
 	}
 
-	int pe_flag() {
+	int pe_flag() const {
 		return READ_PE_FLAG;
 	}
 
-	char format() {
+	char format() const {
 		return READ_FORMAT;
 	}
 

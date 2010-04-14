@@ -8,7 +8,7 @@
 double WORST_SCORE;
 double WORST_MM_SCORE;
 
-int check_mm(Read & read, Chromosome const &chr, int genome_pos, int readpos, int ori)
+int check_mm(Read const &read, Chromosome const &chr, int genome_pos, int readpos, int ori)
 {
 	if ( (ori == 1  && (chr[genome_pos] != read.data()[readpos])) ||
 	     (ori == -1 && get_compl_base(chr[genome_pos]) != read.data()[readpos]) ||
@@ -22,7 +22,7 @@ int check_mm(Read & read, Chromosome const &chr, int genome_pos, int readpos, in
 }
 
 // returns 1 if alignment is gapless, 0 if there are gaps and -1 if nr of allowed MMs is exceeded
-int kbound_overhang_alignment(Read & read, HIT* hit, int offset, int readstart, int start, int end, unsigned short int hitreadpos, Chromosome const &chromosome, char orientation, unsigned char mismatches)
+int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readstart, int start, int end, unsigned short int hitreadpos, Chromosome const &chromosome, char orientation, unsigned char mismatches)
 {
 	// global vars -> local vars
 	char const * const READ = read.data();
@@ -340,7 +340,7 @@ int kbound_overhang_alignment(Read & read, HIT* hit, int offset, int readstart, 
 
 
 // k-bound global alignment algorithm:
-int kbound_global_alignment(Read & read, HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation)
+int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation)
 {
 	// global vars -> local vars
 	char const * const READ = read.data();
