@@ -37,7 +37,7 @@ Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_) : CHROMOSOME_ENTRY_OPERATOR
 	SLOT = 0;
 	HAS_SLOT = 0;
 	GENOME = new CHROMOSOME_ENTRY *[genome->LONGEST_CHROMOSOME];
-	for (int i=0; i!=genome->LONGEST_CHROMOSOME; ++i)
+	for (unsigned int i=0; i!=genome->LONGEST_CHROMOSOME; ++i)
 		GENOME[i] = NULL;
 	// initialize with meta information
 	init_from_meta_index(); // updated

@@ -115,8 +115,8 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
     SeedElem *next_seed=seed_matrix_left[0];
     int zz=z_path_left;
 
-    int rstart;
-    int dstart;
+    int rstart=0;
+    int dstart=0;
     int max_gap;
 
     while (next_seed!=NULL){

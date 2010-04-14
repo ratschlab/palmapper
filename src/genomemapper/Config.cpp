@@ -1243,7 +1243,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 void Config::VersionHeader()
 {
 	printf("\nPALMapper version %s   (PALMapper is a fusion of GenomeMapper & QPALMA)\n", VERSION);
-	printf("written by Fabio De Bona, Joerg Hagmann, Geraldine Jean, Stephan Ossowski, Gunnar Raetsch, Korbinian Schneeberger, Lisa Thalheim\n");
+	printf("written by Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Fabio De Bona, Stephan Ossowski, and others\n");
 	printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
 }
 

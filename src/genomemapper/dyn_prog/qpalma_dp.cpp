@@ -92,12 +92,16 @@ void Alignment::myalign_fast(int nr_paths_p, char* dna, int dna_len_p, char* est
   double best_match=-ALMOST_INFINITY;
   const int end_error=5;
 
-  for(int i=0+end_error; i < hit_len-end_error ;i++){
+  for(int i=0+end_error; i < hit_len-end_error && hit_read+i<est_len_p && hit_dna+i<dna_len_p ;i++){
     
-    int i_pos=hit_read+i;
-    int j_pos=hit_dna+i;
-
-    double score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(est[i_pos]),prb[i_pos]);
+    int i_pos=hit_read+i ;
+    int j_pos=hit_dna+i ;
+	if (i_pos<0 || i_pos>=est_len_p)
+		continue ;
+	if (j_pos<0 || j_pos>=dna_len_p)
+		continue ;
+	
+    double score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(est[i_pos]),prb[i_pos]) ;
     
     if (score>best_match){
       best_match=score;
