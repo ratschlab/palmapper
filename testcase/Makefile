@@ -37,8 +37,6 @@ $(dataDir)/split_1m.000:
 	bzip2 -d $(dataDir)/split_1m.000.bz2
 
 $(DnaFile): $(SpliceFiles)
-	bzip2 -d $(dataDir)/C_elegans_SpliceSitePred_WS200/genome/C_elegans_WS200_genome.fasta.bz2
-	mv $(dataDir)/C_elegans_SpliceSitePred_WS200/genome/C_elegans_WS200_genome.fasta $(DnaFile)
 
 $(IndexFiles): $(DnaFile) # pmindex
 	mkdir -p $(dataDir)
@@ -48,6 +46,8 @@ $(SpliceFiles):
 	mkdir -p $(dataDir)
 	wget -c ftp://ftp.tuebingen.mpg.de/pub/fml/raetsch-lab/predictions/splice/C_elegans/C_elegans_SpliceSitePred_WS200.tar.bz2
 	(cd $(dataDir) && tar xvf ../C_elegans_SpliceSitePred_WS200.tar.bz2 && rm ../C_elegans_SpliceSitePred_WS200.tar.bz2) 
+	bzip2 -d $(dataDir)/C_elegans_SpliceSitePred_WS200/genome/C_elegans_WS200_genome.fasta.bz2
+	mv $(dataDir)/C_elegans_SpliceSitePred_WS200/genome/C_elegans_WS200_genome.fasta $(DnaFile)
 
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 	mkdir -p $(dataDir)
@@ -57,3 +57,6 @@ map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 result.md5: $(ResultFiles)
 	mkdir -p $(dataDir)
 	(cd $(resultDir) ; md5sum $(notdir $(ResultFiles))) > result.md5 
+
+clean:
+	rm -rf $(dataDir)/C_elegans_SpliceSitePred_WS200/ $(dataDir)/c_elegans.WS200.dna.fa* $(dataDir)/split_1m.000.*

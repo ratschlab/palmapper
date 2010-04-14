@@ -4,8 +4,8 @@ ObjDir = $(OutDir)/o
 ExeDir = $OutDir/a
 
 CC = g++
-#CFLAGS = -Wall -g 
-CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread
+CFLAGS = -Wall -g 
+#CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread
 #CFLAGS = -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow 
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS = 
