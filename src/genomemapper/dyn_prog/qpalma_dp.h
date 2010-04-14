@@ -7,7 +7,7 @@
 #include "penalty_info_dp.h"
 #include "fill_matrix.h"
 #include "debug_tools.h"
-
+#include "stdint.h"
 
 
 bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left, const std::vector<SeedElem*>& seed_matrix_right, int z, int est_len, int dna_len, int* result_length_ptr, 
