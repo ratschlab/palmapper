@@ -14,31 +14,11 @@ unsigned int Hits::MAX_USED_SLOTS;
 Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_, Read &read)
 :	_genome(genome_), _genomeMaps(genomemaps_), CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _read(read)
 {
-/*
-	readpos = 0;
-	start = 0;
-	end = 0;
-	chromosome = 0;
-	mismatches = 0;
-	gaps = 0;
-	start_offset = 0;
-	end_offset = 0;
-	aligned = 0;*/
-	/*int i;
-	//for (i=0; i!=MAX_MISMATCHES; ++i) mismatch[i] = READ_LENGTH + 1;
-	for (i=0; i!=MAX_MISMATCHES; ++i) {
-		edit_op[i].mm = 0;
-	}*/
-/*	orientation = ' ';
-	same_eo_succ = NULL;
-	next = NULL;
-	last = NULL;
-*/
 	REDUNDANT = 0;
 	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
 	for (unsigned int i=0; i!=_genome.LONGEST_CHROMOSOME; ++i)
 		GENOME[i] = NULL;
-//	MAPPING_ENTRY_OPERATOR = MAPPING_ENTRY_OPERATOR_FIRST = new MAPPING_ENTRY_CONTAINER();
+
 	// initialize with meta information
 	LONGEST_HIT = 0;
 	if (_config.STATISTICS) {
@@ -49,7 +29,6 @@ Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_, Read &read)
 
 Hits::~Hits() {
 	delete[] GENOME;
-//	dealloc_chromosome_entries();
 }
 
 char ReadMappings::HAS_SLOT;
@@ -59,8 +38,6 @@ ReadMappings::ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Hits &hits, R
 {
 	GENOME = hits.GENOME;
 	HITS_IN_SCORE_LIST = 0;
-//	SLOT = 0;
-//	HAS_SLOT = 0;
 	alloc_hit_lists_operator();
 	dealloc_hit_lists_operator();
 	alloc_hits_by_score();
@@ -1653,41 +1630,14 @@ char *get_seq(Read const &read, unsigned int n)
 	return seq;
 }
 
-// alloc
-
-//int Hits::alloc_genome_memory()
-//{
-//	if ((GENOME = (CHROMOSOME_ENTRY **) calloc (_genome.LONGEST_CHROMOSOME, sizeof(CHROMOSOME_ENTRY**))) == NULL) {
-//		fprintf(stderr, "ERROR : not enough memory for genome memory\n");
-//		exit(1);
-//	}
-//
-//	//@TODO is this really necessary? why isn't it already NULL
-//	unsigned int i;
-//	for (i=0; i!=_genome.LONGEST_CHROMOSOME; ++i) {
-//		*(GENOME+i) = NULL;
-//	}
-//
-//	return(0);
-//}
-
 int ReadMappings::init_from_meta_index()
 {
-//	init_operators(); //updated
-
 	if (!_config.HITLEN_LIMIT)
 		_config.HITLEN_LIMIT = _config.INDEX_DEPTH;
-
 	return (0);
 }
 
 int Hits::init_operators() {
-//	HIT_OPERATOR = alloc_hit_container();
-//	assert(HIT_OPERATOR!=NULL) ;
-//	HIT_OPERATOR_FIRST = HIT_OPERATOR;
-
-// dd	alloc_chromosome_entry_container();
-
 	return (0);
 }
 
@@ -1703,30 +1653,6 @@ int ReadMappings::init_hit_lists() {
 
 	return (0);
 }
-
-
-
-//MAPPING_ENTRY* Hits::alloc_mapping_entry()
-//{
-//	MAPPING_ENTRY_CONTAINER *container;
-//	MAPPING_ENTRY *entry;
-//
-//	if (MAPPING_ENTRY_OPERATOR->used >= CONTAINER_SIZE - 1) {
-//		container = new (std::nothrow) MAPPING_ENTRY_CONTAINER();
-//		if (!container)
-//			return NULL ;
-//	}
-//
-//	entry = &(MAPPING_ENTRY_OPERATOR->entries[MAPPING_ENTRY_OPERATOR->used]);
-//	MAPPING_ENTRY_OPERATOR->used++;
-//
-//	entry->hit = NULL;
-//	entry->pred = NULL;
-//	entry->succ = NULL;
-//	entry->readpos = -1;
-//
-//	return(entry);
-//}
 
 CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand)
 {
@@ -1751,41 +1677,6 @@ CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(unsigned int pos, Chromosome cons
 
 	return(entry);
 }
-
-//HIT* Hits::alloc_hit()
-//{
-//	HIT_CONTAINER *container;
-//	HIT *hit;
-//
-//	if (HIT_OPERATOR->used >= CONTAINER_SIZE - 1) {
-//		container = alloc_hit_container();
-//		if (!container)
-//			return NULL ;
-//		HIT_OPERATOR->next = container;
-//		HIT_OPERATOR = container;
-//	}
-//
-//	hit = &(HIT_OPERATOR->entries[HIT_OPERATOR->used]);
-//	HIT_OPERATOR->used++;
-//
-//	new (hit) HIT();
-//	return(hit);
-//}
-
-//HIT_CONTAINER* Hits::alloc_hit_container()
-//{
-//	HIT_CONTAINER *container;
-//
-//	if ((container =  (HIT_CONTAINER *) calloc (1, sizeof(HIT_CONTAINER))) == NULL) {
-//		fprintf(stderr, "WARNING: not enough memory for mapping entry container memory (alloc_hit_container)\n");
-//		return NULL ;
-//	}
-//
-//	container->used = 0;
-//	container->next = NULL;
-//
-//	return(container);
-//}
 
 int ReadMappings::alloc_hit_lists_operator()
 {
@@ -1818,71 +1709,6 @@ int ReadMappings::alloc_hits_by_score()
 	return(0);
 }
 
-//int Hits::alloc_readstart_bins()
-//{
-//	if ((READSTART_BINS = (HIT **) calloc ((_genome.LONGEST_CHROMOSOME / ((_config.NUM_GAPS==0)? 1: _config.NUM_GAPS)), sizeof(HIT*) )) == NULL) {
-//		fprintf(stderr, "ERROR : not enough memory for readstart bin structure (alloc_readstart_bins)\n");
-//		exit(1);
-//	}
-//
-//	return(0);
-//}
-
-//int Hits::dealloc_mapping_entries()
-//{
-//	NUM_MAPPING_ENTRIES = 0;
-//
-//	MAPPING_ENTRY_CONTAINER *container, *next;
-//	container = MAPPING_ENTRY_OPERATOR_FIRST->next;
-//
-//	while (container != NULL) {
-//		next = container->next;
-//		NUM_MAPPING_ENTRIES += container->used;
-//		free(container);
-//		container = next;
-//	}
-//
-//	NUM_MAPPING_ENTRIES += MAPPING_ENTRY_OPERATOR_FIRST->used;
-//
-//	MAPPING_ENTRY_OPERATOR = MAPPING_ENTRY_OPERATOR_FIRST;
-//	MAPPING_ENTRY_OPERATOR->used = 0;
-//	MAPPING_ENTRY_OPERATOR->next = NULL;
-//
-//	return(0);
-//}
-
-//int Hits::dealloc_hits()
-//{
-//	HIT_CONTAINER *container, *next;
-//	container = HIT_OPERATOR_FIRST->next;
-//
-//	while (container != NULL) {
-//		next = container->next;
-//		free(container);
-//		container = next;
-//	}
-//
-//
-//	HIT_OPERATOR = HIT_OPERATOR_FIRST;
-//	HIT_OPERATOR->used = 0;
-//	HIT_OPERATOR->next = NULL;
-//
-//	return(0);
-//}
-
-//int Hits::dealloc_chromosome_entries()
-//{
-//	unsigned int i;
-//
-//	for (i=0; i < _config.CHROM_CONTAINER_SIZE; i++) {
-//		free(CHROMOSOME_ENTRY_OPERATOR.entries[i].mapping_entries);
-////		free(CHROMOSOME_ENTRY_OPERATOR.entries+i);
-//	}
-//	//free(CHROMOSOME_ENTRY_OPERATOR);
-//
-//	return(0);
-//}
-
 int ReadMappings::dealloc_hit_lists_operator()
 {
 	unsigned int i;
@@ -1911,7 +1737,6 @@ int ReadMappings::dealloc_hits_by_score()
 
 
 // read
-
 
 int ReadMappings::map_fast(Read & read, int & firstslot, int & firstpos)
 {

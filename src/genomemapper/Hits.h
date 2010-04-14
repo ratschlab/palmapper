@@ -36,7 +36,7 @@ struct HIT {
 	HIT *last;
 };
 
-template <class Entry> class Container {
+template <bool clearNew, class Entry> class Container {
 public:
 	Container() {
 		_current = _end = NULL;
@@ -47,9 +47,9 @@ public:
 	Entry *newEntry() {
 		if (_current >= _end) {
 			_entries.push_back(_current = new Entry[CONTAINER_SIZE]);
-			//::memset(_current, 0, sizeof(Entry) * CONTAINER_SIZE);
 			_end = _current + CONTAINER_SIZE;
 		}
+		::memset(_current, 0, sizeof(Entry));
 		return _current++;
 	}
 	void clear() {
@@ -85,18 +85,6 @@ struct CHROMOSOME_ENTRY {
 	// in each of these entries rather than having a superior structure.
 };
 
-
-//struct MAPPING_ENTRY_CONTAINER{
-//	MAPPING_ENTRY_CONTAINER() {
-//		used = 0;
-//		next = NULL;
-//	}
-//	MAPPING_ENTRY entries[CONTAINER_SIZE];
-//	unsigned int used;
-//	MAPPING_ENTRY_CONTAINER *next;
-//};
-
-
 struct CHROMOSOME_ENTRY_CONTAINER {
 	CHROMOSOME_ENTRY_CONTAINER(int nrEntries) {
 		entries = new CHROMOSOME_ENTRY[nrEntries];
@@ -113,12 +101,6 @@ typedef struct hits_by_score_structure {
 	HIT *hitpointer;
 	int num;
 } HITS_BY_SCORE_STRUCT;
-
-//struct HIT_CONTAINER {
-//	HIT entries[CONTAINER_SIZE];
-//	unsigned int used;
-//	HIT_CONTAINER *next;
-//};
 
 class QPalma ;
 class Genome ;
@@ -189,17 +171,8 @@ protected:
 	int init_constants()  ;
 	int init_statistic_vars() ;
 	int init_operators() ;
-//	int dealloc_mapping_entries() ;
-//	int dealloc_hits() ;
-//	int dealloc_chromosome_entries() ;
-//	int alloc_readstart_bins() ;
 	int init_alignment_structures(Config * config);
-//	HIT_CONTAINER* alloc_hit_container() ;
-//	HIT* alloc_hit() ;
 	CHROMOSOME_ENTRY* alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand) ;
-//	MAPPING_ENTRY_CONTAINER* alloc_mapping_entry_container() ;
-//	MAPPING_ENTRY* alloc_mapping_entry() ;
-
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 
 	Genome &_genome;
@@ -207,23 +180,6 @@ protected:
 
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	
-/*
-	unsigned short int readpos;
-	unsigned int start;
-	unsigned int end;
-	Chromosome const *chromosome;
-	char orientation;
-	unsigned char mismatches;	// including gaps!
-	unsigned char gaps;
-	signed char start_offset;
-	signed char end_offset;
-	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
-	char aligned;
-	HIT *same_eo_succ;	// the list of HITS_BY_SCORE - only forward pointer for now
-	HIT *next;
-	HIT *last;
-*/
-
 	unsigned int LONGEST_HIT;
 
 public:
@@ -231,26 +187,7 @@ public:
 	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
 
 protected:
-//	HIT **READSTART_BINS;
 	Read &_read;
-
-//	MAPPING_ENTRY_CONTAINER* MAPPING_ENTRY_OPERATOR_FIRST;
-//	MAPPING_ENTRY_CONTAINER* MAPPING_ENTRY_OPERATOR;
-//	HIT_CONTAINER* HIT_OPERATOR_FIRST;
-//	HIT_CONTAINER* HIT_OPERATOR;
-	
-//	unsigned int NUM_MAPPING_ENTRIES;
-};
-
-class HitContainer : public Container<HIT> {
-public:
-	HitContainer() : Container<HIT>() {
-	}
-	HIT *newEntry() {
-		HIT &ret = *Container<HIT>::newEntry();
-		::memset(&ret, 0, sizeof(ret));
-		return &ret;
-	}
 };
 
 class ReadMappings {
@@ -294,8 +231,8 @@ private:
 	GenomeMaps &_genomeMaps;
 	HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
 	unsigned int NUM_SCORE_INTERVALS;
-	Container<MAPPING_ENTRY> _mappings;
-	HitContainer _hits;
+	Container<false, MAPPING_ENTRY> _mappings;
+	Container<true, HIT> _hits;
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 	Hits &_outer;
 	Read const &_read;
