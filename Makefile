@@ -57,6 +57,8 @@ IDX_OBJ = $(ObjDir)/mkindex/init.o \
 	$(ObjDir)/mkindex/alloc.o \
 	$(ObjDir)/mkindex/mkindex.o
 
+CurrentDir := $(shell pwd)
+
 all: palmapper pmindex
 
 palmapper: $(GM_OBJ) src/genomemapper/*.h 
@@ -70,6 +72,9 @@ clean:
 
 test:
 	(cd testcase; make test)
+
+release:
+	make clean; mkdir -p ../release; cd ..; rsync -av $(CurrentDir) release; cd release; rm -rf */.settings */.cproject */.project */.svn */*/.svn ; tar czvf ../release.tar.gz .; cd ..; rm -rf release
 
 # generic rule for compiling c++
 $(ObjDir)/%.o : $(SrcDir)/%.cpp
