@@ -4,6 +4,7 @@
 #ifndef _QPALMA_DP_H_
 #define _QPALMA_DP_H_
 
+#include <stdint.h>
 #include "penalty_info_dp.h"
 #include "fill_matrix.h"
 #include "debug_tools.h"

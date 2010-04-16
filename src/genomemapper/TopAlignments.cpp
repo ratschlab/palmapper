@@ -591,13 +591,6 @@ int TopAlignments::print_top_alignment_records_bedx()
 		
 		double qpalma_score = best->qpalma_score ;
 		
-		if (_config.RTRIM_STRATEGY)
-		{
-			fprintf(MY_OUT_FP, "\ttrimmed=%i", best->rtrim_cut) ;
-			fprintf(MY_OUT_FP, "\n");
-			return 1 ;
-		} 
-		else
 		{
 			if (best->orientation=='+')
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
@@ -620,6 +613,10 @@ int TopAlignments::print_top_alignment_records_bedx()
 				if (best->polytrim_cut_end)
 					fprintf(MY_OUT_FP, ";polytrimEnd=%i", best->polytrim_cut_end) ;
 			}
+			if (_config.RTRIM_STRATEGY)
+			{
+				fprintf(MY_OUT_FP, ";trimmed=%i", best->rtrim_cut) ;
+			} 
 		}
 		delete[] read_anno ;
 	}

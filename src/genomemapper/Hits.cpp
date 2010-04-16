@@ -15,8 +15,10 @@ Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_, Read &read)
 :	_genome(genome_), _genomeMaps(genomemaps_), CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _read(read)
 {
 	REDUNDANT = 0;
-	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
-	for (unsigned int i=0; i!=_genome.LONGEST_CHROMOSOME; ++i)
+	SLOT = 0;
+	HAS_SLOT = 0;
+	GENOME = new CHROMOSOME_ENTRY *[genome->LONGEST_CHROMOSOME];
+	for (unsigned int i=0; i!=genome->LONGEST_CHROMOSOME; ++i)
 		GENOME[i] = NULL;
 
 	// initialize with meta information
