@@ -25,3 +25,4 @@ Dominik Diesch
 
 Andre Kahles
 	- implemented option -log-triggered-reads
+	- implemented SAM as output format
