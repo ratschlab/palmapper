@@ -232,7 +232,7 @@ private:
 	GenomeMaps &_genomeMaps;
 	HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
 	unsigned int NUM_SCORE_INTERVALS;
-	Container<false, MAPPING_ENTRY> _mappings;
+	Container<true, MAPPING_ENTRY> _mappings;
 	Container<true, HIT> _hits;
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 	Hits &_outer;
