@@ -44,25 +44,21 @@ GM_OBJ = $(ObjDir)/genomemapper/GenomeMaps.o \
 	$(ObjDir)/genomemapper/Util.o \
 	$(SHOGUN_OBJ) $(DYNPROG_OBJ)
 
-#	$(ObjDir)/genomemapper/Aligner.o \
-#	$(ObjDir)/genomemapper/Config.o \
-#	$(ObjDir)/genomemapper/Read.o \
-
-IDX_OBJ = $(ObjDir)/mkindex/init.o \
-	$(ObjDir)/mkindex/printindex.o \
-	$(ObjDir)/mkindex/usage.o \
-	$(ObjDir)/mkindex/write.o \
-	$(ObjDir)/mkindex/load.o \
-	$(ObjDir)/mkindex/index.o \
-	$(ObjDir)/mkindex/alloc.o \
-	$(ObjDir)/mkindex/mkindex.o
+IDX_OBJ = $(ObjDir)/pmindex/init.o \
+	$(ObjDir)/pmindex/printindex.o \
+	$(ObjDir)/pmindex/usage.o \
+	$(ObjDir)/pmindex/write.o \
+	$(ObjDir)/pmindex/load.o \
+	$(ObjDir)/pmindex/index.o \
+	$(ObjDir)/pmindex/alloc.o \
+	$(ObjDir)/pmindex/pmindex.o
 
 all: palmapper pmindex
 
 palmapper: $(GM_OBJ) src/genomemapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(GM_OBJ) -lpthread -lz -lm
 
-pmindex:  $(IDX_OBJ) src/mkindex/*.h src/mkindex/mkindex_symbols.c
+pmindex:  $(IDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o pmindex $(IDX_OBJ) 
 
 clean:
