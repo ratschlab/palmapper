@@ -299,7 +299,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
  			// map_complete IF 1) all hit strategy 2) best hit strategy and no mappings found in map_fast BUT NOT IF MM < RL/ID AND gaps=0 (since map_fast has already found them)
 			if (!cancel)
 			{
-				if (((_config.ALL_HIT_STRATEGY!=0) || _config.NOT_MAXIMAL_HITS ||
+				if (((_config.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
 					 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()==0)) &&
 				    (!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0) ) )
 				{
@@ -1003,8 +1003,9 @@ int ReadMappings::seed2genome(unsigned int num, unsigned int index_slot, unsigne
 					// MISMATCH extension
 
 					//combine with possible hit at position seedlength+1 to the left(+) or right(-) to span hit over mismatch
-					if ((!_config.NOT_MAXIMAL_HITS) && hit == NULL && _config.NUM_MISMATCHES != 0) 
+					if (/*(!_config.NOT_MAXIMAL_HITS) &&*/ hit == NULL && _config.NUM_MISMATCHES != 0) 
 					{
+						// TODO: fix heuristics for missing seeds due to seed-hit-cancel strategy
 						if (read_num == num) printf("Now checking if hit can be extended over mismatch\n");
 						mmoffset = (reverse != 2)? -(int)_config.INDEX_DEPTH - 1: (int)_config.INDEX_DEPTH + 1;
 
@@ -1102,6 +1103,7 @@ int ReadMappings::seed2genome(unsigned int num, unsigned int index_slot, unsigne
 				if ( hit != NULL && !(_config.NUM_MISMATCHES == 0 && hit->readpos != 1 && !_config.NOT_MAXIMAL_HITS) )
 				{
 					size_hit(hit, &oldlength, (read_num==num));
+					//printhit(_read,hit) ; fprintf(stdout, "\n") ;
 				}
 
 				TIME_CODE(time2a_part5 += clock()-start_time) ;
@@ -1249,7 +1251,7 @@ int ReadMappings::browse_hits()
 				
 				// if hit.readpos == 2, then spare alignment since if first base is mm, it's cheaper than a gap
 				if (hit->readpos == 2) {
-					if (_config.NOT_MAXIMAL_HITS || hit->mismatches < _config.NUM_MISMATCHES) {
+					if ((_config.NOT_MAXIMAL_HITS && hit->mismatches <= _config.NUM_MISMATCHES) || hit->mismatches < _config.NUM_MISMATCHES) {
 						if (hit->orientation == '+' && hit->start != 1) {
 							if (!_config.NOT_MAXIMAL_HITS || check_mm(_read, *hit->chromosome, hit->start-2, 0, 1)) 
 							{
@@ -1281,7 +1283,7 @@ int ReadMappings::browse_hits()
 
 				// if hit ends at pos |read|-1, then spare alignment since if last base is mm, it's cheaper than a gap
 				if (hit->readpos + hitlength == (int)_read.length()) {
-					if (_config.NOT_MAXIMAL_HITS || hit->mismatches < _config.NUM_MISMATCHES) {
+					if ((_config.NOT_MAXIMAL_HITS && hit->mismatches <= _config.NUM_MISMATCHES) || hit->mismatches < _config.NUM_MISMATCHES) {
 						if (hit->orientation == '+' && hit->end != hit->chromosome->length()) {
 							if (!_config.NOT_MAXIMAL_HITS || check_mm(_read, *hit->chromosome, hit->end, _read.length()-1, 1)) {
 								hit->edit_op[hit->mismatches].pos = _read.length();
@@ -1362,7 +1364,7 @@ int ReadMappings::browse_hits()
 					}
 
 					// Alignment
-					if (hit->mismatches < _config.NUM_EDIT_OPS || _config.NOT_MAXIMAL_HITS)
+					if (hit->mismatches < _config.NUM_EDIT_OPS || (_config.NOT_MAXIMAL_HITS && hit->mismatches <= _config.NUM_EDIT_OPS))
 					{
 						//if (_config.STATISTICS) (*(*(_stats.HITS_READPOS+(hitlength-_config.INDEX_DEPTH))+(hit->readpos-1)))++;
 
@@ -2567,7 +2569,7 @@ int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int rea
 			}
 
 			// perform alignment if at least one edit op can still be afforded:
-			if (mismatches < _config.NUM_EDIT_OPS || _config.NOT_MAXIMAL_HITS) {
+			if (mismatches < _config.NUM_EDIT_OPS || (_config.NOT_MAXIMAL_HITS && mismatches <= _config.NUM_EDIT_OPS)) {
 				k1_aligned = kbound_overhang_alignment(_read, hit, offset, readpos+hitlength-1, start, end, readpos, chromosome, orientation, mismatches);
 				mismatches = hit->mismatches;
 				assert(mismatches<Config::MAX_EDIT_OPS) ;

@@ -63,7 +63,7 @@ Config::Config() {
 	M_SCORE = 0;
 	GAP_SCORE = 5;
 	GAPS_MOST_RIGHT = 0;
-	OVERHANG_ALIGNMENT = 1;
+	OVERHANG_ALIGNMENT = 0;
 	SCORES_OUT = 1;
 	SPLICED_HITS = 0 ;
 	SPLICED_HIT_MIN_LENGTH_SHORT = DEFAULT_SETTING ;
@@ -1122,7 +1122,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		//overhang alignment
 		if (strcmp(argv[i], "-h") == 0) {
 			not_defined = 0;
-			OVERHANG_ALIGNMENT = 0;
+			OVERHANG_ALIGNMENT = 1;
 		}
 
 		//overhang alignment
@@ -1235,7 +1235,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		exit(1);
 	}
 
-	NOT_MAXIMAL_HITS = false ;//SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
+	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
 
 	return 0;
 }
@@ -1269,7 +1269,7 @@ int Config::usage()
 	printf(" -z INT         report a number of top alignments\n\n");
 
 	printf(" -r             disable reverse alignment\n");
-	printf(" -h             always perform alignment on entire read (implied for spliced alignments)\n");
+	printf(" -h             perform alignment of flanking regions of hits\n");
 	printf(" -d             align gaps most right (most left) (ignored for spliced alignments)\n");
 	printf(" -w             allow more gaps for best hit (ignored for spliced alignments)\n");
 	//printf(" -e         report edit operations (alignment scores)\n");
