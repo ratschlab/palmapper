@@ -2581,8 +2581,8 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	  if (strand=='-')
 	    read_anno=reverse(complement(read_anno)) ;
 
-	  /*
-	    bool rescued_alignment = false ;
+/*
+	  bool rescued_alignment = false ;
 	    int rescue_start = 0 ;
 	    int rescue_end = _read.lenght() ;
 	    if (alignment_valid && (alignment_mismatches > _config.NUM_MISMATCHES || alignment_gaps > _config.NUM_GAPS))
