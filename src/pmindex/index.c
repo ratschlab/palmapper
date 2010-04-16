@@ -1,7 +1,7 @@
 // Authors: Korbinian Schneeberger and Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
-#include "mkindex.h"
+#include "pmindex.h"
 
 int pos2bin(unsigned int slot, unsigned int chr);
 int pos2bin_rev(unsigned int slot, unsigned int chr);

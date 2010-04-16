@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "mkindex.h"
-#include "mkindex_symbols.c"
+#include "pmindex.h"
+#include "pmindex_symbols.c"
 
 int load_chromosomes();
 char* get_seq(unsigned int n);

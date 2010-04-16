@@ -1,7 +1,7 @@
 // Authors: Korbinian Schneeberger and Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
-#include "mkindex.h"
+#include "pmindex.h"
 
 int init_defaults();
 int init_opts(int argc, char *argv[]);
