@@ -96,7 +96,11 @@ void Alignment::myalign_fast(int nr_paths_p, char* dna, int dna_len_p, char* est
     
     int i_pos=hit_read+i ;
     int j_pos=hit_dna+i ;
-
+	if (i_pos<0 || i_pos>=est_len_p)
+		continue ;
+	if (j_pos<0 || j_pos>=dna_len_p)
+		continue ;
+	
     double score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(est[i_pos]),prb[i_pos]) ;
     
     if (score>best_match){
