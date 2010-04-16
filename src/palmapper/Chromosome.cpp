@@ -1,4 +1,4 @@
-#include <genomemapper/Chromosome.h>
+#include <palmapper/Chromosome.h>
 
 template <>  char const *ChromosomeBase<2>::_num2dna = "ACGT";
 template <>  char const *ChromosomeBase<4>::_num2dna = "ACGTNRYMKWSBDHVN";

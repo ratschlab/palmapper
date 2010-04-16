@@ -1,7 +1,7 @@
 #pragma once
 
-#include <genomemapper/Config.h>
-#include <genomemapper/dyn_prog/qpalma_dp.h>
+#include <palmapper/Config.h>
+#include <palmapper/dyn_prog/qpalma_dp.h>
 
 struct region_t {
 	int32_t start;

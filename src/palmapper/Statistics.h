@@ -1,6 +1,6 @@
 #pragma once
 
-#include <genomemapper/Config.h>
+#include <palmapper/Config.h>
 
 class Statistics {
 public:

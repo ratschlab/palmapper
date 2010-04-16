@@ -1,8 +1,8 @@
 #pragma once
 
-#include <genomemapper/Config.h>
-#include <genomemapper/Statistics.h>
-#include <genomemapper/Util.h>
+#include <palmapper/Config.h>
+#include <palmapper/Statistics.h>
+#include <palmapper/Util.h>
 
 #include <string>
 

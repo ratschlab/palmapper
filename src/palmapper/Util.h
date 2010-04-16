@@ -6,7 +6,7 @@
 #include <string>
 #include <assert.h>
 
-#include <genomemapper/Config.h>
+#include <palmapper/Config.h>
 
 class Util {
 public:

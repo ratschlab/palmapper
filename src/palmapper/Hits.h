@@ -2,9 +2,9 @@
 
 #include <assert.h>
 #include <vector>
-#include <genomemapper/Config.h>
-#include <genomemapper/Chromosome.h>
-#include <genomemapper/Read.h>
+#include <palmapper/Config.h>
+#include <palmapper/Chromosome.h>
+#include <palmapper/Read.h>
 
 #define CONTAINER_SIZE 100000
 #define SCORE_INTERVAL 1

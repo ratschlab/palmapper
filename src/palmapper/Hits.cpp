@@ -3,7 +3,7 @@
 // Copyright (C) 2009-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include <limits.h>
-#include "genomemapper.h"
+#include "palmapper.h"
 #include "Hits.h"
 #include "align.h"
 #include "print.h"

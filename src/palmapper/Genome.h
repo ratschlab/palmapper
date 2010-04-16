@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <genomemapper/Chromosome.h>
+#include <palmapper/Chromosome.h>
 
 
 #define CHR_DESC_LENGTH 50

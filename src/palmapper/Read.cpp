@@ -1,7 +1,7 @@
 // Authors: Korbinian Schneeberger, Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
-#include <genomemapper/Util.h>
+#include <palmapper/Util.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -11,9 +11,9 @@
 
 #include <iostream>
 
-#include <genomemapper/Hits.h>
-#include <genomemapper/Read.h>
-#include <genomemapper/genomemapper.h>
+#include <palmapper/Hits.h>
+#include <palmapper/Read.h>
+#include <palmapper/palmapper.h>
 
 using namespace std;
 

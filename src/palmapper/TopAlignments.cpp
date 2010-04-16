@@ -4,7 +4,7 @@
 #include <time.h>
 #include <pthread.h>
 
-#include "genomemapper.h"
+#include "palmapper.h"
 #include "print.h"
 #include "dyn_prog/qpalma_dp.h"
 

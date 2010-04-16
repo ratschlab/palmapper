@@ -1,6 +1,6 @@
 #pragma once
 
-#include "genomemapper.h"
+#include "palmapper.h"
 #include "GenomeMaps.h"
 #include <pthread.h>
 
