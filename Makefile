@@ -74,7 +74,7 @@ test:
 	(cd testcase; make test)
 
 release:
-	make clean; mkdir -p ../release; cd ..; rsync -av $(CurrentDir) release; cd release; rm -rf */.settings */.cproject */.project */.svn */*/.svn ; tar czvf ../release.tar.gz .; cd ..; rm -rf release
+	make clean; mkdir -p ../release; cd ..; rsync -av $(CurrentDir) release; cd release; rm -rf */.settings */.cproject */.project */.svn */*/.svn */*/*.svn; tar czvf ../release.tar.gz .; cd ..; rm -rf release
 
 # generic rule for compiling c++
 $(ObjDir)/%.o : $(SrcDir)/%.cpp
