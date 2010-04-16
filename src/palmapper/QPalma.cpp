@@ -6,11 +6,11 @@
 #include <sys/time.h>
 #include <time.h>
 
-#include "genomemapper.h"
+#include "palmapper.h"
 #include "IntervalQuery.h"
 #include "dyn_prog/qpalma_dp.h"
 
-#include <genomemapper/QPalma.h>
+#include <palmapper/QPalma.h>
 
 #define LONG_HIT_EXTEND_REGION _config.SPLICED_LONGEST_INTRON_LENGTH
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 

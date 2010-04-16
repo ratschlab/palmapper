@@ -4,7 +4,7 @@
 #include <time.h>
 #include <zlib.h>
 
-#include "genomemapper.h"
+#include "palmapper.h"
 #include "dyn_prog/qpalma_dp.h"
 #include "GenomeMaps.h"
 

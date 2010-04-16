@@ -1,4 +1,4 @@
-#include <genomemapper/Util.h>
+#include <palmapper/Util.h>
 
 bool Util::doInit() {
 	POWER[0] = 1;

@@ -31,15 +31,15 @@
 // ####### GLOBAL VARIABLES #####################################
 // ##############################################################
 
-#include <genomemapper/Config.h>
-#include <genomemapper/Genome.h>
-#include <genomemapper/Hits.h>
-#include <genomemapper/Read.h>
-#include <genomemapper/Statistics.h>
-#include <genomemapper/Util.h>
-#include <genomemapper/TopAlignments.h>
-#include <genomemapper/QPalma.h>
-#include <genomemapper/GenomeMaps.h>
+#include <palmapper/Config.h>
+#include <palmapper/Genome.h>
+#include <palmapper/Hits.h>
+#include <palmapper/Read.h>
+#include <palmapper/Statistics.h>
+#include <palmapper/Util.h>
+#include <palmapper/TopAlignments.h>
+#include <palmapper/QPalma.h>
+#include <palmapper/GenomeMaps.h>
 
 extern Config _config;
 extern Statistics _stats;

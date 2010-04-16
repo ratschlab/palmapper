@@ -1,4 +1,4 @@
-#include <genomemapper/Statistics.h>
+#include <palmapper/Statistics.h>
 
 Statistics::Statistics() 
 {

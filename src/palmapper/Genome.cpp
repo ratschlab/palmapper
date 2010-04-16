@@ -5,9 +5,9 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#include "genomemapper.h"
+#include "palmapper.h"
 
-#include <genomemapper/Genome.h>
+#include <palmapper/Genome.h>
 
 inline char get_compl_base_(char c)
 {

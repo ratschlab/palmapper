@@ -10,38 +10,38 @@ CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparenthes
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS = 
 
-SHOGUN_OBJ = $(ObjDir)/genomemapper/shogun/init.o \
-	$(ObjDir)/genomemapper/shogun/Mathematics.o \
-	$(ObjDir)/genomemapper/shogun/io.o \
-	$(ObjDir)/genomemapper/shogun/Parallel.o \
-	$(ObjDir)/genomemapper/shogun/Version.o \
-	$(ObjDir)/genomemapper/shogun/SGObject.o \
-	$(ObjDir)/genomemapper/shogun/ShogunException.o \
-	$(ObjDir)/genomemapper/shogun/Signal.o
+SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
+	$(ObjDir)/palmapper/shogun/Mathematics.o \
+	$(ObjDir)/palmapper/shogun/io.o \
+	$(ObjDir)/palmapper/shogun/Parallel.o \
+	$(ObjDir)/palmapper/shogun/Version.o \
+	$(ObjDir)/palmapper/shogun/SGObject.o \
+	$(ObjDir)/palmapper/shogun/ShogunException.o \
+	$(ObjDir)/palmapper/shogun/Signal.o
 
-DYNPROG_OBJ = $(ObjDir)/genomemapper/dyn_prog/Mathmatics_dp.o \
-	$(ObjDir)/genomemapper/dyn_prog/io_dp.o \
-	$(ObjDir)/genomemapper/dyn_prog/qpalma_dp.o \
-	$(ObjDir)/genomemapper/dyn_prog/debug_tools.o \
-	$(ObjDir)/genomemapper/dyn_prog/penalty_info_dp.o \
-	$(ObjDir)/genomemapper/dyn_prog/result_align.o \
-	$(ObjDir)/genomemapper/dyn_prog/fill_matrix.o
+DYNPROG_OBJ = $(ObjDir)/palmapper/dyn_prog/Mathmatics_dp.o \
+	$(ObjDir)/palmapper/dyn_prog/io_dp.o \
+	$(ObjDir)/palmapper/dyn_prog/qpalma_dp.o \
+	$(ObjDir)/palmapper/dyn_prog/debug_tools.o \
+	$(ObjDir)/palmapper/dyn_prog/penalty_info_dp.o \
+	$(ObjDir)/palmapper/dyn_prog/result_align.o \
+	$(ObjDir)/palmapper/dyn_prog/fill_matrix.o
 
-GM_OBJ = $(ObjDir)/genomemapper/GenomeMaps.o \
-	$(ObjDir)/genomemapper/QPalma.o \
-	$(ObjDir)/genomemapper/align.o \
-	$(ObjDir)/genomemapper/TopAlignments.o \
-	$(ObjDir)/genomemapper/IntervalQuery.o \
-	$(ObjDir)/genomemapper/genomemapper.o \
-	$(ObjDir)/genomemapper/init.o \
-	$(ObjDir)/genomemapper/print.o \
-	$(ObjDir)/genomemapper/Chromosome.o \
-	$(ObjDir)/genomemapper/Config.o \
-	$(ObjDir)/genomemapper/Genome.o \
-	$(ObjDir)/genomemapper/Hits.o \
-	$(ObjDir)/genomemapper/Read.o \
-	$(ObjDir)/genomemapper/Statistics.o \
-	$(ObjDir)/genomemapper/Util.o \
+GM_OBJ = $(ObjDir)/palmapper/GenomeMaps.o \
+	$(ObjDir)/palmapper/QPalma.o \
+	$(ObjDir)/palmapper/align.o \
+	$(ObjDir)/palmapper/TopAlignments.o \
+	$(ObjDir)/palmapper/IntervalQuery.o \
+	$(ObjDir)/palmapper/palmapper.o \
+	$(ObjDir)/palmapper/init.o \
+	$(ObjDir)/palmapper/print.o \
+	$(ObjDir)/palmapper/Chromosome.o \
+	$(ObjDir)/palmapper/Config.o \
+	$(ObjDir)/palmapper/Genome.o \
+	$(ObjDir)/palmapper/Hits.o \
+	$(ObjDir)/palmapper/Read.o \
+	$(ObjDir)/palmapper/Statistics.o \
+	$(ObjDir)/palmapper/Util.o \
 	$(SHOGUN_OBJ) $(DYNPROG_OBJ)
 
 IDX_OBJ = $(ObjDir)/pmindex/init.o \
@@ -57,7 +57,7 @@ CurrentDir := $(shell pwd)
 
 all: palmapper pmindex
 
-palmapper: $(GM_OBJ) src/genomemapper/*.h 
+palmapper: $(GM_OBJ) src/palmapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(GM_OBJ) -lpthread -lz -lm
 
 pmindex:  $(IDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c

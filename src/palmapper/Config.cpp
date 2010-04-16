@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <genomemapper/Config.h>
-#include <genomemapper/Read.h>
-#include <genomemapper/Genome.h>
+#include <palmapper/Config.h>
+#include <palmapper/Read.h>
+#include <palmapper/Genome.h>
 
 Config::Config() {
 	NUM_THREADS = 4;
@@ -1251,7 +1251,7 @@ int Config::usage()
 {
 	//VersionHeader() ;
 
-	printf("USAGE: genomemapper [options]\n");
+	printf("USAGE: palmapper [options]\n");
 	printf("\n");
 	printf("mandatory:\n");
 	printf(" -i STRING      reference sequence (fasta file and prefix to index files)\n");

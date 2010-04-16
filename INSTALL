@@ -15,7 +15,7 @@ or
 Testing
 -------
 
-To test whether genomemapper produces expected results, use
+To test whether palmapper produces expected results, use
 
 cd ./testcase
 make test
