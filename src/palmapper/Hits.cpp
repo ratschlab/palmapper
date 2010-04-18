@@ -433,10 +433,11 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 							_read.set_orig(trim_orig_read) ;
 				    	}
 
-						_read.cutOffLast();
-						_read.cutOffLast();
-						_read.cutOffLast();
-						rtrim_cut += 3 ;
+						for (int s=0; s<_config.RTRIM_STRATEGY_STEP; s++)
+						{
+							_read.cutOffLast();
+							rtrim_cut += 1 ;
+						}
 						
 						hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
 						hits.dealloc_hits();
