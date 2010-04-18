@@ -13,6 +13,7 @@ Config::Config() {
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
 	RTRIM_STRATEGY=0 ;
 	RTRIM_STRATEGY_MIN_LEN=25 ;
+	RTRIM_STRATEGY_STEP = DEFAULT_SETTING ;
 	POLYTRIM_STRATEGY=0 ;
 	POLYTRIM_STRATEGY_MIN_LEN=25 ;
 	POLYTRIM_STRATEGY_STEP = DEFAULT_SETTING ;
@@ -163,6 +164,15 @@ int Config::applyDefaults(Genome * genome)
 		{
 			POLYTRIM_STRATEGY_STEP = (NUM_EDIT_OPS>=1) ? NUM_EDIT_OPS : 1 ;
 			fprintf(stdout, "Automatically selecting polytrim step size: %int\n", POLYTRIM_STRATEGY_STEP) ;
+		}
+	}
+
+	if (RTRIM_STRATEGY)
+	{
+		if ((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING)
+		{
+			RTRIM_STRATEGY_STEP = (NUM_EDIT_OPS>=2) ? NUM_EDIT_OPS/2 : 1 ;
+			fprintf(stdout, "Automatically selecting rtrim step size: %int\n", RTRIM_STRATEGY_STEP) ;
 		}
 	}
 

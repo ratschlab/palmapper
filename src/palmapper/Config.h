@@ -62,6 +62,7 @@ public:
 
 	unsigned int RTRIM_STRATEGY;
 	unsigned int RTRIM_STRATEGY_MIN_LEN;
+	unsigned int RTRIM_STRATEGY_STEP;
 	unsigned int POLYTRIM_STRATEGY;
 	unsigned int POLYTRIM_STRATEGY_MIN_LEN;
 	unsigned int POLYTRIM_STRATEGY_STEP ;
