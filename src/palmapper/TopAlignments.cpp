@@ -535,7 +535,6 @@ int TopAlignments::print_top_alignment_records_bedx()
 	}
 	
 	{
-		char *read_anno=new char[strlen(best->read_anno)+(best->polytrim_cut_start+best->polytrim_cut_end)*4+20] ;
 		int polytrim_cut_start=best->polytrim_cut_start ;
 		int polytrim_cut_end=best->polytrim_cut_end ;
 
@@ -544,6 +543,8 @@ int TopAlignments::print_top_alignment_records_bedx()
 			assert(polytrim_cut_end==0) ;
 			polytrim_cut_end = best->rtrim_cut ;
 		}
+
+		char *read_anno=new char[strlen(best->read_anno)+(polytrim_cut_start+polytrim_cut_end)*4+20] ;
 		
 		if ((_config.POLYTRIM_STRATEGY||_config.RTRIM_STRATEGY) && (polytrim_cut_start>0 || polytrim_cut_end>0))
 		{

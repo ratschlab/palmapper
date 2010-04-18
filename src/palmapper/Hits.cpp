@@ -222,7 +222,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		unsigned int polytrim_cut_end_curr = 0 ;
 		unsigned int poly_length_start=0 ;
 		unsigned int poly_length_end=0 ;
-		Read* poly_orig_read = NULL ;
+		Read* trim_orig_read = NULL ;
 
 		clock_t start_time = clock() ;
 
@@ -425,7 +425,15 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 				{
 				    if (_config.RTRIM_STRATEGY && (_read.length() > _config.RTRIM_STRATEGY_MIN_LEN))
 					{
-				    	_read.cutOffLast();
+						if (rtrim_cut==0)
+						{
+							_read.set_orig(NULL) ;
+							delete trim_orig_read ;
+							trim_orig_read=new Read(_read) ;
+							_read.set_orig(trim_orig_read) ;
+				    	}
+
+						_read.cutOffLast();
 
 						rtrim_cut += 1 ;
 						
@@ -452,13 +460,13 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 
 							// copy original read
 							_read.set_orig(NULL) ;
-							delete poly_orig_read ;
-							poly_orig_read=new Read(_read) ;
-							_read.set_orig(poly_orig_read) ;
+							delete trim_orig_read ;
+							trim_orig_read=new Read(_read) ;
+							_read.set_orig(trim_orig_read) ;
 							if (_read.is_full_poly())
 								poly_length_start=poly_length_end=0 ;
 						}
-						assert(poly_orig_read!=NULL) ;
+						assert(trim_orig_read!=NULL) ;
 
 						if (poly_length_start <= _config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
 							poly_length_start=0 ;
@@ -477,7 +485,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 							if (start_cond && (polytrim_cut_start<polytrim_cut_end || !end_cond))
 							{
 								polytrim_cut_start += _config.POLYTRIM_STRATEGY_STEP ;
-								_read.trim_read_start(poly_orig_read, polytrim_cut_start) ;
+								_read.trim_read_start(trim_orig_read, polytrim_cut_start) ;
 								restart = true ;
 								polytrim_cut_start_curr = polytrim_cut_start ;
 								polytrim_cut_end_curr = 0 ;
@@ -485,7 +493,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 							if (end_cond && !restart)
 							{
 								polytrim_cut_end += _config.POLYTRIM_STRATEGY_STEP ;
-								_read.trim_read_end(poly_orig_read, polytrim_cut_end) ;
+								_read.trim_read_end(trim_orig_read, polytrim_cut_end) ;
 								restart = true ;
 								polytrim_cut_start_curr = 0 ;
 								polytrim_cut_end_curr = polytrim_cut_end ;
@@ -531,8 +539,11 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 			CHROMOSOME_ENTRY_OPERATOR.used = 0;
 			if (LONGEST_HIT != 0)
 				hits.dealloc_hit_lists_operator();
+
+			// forget about the original read 
 			_read.set_orig(NULL) ;
-			delete poly_orig_read ;
+			delete trim_orig_read ;
+			trim_orig_read=NULL ;
 
 			if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 			{
