@@ -124,11 +124,31 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 
 					// Score-Function:
 					if (orientation == '+') {
+						if (chrstart+i-1>=(int)chromosome.length())
+						{
+							for (i=0; i!=2*K+1; ++i) {
+								free(M[i]);
+								free(T[i]);
+							}
+							free(M);
+							free(T);
+							return -1;
+						}
 						if (chromosome[chrstart+i-1] != READ[readstart+j-offset_comp-1] || !unique_base(READ[readstart+j-offset_comp-1]))
-							 score = Mismatch_score;
+							score = Mismatch_score;
 						else score = Match_score;
 					}
 					else {
+						if (chrstart-i+1<0)
+						{
+							for (i=0; i!=2*K+1; ++i) {
+								free(M[i]);
+								free(T[i]);
+							}
+							free(M);
+							free(T);
+							return -1;
+						}
 						if (get_compl_base(chromosome[chrstart-i+1]) != READ[readstart+j-offset_comp-1] || !unique_base(READ[readstart+j-offset_comp-1]))
 							 score = Mismatch_score;
 						else score = Match_score;
@@ -385,7 +405,7 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
 
-	unsigned int chrstart, chrend ;
+	int chrstart, chrend ;
 	int offset_front, offset_end;
 	if (orientation == '+') {
 		chrstart = start - hitreadpos;		// 0-initialized
@@ -394,14 +414,15 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 		else offset_front = K;
 
 		chrend = chrstart + Read_length;			// 1-initialized
-		if (chrend + K > Chr_length) offset_end = Chr_length - chrend;
-			else offset_end = K;
+		if (chrend + K > (int)Chr_length) 
+			offset_end = Chr_length - chrend;
+		else offset_end = K;
 
 		chrstart -= offset_front;
 	}
 	else {
 		chrstart = end + hitreadpos - 2;		// 0-initialized
-		if (chrstart + K >= Chr_length) offset_front = Chr_length - chrstart - 1;
+		if (chrstart + K >= (int)Chr_length) offset_front = Chr_length - chrstart - 1;
 			else offset_front = K;
 
 		chrend = chrstart - Read_length + 1;		// 0-initialized
@@ -446,17 +467,39 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 					if (j>K) c = j - K;
 						else c = 0;
 
-				if ( j > offset_front && j <= length-offset_end ) {
+				if ( j > offset_front && j <= length-offset_end ) 
+				{
 
 //					if (_config.STATISTICS) ++_stats.CELLS_GLOBAL;
 
 					// Score-Function:
 					if (orientation == '+') {
+						if (chrstart+i-1>=(int)chromosome.length())
+						{
+							for (i=0; i!=2*K+1; ++i) {
+								free(M[i]);
+								free(T[i]);
+							}
+							free(M);
+							free(T);
+							return -1;
+						}
 						if (chromosome[chrstart+i-1] != READ[j-offset_front-1] || !unique_base(READ[j-offset_front-1]))
 							 score = _config.MM_SCORE;
 						else score = _config.M_SCORE;
 					}
 					else {
+						if (chrstart-i+1<0)
+						{
+							for (i=0; i!=2*K+1; ++i) {
+								free(M[i]);
+								free(T[i]);
+							}
+							free(M);
+							free(T);
+							return -1;
+						}
+						
 						if (get_compl_base(chromosome[chrstart-i+1]) != READ[j-offset_front-1] || !unique_base(READ[j-offset_front-1]))
 							 score = Mismatch_score;
 						else score = Match_score;
