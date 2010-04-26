@@ -12,7 +12,7 @@ Config::Config() {
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
 	RTRIM_STRATEGY=0 ;
-	RTRIM_STRATEGY_MIN_LEN=25 ;
+	RTRIM_STRATEGY_MIN_LEN = 25 ;
 	RTRIM_STRATEGY_STEP = DEFAULT_SETTING ;
 	POLYTRIM_STRATEGY=0 ;
 	POLYTRIM_STRATEGY_MIN_LEN=25 ;
@@ -361,6 +361,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (RTRIM_STRATEGY_MIN_LEN<INDEX_DEPTH)
 			{
 				fprintf(stderr,	"ERROR: minimal rtrim alignment length too short\n");
+				exit(1) ;
+			}
+		}
+
+		//partial alignments for rtrim
+		if (strcmp(argv[i], "-rtrim-step") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -rtrim-step\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			RTRIM_STRATEGY = 1 ;
+			RTRIM_STRATEGY_STEP = atoi(argv[i]) ;
+			if (RTRIM_STRATEGY_STEP<1)
+			{
+				fprintf(stderr,	"ERROR: rtrim step size too short\n");
 				exit(1) ;
 			}
 		}
