@@ -545,13 +545,18 @@ int TopAlignments::print_top_alignment_records_bedx()
 		}
 
 		char *read_anno=new char[strlen(best->read_anno)+(polytrim_cut_start+polytrim_cut_end)*4+20] ;
+		const char *read_qual = _read.quality()[0] ;
+		int read_len = _read.length() ;
 		
 		if ((_config.POLYTRIM_STRATEGY||_config.RTRIM_STRATEGY) && (polytrim_cut_start>0 || polytrim_cut_end>0))
 		{
+			char* orig_read = _read.get_orig()->data() ;
+			int orig_len = _read.get_orig()->length() ;
+			read_len = orig_len ;
+			read_qual = _read.get_orig()->quality()[0] ;
+
 			if (best->orientation=='+')
 			{
-				char* orig_read = _read.get_orig()->data() ;
-				int orig_len = _read.get_orig()->length() ;
 				for (int i=0; i<polytrim_cut_start; i++)
 				{
 					read_anno[4*i]='[' ;
@@ -572,8 +577,6 @@ int TopAlignments::print_top_alignment_records_bedx()
 			}
 			else
 			{ // in this case read_anno is reverse complemented
-				char* orig_read = _read.get_orig()->data() ;
-				int orig_len = _read.get_orig()->length() ;
 				for (int i=0; i<polytrim_cut_end; i++)
 				{
 					read_anno[4*i]='[' ;
@@ -601,14 +604,14 @@ int TopAlignments::print_top_alignment_records_bedx()
 		{
 			if (best->orientation=='+')
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
-						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, read_anno, _read.quality()[0]) ;
+						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, read_anno, read_qual) ;
 			else
 			{
 				// reverse order of quality 
 				char qual[500] ;
-				for (int i=0; i<((int)_read.length()); i++)
-					qual[i]=_read.quality()[0][((int)_read.length())-i-1] ;
-				qual[((int)_read.length())]=0 ;
+				for (int i=0; i<read_len; i++)
+					qual[i]=read_qual[((int)_read.length())-i-1] ;
+				qual[read_len]=0 ;
 				
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
 						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, read_anno, qual) ;
