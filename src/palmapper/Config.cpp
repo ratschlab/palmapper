@@ -130,7 +130,7 @@ int Config::applyDefaults(Genome * genome)
 		fprintf(stdout, "\n") ;
 	}
 	
-	if (SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING)
+	if (SPLICED_HITS && SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING)
 	{
 		unsigned long int genome_size = 0 ;
 		for (unsigned int i=0; i<genome->nrChromosomes(); i++)
