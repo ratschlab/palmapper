@@ -608,9 +608,9 @@ int TopAlignments::print_top_alignment_records_bedx()
 			else
 			{
 				// reverse order of quality 
-				char qual[500] ;
+				char qual[read_len+1] ;
 				for (int i=0; i<read_len; i++)
-					qual[i]=read_qual[((int)_read.length())-i-1] ;
+					qual[i]=read_qual[((int)read_len)-i-1] ;
 				qual[read_len]=0 ;
 				
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
