@@ -229,6 +229,34 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		eof = _read.read_short_read(QUERY_FP);
 		ReadMappings hits(genome, genomeMaps, *this, _read);
 
+		unsigned int adapter_cut_start = 0 ;
+		unsigned int adapter_cut_end = 0 ;
+		if (_config.ADAPTERTRIM_STRATEGY)
+		{
+			_read.find_adapter(adapter_cut_start, adapter_cut_end) ;
+			if (_read.length()-adapter_cut_start-adapter_cut_start < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
+			{
+				if (_config.LEFTOVER_FILE_NAME.length() > 0)
+					print_leftovers("(too short after trimming)", LEFTOVER_FP);
+				continue ;
+			}
+
+			if (adapter_cut_start!=0)
+			{
+				Read *trim_read=new Read(_read) ;
+				_read.trim_read_start(trim_read, adapter_cut_start) ;
+				delete trim_read ;
+			}
+			if (adapter_cut_start!=0)
+			{
+				Read *trim_read=new Read(_read) ;
+				_read.trim_read_end(trim_read, adapter_cut_end) ;
+				delete trim_read ;
+			}
+			//if (adapter_cut_start!=0 || adapter_cut_end!=0)
+			//fprintf(stdout, "adapter-trimmed read: %s\n", _read.data()) ;
+		}
+
 	restart:
 
 		// make it somehow dependent on the read length, the index depth and the number of mismatches 
@@ -433,7 +461,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 							_read.set_orig(trim_orig_read) ;
 				    	}
 
-						for (int s=0; s<_config.RTRIM_STRATEGY_STEP; s++)
+						for (int s=0; s<(int)_config.RTRIM_STRATEGY_STEP; s++)
 						{
 							_read.cutOffLast();
 							rtrim_cut += 1 ;
