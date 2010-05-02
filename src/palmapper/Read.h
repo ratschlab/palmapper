@@ -83,6 +83,101 @@ public:
 		READ_QUALITY[0][READ_LENGTH] = '\0';
 	}
 
+	bool is_match(char a, char b)
+		{
+			switch(a)
+			{
+			case 'a':
+			case 'A':
+				return b=='A' || b=='a' || b=='N' || b=='n' ;
+			case 'c':
+			case 'C':
+				return b=='C' || b=='c' || b=='N' || b=='n' ;
+			case 'g':
+			case 'G':
+				return b=='G' || b=='g' || b=='N' || b=='n' ;
+			case 't':
+			case 'T':
+				return b=='T' || b=='t' || b=='N' || b=='n' ;
+			default:
+				return toupper(a)==toupper(b) || toupper(a)=='N' || toupper(b)=='N' ;
+			}
+		}
+
+	int count_matches_fwd(int read_pos, const char* adapter, const int adapter_len, int & len)
+		{
+			int matches= 0 ;
+			for (int i=0; i<read_pos && adapter_len-i-1>=0; i++, len++)
+				matches += is_match(READ[read_pos-i-1], adapter[adapter_len-i-1]) ;
+			return matches ;
+		}
+
+	int count_matches_rev(int read_pos, const char* adapter, const int adapter_len, int & len)
+		{
+			int matches= 0 ;
+			for (int i=0; read_pos+i<(int)READ_LENGTH && i<adapter_len; i++, len++)
+				matches += is_match(READ[read_pos+i], adapter[i]) ;
+			return matches ;
+		}
+		
+	void find_adapter(unsigned int &adapter_length_start, unsigned int &adapter_length_end, float frac=0.7)
+	{
+		const char *ad_fwd="ACACTCTTTCCCTACACGACGCTCTTCCGATCT" ;
+		const int ad_len_fwd = strlen(ad_fwd) ;
+		const char *ad_rev="AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCG" ;
+		const int ad_len_rev = strlen(ad_rev) ;
+		
+		{
+			int best_m=0 ;
+			int best_i=0 ;
+			int best_len = 0 ;
+
+			for (unsigned int i=1; i<READ_LENGTH/2; i++)
+			{
+				int len=0 ;
+				int m=count_matches_fwd(i, ad_fwd, ad_len_fwd, len) ;
+				if (m>best_m)
+				{
+					best_m=m ;
+					best_i=i ;
+					best_len=len ;
+				}
+			}
+			
+			if (best_len>=6 && (float)best_m/(float)best_len >= frac)
+			{
+				adapter_length_start = best_i-1 ;
+				//fprintf(stdout, "found adapter fwd: read_id=%s\nread=%s\nbest_m=%i\nbest_i=%i\nbest_len=%i\n", READ_ID, READ, best_m, best_i, best_len) ;
+				//exit(-1) ;
+			}
+		}
+		
+		{
+			int best_m=0 ;
+			int best_i=0 ;
+			int best_len=0 ;
+			for (unsigned int i=READ_LENGTH/2; i<READ_LENGTH; i++)
+			{
+				int len=0 ;
+				int m=count_matches_rev(i, ad_rev, ad_len_rev, len) ;
+				if (m>best_m)
+				{
+					best_m=m ;
+					best_i=i ;
+					best_len=len ;
+				}
+			}
+			
+			if (best_len >=6 && (float)best_m/(float)best_len >= frac)
+			{
+				adapter_length_end = READ_LENGTH-best_i ;
+				//fprintf(stdout, "found adapter rev: read_id=%s\nread=%s\nbest_m=%i\nbest_i=%i\nbest_len=%i\n", READ_ID, READ, best_m, best_i, best_len) ;
+				//exit(-1) ;
+			}
+		}
+		
+	}
+
 
 	void find_poly(unsigned int &poly_length_start, unsigned int &poly_length_end, float frac=0.8)
 	{

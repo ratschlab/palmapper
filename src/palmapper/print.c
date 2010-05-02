@@ -124,13 +124,26 @@ void print_leftovers(const char * tag, FILE *LEFTOVER_FP)
 {
 	num_unmapped++ ;
 	
-	if (_read.format() == 0)
-		fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", _read.id(), tag, _read.data(), _read.quality()[0]);
-	else if (_read.format() == 1)
-		fprintf(LEFTOVER_FP, ">%s%s\n%s\n", _read.id(), tag, _read.data());
+	if (_read.get_orig()==NULL)
+	{
+		if (_read.format() == 0)
+			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", _read.id(), tag, _read.data(), _read.quality()[0]);
+		else if (_read.format() == 1)
+			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", _read.id(), tag, _read.data());
+		else
+			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), tag, _read.data(),
+					_read.pe_flag(), _read.quality()[0], _read.quality()[1], _read.quality()[2]);
+	}
 	else
-		fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), tag, _read.data(),
-				_read.pe_flag(), _read.quality()[0], _read.quality()[1], _read.quality()[2]);
+	{
+		if (_read.format() == 0)
+			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", _read.id(), tag, _read.get_orig()->data(), _read.get_orig()->quality()[0]);
+		else if (_read.format() == 1)
+			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", _read.id(), tag, _read.get_orig()->data());
+		else
+			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), tag, _read.get_orig()->data(),
+					_read.pe_flag(), _read.get_orig()->quality()[0], _read.get_orig()->quality()[1], _read.get_orig()->quality()[2]);
+	}
 }
 
 void print_alignment_matrix(int chrstart, int readstart, int length,
