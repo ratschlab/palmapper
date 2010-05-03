@@ -146,7 +146,7 @@ public:
 			
 			if (best_len>=6 && (float)best_m/(float)best_len >= frac)
 			{
-				adapter_length_start = best_i-1 ;
+				adapter_length_start = best_i ;
 				//fprintf(stdout, "found adapter fwd: read_id=%s\nread=%s\nbest_m=%i\nbest_i=%i\nbest_len=%i\n", READ_ID, READ, best_m, best_i, best_len) ;
 				//exit(-1) ;
 			}
@@ -170,7 +170,7 @@ public:
 			
 			if (best_len >=6 && (float)best_m/(float)best_len >= frac)
 			{
-				adapter_length_end = READ_LENGTH-best_i-1 ;
+				adapter_length_end = READ_LENGTH-best_i ;
 				//fprintf(stdout, "found adapter rev: read_id=%s\nread=%s\nbest_m=%i\nbest_i=%i\nbest_len=%i\n", READ_ID, READ, best_m, best_i, best_len) ;
 				//exit(-1) ;
 			}
