@@ -261,7 +261,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 				_read.trim_read_end(trim_read, adapter_cut_end) ;
 				delete trim_read ;
 			}
-			if (ADAPTERTRIM_LOG_FP && (adapter_cut_start!=0 || adapter_cut_end!=0))
+			if (ADAPTERTRIM_LOG_FP)// && (adapter_cut_start!=0 || adapter_cut_end!=0))
 				fprintf(ADAPTERTRIM_LOG_FP, "%s\t%i\t%i\t%i\t%i\n", _read.id(), orig_len, adapter_cut_start, adapter_cut_end, _read.length()) ;
 		}
 
