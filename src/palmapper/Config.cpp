@@ -20,6 +20,7 @@ Config::Config() {
 	POLYTRIM_STRATEGY_POLY_MIN_LEN = 10 ;
 	ADAPTERTRIM_STRATEGY = 0 ;
 	ADAPTERTRIM_STRATEGY_MIN_LEN = 40 ;
+	ADAPTERTRIM_STRATEGY_LOG = std::string("") ;
 
 	//int SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[2] ;
 	HITLEN_LIMIT = 0;
@@ -407,7 +408,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-adaptertrim") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -polytrim\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option -adaptertrim\n") ;
 				usage();
 				exit(1);
 			}
@@ -419,6 +420,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr,	"ERROR: minimal polytrim alignment length too short\n");
 				exit(1) ;
 			}
+		}
+
+		//adapter trimming
+		if (strcmp(argv[i], "-adaptertrim-log") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -adaptertrim-log\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			ADAPTERTRIM_STRATEGY_LOG = std::string(argv[i]) ;
 		}
 
 		//report output file
