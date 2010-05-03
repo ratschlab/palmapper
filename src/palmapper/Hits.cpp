@@ -207,8 +207,14 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		exit(1);                                                                        // #A#
 	}                                                                                   // #A#
     FILE *QUERY_FP = Util::openFile(_config.QUERY_FILE_NAME, "r");
-    FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w") : NULL;
-
+    FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
+	FILE *ADAPTERTRIM_LOG_FP = _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0 ? Util::openFile(_config.ADAPTERTRIM_STRATEGY_LOG, "w+") : NULL;
+	if (ADAPTERTRIM_LOG_FP==NULL && _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0)
+	{
+		fprintf(stderr, "ERROR : could not open log file %s\n", _config.ADAPTERTRIM_STRATEGY_LOG.c_str()) ;
+		exit(1) ;
+	}
+	
 	while (!eof) {
 		
 		count_reads++;
@@ -233,6 +239,8 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		unsigned int adapter_cut_end = 0 ;
 		if (_config.ADAPTERTRIM_STRATEGY)
 		{
+			int orig_len = _read.length() ;
+			
 			_read.find_adapter(adapter_cut_start, adapter_cut_end) ;
 			if (_read.length()-adapter_cut_start-adapter_cut_start < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
 			{
@@ -247,14 +255,14 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 				_read.trim_read_start(trim_read, adapter_cut_start) ;
 				delete trim_read ;
 			}
-			if (adapter_cut_start!=0)
+			if (adapter_cut_end!=0)
 			{
 				Read *trim_read=new Read(_read) ;
 				_read.trim_read_end(trim_read, adapter_cut_end) ;
 				delete trim_read ;
 			}
-			//if (adapter_cut_start!=0 || adapter_cut_end!=0)
-			//fprintf(stdout, "adapter-trimmed read: %s\n", _read.data()) ;
+			if (ADAPTERTRIM_LOG_FP && (adapter_cut_start!=0 || adapter_cut_end!=0))
+				fprintf(ADAPTERTRIM_LOG_FP, "%s\t%i\t%i\t%i\t%i\n", _read.id(), orig_len, adapter_cut_start, adapter_cut_end, _read.length()) ;
 		}
 
 	restart:
