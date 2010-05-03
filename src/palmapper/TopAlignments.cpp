@@ -1165,7 +1165,7 @@ int TopAlignments::print_top_alignment_records_sam()
         {
             // reverse order of quality
             char qual[500] ;
-            for (int k=0; k<((int)_read.length()); k++)
+            for (int k=0; k<((int)curr_read->length()); k++)
                 //qual[k]=_read.get_orig()->quality()[0][((int)_read.get_orig()->length())-k-1] ;
                 qual[k]=(curr_read->quality())[0][((int)(curr_read->length()))-k-1] ;
             qual[((int)(curr_read->length()))]=0 ;
