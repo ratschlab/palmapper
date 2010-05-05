@@ -702,7 +702,7 @@ void QPalma::add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregi
 		region->start -= _config.SPLICED_CLUSTER_TOLERANCE;
 
 	if (region->end + _config.SPLICED_CLUSTER_TOLERANCE >= (int)chrN.length())
-		region->end = chrN.length() - 1;
+	  region->end = chrN.length();// - 1; chr length because end bound is excluded
 	else
 		region->end += _config.SPLICED_CLUSTER_TOLERANCE;
 }
@@ -893,7 +893,8 @@ void QPalma::recover_long_regions(std::vector<region_t*> &long_regions_output, s
  
   unsigned int reg=0;
   unsigned int lr=0;
-
+  
+  //fprintf(stdout,"**start** %i-%i\n",current_regions.size(),nbr_long_regions);
   while (reg < current_regions.size() && lr < nbr_long_regions){
     //fprintf(stdout,"current region: %i-%i and current long region: %i-%i\n", current_regions[reg]->start,current_regions[reg]->end,arr[lr]->start,arr[lr]->end);
     
@@ -904,12 +905,13 @@ void QPalma::recover_long_regions(std::vector<region_t*> &long_regions_output, s
       //fprintf(stdout,"Add one long region as starting point\n");
       lr++;
     }
-    else if (arr[lr]->end < current_regions[reg]->start)
+    else if (arr[lr]->start < current_regions[reg]->start)
       lr++;
     else // current long region coordinates after current region
       reg++;
   }
   delete[] arr;
+  //fprintf(stdout,"**stop** %i-%i\n",reg,lr);
 }
 
 /** Gives the relative position on dna sequence to align  */
@@ -1700,6 +1702,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 	    //Recover long regions (starting points in sequences) for current regions to align
 	    std::vector<region_t*> corres_long_regions;
 	    corres_long_regions.clear();
+	    //fprintf(stdout,"chr length %i\n",genome->chromosome(chrN).length());
 	    recover_long_regions(corres_long_regions, long_regions[ori][chrN], current_regions);
 	    assert(corres_long_regions.size()>0); // at least one long region as support of alignment
 	    assert(corres_long_regions[0]->read_map!=NULL);
