@@ -84,6 +84,8 @@ Config::Config() {
 	SUMMARY_HIT_STRATEGY= 0 ;
 	HITLEN_LIMIT = 0 ;
 
+	LEFTOVER_FILE_NAME = std::string("/dev/null") ;
+
 };
 
 int Config::applyDefaults(Genome * genome)
@@ -152,13 +154,13 @@ int Config::applyDefaults(Genome * genome)
 	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT)
 		if (SPLICED_HITS)
 		{
-			OUTPUT_FORMAT=OUTPUT_FORMAT_BEDX ;
-			fprintf(stdout, "Selecting BEDX output format\n") ;
+			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
+			fprintf(stdout, "Selecting SAM output format\n") ;
 		}
 		else
 		{
-			OUTPUT_FORMAT=OUTPUT_FORMAT_SHORE ;
-			fprintf(stdout, "Selecting SHORE output format\n") ;
+			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
+			fprintf(stdout, "Selecting SAM output format\n") ;
 		}
 
 	if (POLYTRIM_STRATEGY)
