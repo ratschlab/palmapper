@@ -93,6 +93,7 @@ int Config::applyDefaults(Genome * genome)
 	{
 		Read read ;
 		int read_length = read.determine_read_length(QUERY_FILE_NAME) ;
+
 		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
 			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
 			fprintf(stdout, "Automatically determining alignment parameters based on read length (%int):", read_length) ;
@@ -136,7 +137,7 @@ int Config::applyDefaults(Genome * genome)
 		}
 		fprintf(stdout, "\n") ;
 	}
-	
+
 	if (SPLICED_HITS && SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING)
 	{
 		unsigned long int genome_size = 0 ;
@@ -151,7 +152,7 @@ int Config::applyDefaults(Genome * genome)
 			SPLICED_LONGEST_INTRON_LENGTH = 200000 ;
 		fprintf(stdout, "Automatically determined maximal intron size based on genome size (%ikb)\n", SPLICED_LONGEST_INTRON_LENGTH/1000) ;
 	}
-	
+
 	// determine default output format
 	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT)
 		if (SPLICED_HITS)

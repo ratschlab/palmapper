@@ -13,7 +13,6 @@ extern Config _config ;
 
 extern char *get_seq(Read const &read, unsigned int n);
 
-
 typedef struct edit_op_structure {
 	signed int pos;
 	int mm: 1;
@@ -35,6 +34,8 @@ struct HIT {
 	HIT *next;
 	HIT *last;
 };
+
+extern void printhit(Read const &read, HIT* hit);
 
 template <bool clearNew, class Entry> class Container {
 public:
@@ -182,6 +183,7 @@ protected:
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	
 	unsigned int LONGEST_HIT;
+	static unsigned int SLOTS[2];
 
 public:
 	static unsigned int MAX_USED_SLOTS;
@@ -200,15 +202,15 @@ public:
 	int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches) ;
 	int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches) ;
 	int size_hit(HIT *hit, unsigned int *oldlength, char num) ;
-	int seed2genome(unsigned int num, unsigned int index_slot, unsigned int readpos, char reverse) ;
+	int seed2genome(unsigned int num, unsigned int readpos) ;
 	void printgenome() ;
 //	int alloc_genome_memory() ;
 	int duplicate(HIT* hit) ;
 	int insert_into_scorelist(HIT* hit, char d) ;
 	int browse_hits() ;
-	int map_fast(Read & read, int & firstslot, int & firstpos);
-	int map_short_read(Read & read, unsigned int num, int first_slot, int first_pos);
-	int get_slot(Read & read, int pos);
+	int map_fast(Read & read);
+	int map_short_read(Read & read, unsigned int num);
+	int get_slots(Read & read, int pos);
 
 	void printhits() ;
 	int init_from_meta_index() ;
@@ -240,5 +242,5 @@ private:
 	CHROMOSOME_ENTRY_CONTAINER &CHROMOSOME_ENTRY_OPERATOR;
 
 	static char HAS_SLOT;
-	static int SLOT;
+	static unsigned int SLOTS[2];
 };
