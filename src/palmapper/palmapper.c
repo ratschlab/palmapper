@@ -4,7 +4,7 @@
 // Authors: Gunnar R\"atsch and Lisa Thalheim
 // Copyright (C) 2008 by Friedrich Miescher Laboratory of the Max Planck Society
 
-#include "genomemapper.h"
+#include "palmapper.h"
 #include "print.h"
 
 FILE *OUT_FP;

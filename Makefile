@@ -35,7 +35,7 @@ GM_OBJ = $(ObjDir)/gm/palmapper/GenomeMaps.o \
 	$(ObjDir)/gm/palmapper/align.o \
 	$(ObjDir)/gm/palmapper/TopAlignments.o \
 	$(ObjDir)/gm/palmapper/IntervalQuery.o \
-	$(ObjDir)/gm/palmapper/genomemapper.o \
+	$(ObjDir)/gm/palmapper/palmapper.o \
 	$(ObjDir)/gm/palmapper/init.o \
 	$(ObjDir)/gm/palmapper/print.o \
 	$(ObjDir)/gm/palmapper/Chromosome.o \
@@ -52,7 +52,7 @@ PM_OBJ = $(ObjDir)/pm/palmapper/GenomeMaps.o \
 	$(ObjDir)/pm/palmapper/align.o \
 	$(ObjDir)/pm/palmapper/TopAlignments.o \
 	$(ObjDir)/pm/palmapper/IntervalQuery.o \
-	$(ObjDir)/pm/palmapper/genomemapper.o \
+	$(ObjDir)/pm/palmapper/palmapper.o \
 	$(ObjDir)/pm/palmapper/init.o \
 	$(ObjDir)/pm/palmapper/print.o \
 	$(ObjDir)/pm/palmapper/Chromosome.o \
