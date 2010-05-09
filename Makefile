@@ -13,55 +13,55 @@ GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS = 
 
-SHOGUN_OBJ = $(ObjDir)/pm/genomemapper/shogun/init.o \
-	$(ObjDir)/pm/genomemapper/shogun/Mathematics.o \
-	$(ObjDir)/pm/genomemapper/shogun/io.o \
-	$(ObjDir)/pm/genomemapper/shogun/Parallel.o \
-	$(ObjDir)/pm/genomemapper/shogun/Version.o \
-	$(ObjDir)/pm/genomemapper/shogun/SGObject.o \
-	$(ObjDir)/pm/genomemapper/shogun/ShogunException.o \
-	$(ObjDir)/pm/genomemapper/shogun/Signal.o
+SHOGUN_OBJ = $(ObjDir)/pm/palmapper/shogun/init.o \
+	$(ObjDir)/pm/palmapper/shogun/Mathematics.o \
+	$(ObjDir)/pm/palmapper/shogun/io.o \
+	$(ObjDir)/pm/palmapper/shogun/Parallel.o \
+	$(ObjDir)/pm/palmapper/shogun/Version.o \
+	$(ObjDir)/pm/palmapper/shogun/SGObject.o \
+	$(ObjDir)/pm/palmapper/shogun/ShogunException.o \
+	$(ObjDir)/pm/palmapper/shogun/Signal.o
 
-DYNPROG_OBJ = $(ObjDir)/pm/genomemapper/dyn_prog/Mathmatics_dp.o \
-	$(ObjDir)/pm/genomemapper/dyn_prog/io_dp.o \
-	$(ObjDir)/pm/genomemapper/dyn_prog/qpalma_dp.o \
-	$(ObjDir)/pm/genomemapper/dyn_prog/debug_tools.o \
-	$(ObjDir)/pm/genomemapper/dyn_prog/penalty_info_dp.o \
-	$(ObjDir)/pm/genomemapper/dyn_prog/result_align.o \
-	$(ObjDir)/pm/genomemapper/dyn_prog/fill_matrix.o
+DYNPROG_OBJ = $(ObjDir)/pm/palmapper/dyn_prog/Mathmatics_dp.o \
+	$(ObjDir)/pm/palmapper/dyn_prog/io_dp.o \
+	$(ObjDir)/pm/palmapper/dyn_prog/qpalma_dp.o \
+	$(ObjDir)/pm/palmapper/dyn_prog/debug_tools.o \
+	$(ObjDir)/pm/palmapper/dyn_prog/penalty_info_dp.o \
+	$(ObjDir)/pm/palmapper/dyn_prog/result_align.o \
+	$(ObjDir)/pm/palmapper/dyn_prog/fill_matrix.o
 
-GM_OBJ = $(ObjDir)/gm/genomemapper/GenomeMaps.o \
-	$(ObjDir)/gm/genomemapper/QPalma.o \
-	$(ObjDir)/gm/genomemapper/align.o \
-	$(ObjDir)/gm/genomemapper/TopAlignments.o \
-	$(ObjDir)/gm/genomemapper/IntervalQuery.o \
-	$(ObjDir)/gm/genomemapper/genomemapper.o \
-	$(ObjDir)/gm/genomemapper/init.o \
-	$(ObjDir)/gm/genomemapper/print.o \
-	$(ObjDir)/gm/genomemapper/Chromosome.o \
-	$(ObjDir)/gm/genomemapper/Config.o \
-	$(ObjDir)/gm/genomemapper/Genome.o \
-	$(ObjDir)/gm/genomemapper/Hits.o \
-	$(ObjDir)/gm/genomemapper/Read.o \
-	$(ObjDir)/gm/genomemapper/Statistics.o \
-	$(ObjDir)/gm/genomemapper/Util.o \
+GM_OBJ = $(ObjDir)/gm/palmapper/GenomeMaps.o \
+	$(ObjDir)/gm/palmapper/QPalma.o \
+	$(ObjDir)/gm/palmapper/align.o \
+	$(ObjDir)/gm/palmapper/TopAlignments.o \
+	$(ObjDir)/gm/palmapper/IntervalQuery.o \
+	$(ObjDir)/gm/palmapper/genomemapper.o \
+	$(ObjDir)/gm/palmapper/init.o \
+	$(ObjDir)/gm/palmapper/print.o \
+	$(ObjDir)/gm/palmapper/Chromosome.o \
+	$(ObjDir)/gm/palmapper/Config.o \
+	$(ObjDir)/gm/palmapper/Genome.o \
+	$(ObjDir)/gm/palmapper/Hits.o \
+	$(ObjDir)/gm/palmapper/Read.o \
+	$(ObjDir)/gm/palmapper/Statistics.o \
+	$(ObjDir)/gm/palmapper/Util.o \
 	$(SHOGUN_OBJ) $(DYNPROG_OBJ)
 
-PM_OBJ = $(ObjDir)/pm/genomemapper/GenomeMaps.o \
-	$(ObjDir)/pm/genomemapper/QPalma.o \
-	$(ObjDir)/pm/genomemapper/align.o \
-	$(ObjDir)/pm/genomemapper/TopAlignments.o \
-	$(ObjDir)/pm/genomemapper/IntervalQuery.o \
-	$(ObjDir)/pm/genomemapper/genomemapper.o \
-	$(ObjDir)/pm/genomemapper/init.o \
-	$(ObjDir)/pm/genomemapper/print.o \
-	$(ObjDir)/pm/genomemapper/Chromosome.o \
-	$(ObjDir)/pm/genomemapper/Config.o \
-	$(ObjDir)/pm/genomemapper/Genome.o \
-	$(ObjDir)/pm/genomemapper/Hits.o \
-	$(ObjDir)/pm/genomemapper/Read.o \
-	$(ObjDir)/pm/genomemapper/Statistics.o \
-	$(ObjDir)/pm/genomemapper/Util.o \
+PM_OBJ = $(ObjDir)/pm/palmapper/GenomeMaps.o \
+	$(ObjDir)/pm/palmapper/QPalma.o \
+	$(ObjDir)/pm/palmapper/align.o \
+	$(ObjDir)/pm/palmapper/TopAlignments.o \
+	$(ObjDir)/pm/palmapper/IntervalQuery.o \
+	$(ObjDir)/pm/palmapper/genomemapper.o \
+	$(ObjDir)/pm/palmapper/init.o \
+	$(ObjDir)/pm/palmapper/print.o \
+	$(ObjDir)/pm/palmapper/Chromosome.o \
+	$(ObjDir)/pm/palmapper/Config.o \
+	$(ObjDir)/pm/palmapper/Genome.o \
+	$(ObjDir)/pm/palmapper/Hits.o \
+	$(ObjDir)/pm/palmapper/Read.o \
+	$(ObjDir)/pm/palmapper/Statistics.o \
+	$(ObjDir)/pm/palmapper/Util.o \
 	$(SHOGUN_OBJ) $(DYNPROG_OBJ)
 
 PMIDX_OBJ = $(ObjDir)/pm/pmindex/init.o \
@@ -86,13 +86,13 @@ CurrentDir := $(shell pwd)
 
 all: palmapper pmindex genomemapper gmindex
 
-palmapper: $(PM_OBJ) src/genomemapper/*.h 
+palmapper: $(PM_OBJ) src/palmapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(PM_OBJ) -lpthread -lz -lm
 
 pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o pmindex $(PMIDX_OBJ) 
 
-genomemapper: $(GM_OBJ) src/genomemapper/*.h
+genomemapper: $(GM_OBJ) src/palmapper/*.h
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o genomemapper $(GM_OBJ) -lpthread -lz -lm
 
 gmindex: $(GMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c
