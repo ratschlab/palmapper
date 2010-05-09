@@ -4,10 +4,18 @@
 #include "pmindex.h"
 
 int usage() {
+#ifdef GM
 	printf("\ngmindex v%s\n", VERSION);
+#else
+	printf("\npmindex v%s\n", VERSION);
+#endif
 	printf("developed by Korbinian Schneeberger, Stephan Ossowski and Joerg Hagmann\n");
 	printf("Max Planck Institute for Developmental Biology, Tübingen, Germany, 2008\n\n");
-	printf("USAGE: mkindex [options]\n");
+#ifdef GM
+	printf("USAGE: gmindex [options]\n");
+#else
+        printf("USAGE: pmindex [options]\n");
+#endif
 	printf("\n");
 	printf("mandatory:\n");
 	printf(" -i STRING  input fastafile\n");
@@ -17,9 +25,8 @@ int usage() {
 	//printf(" -t STRING  meta index filename\n");
 	printf("\n");
 	printf("optional:\n");
-	printf(" -s INT     seed length, range 5 to 13 (12)\n");
-	printf(" -r         do not build reverse index\n");
-	printf(" -v         verbose (silent)\n");
+	printf(" -s INT     seed length, range 5 to 13 (default: 12)\n");
+	printf(" -v         verbose (default: silent)\n");
 	printf("\n");
 
 	return 0;
