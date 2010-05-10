@@ -109,4 +109,4 @@ template <int bits> void ChromosomeBase<bits>::data(char *ascii, uint32_t len) {
 	}
 }
 
-typedef ChromosomeBase<4> Chromosome;
+typedef ChromosomeBase<2> Chromosome;
