@@ -5,6 +5,7 @@ bool Util::doInit() {
 	for (int i = 1; i <= MAX_INDEX_DEPTH; i++) {
 		POWER[i] = POWER[i - 1] * 4;
 	}
+
 	return true;
 }
 

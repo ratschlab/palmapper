@@ -9,6 +9,7 @@
 #include "dyn_prog/qpalma_dp.h"
 
 #include "TopAlignments.h"
+#include "Hits.h"
 
 
 TopAlignments::TopAlignments(GenomeMaps* genomemaps_) 
@@ -39,6 +40,7 @@ u_int8_t TopAlignments::report_unspliced_hit(HIT *hit, int num, QPalma* qpalma)
 	alignment_t *algn_hit = gen_alignment_from_hit(hit, qpalma) ;
 	algn_hit->hit = hit ;
 	algn_hit->num = num ;
+	algn_hit->from_gm = 2;
 	
 	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
 	{
@@ -505,7 +507,8 @@ int TopAlignments::print_top_alignment_records_bedx()
 						  num_spliced_best, num_spliced_suboptimal) ;
 	
 	// Print spliced alignment to open file MY_OUT_FP in BED format
-	fprintf(MY_OUT_FP, "%s\t%d\t%d\t%s\t%d\t%c\t%i\t%i\t0,0,0\t%d\t",
+	fprintf(MY_OUT_FP, "%s\t%s\t%d\t%d\t%s\t%d\t%c\t%i\t%i\t0,0,0\t%d\t",
+			best->from_gm == 2? "gm":"qp",
 			best->chromosome->desc(),
 			best->exons[0],
 			best->exons[best->exons.size()-1],
@@ -639,7 +642,8 @@ int TopAlignments::print_top_alignment_records_bedx()
 		
 		assert(second->exons.size() >= 2);
 
-		fprintf(MY_OUT_FP, "\t%s\t%d\t%d\t%d\t%c\t%d\t",
+		fprintf(MY_OUT_FP, "\t%s\t%s\t%d\t%d\t%d\t%c\t%d\t",
+				second->from_gm == 2? "gm":"qp",
 				second->chromosome->desc(),
 				second->exons[0],
 				second->exons[second->exons.size() - 1],
@@ -710,8 +714,74 @@ int TopAlignments::print_alignment_shorebed(HIT* hit, unsigned int num)
 
 	char FLANK_SEQ[Config::MAX_READ_LENGTH + 200];
 
+
+	fprintf(OUT_FP, "%s\t%d\t%s\t%s\t%c",
+		hit->chromosome->desc(),
+		readstart + 1, 	// 1-initialized
+		ALIGNSEQ,	//Alignment String
+		_read.id(),
+		((hit->orientation == '+') ? 'D' : 'P'));
+
+	if (_config.SCORES_OUT)
+		fprintf(OUT_FP, "\t%.1f", (double) (hit->gaps * _config.GAP_SCORE
+				+ (hit->mismatches - hit->gaps) * _config.MM_SCORE
+				- (((int)_read.length()) - hit->mismatches) * _config.M_SCORE));
+	else
+		fprintf(OUT_FP, "\t%d", ((int)_read.length()) - hit->mismatches);
+	// lt - changed this to report num matches instead of num mismatches
+
+	fprintf(OUT_FP, "\t%d\t%d\t%d",
+		num, 			// Number of hits
+		((int)_read.length()),	// length of hit on genome
+		0);
+
+	if (_read.format() == 2)
+		fprintf(OUT_FP, "\t%d", _read.pe_flag());
+	if (strlen(_read.quality()[0]) != 0)
+				
+		fprintf(OUT_FP, "\t%s", _read.quality()[0]);
+	if (strlen(_read.quality()[1]) != 0)
+		fprintf(OUT_FP, "\t%s", _read.quality()[1]);
+	if (strlen(_read.quality()[2]) != 0)
+		fprintf(OUT_FP, "\t%s", _read.quality()[2]);
+
+	if (_config.FLANKING != 0) {
+
+		fstart = (readstart < _config.FLANKING) ? 0 : readstart - _config.FLANKING;
+		flen = (readstart + 
+				((int)_read.length()) + _config.FLANKING > hit->chromosome->length()) ?
+					hit->chromosome->length() - fstart
+				: 	readstart - fstart + ((int)_read.length())
+			+ _config.FLANKING;
+		{
+			for (size_t i=0; i<(size_t)flen; i++)
+				FLANK_SEQ[i]= (*hit->chromosome)[fstart + i];
+			//strncpy(FLANK_SEQ, CHR_SEQ[hit->chromosome] + fstart, flen);
+		}
+		FLANK_SEQ[flen] = '\0';
+		fprintf(OUT_FP, "\t%d\t%s",
+			hit->chromosome->length(),
+			FLANK_SEQ);
+
+	} else if (_config.PRINT_SEQ > 0) {
+	
+		fprintf(OUT_FP, "\t%d", hit->chromosome->length());
+	
+	}
+	//if (_config.PRINT_SEQ == 2)
+	//	fprintf(OUT_FP, "\t%s", CHR_SEQ[hit->chromosome]);
+
+	fprintf(OUT_FP, "\n");
+
+	return 1;
+}
+
+/* In the following (commented) ALIGNSEQ is generated a second time. Since by
+   creation of ALIGNSEQ the hit structure is changed (gap encoding), this won't work.
+   The function above just uses the already generated ALIGNSEQ variable.
+*/
 	// PERFECT HITS:
-	if (hit->mismatches == 0) {
+/*	if (hit->mismatches == 0) {
 
 		if (hit->orientation == '+')
 			strcpy(ALIGNSEQ, _read.data());
@@ -822,11 +892,11 @@ int TopAlignments::print_alignment_shorebed(HIT* hit, unsigned int num)
 			{
 				for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++)
 					ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read) + i];
-				/*strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome]
-						+ (readstart + hit->edit_op[j - 1].pos + gap_offset
-								- gap_in_read), hit->edit_op[j].pos
-						- hit->edit_op[j - 1].pos - 1 + gap_in_read); // -1???
-				*/
+				//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome]
+				//		+ (readstart + hit->edit_op[j - 1].pos + gap_offset
+				//				- gap_in_read), hit->edit_op[j].pos
+				//		- hit->edit_op[j - 1].pos - 1 + gap_in_read); // -1???
+
 				count_char += hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1
 						+ gap_in_read;
 			} // else: edit_op[j-1] must have been a gap!
@@ -869,9 +939,9 @@ int TopAlignments::print_alignment_shorebed(HIT* hit, unsigned int num)
 		{
 			for (size_t i=0; (int)i<((int)_read.length()) - hit->edit_op[j - 1].pos + gap_in_read; i++)
 				ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read) + i];
-			/*strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart
-				+ hit->edit_op[j - 1].pos + gap_offset - gap_in_read),
-					  ((int)_read.lenght()) - hit->edit_op[j - 1].pos + gap_in_read);*/
+			//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart
+			//	+ hit->edit_op[j - 1].pos + gap_offset - gap_in_read),
+			//		  ((int)_read.lenght()) - hit->edit_op[j - 1].pos + gap_in_read);
 		}
 		count_char += ((int)_read.length()) - hit->edit_op[j - 1].pos + gap_in_read;
 
@@ -951,7 +1021,7 @@ int TopAlignments::print_alignment_shorebed(HIT* hit, unsigned int num)
 	}
 
 	return 1;
-}
+}*/
 
 // SAM format
 int TopAlignments::print_top_alignment_records_sam()

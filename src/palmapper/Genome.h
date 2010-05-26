@@ -48,7 +48,7 @@ public:
 		return NUM_CHROMOSOMES;
 	}
 
-	int BINARY_CODE[4];
+	int BINARY_CODE[5];
 	unsigned int LONGEST_CHROMOSOME;
 
 #ifndef BinaryStream_MAP
@@ -110,13 +110,13 @@ public:
 	
 #if 1 // dd
 	INDEX_ENTRY *INDEX;
-	INDEX_ENTRY *INDEX_REV;
+	//INDEX_ENTRY *INDEX_REV;
 	
 #ifndef BinaryStream_MAP
-	STORAGE_ENTRY *INDEX_REV_MMAP;
+	//STORAGE_ENTRY *INDEX_REV_MMAP;
 	STORAGE_ENTRY *INDEX_FWD_MMAP;
 #else
-	CBinaryStream<STORAGE_ENTRY>* INDEX_REV_MMAP;
+	//CBinaryStream<STORAGE_ENTRY>* INDEX_REV_MMAP;
 	CBinaryStream<STORAGE_ENTRY>* INDEX_FWD_MMAP;
 #endif
 #endif // dd

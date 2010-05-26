@@ -19,16 +19,9 @@ int dealloc_chr()
 			INDEX[i]->bin_ext = 0;
 			INDEX[i]->last_bin_ext = 0;
 		}
-		if(BUILD_REVERSE_INDEX && INDEX_REV[i] != NULL) {
-			INDEX_REV[i]->num_pos = 0;
-			INDEX_REV[i]->bin_ext = 0;
-			INDEX_REV[i]->last_bin_ext = 0;
-		}
-
 	}
 
 	NUM_USED_SLOTS = 0;
-	SLOT_COUNTER = 0;
 
 //	################ Dealloc the extended bins ######################
 	nugget = MEM_MGR->nuggets;
@@ -51,27 +44,9 @@ int alloc_bin(int slot) {
 		exit(1);
 	}
 	
-	//int i;
-	//for (i=0; i!=BIN_SIZE; ++i)
-		//INDEX[slot]->ids = malloc(BIN_SIZE * sizeof(ID));
-
 	INDEX[slot]->num_pos = 0;
 	INDEX[slot]->bin_ext = 0;
 	INDEX[slot]->last_bin_ext = 0;
-
-	return 0;
-}
-
-int alloc_bin_rev(int slot) {
-	
-	if ((INDEX_REV[slot] = (BIN *) malloc (sizeof(BIN))) == NULL)    {
-		fprintf(stderr, "ERROR : couldn't allocate memory for a storage bin\n");
-		exit(1);
-	}
-
-	INDEX_REV[slot]->num_pos = 0;
-	INDEX_REV[slot]->bin_ext = 0;
-	INDEX_REV[slot]->last_bin_ext = 0;
 
 	return 0;
 }
@@ -96,7 +71,6 @@ BIN_EXT *alloc_bin_ext()
 
 	MEM_MGR->curr_num++;
 
-// 	(((MEM_MGR->nuggets)->buffer[MEM_MGR->curr_num])).bin_ext = 0; //easier the second next line doing the same
 	bin_ext = &((MEM_MGR->nuggets)->buffer[MEM_MGR->curr_num]);
 	bin_ext->bin_ext = 0;
 

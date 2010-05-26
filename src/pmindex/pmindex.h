@@ -19,11 +19,9 @@
 #define MIN_INDEX_DEPTH 5
 #define MAX_INDEX_DEPTH 12
 
-extern char BUILD_REVERSE_INDEX;
 extern char VERBOSE;
 extern char HAS_SLOT;
 extern unsigned int SLOT;
-extern unsigned int SLOT_REV;
 
 extern int INDEX_DEPTH;
 extern int POWER[MAX_INDEX_DEPTH];
@@ -40,14 +38,12 @@ extern int debug;
 extern char GENOME_FILE_NAME[500];
 extern char CHR_INDEX_FILE_NAME[500];
 extern char MAPFWD_INDEX_FILE_NAME[500];
-extern char MAPREV_INDEX_FILE_NAME[500];
 extern char META_INDEX_FILE_NAME[500];
 extern char GENOME_OUT_FILE_NAME[500];
 //char OCC_FILE_NAME[500];
 
 extern FILE *CHR_INDEX_FP;
 extern FILE *MAPFWD_INDEX_FP;
-extern FILE *MAPREV_INDEX_FP;
 extern FILE *META_INDEX_FP;
 extern FILE *GENOME_FP;
 extern FILE *GENOME_OUT_FP;
@@ -65,7 +61,6 @@ extern char *CHR_SEQ;
 extern char CHR_DESC[2000];
 extern char CHR_DESC_TMP[2000];
 
-extern unsigned int SLOT_COUNTER; //counts the number of slots used by the forward index (equals the number of reverse slots though the slots themselves are different)
 extern unsigned long int POSITION_COUNTER;
 
 // ##############################################################
@@ -74,8 +69,8 @@ extern unsigned long int POSITION_COUNTER;
 
 #define BIN_SIZE 3
 #define BIN_SIZE_EXT 20
-#define INDEX_SIZE 16777216 //4^12
-//#define INDEX_SIZE 67108864 //4^13
+//#define INDEX_SIZE 16777216 //4^12
+#define INDEX_SIZE 67108864 //4^13
 // #define INDEX_SIZE 244140625 // 5^12
 
 #define BLOCK_TABLE_SIZE 16777216	// 2^24 (3 Byte)
@@ -110,7 +105,6 @@ typedef struct bin_structure {
 //BIN *INDEX_REV;
 
 extern BIN *INDEX[INDEX_SIZE];
-extern BIN *INDEX_REV[INDEX_SIZE];
 
 extern int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
 extern int USED_SLOTS[INDEX_SIZE];
@@ -153,7 +147,6 @@ extern int index_chromosome(unsigned int chr);
 
 //alloc.c
 extern int alloc_bin(int slot);
-extern int alloc_bin_rev(int slot);
 extern BIN_EXT *alloc_bin_ext() ;
 extern void alloc_blocktable();
 extern int dealloc_chr();

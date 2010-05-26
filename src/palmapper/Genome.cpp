@@ -81,10 +81,10 @@ int Genome::alloc_index_memory()
 		exit(1);
 	}
 
-	if ( _config.MAP_REVERSE && ((INDEX_REV = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY))) == NULL) ) {
+	/*if ( _config.MAP_REVERSE && ((INDEX_REV = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY))) == NULL) ) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (3)\n");
 		exit(1);
-	}
+	}*/
 
 	return(0);
 }
@@ -207,18 +207,14 @@ int Genome::read_meta_index_header(FILE *META_INDEX_FP)
 
 	if (_config.VERBOSE) { printf("Reading in meta index\n"); }
 
-	char REV_IDX_EXISTS;
 	////////////////////////////////////////////////////////////////////////////////////
-	// Get rev index flag
-	if (fread(&REV_IDX_EXISTS, sizeof(char), 1, META_INDEX_FP) == 0) {
+	// Get rev index flag (only for downcompatibility to previous GM versions)
+	char dummy;
+	if (fread(&dummy, sizeof(char), 1, META_INDEX_FP) == 0) {
                 fprintf(stderr, "ERROR: cant read meta index file\n");
-                exit(0);
+                exit(1);
         }
 
-	if (!REV_IDX_EXISTS && _config.MAP_REVERSE)
-		fprintf(stderr, "\n!!! WARNING: Index file doesn't contain reverse index: mapping to reverse strand cannot be done!\n\n");
-
-	////////////////////////////////////////////////////////////////////////////////////
 	// Index depth
 	if (fread(&_config.INDEX_DEPTH, sizeof(int), 1, META_INDEX_FP) == 0) {
                 fprintf(stderr, "ERROR: cant read meta index file\n");
@@ -311,45 +307,21 @@ int Genome::read_meta_index(FILE *META_INDEX_FP)
 {
  	META_INDEX_ENTRY file_entry;
 	int used_slots = 0;
-	int old_slot = _config.INDEX_SIZE_12+1;
-	int slot_rev;
-	unsigned int index_offset = 0, index_rev_offset = 0;
+	unsigned int index_offset = 0;//, index_rev_offset = 0;
 
 	while (fread(&file_entry, sizeof(file_entry), 1, META_INDEX_FP) == 1)
 	{
-		if (old_slot != -file_entry.slot)
-			used_slots++;
+		if (file_entry.slot < 0) continue;	//downcompatibility to previous GM versions
 
-		if (file_entry.slot >= 0) {
+		used_slots++;
 
-			index_offset += file_entry.num;
+		index_offset += file_entry.num;
 
-			INDEX[file_entry.slot].num = file_entry.num;
-			INDEX[file_entry.slot].offset = index_offset ;
+		INDEX[file_entry.slot].num = file_entry.num;
+		INDEX[file_entry.slot].offset = index_offset ;
 
-			if (file_entry.num > MAX_POSITIONS)
-				MAX_POSITIONS = file_entry.num;
-
-		}
-		else if (_config.MAP_REVERSE) {
-
-			if (file_entry.slot == -2147483647)
-				slot_rev = 0;
-			else
-				slot_rev = -file_entry.slot;
-
-			index_rev_offset += file_entry.num;
-
-			INDEX_REV[slot_rev].num = file_entry.num;
-			INDEX_REV[slot_rev].offset = index_rev_offset;
-
-			if (file_entry.num > MAX_POSITIONS)
-				MAX_POSITIONS = file_entry.num;
-
-		}
-
-		old_slot = file_entry.slot;
-
+		if (file_entry.num > MAX_POSITIONS)
+			MAX_POSITIONS = file_entry.num;
 	}
 
 	fclose(META_INDEX_FP);
@@ -362,10 +334,6 @@ int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 	unsigned int chr_num = 0;
 	unsigned int chr;
 	unsigned int chrlen;
-	//unsigned int chr_slot_num;
-	//int slot;
-	//unsigned int slot_entry_num;
-	//unsigned int i;
 	char chr_desc[CHR_DESC_LENGTH];
 
 	if (_config.VERBOSE) { printf("Reading in index\n"); }
@@ -426,10 +394,7 @@ void Genome::index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, 
 void Genome::mmap_indices()
 {
 	void *fwd;
-    size_t fwd_size=0 ;
-
-	void *rev;
-    size_t rev_size=0 ;
+	size_t fwd_size=0 ;
 
 	// Map fwd index
 	if (mmap_full_file(_config.INDEX_FWD_FILE_NAME.c_str(), &fwd, &fwd_size) != 0) {
@@ -437,28 +402,17 @@ void Genome::mmap_indices()
                 exit(1);
 	}
 
-	// Map rev index
-	if (mmap_full_file(_config.INDEX_REV_FILE_NAME.c_str(), &rev, & rev_size) != 0) {
-                printf("ERROR: Could not get file status\n");
-                exit(1);
-        }
-
-	INDEX_REV_MMAP = (STORAGE_ENTRY *)rev;
 	INDEX_FWD_MMAP = (STORAGE_ENTRY *)fwd;
 
     if (_config.INDEX_PRECACHE)
     {
-        fprintf(stdout, "Linearly reading index files to fill caches: 1/2 ") ;
+        //fprintf(stdout, "Linearly reading index files to fill caches: 1/2 ") ;
         STORAGE_ENTRY buffer[1024] ;
 
         for (size_t i=0; i<(fwd_size/sizeof(STORAGE_ENTRY))-1024; i+=1024)
             index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
 
-        fprintf(stdout, " 2/2 ") ;
-
-        for (size_t i=0; i<(rev_size/sizeof(STORAGE_ENTRY))-1024; i+=1024)
-            index_pre_buffer(INDEX_REV_MMAP, buffer, i, 1024) ;
-        fprintf(stdout, "Done\n") ;
+        //fprintf(stdout, "Done\n") ;
     }
 
 	return;
@@ -520,17 +474,14 @@ void Genome::mmap_indices()
 
 	// Map fwd index
 	INDEX_FWD_MMAP = new CBinaryStream<STORAGE_ENTRY>(_config.INDEX_FWD_FILE_NAME);
-	INDEX_REV_MMAP = new CBinaryStream<STORAGE_ENTRY>(_config.INDEX_REV_FILE_NAME);
 
 	if (_config.INDEX_PRECACHE)
 	{
-		fprintf(stdout, "Linearly reading index files to fill caches: 1/2 ") ;
+	//	fprintf(stdout, "Linearly reading index files to fill caches: 1/2 ") ;
 
 		INDEX_FWD_MMAP->read_and_forget() ;
-		fprintf(stdout, " 2/2 ") ;
-		INDEX_REV_MMAP->read_and_forget() ;
 
-		fprintf(stdout, "Done\n") ;
+	//	fprintf(stdout, "Done\n") ;
 	}
 
 //		printf("ERROR: Could not get file status\n");
@@ -554,60 +505,70 @@ int Genome::init_constants()
 		BINARY_CODE[1] = 256; //binary number: 0000 0000 0000 0001 0000 0000
 		BINARY_CODE[2] = 512; //binary number: 0000 0000 0000 0010 0000 0000
 		BINARY_CODE[3] = 768; //binary number: 0000 0000 0000 0011 0000 0000
+		BINARY_CODE[4] = 1023;     //binary number: 0000 0000 0000 0000 0000 0011 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 6) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 1024; //binary number: 0000 0000 0000 0100 0000 0000
 		BINARY_CODE[2] = 2048; //binary number: 0000 0000 0000 1000 0000 0000
 		BINARY_CODE[3] = 3072; //binary number: 0000 0000 0000 1100 0000 0000
+		BINARY_CODE[4] = 4095;    //binary number: 0000 0000 0000 0000 0000 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 7) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 4096; //binary number: 0000 0000 0001 0000 0000 0000
 		BINARY_CODE[2] = 8192; //binary number: 0000 0000 0010 0000 0000 0000
 		BINARY_CODE[3] = 12288; //binary number: 0000 0000 0011 0000 0000 0000
+		BINARY_CODE[4] = 16383;    //binary number: 0000 0000 0000 0000 0011 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 8) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 16384; //binary number: 0000 0000 0100 0000 0000 0000
 		BINARY_CODE[2] = 32768; //binary number: 0000 0000 1000 0000 0000 0000
 		BINARY_CODE[3] = 49152; //binary number: 0000 0000 1100 0000 0000 0000
+		BINARY_CODE[4] = 65535;    //binary number: 0000 0000 0000 0000 1111 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 9) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 65536; //binary number: 0000 0001 0000 0000 0000 0000
 		BINARY_CODE[2] = 131072; //binary number: 0000 0010 0000 0000 0000 0000
 		BINARY_CODE[3] = 196608; //binary number: 0000 0011 0000 0000 0000 0000
+		BINARY_CODE[4] = 262143;    //binary number: 0000 0000 0000 0011 1111 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 10) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 262144; //binary number: 0000 0100 0000 0000 0000 0000
 		BINARY_CODE[2] = 524288; //binary number: 0000 1000 0000 0000 0000 0000
 		BINARY_CODE[3] = 786432; //binary number: 0000 1100 0000 0000 0000 0000
+		BINARY_CODE[4] = 1048575;    //binary number: 0000 0000 0000 1111 1111 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 11) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 1048576; //binary number: 0001 0000 0000 0000 0000 0000
 		BINARY_CODE[2] = 2097152; //binary number: 0010 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 3145728; //binary number: 0011 0000 0000 0000 0000 0000
+		BINARY_CODE[4] = 4194303;    //binary number: 0000 0000 0011 1111 1111 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 12) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 4194304; //binary number: 0100 0000 0000 0000 0000 0000
 		BINARY_CODE[2] = 8388608; //binary number: 1000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 12582912; //binary number: 1100 0000 0000 0000 0000 0000
+		BINARY_CODE[4] = 16777215;    //binary number: 0000 0000 1111 1111 1111 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 13) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 16777216; //binary number: 0001 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[2] = 33554432; //binary number: 0010 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 50331648; //binary number: 0011 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[4] = 67108863;    //binary number: 0000 0011 1111 1111 1111 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH == 14) {
 		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 67108864; //binary number: 0001 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[2] = 134217728; //binary number: 0010 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 201326592; //binary number: 0011 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[4] = 268435455;    //binary number: 0000 1111 1111 1111 1111 1111 1111 1111
 	}
 	if (_config.INDEX_DEPTH>14 || _config.INDEX_DEPTH<5)
 	  {

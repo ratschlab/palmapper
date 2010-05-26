@@ -41,7 +41,6 @@ int main(int argc, char *argv[])
 
 	Hits hits(_genome, _genomemaps, _read);
 
-	
 	TopAlignments _topalignments(&_genomemaps) ;
 	QPalma _qpalma(&_genome, &_topalignments, &_genomemaps, 0) ;
 
@@ -49,13 +48,14 @@ int main(int argc, char *argv[])
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
 	{
 		_genomemaps.init_reporting() ;
+
 		if (!_config.REPORT_RESET)
 		{
 			_genomemaps.read_reporting() ;
 			_genomemaps.do_reporting(1) ;
 		}
 	}
-	
+
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
