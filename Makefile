@@ -1,29 +1,15 @@
-<<<<<<< .working
 SrcDir = ./src
 OutDir = ./out
 ObjDir = $(OutDir)/o
 ExeDir = $OutDir/a
-=======
-CC = g++
-CFLAGS = -Wall -g -Wno-sign-compare -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread
-#CFLAGS = -Wall -g -Wno-sign-compare -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow
-INCLUDE = -I$(HOME)/svn/projects/QPalma/dyn_prog/cpplib
-LDFLAGS = -L$(HOME)/svn/projects/QPalma/dyn_prog/cpplib 
->>>>>>> .merge-right.r15141
 
-<<<<<<< .working
 CC = g++
 #CFLAGS = -Wall -g # debug
 #CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
 CFLAGS = -O9 -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS = 
-=======
-GM_OBJ = src/genomemapper/align.o src/genomemapper/alloc.o src/genomemapper/config.o src/genomemapper/filter.o src/genomemapper/IntervalQuery.o src/genomemapper/genomemapper.o src/genomemapper/hit.o src/genomemapper/index.o src/genomemapper/init.o src/genomemapper/load.o src/genomemapper/print.o src/genomemapper/read.o src/genomemapper/usage.o 
-IDX_OBJ = src/mkindex/alloc.o src/mkindex/index.o src/mkindex/init.o src/mkindex/load.o src/mkindex/mkindex.o src/mkindex/printindex.o src/mkindex/usage.o src/mkindex/write.o
->>>>>>> .merge-right.r15141
 
-<<<<<<< .working
 SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
 	$(ObjDir)/palmapper/shogun/Mathematics.o \
 	$(ObjDir)/palmapper/shogun/io.o \
@@ -32,13 +18,7 @@ SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
 	$(ObjDir)/palmapper/shogun/SGObject.o \
 	$(ObjDir)/palmapper/shogun/ShogunException.o \
 	$(ObjDir)/palmapper/shogun/Signal.o
-=======
-genomemapper: $(GM_OBJ) $(IDX_OBJ)
-	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o genomemapper src/genomemapper/alloc.c src/genomemapper/config.cpp src/genomemapper/filter.cpp src/genomemapper/IntervalQuery.cpp src/genomemapper/genomemapper.c src/genomemapper/hit.c src/genomemapper/index.c src/genomemapper/init.c src/genomemapper/print.c src/genomemapper/read.c src/genomemapper/usage.c src/genomemapper/load.c src/genomemapper/align.c -lqpalma
-	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o gmindex src/mkindex/mkindex.c src/mkindex/alloc.c src/mkindex/index.c src/mkindex/init.c src/mkindex/load.c src/mkindex/usage.c src/mkindex/write.c src/mkindex/printindex.c
->>>>>>> .merge-right.r15141
 
-<<<<<<< .working
 DYNPROG_OBJ = $(ObjDir)/palmapper/dyn_prog/Mathmatics_dp.o \
 	$(ObjDir)/palmapper/dyn_prog/io_dp.o \
 	$(ObjDir)/palmapper/dyn_prog/qpalma_dp.o \
@@ -46,10 +26,7 @@ DYNPROG_OBJ = $(ObjDir)/palmapper/dyn_prog/Mathmatics_dp.o \
 	$(ObjDir)/palmapper/dyn_prog/penalty_info_dp.o \
 	$(ObjDir)/palmapper/dyn_prog/result_align.o \
 	$(ObjDir)/palmapper/dyn_prog/fill_matrix.o
-=======
->>>>>>> .merge-right.r15141
 
-<<<<<<< .working
 GM_OBJ = $(ObjDir)/palmapper/GenomeMaps.o \
 	$(ObjDir)/palmapper/QPalma.o \
 	$(ObjDir)/palmapper/align.o \
@@ -67,8 +44,6 @@ GM_OBJ = $(ObjDir)/palmapper/GenomeMaps.o \
 	$(ObjDir)/palmapper/Util.o \
 	$(SHOGUN_OBJ) $(DYNPROG_OBJ)
 
-=======
->>>>>>> .merge-right.r15141
 IDX_OBJ = $(ObjDir)/pmindex/init.o \
 	$(ObjDir)/pmindex/printindex.o \
 	$(ObjDir)/pmindex/usage.o \
@@ -94,27 +69,14 @@ clean:
 test:
 	(cd testcase; make test)
 
-<<<<<<< .working
 release:
 	make clean; mkdir -p ../release; cd ..; rsync -av $(CurrentDir) release; cd release; rm -rf */.settings */.cproject */.project */.svn */*/.svn */*/*/.svn; tar czvf ../release.tar.gz .; cd ..; rm -rf release
-=======
-src/genomemapper/%.o: src/genomemapper/%.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c $? -o $@
->>>>>>> .merge-right.r15141
 
-<<<<<<< .working
 # generic rule for compiling c++
 $(ObjDir)/%.o : $(SrcDir)/%.cpp
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
-=======
-src/genomemapper/%.o: src/genomemapper/%.cpp
-	$(CC) $(CFLAGS) $(INCLUDE) -c $? -o $@
-
-src/mkindex/%.o: src/mkindex/%.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c $? -o $@
->>>>>>> .merge-right.r15141
 
 $(ObjDir)/%.o : $(SrcDir)/%.cpp $(SrcDir)/%.h
 	@echo Compiling $<
