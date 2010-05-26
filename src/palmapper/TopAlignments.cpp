@@ -1250,7 +1250,13 @@ int TopAlignments::print_top_alignment_records_sam()
             fprintf(MY_OUT_FP, "\t%s\t%s", read, qual) ;
         }
 
-        fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i\tXS:A:%c\n", curr_align->num_matches, _read.length() - curr_align->num_matches, top_alignments[0]->strand) ;
+        fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i", curr_align->num_matches, _read.length() - curr_align->num_matches) ;
+        if (curr_align->spliced)
+        {
+            fprintf(MY_OUT_FP, "\tXS:A:%c", top_alignments[0]->strand) ;
+        }
+        fprintf(MY_OUT_FP, "\n") ;
+
 	}
 
 	return top_alignments.size() ;
