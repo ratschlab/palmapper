@@ -166,12 +166,12 @@ int write_meta_index(unsigned int num_chr)
         BIN_EXT **bin_ext;
 
 	unsigned int i, num;
-	int minus_i;
 
 
 	// write meta information
-	if (fwrite(&BUILD_REVERSE_INDEX, sizeof(char), 1, META_INDEX_FP) == 0) {
-		fprintf(stderr, "ERROR: cant access harddisc for meta index file\n"); 
+	char dummy=0;	//downcompatibility to previous GM versions:
+	if (fwrite(&dummy, sizeof(char), 1, META_INDEX_FP) == 0) {
+		fprintf(stderr, "ERROR: cant access harddisc for meta index file\n");
 	}
 	if (fwrite(&INDEX_DEPTH, sizeof(int), 1, META_INDEX_FP) == 0) {
 		fprintf(stderr, "ERROR: cant access harddisc for meta index file\n"); 
@@ -206,8 +206,6 @@ int write_meta_index(unsigned int num_chr)
 
 			bin = INDEX[i];
                         num = bin->num_pos;
-
-
 
 			//Slot
 			if (fwrite(&i, sizeof(int), 1, META_INDEX_FP) == 0) {
@@ -259,68 +257,6 @@ int write_meta_index(unsigned int num_chr)
                                         }
                                 }
                         }
-
-
-		}
-
-
-		if ( BUILD_REVERSE_INDEX && (INDEX_REV[i] != NULL) ) {
-
-			bin = INDEX_REV[i];
-                        num = bin->num_pos;
-
-			//Slot
-			if (i == 0) minus_i = -2147483647;
-				else minus_i = -i;
-				
-			if (fwrite(&minus_i, sizeof(int), 1, META_INDEX_FP) == 0) {
-				fprintf(stderr, "ERROR: cant access harddisc for meta index file\n"); 
-			}
-
-			//Number
-			if (fwrite(&(INDEX_REV[i]->num_pos), sizeof(int), 1, META_INDEX_FP) == 0) {
-				fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-			}
-			maxnr = (INDEX_REV[i]->num_pos > maxnr)? INDEX_REV[i]->num_pos: maxnr;
-
-			//CONTENT
-                        if (num <= BIN_SIZE) {
-
-                                if (fwrite(&bin->ids[0], sizeof(ID), num, MAPREV_INDEX_FP)  == 0) {
-                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                        exit(0);
-                                }
-
-                        } else {
-
-                                if (fwrite(&(bin->ids[0]), sizeof(ID), BIN_SIZE, MAPREV_INDEX_FP) == 0) {
-                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                        exit(0);
-                                }
-                                num -= BIN_SIZE;
-
-                                bin_ext = &(bin->bin_ext);
-
-                                while (*bin_ext != NULL) {
-                                        if (num > BIN_SIZE_EXT) {
-                                                if (fwrite(&((*bin_ext)->ids[0]), sizeof(ID), BIN_SIZE_EXT, MAPREV_INDEX_FP) == 0) {
-                                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                                        exit(0);
-                                                }
-                                                num -= BIN_SIZE_EXT;
-                                                bin_ext = &((*bin_ext)->bin_ext);
-
-                                        } else { //write out last entries and finish
-                                                if (fwrite(&((*bin_ext)->ids[0]), sizeof(ID), num, MAPREV_INDEX_FP) == 0) {
-                                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                                        exit(0);
-                                                }
-                                                *bin_ext = NULL;
-
-                                        }
-                                }
-                        }
-
 		}
 
 	}

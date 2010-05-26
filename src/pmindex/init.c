@@ -41,11 +41,9 @@ int init_defaults()
 	NUM_USED_SLOTS = 0;
 	
 	VERBOSE = 0;
-	SLOT_COUNTER = 0;
 	POSITION_COUNTER = 0;
 	INDEX_DEPTH = 12;
 	LONGEST_CHROMOSOME = 0;
-	BUILD_REVERSE_INDEX = 1;
 
 	POWER[0] = 1;
 	for(i = 1 ; i <= MAX_INDEX_DEPTH; i++) {
@@ -76,9 +74,6 @@ int init_opts(int argc, char *argv[])
 
                         strcpy(MAPFWD_INDEX_FILE_NAME, argv[i]);
                         strcpy(MAPFWD_INDEX_FILE_NAME + strlen(argv[i]), ".mfd");
-
-                        strcpy(MAPREV_INDEX_FILE_NAME, argv[i]);
-                        strcpy(MAPREV_INDEX_FILE_NAME + strlen(argv[i]), ".mrc");
 
                         strcpy(META_INDEX_FILE_NAME, argv[i]);
                         strcpy(META_INDEX_FILE_NAME + strlen(argv[i]), ".mta");
@@ -145,11 +140,6 @@ int init_opts(int argc, char *argv[])
 		//verbose
 		if(strcmp(argv[i],"-v")==0){
 			VERBOSE = 1;
-		}
-		
-		//build reverse index
-		if(strcmp(argv[i],"-r")==0){
-			BUILD_REVERSE_INDEX = 0;
 		}
 
   	}
@@ -297,11 +287,6 @@ int init_mapindex_file()
 {
         if ((MAPFWD_INDEX_FP = fopen(MAPFWD_INDEX_FILE_NAME, "w")) == NULL) {
                 fprintf(stderr, "ERROR : Couldn't open mapindex file %s\n", MAPFWD_INDEX_FILE_NAME);
-                exit(1);
-        }
-
-        if ((MAPREV_INDEX_FP = fopen(MAPREV_INDEX_FILE_NAME, "w")) == NULL) {
-                fprintf(stderr, "ERROR : Couldn't open mapindex file %s\n", MAPREV_INDEX_FILE_NAME);
                 exit(1);
         }
 

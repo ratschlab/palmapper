@@ -26,6 +26,7 @@ typedef struct alignment_t {
   int rtrim_cut ;
   int polytrim_cut_start ;
   int polytrim_cut_end ;
+  char from_gm ;
 
   HIT* hit ;
   int num ;

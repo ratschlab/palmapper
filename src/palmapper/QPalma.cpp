@@ -2686,6 +2686,8 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 		//aln->rescue_start = rescue_start ;
 		//aln->rescue_end = rescue_end ;
 
+		aln->from_gm = 3;
+
 		if (ori == 0)
 			aln->orientation = '+';
 		else

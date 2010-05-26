@@ -34,17 +34,12 @@ int index_chromosome(unsigned int chr)
 		else {
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') {
 
-				slot = get_slot(CHR_SEQ, pos); // yields also SLOT_REV if -r option wasn't set
+				slot = get_slot(CHR_SEQ, pos);
 
 				if(INDEX[slot] == NULL) {
 					alloc_bin(slot);
-					if (BUILD_REVERSE_INDEX) alloc_bin_rev(SLOT_REV);
 				}
 				pos2bin(slot, chr);	// 0-initialized
-				
-				if (BUILD_REVERSE_INDEX) {
-					pos2bin_rev(SLOT_REV, chr); // 0-initialized
-				}
 				
 				spacer++;
 				pos++;
@@ -53,7 +48,7 @@ int index_chromosome(unsigned int chr)
 			}
 			else {
 				spacer++;
-				POSITION += spacer - pos;				
+				POSITION += spacer - pos;
 				pos = spacer;
 				HAS_SLOT = 0;
 			}
@@ -81,86 +76,15 @@ int index_chromosome(unsigned int chr)
 int pos2bin(unsigned int slot, unsigned int chr) 
 {
 	BIN_EXT **bin_ext;
-	BIN *bin, *binrev;
-	unsigned int num, numrev;
+	BIN *bin;
+	unsigned int num;
 
 	bin = INDEX[slot];
-	//bin->num_all++;
 	num = bin->num_pos;
-
-	numrev = 0;
-	if (BUILD_REVERSE_INDEX && INDEX_REV[slot] != NULL) {
-		binrev = INDEX_REV[slot];
-		numrev = binrev->num_pos;
-	}
 
 	POSITION_COUNTER++;
 
-	if (num == 0 && numrev == 0) {
-		USED_SLOTS[NUM_USED_SLOTS] = slot;
-		NUM_USED_SLOTS++;
-	}
-
 	if (num == 0) {
-		SLOT_COUNTER++;
-	}
-
-	if (num < BIN_SIZE) {
-		memcpy(&(bin->ids[num].id[0]), &BLOCK, 3 * sizeof(char));
-		memcpy(&(bin->ids[num].id[3]), &POSITION, sizeof(unsigned char));
-		
-		bin->num_pos++;
-	}
-	else {
-		bin_ext = &(bin->bin_ext);
-		if (*bin_ext == 0) {
-			*bin_ext = alloc_bin_ext();
-			memcpy(&(*bin_ext)->ids[0].id, &BLOCK, 3 * sizeof(char));
-			memcpy(&(*bin_ext)->ids[0].id[3], &POSITION, sizeof(unsigned char));
-        	bin->num_pos++;
-			bin->last_bin_ext = *bin_ext;
-			return 0;
-		}
-		else {
-			bin_ext = &(bin->last_bin_ext);
-			if ((num % BIN_SIZE_EXT) != BIN_SIZE) {
-				memcpy(&(*bin_ext)->ids[(num-BIN_SIZE) % BIN_SIZE_EXT].id, &BLOCK, 3 * sizeof(char));
-				memcpy(&(*bin_ext)->ids[(num-BIN_SIZE) % BIN_SIZE_EXT].id[3], &POSITION, sizeof(unsigned char));
-				bin->num_pos++;
-				return 0;
-			}
-			else  {
-				bin_ext = &((*bin_ext)->bin_ext);
-				*bin_ext = alloc_bin_ext();
-				memcpy(&(*bin_ext)->ids[0].id, &BLOCK, 3 * sizeof(char));
-				memcpy(&(*bin_ext)->ids[0].id[3], &POSITION, sizeof(unsigned char));
-				bin->num_pos++;
-				bin->last_bin_ext = *bin_ext;
-			}
-		}
-	}
-
-	return(0);
-}
-
-
-int pos2bin_rev(unsigned int slot, unsigned int chr) 
-{
-	BIN_EXT **bin_ext;
-	BIN *bin, *binfwd;
-	unsigned int num, numfwd;
-	
-	bin = INDEX_REV[slot];
-	//bin->num_all++;
-	num = bin->num_pos;
-
-	numfwd = 0;
-	if (INDEX[slot] != NULL) {
-		binfwd = INDEX[slot];
-		numfwd = binfwd->num_pos;
-	}
-
-	if (num == 0 && numfwd == 0) {
 		USED_SLOTS[NUM_USED_SLOTS] = slot;
 		NUM_USED_SLOTS++;
 	}
@@ -177,8 +101,7 @@ int pos2bin_rev(unsigned int slot, unsigned int chr)
 			*bin_ext = alloc_bin_ext();
 			memcpy(&(*bin_ext)->ids[0].id, &BLOCK, 3 * sizeof(char));
 			memcpy(&(*bin_ext)->ids[0].id[3], &POSITION, sizeof(unsigned char));
-
-        	bin->num_pos++;
+        		bin->num_pos++;
 			bin->last_bin_ext = *bin_ext;
 			return 0;
 		}
@@ -200,8 +123,10 @@ int pos2bin_rev(unsigned int slot, unsigned int chr)
 			}
 		}
 	}
+
 	return(0);
 }
+
 
 int get_slot(char *seq, int pos)
 {
@@ -209,8 +134,7 @@ int get_slot(char *seq, int pos)
 	unsigned int i;
 	int c = 0;
 	
-	if (HAS_SLOT == 0) { 
-		SLOT_REV = 0;
+	if (HAS_SLOT == 0) {
 		for (i=0; (int)i<INDEX_DEPTH; i++) {
 			if (seq[pos+i] == 'A') {
 				c = 0;
@@ -235,7 +159,6 @@ int get_slot(char *seq, int pos)
 				}
 			}
 			slot = slot + POWER[i] * c;
-			if (BUILD_REVERSE_INDEX) SLOT_REV += POWER[INDEX_DEPTH - i - 1] * (c ^ 3);
 		}
 	}
 	else {
@@ -243,22 +166,14 @@ int get_slot(char *seq, int pos)
 		slot = SLOT;
 		slot >>= 2;
 
-		if (BUILD_REVERSE_INDEX) {
-			SLOT_REV <<= 34 - INDEX_DEPTH * 2;
-			SLOT_REV >>= 32 - INDEX_DEPTH * 2;
-		}
-
 		if (seq[pos+INDEX_DEPTH-1] == 'A') {
 			slot = slot | BINARY_CODE[0];
-			if (BUILD_REVERSE_INDEX) SLOT_REV |= 3;
 		}
 		else if (seq[pos+INDEX_DEPTH-1] == 'C') {
 			slot = slot | BINARY_CODE[1];
-			if (BUILD_REVERSE_INDEX) SLOT_REV |= 2;
 		}
 		else if (seq[pos+INDEX_DEPTH-1] == 'G') {
 			slot = slot | BINARY_CODE[2];
-			if (BUILD_REVERSE_INDEX) SLOT_REV |= 1;
 		}
 		else { //if (seq[pos+INDEX_DEPTH-1] == 'T') {
 			slot = slot | BINARY_CODE[3];
