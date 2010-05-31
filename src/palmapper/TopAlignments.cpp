@@ -1253,8 +1253,9 @@ int TopAlignments::print_top_alignment_records_sam()
         fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i", curr_align->num_matches, _read.length() - curr_align->num_matches) ;
         if (curr_align->spliced)
         {
-            fprintf(MY_OUT_FP, "\tXS:A:%c", top_alignments[0]->strand) ;
+            fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
         }
+        fprintf(MY_OUT_FP, "\tZS:f:%2.2f", curr_align->qpalma_score) ;
         fprintf(MY_OUT_FP, "\n") ;
 
 	}
