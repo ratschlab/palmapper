@@ -1304,8 +1304,8 @@ int TopAlignments::print_top_alignment_records_sam()
             fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
             fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
             fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
-            fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
         }
+	fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
         fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
         fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
         fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
