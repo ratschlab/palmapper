@@ -289,6 +289,32 @@ int32_t TopAlignments::compare_score(alignment_t *a1, alignment_t *a2) {
 		return 0;
 }
 
+bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2) 
+{
+	if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-6)
+		return false ;
+	if (a1->num_matches!=a2->num_matches)
+		return false ;
+	if (a1->orientation!=a2->orientation)
+		return false ;
+	if (a1->strand!=a2->strand)
+		return false ;
+	if (a1->chromosome!=a2->chromosome)
+		return false ;
+	if (a1->exons!=a2->exons)
+	{
+		/*for (int i=0; i<a1->exons.size(); i++)
+			fprintf(stderr, "a1.e[%i]=%i\n", i, a1->exons[i]) ;
+		for (int i=0; i<a2->exons.size(); i++)
+		fprintf(stderr, "a2.e[%i]=%i\n", i, a2->exons[i]) ;*/
+		
+		return false ;
+	}
+
+	return true ;
+	
+}
+
 void TopAlignments::clean_top_alignment_record() 
 {
 	pthread_mutex_lock( &top_mutex) ;
@@ -366,6 +392,8 @@ void TopAlignments::end_top_alignment_record(int rtrim_cut, int polytrim_cut_sta
 	pthread_mutex_unlock( &top_mutex) ;
 
 	clean_top_alignment_record();
+	//exit(1) ;
+	
 }
 
 void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments) 
@@ -404,6 +432,7 @@ void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignme
 	if (top_alignments.empty()) 
 	{
 		top_alignments.push_back(alignment);
+		//fprintf(stderr, "inserting beginning %s\n", alignment->read_id);
 		pthread_mutex_unlock( &top_mutex) ;
 		return;
 	}
@@ -415,11 +444,14 @@ void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignme
 		printf(	"[add_alignment_record] About to go through list of top hits (%ld entries)\n",
 				top_alignments.size());
 
+	//fprintf(stderr, "trying to insert %s\n", alignment->read_id);
+	
 	for (uint8_t i = 0; i < top_alignments.size(); i++, it++)
 	{
-		if (alignment==top_alignments[i]) // already present
+		if (alignment_is_equal(alignment,top_alignments[i])) // already present
 		{
 			pthread_mutex_unlock( &top_mutex) ;
+			//fprintf(stderr, "stopped inserting %s\n", alignment->read_id);
 			return ;
 		}
 		
@@ -430,6 +462,7 @@ void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignme
 		{
 			if (verbosity >= 2)
 				printf("[add_alignment_record] reference alignment scores better than current one in top_alignments\n");
+			//fprintf(stderr, "inserting %s\n", alignment->read_id);
 			top_alignments.insert(it, alignment);
 			inserted = true;
 
@@ -443,6 +476,7 @@ void TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignme
 	if (!inserted && top_alignments.size() < _config.OUTPUT_FILTER_NUM_TOP)
 	{
 		top_alignments.push_back(alignment);
+		//fprintf(stderr, "inserting at end %s\n", alignment->read_id);
 		inserted = true;
 	}
 
@@ -701,7 +735,7 @@ int TopAlignments::print_alignment_shorebed(HIT* hit, unsigned int num)
 	if (_config.STATISTICS)
 		_stats.HITS_MM[hit->mismatches]++;
 
-	int j, fstart, flen;
+	int fstart, flen;
 
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart;
