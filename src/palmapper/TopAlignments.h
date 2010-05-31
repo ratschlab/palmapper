@@ -70,6 +70,7 @@ public:
 protected:
 
 	int32_t compare_score(alignment_t *a1, alignment_t *a2) ;
+	bool alignment_is_equal(alignment_t *a1, alignment_t *a2) ;
 
 	std::vector<alignment_t *> top_alignments;
 	int num_spliced_alignments;
