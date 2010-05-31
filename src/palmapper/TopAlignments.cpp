@@ -1072,6 +1072,19 @@ int TopAlignments::print_top_alignment_records_sam()
 	{
 		alignment_t * curr_align  = top_alignments[j] ;
 		assert(curr_align->exons.size() >= 2);
+		
+		int min_exon_len = curr_align->exons[1]-curr_align->exons[0] ;
+		int max_intron_len = 0 ;
+		int min_intron_len = INT_MAX ;
+		for (unsigned int k=2; k<curr_align->exons.size(); k+=2)
+		  {
+		    if (min_exon_len>curr_align->exons[k+1]-curr_align->exons[k])
+		      min_exon_len = curr_align->exons[k+1]-curr_align->exons[k] ;
+		    if (max_intron_len<curr_align->exons[k]-curr_align->exons[k-1])
+		      max_intron_len = curr_align->exons[k]-curr_align->exons[k-1] ;
+		    if (min_intron_len>curr_align->exons[k]-curr_align->exons[k-1])
+		      min_intron_len = curr_align->exons[k]-curr_align->exons[k-1] ;
+		  }
 
         if (j == 0) 
         {
@@ -1288,8 +1301,14 @@ int TopAlignments::print_top_alignment_records_sam()
         if (curr_align->spliced)
         {
             fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
+            fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
+            fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
+            fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
+            fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
         }
-        fprintf(MY_OUT_FP, "\tZS:f:%2.2f", curr_align->qpalma_score) ;
+        fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
+        fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
+        fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
         fprintf(MY_OUT_FP, "\n") ;
 
 	}
