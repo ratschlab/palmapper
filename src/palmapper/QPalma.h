@@ -18,6 +18,7 @@ class QPalma ;
 
 struct perform_alignment_t
 {
+	Read const *read;
 	std::string read_string ;
 	std::string read_quality ;
 	std::string dna ; 
@@ -75,7 +76,7 @@ protected:
 	////////////////////
 	
 public:
-	int qpalma_filter(struct alignment_t *ali, int num_N) ;
+	int qpalma_filter(Read const &read, struct alignment_t *ali, int num_N) ;
 	void qpalma_filter_stat(bool spliced) ;
 	void qpalma_filter_stat_report() ;
 
@@ -88,9 +89,9 @@ protected:
 
 public:
 	int capture_hits(ReadMappings &hits);
-	int perform_alignment(std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
+	int perform_alignment(Read const &read, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) ;
-	float score_unspliced(const char * read_anno) ;
+	float score_unspliced(Read const &read, const char * read_anno) ;
 	void capture_hits_timing(int read_count=-1, float this_read=-1.0) ;
 	
 protected:
@@ -102,19 +103,19 @@ protected:
 	int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) ;
 	void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) ;
 	void qsort(region_t** output, int size) ;
-	void recover_long_regions(std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) ;
+	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) ;
 	int convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions) ;
-	int get_first_read_map(bool* read_map) ;
+	int get_first_read_map(Read const &read, bool* read_map) ;
 	void print_hit(HIT *hit) ;
 	void print_region(region_t *region, const char * bla)  ;
-	void print_map(bool* read_map, const char *name) ;
+	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
+	int perform_alignment_starter(Read const &read, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
 	int perform_alignment_wait(int & num_reported) ;
 
 	void delete_regions() ;
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) ;
-	int rescue_alignment(std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
+	int rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
 
 
 	// inline helpers

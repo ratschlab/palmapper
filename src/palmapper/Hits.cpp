@@ -402,7 +402,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 				bool trigger = false ;
 				if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
 					trigger = topalignments->size()==0 || 
-						qpalma->qpalma_filter(topalignments->get_alignment(0), num_N)!=0 ;
+						qpalma->qpalma_filter(_read, topalignments->get_alignment(0), num_N)!=0 ;
 
 				if ( trigger )
 				{
