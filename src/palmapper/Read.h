@@ -231,7 +231,7 @@ public:
 
 	int determine_read_length(const std::string & query_fname) ;
 
-	Read* get_orig() { return orig_read ; } ;
+	Read* get_orig() const { return orig_read ; } ;
 	void set_orig(Read* orig) { orig_read=orig ; } ;
 
 private:
