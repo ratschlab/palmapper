@@ -1,8 +1,9 @@
-#include <assert.h>
-#include <string>
 #include <sys/time.h>
-#include <time.h>
+#include <assert.h>
+#include <limits.h>
 #include <pthread.h>
+#include <string>
+#include <time.h>
 
 #include "palmapper.h"
 #include "print.h"
@@ -249,7 +250,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(HIT *best_hit, QPalma * qpalm
 	best->spliced = false ;
 
 	if (qpalma)
-		best->qpalma_score = qpalma->score_unspliced(ALIGNSEQ) ;
+		best->qpalma_score = qpalma->score_unspliced(_read, ALIGNSEQ) ;
 	best->rtrim_cut=0 ;
 	best->polytrim_cut_start=0 ;
 	best->polytrim_cut_end=0 ;

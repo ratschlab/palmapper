@@ -197,6 +197,9 @@ class ReadMappings {
 public:
 	ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Hits &hits, Read const &read);
 	~ReadMappings();
+	Read const &read() const {
+		return _read;
+	}
 	int dealloc_hit_lists_operator() ;
 	int dealloc_hits_by_score() ;
 	int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches) ;

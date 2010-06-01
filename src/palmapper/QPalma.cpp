@@ -399,9 +399,7 @@ int QPalma::read_plif(FILE *fd, struct penalty_struct &plif) {
 	plif.penalties = (double*) malloc(sizeof(double) * plif.len);
 
 	if (plif.limits == NULL || plif.penalties == NULL) {
-		fprintf(stderr,
-				"[read_plif] Could not allocate memory (READ_ID = %s)\n",
-				_read.id());
+		fprintf(stderr,	"[read_plif] Could not allocate memory\n");
 		free(plif.limits);
 		free(plif.penalties);
 		return -1;
@@ -434,8 +432,7 @@ int QPalma::read_matrix(FILE* fd, double *& matrix, char*& name, int dims[2]) {
 
 	if (matrix == NULL) {
 		fprintf(stderr,
-				"[read_matrix] Could not allocate memory (READ_ID = %s)\n",
-				_read.id());
+				"[read_matrix] Could not allocate memory (name = %s)\n", name);
 		return -1;
 	}
 
@@ -747,10 +744,10 @@ void QPalma::qsort(region_t** output, int size) {
 }
 
 
-void QPalma::print_map(bool* read_map, const char *name) 
+void QPalma::print_map(Read const &read, bool* read_map, const char *name)
 {
 	fprintf(stdout, "# read_map (%s): ", name);
-	for (size_t i = 0; i < _read.length(); i++)
+	for (size_t i = 0; i < read.length(); i++)
 		if (read_map[i])
 			fprintf(stdout, "1");
 		else
@@ -796,7 +793,7 @@ void QPalma::qpalma_filter_stat(bool spliced)
 	qpalma_filter_reason=-1 ;
 }
 
-int QPalma::qpalma_filter(struct alignment_t *ali, int num_N)
+int QPalma::qpalma_filter(Read const &read, struct alignment_t *ali, int num_N)
 {
 	assert(ali->exons.size()<=2) ;
 	static bool use_ss_for_filtering = true ;
@@ -808,10 +805,10 @@ int QPalma::qpalma_filter(struct alignment_t *ali, int num_N)
 	unsigned int num_gaps = ali -> num_gaps ;
 	unsigned int num_matches = ali -> num_matches ;
 
-	if (num_gaps > _config.FILTER_BY_MAX_GAPS || _read.length()-num_matches > _config.FILTER_BY_MAX_MISMATCHES+num_N)
+	if (num_gaps > _config.FILTER_BY_MAX_GAPS || read.length()-num_matches > _config.FILTER_BY_MAX_MISMATCHES+num_N)
 	{
 		if (verbosity>=1)
-			fprintf(stdout, "filter decides YES: num_gaps=%i, num_mismatches=%i, num_N=%i\n", num_gaps, _read.length()-num_matches, num_N) ;
+			fprintf(stdout, "filter decides YES: num_gaps=%i, num_mismatches=%i, num_N=%i\n", num_gaps, read.length()-num_matches, num_N) ;
 		
 		qpalma_filter_reason=2 ; // cheap positive filter
 			
@@ -828,7 +825,7 @@ int QPalma::qpalma_filter(struct alignment_t *ali, int num_N)
 		return 0 ;
 	}
 
-	if ( _read.length()-num_matches < _config.FILTER_BY_SPLICE_SITES_EDIT_MIN+num_N )
+	if ( read.length()-num_matches < _config.FILTER_BY_SPLICE_SITES_EDIT_MIN+num_N )
 	{
 		qpalma_filter_reason=0 ; // cheap negative filter
 		return 0 ;
@@ -845,7 +842,7 @@ int QPalma::qpalma_filter(struct alignment_t *ali, int num_N)
 			if ( num_ss>0 )
 			{
 				if (verbosity>=1)
-					fprintf(stdout, "filter decides YES: num_ss=%i, gaps=%i, num_mismatches=%i, num_N=%i\n", num_ss, num_gaps, _read.length()-num_matches, num_N) ;
+					fprintf(stdout, "filter decides YES: num_ss=%i, gaps=%i, num_mismatches=%i, num_N=%i\n", num_ss, num_gaps, read.length()-num_matches, num_N) ;
 				
 				qpalma_filter_reason=3 ; // positive splice site filter
 				
@@ -859,7 +856,7 @@ int QPalma::qpalma_filter(struct alignment_t *ali, int num_N)
 		}
 	
 	if (verbosity>=1)
-		fprintf(stdout, "filter decides NO: num_gaps=%i, num_mismatches=%i, num_N=%i\n", num_gaps, _read.length()-num_matches, num_N) ;
+		fprintf(stdout, "filter decides NO: num_gaps=%i, num_mismatches=%i, num_N=%i\n", num_gaps, read.length()-num_matches, num_N) ;
 	
 	qpalma_filter_reason=1 ; // negative splice site filter 
 
@@ -873,7 +870,7 @@ int QPalma::qpalma_filter(struct alignment_t *ali, int num_N)
 // alignment
 
 /** find long regions included in the set of current regions */
-void QPalma::recover_long_regions(std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions){
+void QPalma::recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions){
 
   // Sort long_regions by start position
   region_t ** arr = NULL ;
@@ -885,7 +882,7 @@ void QPalma::recover_long_regions(std::vector<region_t*> &long_regions_output, s
   catch (std::bad_alloc&)
     {
       fprintf(stderr, "[capture_hits] ERROR Could not allocate memory (_read.id() = %s)\n",
-	      _read.id());
+	      read.id());
     }
   for (int i = 0; i < (int)nbr_long_regions; i++)
     arr[i] = long_regions[i];  
@@ -929,10 +926,10 @@ int QPalma::convert_dna_position(int real_position, size_t* cum_length, const st
   return -1;
 }
 
-int QPalma::get_first_read_map(bool* read_map)
+int QPalma::get_first_read_map(Read const &read, bool* read_map)
 {
 
-  for(unsigned int i=0; i < _read.length(); i++)
+  for(unsigned int i=0; i < read.length(); i++)
     if (read_map[i])
       return i;
   
@@ -1006,6 +1003,7 @@ void QPalma::capture_hits_timing(int read_count_, float this_read)
 
 int QPalma::capture_hits(ReadMappings &hits)
 {
+	Read const &read(hits.read());
   read_count++;
   int num_alignments_reported = 0 ;
   
@@ -1029,7 +1027,7 @@ int QPalma::capture_hits(ReadMappings &hits)
   
 
   //TODO: Real length of a hit is i-1
-  for (int32_t i = _read.length(); i >= _config.SPLICED_HIT_MIN_LENGTH_SHORT; i--) {
+  for (int32_t i = read.length(); i >= _config.SPLICED_HIT_MIN_LENGTH_SHORT; i--) {
 
 
     hit = *(hits.HIT_LISTS_OPERATOR + i);
@@ -1091,7 +1089,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 	  region_t *new_region = NULL;
 	  try {
 	    new_region = new region_t();
-	    new_region->read_map = new bool[_read.length()];
+	    new_region->read_map = new bool[read.length()];
 	  } catch (std::bad_alloc&) 
 	    {
 	      fprintf(stderr, "[capture_hits] allocating memory for read_map failed\n");
@@ -1103,12 +1101,12 @@ int QPalma::capture_hits(ReadMappings &hits)
 	  new_region->start = hit->start;
 	  new_region->end = hit->end;
 	  new_region->from_map = false ;
-	  for (size_t ii = 0; ii < _read.length(); ii++)
+	  for (size_t ii = 0; ii < read.length(); ii++)
 	    new_region->read_map[ii] = false;
 	  assert(hit->end >= hit->start) ;
 
 				
-	  for (size_t ii = 0; ii < hit->end - hit->start && hit->readpos + ii < _read.length(); ii++)
+	  for (size_t ii = 0; ii < hit->end - hit->start && hit->readpos + ii < read.length(); ii++)
 	    new_region->read_map[hit->readpos + ii] = true;
 	  //print_map(new_region->read_map, "init") ;
 	  //new_region->strand = hit->orientation ;
@@ -1118,7 +1116,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 	    region_t *new_lregion=NULL;
 	    try {
 	      new_lregion = new region_t();
-	      new_lregion->read_map = new bool[_read.length()];
+	      new_lregion->read_map = new bool[read.length()];
 	    } catch (std::bad_alloc&) 
 	    {
 	      fprintf(stderr, "[capture_hits] allocating memory for read_map failed\n");
@@ -1130,9 +1128,9 @@ int QPalma::capture_hits(ReadMappings &hits)
 	    new_lregion->start = hit->start;
 	    new_lregion->end = hit->end;
 	    new_lregion->from_map = false ;
-	    for (size_t ii = 0; ii < _read.length(); ii++)
+	    for (size_t ii = 0; ii < read.length(); ii++)
 	      new_lregion->read_map[ii] = false;
-	    for (size_t ii = 0; ii < hit->end - hit->start && hit->readpos + ii< _read.length(); ii++)
+	    for (size_t ii = 0; ii < hit->end - hit->start && hit->readpos + ii< read.length(); ii++)
 	      new_lregion->read_map[hit->readpos + ii] = true;
 	    long_regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_lregion);
 	  }
@@ -1154,7 +1152,7 @@ int QPalma::capture_hits(ReadMappings &hits)
   }
   if (verbosity >= 1)
     fprintf(stdout,	"# [capture_hits] Captured %d hits, dropped %i hits for read %s\n",
-	    num_hits - num_hits_dropped, num_hits_dropped, _read.id());
+	    num_hits - num_hits_dropped, num_hits_dropped, read.id());
   
   //find short hits in close vicinity
   //find_short_hits();
@@ -1213,7 +1211,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 			  region_t *new_region = NULL;
 			  try {
 			    new_region = new region_t();
-			    new_region->read_map = new bool[_read.length()];
+			    new_region->read_map = new bool[read.length()];
 			  } catch (std::bad_alloc&) {
 			    fprintf(stderr, "[capture_hits] allocating memory for read_map failed\n");
 			    delete_regions();
@@ -1223,7 +1221,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 			  
 			  new_region->start = positions[jj] - _config.INDEX_DEPTH ;
 			  new_region->end = positions[jj] + _config.INDEX_DEPTH ;
-			  for (size_t ii = 0; ii < _read.length(); ii++)
+			  for (size_t ii = 0; ii < read.length(); ii++)
 			    new_region->read_map[ii] = false;
 
 			  //new_region->strand = (ori == 0) ? '+' : '-' ;
@@ -1265,7 +1263,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 				  region_t *new_region = NULL;
 				  try {
 				    new_region = new region_t();
-				    new_region->read_map = new bool[_read.length()];
+				    new_region->read_map = new bool[read.length()];
 				  } catch (std::bad_alloc&) {
 				    fprintf(stderr, "[capture_hits] allocating memory for read_map failed\n");
 				    delete_regions();
@@ -1278,7 +1276,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 				    new_region->end = end-1 + _config.INDEX_DEPTH ;
 				  else
 				    new_region->end = region_end + _config.INDEX_DEPTH ;
-				  for (size_t ii = 0; ii < _read.length(); ii++)
+				  for (size_t ii = 0; ii < read.length(); ii++)
 				    new_region->read_map[ii] = false;
 				  //new_region->strand = (ori == 0) ? '+' : '-' ;
 				  //new_region->chromosome = chrN ;
@@ -1370,7 +1368,7 @@ int QPalma::capture_hits(ReadMappings &hits)
       catch (std::bad_alloc&)
 	{
 	  fprintf(stderr, "[capture_hits] ERROR Could not allocate memory (_read.id() = %s)\n",
-						_read.id());
+						read.id());
 	  return -1;
 	}
       
@@ -1429,7 +1427,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 		  (regions[ori][chrN][nregion])->end = (regions[ori][chrN][next])->end;
 		
 		// merge the two read_maps
-		for (size_t i = 0; i < _read.length(); i++)
+		for (size_t i = 0; i < read.length(); i++)
 		  regions[ori][chrN][nregion]->read_map[i] = regions[ori][chrN][nregion]->read_map[i]
 		    || regions[ori][chrN][next]->read_map[i];
 		
@@ -1496,7 +1494,7 @@ int QPalma::capture_hits(ReadMappings &hits)
   // genomic sequence later.
 
   std::string read_seq[2];
-  read_seq[0] = std::string(_read.data(), _read.length());
+  read_seq[0] = std::string(read.data(), read.length());
   read_seq[1] = reverse(complement(read_seq[0]));
   if (verbosity >= 3) {
     fprintf(stdout, "# read[0]: %s\n", read_seq[0].c_str());
@@ -1504,7 +1502,7 @@ int QPalma::capture_hits(ReadMappings &hits)
   }
   
   std::string read_quality[2];
-  read_quality[0] = std::string(_read.quality()[0], _read.length());
+  read_quality[0] = std::string(read.quality()[0], read.length());
   read_quality[1] = reverse(read_quality[0]);
   if (verbosity >= 3)
     fprintf(stdout, "# readqual[0]: %s\n", read_quality[0].c_str());
@@ -1512,7 +1510,7 @@ int QPalma::capture_hits(ReadMappings &hits)
   bool *read_map = NULL;
   try 
     {
-      read_map = new bool[_read.length()];
+      read_map = new bool[read.length()];
     } 
   catch (std::bad_alloc&)
     {
@@ -1564,7 +1562,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 	  }
 
 	// initialize read_map
-	for (size_t i = 0; i < _read.length(); i++)
+	for (size_t i = 0; i < read.length(); i++)
 	  read_map[i] = regions[ori][chrN][start_region]->read_map[i];
 
 	for (size_t nregion = start_region + 1; nregion < regions[ori][chrN].size(); nregion++) 
@@ -1588,7 +1586,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 		// separate alignment.
 
 		int num_read_map = 0;
-		for (size_t i = 0; i < _read.length(); i++)
+		for (size_t i = 0; i < read.length(); i++)
 		  if (read_map[i])
 		    num_read_map++;
 
@@ -1601,15 +1599,15 @@ int QPalma::capture_hits(ReadMappings &hits)
 		    //Recover long regions (starting points in sequences) for current regions to align
 		    std::vector<region_t*> corres_long_regions;
 		    corres_long_regions.clear();
-		    recover_long_regions(corres_long_regions, long_regions[ori][chrN], current_regions);
+		    recover_long_regions(read, corres_long_regions, long_regions[ori][chrN], current_regions);
 		    assert(corres_long_regions.size()>0); // at least one long region as support of alignment
 		    assert(corres_long_regions[0]->read_map!=NULL);
 
 		    //Take the first long region  to start alignment
-		    int hit_read_position = get_first_read_map(corres_long_regions[0]->read_map);
+		    int hit_read_position = get_first_read_map(read, corres_long_regions[0]->read_map);
 		    int hit_len= corres_long_regions[0]->end-corres_long_regions[0]->start;
 		    if(ori==1){
-		      hit_read_position = _read.length()-hit_len-hit_read_position+1;
+		      hit_read_position = read.length()-hit_len-hit_read_position+1;
 		    }
 		    assert (hit_read_position>=0 && hit_len >0);
 		    //fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
@@ -1617,7 +1615,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 		    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 		    bool isunspliced ;
 		    {
-				int ret = perform_alignment_starter(read_seq[ori], read_quality[ori], current_seq, current_regions, 
+				int ret = perform_alignment_starter(read, read_seq[ori], read_quality[ori], current_seq, current_regions,
 													current_positions, chr, '+', ori, hit_read_position,
 													corres_long_regions[0]->start, hit_len);
 				/*, num_alignments_reported*/
@@ -1635,9 +1633,9 @@ int QPalma::capture_hits(ReadMappings &hits)
 				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 				//      corres_long_regions[0]->end, hit_len);					  
 				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-				int ret = perform_alignment_starter(read_seq[1 - ori],
+				int ret = perform_alignment_starter(read, read_seq[1 - ori],
 													read_quality[1 - ori], current_seq,
-													current_regions, current_positions, chr, '-', ori, _read.length()-(hit_read_position+hit_len),
+													current_regions, current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
 													corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
 				/* , num_alignments_reported */
 				if (ret < 0)
@@ -1659,7 +1657,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 		current_positions.clear();
 					
 
-		for (size_t i = 0; i < _read.length(); i++)
+		for (size_t i = 0; i < read.length(); i++)
 		  read_map[i] = regions[ori][chrN][nregion]->read_map[i];
 					
 	      } else {
@@ -1670,7 +1668,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 		current_seq.append(str);
 					
 		// merge read_maps
-		for (size_t i = 0; i < _read.length(); i++)
+		for (size_t i = 0; i < read.length(); i++)
 		  read_map[i] = read_map[i] || regions[ori][chrN][nregion]->read_map[i];
 	      }
 	    current_regions.push_back(regions[ori][chrN][nregion]);
@@ -1690,7 +1688,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 	  }
 	
 	int num_read_map = 0;
-	for (size_t i = 0; i < _read.length(); i++)
+	for (size_t i = 0; i < read.length(); i++)
 	  if (read_map[i])
 	    num_read_map++;
 			
@@ -1703,22 +1701,22 @@ int QPalma::capture_hits(ReadMappings &hits)
 	    std::vector<region_t*> corres_long_regions;
 	    corres_long_regions.clear();
 	    //fprintf(stdout,"chr length %i\n",genome->chromosome(chrN).length());
-	    recover_long_regions(corres_long_regions, long_regions[ori][chrN], current_regions);
+	    recover_long_regions(read, corres_long_regions, long_regions[ori][chrN], current_regions);
 	    assert(corres_long_regions.size()>0); // at least one long region as support of alignment
 	    assert(corres_long_regions[0]->read_map!=NULL);
 
 	    //Take the first long region  to start alignment
-	    int hit_read_position = get_first_read_map(corres_long_regions[0]->read_map);
+	    int hit_read_position = get_first_read_map(read, corres_long_regions[0]->read_map);
 	    int hit_len= corres_long_regions[0]->end-corres_long_regions[0]->start;
 	    if(ori==1){
-	      hit_read_position = _read.length()-hit_len-hit_read_position+1;
+	      hit_read_position = read.length()-hit_len-hit_read_position+1;
 	    }
 	    assert (hit_read_position>=0 && hit_len >0);
 	    //fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
 	    //    corres_long_regions[0]->start, hit_len);
 	    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 	    {
-			int ret = perform_alignment_starter(read_seq[ori], read_quality[ori],
+			int ret = perform_alignment_starter(read, read_seq[ori], read_quality[ori],
 												current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
 												corres_long_regions[0]->start, hit_len); 
 			/*, num_alignments_reported */
@@ -1736,9 +1734,9 @@ int QPalma::capture_hits(ReadMappings &hits)
 			//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 			//      corres_long_regions[0]->end, hit_len);					  
 			//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-			int ret = perform_alignment_starter(read_seq[1 - ori],
+			int ret = perform_alignment_starter(read, read_seq[1 - ori],
 												read_quality[1 - ori], current_seq,
-												current_regions, current_positions, chr, '-', ori,_read.length()-(hit_read_position+hit_len),
+												current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
 												corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
 			/* , num_alignments_reported */
 			if (ret < 0)
@@ -1788,7 +1786,7 @@ void *perform_alignment_wrapper(void *data_)
 	try
 	{
 		assert(data->qpalma!=NULL) ;
-		data->ret = data->qpalma->perform_alignment(data->read_string, data->read_quality, data->dna, 
+		data->ret = data->qpalma->perform_alignment(*data->read, data->read_string, data->read_quality, data->dna,
 													data->current_regions, data->positions, *data->contig_idx,
 													data->strand, data->ori, data->num_reported,data->hit_read,
 													data->hit_dna,data->hit_length) ;
@@ -1803,7 +1801,7 @@ void *perform_alignment_wrapper(void *data_)
 	return data ;
 }
 
-int QPalma::perform_alignment_starter(std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
+int QPalma::perform_alignment_starter(Read const &read, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -1827,6 +1825,7 @@ int QPalma::perform_alignment_starter(std::string read_string, std::string read_
 
 		data = new struct perform_alignment_t ;
 		
+		data->read = &read;
 		data->read_string=read_string ;
 		data->read_quality=read_quality ;
 		data->dna = dna ;
@@ -1911,7 +1910,7 @@ int QPalma::perform_alignment_wait(int & num_reported)
 	return ret ;
 }
 
-int QPalma::rescue_alignment(std::string & read_anno, int ori, int &num_A, int &num_T, int &num)
+int QPalma::rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num)
 {
 	unsigned int read_pos = 0 ;
 	int genome_pos = 0 ;
@@ -1969,10 +1968,10 @@ int QPalma::rescue_alignment(std::string & read_anno, int ori, int &num_A, int &
 	    }
 	  i+=3 ;
 	}
-      if (!(read_pos<=_read.length()))
-	fprintf(stderr, "ASSERT: %i, %i, %i, %i: %s\n", i, ori, read_pos, _read.length(), read_anno.c_str()) ;
+      if (!(read_pos<=read.length()))
+	fprintf(stderr, "ASSERT: %i, %i, %i, %i: %s\n", i, ori, read_pos, read.length(), read_anno.c_str()) ;
 
-      double frac=read_pos/_read.length() ;
+      double frac=read_pos/read.length() ;
       if (alignment_mismatches <= _config.NUM_MISMATCHES*frac && alignment_gaps <= _config.NUM_GAPS*frac && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS*frac)
 	{
 	  last_good_pos = read_pos ;
@@ -1985,7 +1984,7 @@ int QPalma::rescue_alignment(std::string & read_anno, int ori, int &num_A, int &
 }
 
 
-int QPalma::perform_alignment(std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
+int QPalma::perform_alignment(Read const &read, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
 // ori = read orientation
 // strand = dna strand/orientation
 
@@ -2008,7 +2007,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	//current_regions[0]->chromosome = contig_idx ;
 
 	if (verbosity>=1)
-		fprintf(stdout, "# [perform_alignment] performing alignment of read %s with %i regions and sequence of length %i, strand=%c\n", _read.id(), (int)current_regions.size(), (int)dna.size(), strand) ;
+		fprintf(stdout, "# [perform_alignment] performing alignment of read %s with %i regions and sequence of length %i, strand=%c\n", read.id(), (int)current_regions.size(), (int)dna.size(), strand) ;
 
 	int nr_paths_p = 1;
 
@@ -2029,7 +2028,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	}
 	catch (std::bad_alloc&)
 	{
-		fprintf(stderr,	"[perform_alignment] Could not allocate memory (_read.id() = %s)\n", _read.id());
+		fprintf(stderr,	"[perform_alignment] Could not allocate memory (_read.id() = %s)\n", read.id());
 		return -1;
 	}
 	strncpy(est, read_string.c_str(), est_len_p);
@@ -2042,7 +2041,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	}
 	catch (std::bad_alloc&)
 	{
-		fprintf(stderr,	"[perform_alignment] Could not allocate memory (_read.id() = %s)\n", _read.id());
+		fprintf(stderr,	"[perform_alignment] Could not allocate memory (_read.id() = %s)\n", read.id());
 		delete[] est;
 		return -1;
 	}
@@ -2066,7 +2065,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	}
 	catch (std::bad_alloc&)
 	{
-		fprintf(stderr, "[perform_alignment] Could not allocate memory (_read.id() = %s)\n", _read.id());
+		fprintf(stderr, "[perform_alignment] Could not allocate memory (_read.id() = %s)\n", read.id());
 		return -1;
 	}
 
@@ -2081,7 +2080,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	}
 	catch (std::bad_alloc&)
 	{
-		fprintf(stderr,	"[perform_alignment] Could not allocate memory (_read.id() = %s)\n", _read.id());
+		fprintf(stderr,	"[perform_alignment] Could not allocate memory (_read.id() = %s)\n", read.id());
 		delete[] donor;
 		delete[] est ;
 		delete[] prb;
@@ -2134,7 +2133,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	      }
 	    catch (std::bad_alloc&)
 	      {
-		fprintf(stderr, "[perform_alignment] Could not allocate memory (_read.id() = %s)\n", _read.id());
+		fprintf(stderr, "[perform_alignment] Could not allocate memory (_read.id() = %s)\n", read.id());
 		delete[] donor;
 		delete[] est;
 		delete[] prb;
@@ -2175,7 +2174,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	    }
 	  catch (std::bad_alloc&)
 	    {
-	      fprintf(stderr, "[perform_alignment] Could not allocate memory (_read.id() = %s)\n", _read.id());
+	      fprintf(stderr, "[perform_alignment] Could not allocate memory (_read.id() = %s)\n", read.id());
 	      /* cleanup */
 	      delete[] donor ;
 	      delete[] est ;
@@ -2407,7 +2406,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	exons.clear();
 
 	int exon_start = -1;
-	int min_exon_len = _read.length();
+	int min_exon_len = read.length();
 	int max_intron_len = 0;
 
 	bool alignment_valid=true ;
@@ -2698,7 +2697,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 		if (!aln->spliced)
 			isunspliced = true;
 
-		strcpy(aln->read_id, _read.id());
+		strcpy(aln->read_id, read.id());
 
 		topalignments->add_alignment_record(aln, 1);
 		num_reported++ ;
@@ -2707,7 +2706,7 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 		{
 			fprintf(stdout,
 					"# alignment with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i): %s\n",
-					(int) exons.size() / 2, _read.id(), alignscore,
+					(int) exons.size() / 2, read.id(), alignscore,
 					alignment_matches, alignment_gaps, read_anno.c_str());
 			for (size_t i = 0; i < exons.size(); i += 2)
 				fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, exons[i], exons[i+ 1]);
@@ -2728,11 +2727,11 @@ int QPalma::perform_alignment(std::string &read_string, std::string &read_qualit
 	return (int) isunspliced;
 }
 
-float QPalma::score_unspliced(const char * read_anno)
+float QPalma::score_unspliced(Read const &read, const char * read_anno)
 {
 	if (alignment_parameters==NULL)
 	{
-		int num_matches = _read.length() ;
+		int num_matches = read.length() ;
 		
 		for (size_t i=0; i<strlen(read_anno); i++)
 		{
@@ -2753,28 +2752,27 @@ float QPalma::score_unspliced(const char * read_anno)
 	double* prb = NULL ;
 	try
 	{
-		prb = new double[_read.length()] ;
+		prb = new double[read.length()] ;
 	}
 	catch (std::bad_alloc&)
 	{
-		fprintf(stderr,	"[score_unspliced] Could not allocate memory (_read.id() = %s)\n", _read.id());
+		fprintf(stderr,	"[score_unspliced] Could not allocate memory (_read.id() = %s)\n", read.id());
 		return -1;
 	}
-	for (size_t i = 0; i < _read.length(); i++)
+	for (size_t i = 0; i < read.length(); i++)
 	{
-		prb[i] = (_read.quality()[0][i] - alignment_parameters->quality_offset);
+		prb[i] = (read.quality()[0][i] - alignment_parameters->quality_offset);
 		if (prb[i]<-10 || prb[i]>70)
-			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, _read.quality()[0], _read.data()) ;
+			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, read.quality()[0], read.data()) ;
 		
 		//assert(prb[i]>=-10 && prb[i]<=70) ;
 	}
 
-	float score1 = alignment.scoreUnsplicedAlignment(read_anno, prb, _read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix, '+') ;
-	float score2 = alignment.scoreUnsplicedAlignment(read_anno, prb, _read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix, '-') ;
+	float score1 = alignment.scoreUnsplicedAlignment(read_anno, prb, read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix, '+') ;
+	float score2 = alignment.scoreUnsplicedAlignment(read_anno, prb, read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix, '-') ;
 	
 	delete[] prb ;
 	if (score1>score2)
 		return score1 ;
 	return score2 ;
 }
-
