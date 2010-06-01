@@ -455,7 +455,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 				//if (_config.VERBOSE && read_mapped)
 				//	printf("unspliced or spliced alignment found\n"); 
 				
-				topalignments->end_top_alignment_record(rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
+				topalignments->end_top_alignment_record(_read, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 				
 				if (read_mapped)
 					_stats.READS_MAPPED++ ;
@@ -2740,7 +2740,7 @@ int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 				for (j = 0; j != HITS_BY_SCORE[i].num; ++j) {
 
 					if (lhits[nr] == j) {
-						printed += topalignments->report_unspliced_hit(hit, -_config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+						printed += topalignments->report_unspliced_hit(_read, hit, -_config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
 						nr++;
 					}
 
@@ -2759,7 +2759,7 @@ int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 				// code was set up: we see the hits in the order of their score here - better hits first.
 				while (hit != NULL) 
 				{
-					printed += topalignments->report_unspliced_hit(hit, 0, qpalma) ;
+					printed += topalignments->report_unspliced_hit(_read, hit, 0, qpalma) ;
 					hit = hit->same_eo_succ;
 				}
 
@@ -2775,9 +2775,9 @@ int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 						nr = HITS_IN_SCORE_LIST;
 
 					if (_config.OUTPUT_FILTER_NUM_LIMIT == 0) { // no max nr of hits per read was specified, print all
-						printed += topalignments->report_unspliced_hit(hit, nr, qpalma);
+						printed += topalignments->report_unspliced_hit(_read, hit, nr, qpalma);
 					} else if (_config.OUTPUT_FILTER_NUM_LIMIT > 0 && printed < _config.OUTPUT_FILTER_NUM_LIMIT) {
-						printed += topalignments->report_unspliced_hit(hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+						printed += topalignments->report_unspliced_hit(_read, hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
 					} else if (_config.OUTPUT_FILTER_NUM_LIMIT == printed) { // repeatmap many alignments already printed out -> stop printing -> next read
 						return 1;
 					}

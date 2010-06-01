@@ -2699,7 +2699,7 @@ int QPalma::perform_alignment(Read const &read, std::string &read_string, std::s
 
 		strcpy(aln->read_id, read.id());
 
-		topalignments->add_alignment_record(aln, 1);
+		topalignments->add_alignment_record(read, aln, 1);
 		num_reported++ ;
 		
 		if (verbosity >= 2) 

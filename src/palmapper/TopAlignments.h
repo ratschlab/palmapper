@@ -42,21 +42,21 @@ public:
 		clean_top_alignment_record() ;
 	}
 
-	u_int8_t report_unspliced_hit(HIT *hit, int num, QPalma * qpalma)  ;
-	int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
-	alignment_t *gen_alignment_from_hit(HIT *best_hit, QPalma * qpalma) ;
+	u_int8_t report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma * qpalma)  ;
+	int construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
+	alignment_t *gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma * qpalma) ;
 
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
-	void end_top_alignment_record(int rtrim_cut, int polytrim_start, int polytrim_end) ;
-	void add_alignment_record(alignment_t *alignment, int num_alignments) ;
+	void end_top_alignment_record(Read const &read, int rtrim_cut, int polytrim_start, int polytrim_end) ;
+	void add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments) ;
 
-	int print_top_alignment_records() ;
-	int print_top_alignment_records_bedx() ;
-	int print_top_alignment_records_shorebed() ;
-	int print_alignment_shorebed(HIT* hit, unsigned int num)  ;
-	int print_top_alignment_records_sam() ;
+	int print_top_alignment_records(Read const &read) ;
+	int print_top_alignment_records_bedx(Read const &read);
+	int print_top_alignment_records_shorebed(Read const &read) ;
+	int print_alignment_shorebed(Read const &read, HIT* hit, unsigned int num)  ;
+	int print_top_alignment_records_sam(Read const &read) ;
 
 	size_t size()
 	{
