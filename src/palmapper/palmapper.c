@@ -13,7 +13,6 @@ FILE *TRIGGERED_LOG_FP; // #A#
 
 Config _config;
 Statistics _stats;
-Read _read;
 
 int main(int argc, char *argv[]) 
 {
@@ -39,7 +38,8 @@ int main(int argc, char *argv[])
 	_config.applyDefaults(&_genome) ;
 	_config.checkConfig() ;
 
-	Hits hits(_genome, _genomemaps, _read);
+	QueryFile queryFile(_config.QUERY_FILE_NAME);
+	Hits hits(_genome, _genomemaps, queryFile);
 
 	TopAlignments _topalignments(&_genomemaps) ;
 	QPalma _qpalma(&_genome, &_topalignments, &_genomemaps, 0) ;
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 	hits.map_reads(_genome, _genomemaps, &_topalignments, &_qpalma);
 
 	if (_config.STATISTICS)	{
-		print_stats();
+		print_stats(queryFile);
 		printf("R E D U N D A N T : %d\n", hits.REDUNDANT);
 		printf("Max used slots: %d\n", Hits::MAX_USED_SLOTS);
 		printf("\nList iterations: %d\n", _stats.listcount);

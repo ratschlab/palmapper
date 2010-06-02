@@ -12,17 +12,16 @@
 #include <iostream>
 
 #include <palmapper/Hits.h>
+#include <palmapper/QueryFile.h>
 #include <palmapper/Read.h>
 #include <palmapper/palmapper.h>
 
 using namespace std;
 
-extern clock_t time2a_seek ;
-extern clock_t time2a_seed2genome  ;
-
 int get_slot(int pos);
 
-Read::Read() 
+Read::Read(QueryFile &queryFile)
+:	_queryFile(queryFile)
 {
 	READ_ID = new char[_config.MAX_READ_ID_LENGTH];
 	for (int i = 0; i < 3; ++i) {
@@ -32,13 +31,12 @@ Read::Read()
 			exit(1);
 		}
 	}
-	linenr = 0;
 	READ_LENGTH = 0;
-	ASSUMED_READ_LENGTH = 0 ;
 	orig_read = NULL ;
 }
 
-Read::Read(const Read& read) 
+Read::Read(const Read& read)
+:	_queryFile(read._queryFile)
 {
 	READ_ID = new char[_config.MAX_READ_ID_LENGTH];
 	for (int i = 0; i < 3; ++i) {
@@ -48,7 +46,6 @@ Read::Read(const Read& read)
 			exit(1);
 		}
 	}
-	linenr = read.linenr ;
 	READ_LENGTH = read.READ_LENGTH ;
 	strncpy(READ_ID, read.READ_ID, _config.MAX_READ_ID_LENGTH) ;
 	strncpy(READ, read.READ, _config.MAX_READ_LENGTH+1) ;
@@ -61,6 +58,13 @@ Read::Read(const Read& read)
 	orig_read = NULL ;
 }
 
+Read::~Read() {
+	// TODO: free used memory
+//	delete[] READ_ID;
+//	for (int i = 0; i < 3; ++i)
+//		delete[] READ_QUALITY[i];
+}
+
 /** Parses one line of read descriptions in either FASTA, FASTQ or FLATFILE
  *  format and sets a number of global variables describing this read.
  *
@@ -70,27 +74,25 @@ Read::Read(const Read& read)
  *
  *	\return A status code; 0 on success
  */
-int Read::read_short_read(FILE *QUERY_FP)
+int Read::read_short_read()
 {
 	char line[10000];
 	char *tmp;
 	int linelen;
 
-	if (fgets(line, 10000, QUERY_FP) == NULL) {
+	if (!_queryFile.next_line(line, sizeof(line))) {
 		if (READ_LENGTH == 0)
 			cerr << "\n!!! WARNING: Input read file '" << /*_config.*/_config.QUERY_FILE_NAME << "' is empty!\n\n";
 		return 1;
 	}
-	++linenr;
 
 	if (strcspn(line, " \n\t") == 0) {
 		do {
-			if (fgets(line, 10000, QUERY_FP) == NULL) {
+			if (!_queryFile.next_line(line, sizeof(line))) {
 				if (READ_LENGTH == 0)
 					cerr << "\n!!! WARNING: Input read file '" << /*_config.*/_config.QUERY_FILE_NAME << "' is empty!\n\n";
 				return 1;
 			}
-			++linenr;
 		} while (strcspn(line, " \n\t") == 0);
 	}
 
@@ -117,61 +119,58 @@ int Read::read_short_read(FILE *QUERY_FP)
 		}
 
 		do {
-			if (fgets(line, 10000, QUERY_FP) == NULL) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence and quality!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			if (!_queryFile.next_line(line, sizeof(line))) {
+				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence and quality!\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.QUERY_FILE_NAME.c_str());
 				exit(0);
 			}
-			++linenr;
 		} while (strcspn(line, " \t\n") == 0);
 
 		// R E A D
 		strncpy(READ, line, strcspn(line, " \t\n"));
 		//READ[36]=0 ;
 		if (strlen(READ) > /*_config.*/_config.MAX_READ_LENGTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, linenr, /*_config.*/_config.MAX_READ_LENGTH);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.MAX_READ_LENGTH);
 			return -1;
 		}
 		else if (strlen(READ) == 0) {
-			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.QUERY_FILE_NAME.c_str());
 			exit(0);
 		}
 		if (strcspn(READ, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, linenr);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
 
 		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
 
 		do {
-			if (fgets(line, 10000, QUERY_FP) == NULL) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			if (!_queryFile.next_line(line, sizeof(line))) {
+				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.QUERY_FILE_NAME.c_str());
 				exit(0);
 			}
-			++linenr;
 		} while (strcspn(line, " \t\n") == 0);
 
 		// +
 		if (strlen(line) < 1 || line[0] != '+') {
-			fprintf(stderr, "ERROR: Read '%s' in line %lu is not in fastq format!\n", READ_ID, linenr);
+			fprintf(stderr, "ERROR: Read '%s' in line %lu is not in fastq format!\n", READ_ID, _queryFile.line_nr());
 			exit(0);
 		}
 
 		do {
-			if (fgets(line, 10000, QUERY_FP) == NULL) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			if (!_queryFile.next_line(line, sizeof(line))) {
+				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
 				exit(0);
 			}
-			++linenr;
 		} while (strcspn(line, " \t\n") == 0);
 
 		// Q U A L I T Y
 		if (strlen(line) > 0)
 			strncpy(READ_QUALITY[0], line, strcspn(line, " \t\n"));
 		else {
-			fprintf(stderr, "ERROR: Cannot find read quality of read '%s' in line %lu in input query file '%s'!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			fprintf(stderr, "ERROR: Cannot find read quality of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
 			exit(0);
 		}
 
@@ -198,21 +197,20 @@ int Read::read_short_read(FILE *QUERY_FP)
 		strncpy(READ_ID, line+1, strcspn(line, " \t\n")-1);
 
 		do {
-			if (fgets(line, 10000, QUERY_FP) == NULL) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			if (!_queryFile.next_line(line, sizeof(line))) {
+				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
 				exit(0);
 			}
-			++linenr;
 		} while (strcspn(line, " \t\n") == 0);
 
 		// R E A D
 		strncpy(READ, line, strcspn(line, " \t\n"));
 		if (strlen(READ) > /*_config.*/_config.MAX_READ_LENGTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, linenr, /*_config.*/_config.MAX_READ_LENGTH);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.MAX_READ_LENGTH);
 			return -1;
 		}
 		else if (strlen(READ) == 0) {
-			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, linenr, /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
 			exit(0);
 		}
 		for (int i=0; i<(int)strlen(READ); i++)
@@ -223,12 +221,12 @@ int Read::read_short_read(FILE *QUERY_FP)
 			}
 
 		if (strcspn(READ, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, linenr);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
 
 		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
 
@@ -250,40 +248,40 @@ int Read::read_short_read(FILE *QUERY_FP)
 		READ_ID = strtok(line, "\t");
 
 		if ((int)strlen(READ_ID) == linelen) {
-			fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", linenr);
+			fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
 		if (READ_ID == NULL) {
-			fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", linenr);
+			fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
 
 		char *tok = strtok(NULL, "\t");
 		if (tok == NULL) {
-			fprintf(stderr, "ERROR: Read sequence is empty, line %lu!\n", linenr);
+			fprintf(stderr, "ERROR: Read sequence is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
 
 		if (strlen(tok) > /*_config.*/_config.MAX_READ_LENGTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, linenr, /*_config.*/_config.MAX_READ_LENGTH);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
 			return -1;
 		}
 		//printf("%s sp: %d\n",READ,(int) strcspn(READ, "A"));
 		if (strcspn(tok, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, linenr);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
 
 		strcpy(READ, tok);
 		READ_LENGTH = strlen(tok);
 		if (READ_LENGTH < /*_config.*/_config.INDEX_DEPTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, linenr);
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
 
 		tmp = strtok(NULL, "\t");
 		if (tmp == NULL) {
-			fprintf(stderr, "ERROR: Paired-end flag is empty, line %lu!\n", linenr);
+			fprintf(stderr, "ERROR: Paired-end flag is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
 		READ_PE_FLAG = atoi(tmp);
@@ -295,7 +293,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 		//	READ_QUALITY[0][i]='h' ;
 
 		if (READ_QUALITY[0] == NULL) {
-			fprintf(stderr, "ERROR: Read Quality 1 is empty, line %lu!\n", linenr);
+			fprintf(stderr, "ERROR: Read Quality 1 is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
 		/*if (strlen(READ_QUALITY[0]) != READ_LENGTH) {
@@ -307,7 +305,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 		// this method function are memset()ting on it...
 		READ_QUALITY[1] = strtok(NULL, "\t");
 		if (READ_QUALITY[1] == NULL) {
-			fprintf(stderr, "ERROR: Read Quality 2 is empty, line %lu!\n", linenr);
+			fprintf(stderr, "ERROR: Read Quality 2 is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
 		/*if (strlen(READ_QUALITY[1]) != READ_LENGTH) {
@@ -317,7 +315,7 @@ int Read::read_short_read(FILE *QUERY_FP)
 
 		READ_QUALITY[2] = strtok(NULL, "\n");
 		if (READ_QUALITY[2] == NULL) {
-			fprintf(stderr, "ERROR: Read Quality 3 is empty, line %lu!\n", linenr);
+			fprintf(stderr, "ERROR: Read Quality 3 is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
 		/*if (strlen(READ_QUALITY[2]) != READ_LENGTH) {
@@ -327,25 +325,5 @@ int Read::read_short_read(FILE *QUERY_FP)
 
 		READ_FORMAT = 2;
 	}
-	
-	if (READ_LENGTH>ASSUMED_READ_LENGTH)
-		ASSUMED_READ_LENGTH=READ_LENGTH ;
-
 	return 0;
 }
-
-int Read::determine_read_length(const std::string & query_file)
-{
-    FILE *QUERY_FP = Util::openFile(query_file, "r") ;
-	const unsigned sample_size = 10000 ;
-
-	int sum_read_length=0 ;
-	for (unsigned int i=0; i<sample_size; i++)
-	{
-		read_short_read(QUERY_FP) ;
-		sum_read_length += READ_LENGTH ;
-	}
-
-	return sum_read_length/sample_size ;
-}
-

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <palmapper/Config.h>
+#include <palmapper/QueryFile.h>
 #include <palmapper/Read.h>
 #include <palmapper/Genome.h>
 
@@ -91,8 +92,7 @@ Config::Config() {
 int Config::applyDefaults(Genome * genome)
 {
 	{
-		Read read ;
-		int read_length = read.determine_read_length(QUERY_FILE_NAME) ;
+		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAME);
 
 		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
 			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
@@ -154,7 +154,7 @@ int Config::applyDefaults(Genome * genome)
 	}
 
 	// determine default output format
-	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT)
+	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) {
 		if (SPLICED_HITS)
 		{
 			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
@@ -165,6 +165,7 @@ int Config::applyDefaults(Genome * genome)
 			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
 			fprintf(stdout, "Selecting SAM output format\n") ;
 		}
+	}
 
 	if (POLYTRIM_STRATEGY)
 	{

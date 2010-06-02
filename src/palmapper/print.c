@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <vector>
 
+#include <palmapper/QueryFile.h>
+
 static const int MAX_EXON_LEN=100 ;
 
 int num_unmapped=0 ;
@@ -14,7 +16,7 @@ clock_t last_spliced_report = 0 ;
 int compare_int(const void *a, const void *b) ;
 int report_read_alignment(HIT* hit, int num)  ;
 
-void print_stats() {
+void print_stats(QueryFile &queryFile) {
 	printf("\n########### _config.STATISTICS ###########\n");
 	printf("Mapped Reads: %i of all %d reads\n", _stats.READS_MAPPED, _stats.NUM_READS);
 	unsigned int i;
@@ -25,7 +27,7 @@ void print_stats() {
 			_stats.PERFECT_HITS, _stats.PERFECT_HITS_REV, _stats.PERFECT_HITS + _stats.PERFECT_HITS_REV);
 	printf("   Perfect matching reads (+ or -): %i\n", _stats.PERFECT_READS);
 
-	for (i = _config.INDEX_DEPTH; i != _read.max_length(); ++i)
+	for (i = _config.INDEX_DEPTH; i != queryFile.max_length(); ++i)
 		printf("    Total Hits of length %d: %u - %.4f%%\n", i, _stats.HITS_LEN[i],
 				((double) (100 * _stats.HITS_LEN[i]) / _stats.NUM_HITS));
 	printf("\n    Total number of hits:                  %lu\n", _stats.NUM_HITS);
@@ -44,7 +46,7 @@ void print_stats() {
 			_stats.BREAK_GLOBAL_ALIGNMENT[1]);
 	printf("      Breaks after global alignment:       %lu\n\n",
 			_stats.BREAK_TB_IN_GLOBAL_ALIGNMENT);
-	printf("      Hits of len %d, not aligned:         %d\n", _read.max_length() - 1, _stats.NOT_ALIGNED[0]);
+	printf("      Hits of len %d, not aligned:         %d\n", queryFile.max_length() - 1, _stats.NOT_ALIGNED[0]);
 	printf("      Mappings of fast mapping:            %d\n", _stats.NOT_ALIGNED[1]);
 	//printf("      hits of len 36, not aligned (with 1MM at start/beg of read): %d\n",_stats.NOT_ALIGNED[1]);
 	//printf("        Number of unmapped hits at beg/end of chrom: %d and in align-step: %d\n", _stats.ENDSTART_MAPPED[0], _stats.ENDSTART_MAPPED[1]);
@@ -120,33 +122,33 @@ int compare_int(const void *a, const void *b)
 	return (int) (*ia - *ib);
 }
 
-void print_leftovers(const char * tag, FILE *LEFTOVER_FP)
+void print_leftovers(Read const &read, const char * tag, FILE *LEFTOVER_FP)
 {
 	num_unmapped++ ;
 	
-	if (_read.get_orig()==NULL)
+	if (read.get_orig()==NULL)
 	{
-		if (_read.format() == 0)
-			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", _read.id(), tag, _read.data(), _read.quality()[0]);
-		else if (_read.format() == 1)
-			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", _read.id(), tag, _read.data());
+		if (read.format() == 0)
+			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.data(), read.quality()[0]);
+		else if (read.format() == 1)
+			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", read.id(), tag, read.data());
 		else
-			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), tag, _read.data(),
-					_read.pe_flag(), _read.quality()[0], _read.quality()[1], _read.quality()[2]);
+			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", read.id(), tag, read.data(),
+					read.pe_flag(), read.quality()[0], read.quality()[1], read.quality()[2]);
 	}
 	else
 	{
-		if (_read.format() == 0)
-			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", _read.id(), tag, _read.get_orig()->data(), _read.get_orig()->quality()[0]);
-		else if (_read.format() == 1)
-			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", _read.id(), tag, _read.get_orig()->data());
+		if (read.format() == 0)
+			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.get_orig()->data(), read.get_orig()->quality()[0]);
+		else if (read.format() == 1)
+			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", read.id(), tag, read.get_orig()->data());
 		else
-			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), tag, _read.get_orig()->data(),
-					_read.pe_flag(), _read.get_orig()->quality()[0], _read.get_orig()->quality()[1], _read.get_orig()->quality()[2]);
+			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", read.id(), tag, read.get_orig()->data(),
+					read.pe_flag(), read.get_orig()->quality()[0], read.get_orig()->quality()[1], read.get_orig()->quality()[2]);
 	}
 }
 
-void print_alignment_matrix(int chrstart, int readstart, int length,
+void print_alignment_matrix(Read const &read, int chrstart, int readstart, int length,
 		int offset_front, int offset_end, Chromosome const &chr, char ori, int K) {
 	int i, j;
 
@@ -171,7 +173,7 @@ void print_alignment_matrix(int chrstart, int readstart, int length,
 					- offset_end))
 				printf("  X  |\t");
 			else
-				printf("  %c  |\t", _read.data()[readstart + j - (readstart == 0)
+				printf("  %c  |\t", read.data()[readstart + j - (readstart == 0)
 						* offset_front - 1]);
 		}
 
