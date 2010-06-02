@@ -1,21 +1,23 @@
 #pragma once
 
+#include <string.h>
+
+#include <string>
+
 #include <palmapper/Config.h>
 #include <palmapper/Statistics.h>
 #include <palmapper/Util.h>
 
-#include <string>
+class QueryFile;
 
 class Read {
 public:
-	Read();
+	Read(QueryFile &queryFile);
 	Read(const Read & read); // copy constructor
+	~Read();
 
 	unsigned int length() const {
 		return READ_LENGTH;
-	}
-	unsigned int max_length() const {
-		return ASSUMED_READ_LENGTH;
 	}
 
 	char *data() {
@@ -227,16 +229,14 @@ public:
 			return false ;
 		}
 	
-	int read_short_read(FILE *QUERY_FP);
-
-	int determine_read_length(const std::string & query_fname) ;
+	int read_short_read();
 
 	Read* get_orig() const { return orig_read ; } ;
 	void set_orig(Read* orig) { orig_read=orig ; } ;
 
 private:
 //	Statistics _stats;
-	unsigned long int linenr;
+//	unsigned long int linenr;
 	unsigned int READ_LENGTH;
 //	Config &_config;
 
@@ -246,7 +246,9 @@ private:
 	char *READ_ID;
 	int READ_PE_FLAG;
 	
+	QueryFile &_queryFile;
+
 	Read* orig_read ;
 
-	unsigned int ASSUMED_READ_LENGTH ;
+//	unsigned int ASSUMED_READ_LENGTH ;
 };

@@ -4,6 +4,7 @@
 #include <vector>
 #include <palmapper/Config.h>
 #include <palmapper/Chromosome.h>
+#include <palmapper/QueryFile.h>
 #include <palmapper/Read.h>
 
 #define CONTAINER_SIZE 100000
@@ -116,7 +117,7 @@ class Hits {
 
 public:
 	
-	Hits(Genome &genome, GenomeMaps &genomemaps, Read &read);
+	Hits(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile);
 	~Hits();
 
 	int map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments* topalignments, QPalma* qpalma) ;
@@ -174,7 +175,7 @@ protected:
 	int init_statistic_vars() ;
 	int init_operators() ;
 	int init_alignment_structures(Config * config);
-	CHROMOSOME_ENTRY* alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand) ;
+	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand) ;
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 
 	Genome &_genome;
@@ -188,9 +189,8 @@ protected:
 public:
 	static unsigned int MAX_USED_SLOTS;
 	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
-
-protected:
-	Read &_read;
+private:
+	QueryFile &_queryFile;
 };
 
 class ReadMappings {
@@ -229,8 +229,8 @@ public:
 private:
 	int alloc_hits_by_score() ;
 	int alloc_hit_lists_operator() ;
-	CHROMOSOME_ENTRY* alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand) {
-		return _outer.alloc_chromosome_entry(pos, chr, strand);
+	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand) {
+		return _outer.alloc_chromosome_entry(read, pos, chr, strand);
 	}
 
 	Genome &_genome;

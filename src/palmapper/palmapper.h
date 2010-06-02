@@ -43,7 +43,7 @@
 
 extern Config _config;
 extern Statistics _stats;
-extern Read _read;
+//extern Read _read;
 
 // ##############################################################
 // ####### FILE HANDLING ########################################

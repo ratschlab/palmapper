@@ -13,8 +13,8 @@ char* get_seq(Read const &read, unsigned int n);
 void printhit(Read const &read, HIT* hit);
 
 unsigned int Hits::SLOTS[2];
-Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_, Read &read)
-:	_genome(genome_), _genomeMaps(genomemaps_), CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _read(read)
+Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile)
+:	_genome(genome_), _genomeMaps(genomemaps_), CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _queryFile(queryFile)
 {
 	REDUNDANT = 0;
 	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
@@ -216,6 +216,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		fprintf(stderr, "ERROR : could not open log file %s\n", _config.ADAPTERTRIM_STRATEGY_LOG.c_str()) ;
 		exit(1) ;
 	}
+	Read *read = NULL;
 	
 	while (!eof) {
 		
@@ -234,7 +235,12 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 
 		clock_t start_time = clock() ;
 
-		eof = _read.read_short_read(QUERY_FP);
+		if (read != NULL)
+			delete read;
+		read  = _queryFile.next_read();
+		if (read == NULL)
+			break;
+		Read &_read(*read);
 		ReadMappings hits(genome, genomeMaps, *this, _read);
 
 		unsigned int adapter_cut_start = 0 ;
@@ -247,7 +253,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 			if (_read.length()-adapter_cut_start-adapter_cut_start < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
 			{
 				if (_config.LEFTOVER_FILE_NAME.length() > 0)
-					print_leftovers("(too short after trimming)", LEFTOVER_FP);
+					print_leftovers(_read, "(too short after trimming)", LEFTOVER_FP);
 				continue ;
 			}
 
@@ -555,7 +561,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 					}
 
 					if (_config.LEFTOVER_FILE_NAME.length() > 0)
-						print_leftovers("", LEFTOVER_FP);
+						print_leftovers(_read, "", LEFTOVER_FP);
 				}
 			}
 			else
@@ -570,7 +576,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 			{
 				fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", _read.id(), cancel, READ) ;
 				if (_config.LEFTOVER_FILE_NAME.length() > 0)
-					print_leftovers(" (read mapping failed)", LEFTOVER_FP);
+					print_leftovers(_read, " (read mapping failed)", LEFTOVER_FP);
 			}
 
 			hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
@@ -872,7 +878,7 @@ int ReadMappings::seed2genome(unsigned int num, unsigned int readpos)
 						printf("Alloc new chromosome director genome_chr %d\n", genome_chr.nr()+1);
 					}
 
-					chromosome_director = alloc_chromosome_entry(genome_pos, genome_chr, strand);
+					chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 					if (!chromosome_director)
 					{
 						delete[] se_buffer;
@@ -905,7 +911,7 @@ int ReadMappings::seed2genome(unsigned int num, unsigned int readpos)
 								(chromosome_director->genome_pos != genome_pos))) {
 
 						// it's from a former read, thus we need a new chrom_director:
-						chromosome_director = alloc_chromosome_entry(genome_pos, genome_chr, strand);
+						chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 						if (!chromosome_director)
 						{
 							delete[] se_buffer;
@@ -935,7 +941,7 @@ int ReadMappings::seed2genome(unsigned int num, unsigned int readpos)
 				// Chromosome director is set, but still it could be the wrong chromosome, if the right chromosome is not in there so far.
 				if (chromosome_director->chromosome != (int)genome_chr.nr() || chromosome_director->strand != strand) {
 					if (read_num == num) printf("Expanding list with new chrom.director\n");
-					chromosome_director_new = alloc_chromosome_entry(genome_pos, genome_chr, strand);
+					chromosome_director_new = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 					if (!chromosome_director_new)
 					{
 						delete[] se_buffer;
@@ -1560,7 +1566,7 @@ int ReadMappings::duplicate(HIT* hit)
 
 	if (*(GENOME+readstart) == NULL) {
 				flag = 1;
-				chromosome_director = alloc_chromosome_entry(readstart, *hit->chromosome, strand);
+				chromosome_director = alloc_chromosome_entry(_read, readstart, *hit->chromosome, strand);
 				if (!chromosome_director)
 					return(-1);	// chrom_container_size too small -> cancel this read
 				*(GENOME + readstart) = chromosome_director;
@@ -1575,7 +1581,7 @@ int ReadMappings::duplicate(HIT* hit)
 		   		(chromosome_director->genome_pos != readstart))) {
 
 		   			// it's from a former read, thus we need a new chrom_director:
-					chromosome_director = alloc_chromosome_entry(readstart, *hit->chromosome, strand);
+					chromosome_director = alloc_chromosome_entry(_read, readstart, *hit->chromosome, strand);
 
 					if (!chromosome_director)
 						return(-1);	// chrom_container_size too small -> cancel this read
@@ -1601,7 +1607,7 @@ int ReadMappings::duplicate(HIT* hit)
 
 	if (chromosome_director->chromosome != (int)hit->chromosome->nr() || chromosome_director->strand != strand)
 	{
-	    chromosome_director_new = alloc_chromosome_entry(readstart, *hit->chromosome, strand);
+	    chromosome_director_new = alloc_chromosome_entry(_read, readstart, *hit->chromosome, strand);
         if (!chromosome_director_new)
 			return(-1);
 		
@@ -1716,10 +1722,10 @@ int ReadMappings::init_hit_lists() {
 	return (0);
 }
 
-CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(unsigned int pos, Chromosome const &chr, char strand)
+CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand)
 {
 	if (CHROMOSOME_ENTRY_OPERATOR.used > _config.CHROM_CONTAINER_SIZE - 1) {
-		fprintf(stderr, "\n!!! WARNING: Chromosome container size of %d is too small! Hits for read %s cannot be reported any more!\n\n", _config.CHROM_CONTAINER_SIZE, _read.id());
+		fprintf(stderr, "\n!!! WARNING: Chromosome container size of %d is too small! Hits for read %s cannot be reported any more!\n\n", _config.CHROM_CONTAINER_SIZE, read.id());
 		return(NULL);
 	}
 	
