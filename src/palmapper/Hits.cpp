@@ -250,7 +250,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 			int orig_len = _read.length() ;
 			
 			_read.find_adapter(adapter_cut_start, adapter_cut_end) ;
-			if (_read.length()-adapter_cut_start-adapter_cut_start < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
+			if (_read.length()-(adapter_cut_start+adapter_cut_end) < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
 			{
 				if (_config.LEFTOVER_FILE_NAME.length() > 0)
 					print_leftovers(_read, "(too short after trimming)", LEFTOVER_FP);
