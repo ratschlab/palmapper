@@ -208,7 +208,6 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		fprintf(stderr, "ERROR : Couldn't open log file %s\n", _config.TRIGGERED_LOG_FILE.c_str());     // #A#
 		exit(1);                                                                        // #A#
 	}                                                                                   // #A#
-    FILE *QUERY_FP = Util::openFile(_config.QUERY_FILE_NAME, "r");
     FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
 	FILE *ADAPTERTRIM_LOG_FP = _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0 ? Util::openFile(_config.ADAPTERTRIM_STRATEGY_LOG, "w+") : NULL;
 	if (ADAPTERTRIM_LOG_FP==NULL && _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0)
@@ -216,7 +215,6 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		fprintf(stderr, "ERROR : could not open log file %s\n", _config.ADAPTERTRIM_STRATEGY_LOG.c_str()) ;
 		exit(1) ;
 	}
-	Read *read = NULL;
 	
 	while (!eof) {
 		
@@ -235,12 +233,10 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 
 		clock_t start_time = clock() ;
 
-		if (read != NULL)
-			delete read;
-		read  = _queryFile.next_read();
-		if (read == NULL)
+
+		Read _read(_queryFile);
+		if (!_queryFile.next_read(_read))
 			break;
-		Read &_read(*read);
 		ReadMappings hits(genome, genomeMaps, *this, _read);
 
 		unsigned int adapter_cut_start = 0 ;

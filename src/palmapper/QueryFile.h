@@ -5,11 +5,14 @@
 #include <palmapper/Read.h>
 
 class QueryFile {
+
 public:
 	QueryFile(std::string filename);
 	~QueryFile();
 
 	Read *next_read();
+
+	bool next_read(Read &read);
 
 	bool next_line(char *buf, int maxLen);
 
