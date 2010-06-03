@@ -414,12 +414,12 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 				{
 					if (_config.LOG_TRIGGERED) { // #A# begin
 						if (_read.format() == 0)
-							fprintf(TRIGGERED_LOG_FP, "@%s\n%s\n+\n%s\n", _read.id(), READ, _read.quality()[0]);
+							fprintf(TRIGGERED_LOG_FP, "@%s\n%s\n+\n%s\n", _read.id(), READ, _read.quality(0));
 						else if (_read.format() == 1)
 							fprintf(TRIGGERED_LOG_FP, ">%s\n%s\n", _read.id(), READ);
 						else
 							fprintf(TRIGGERED_LOG_FP, "%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), READ,
-									_read.pe_flag(), _read.quality()[0], _read.quality()[1], _read.quality()[2]);
+									_read.pe_flag(), _read.quality(0), _read.quality(1), _read.quality(2));
 					}    // #A# end
 					
 				}
@@ -724,6 +724,7 @@ int ReadMappings::seed2genome(unsigned int num, unsigned int readpos)
 		
 		if (index_entry.num) {
 
+			//TODO: dd make this a stack local?
 			STORAGE_ENTRY* se_buffer=NULL;
 
 			try
