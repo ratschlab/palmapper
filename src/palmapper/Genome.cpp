@@ -279,6 +279,7 @@ int Genome::read_meta_index_header(FILE *META_INDEX_FP)
                 exit(0);
         }
 
+	//TODO: dd introduce an overloaded operator new?
 	BLOCK_TABLE = (POS *) malloc (blocks * sizeof(POS));
 	if (BLOCK_TABLE == NULL)
 	{

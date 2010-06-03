@@ -23,14 +23,7 @@ int get_slot(int pos);
 Read::Read(QueryFile &queryFile)
 :	_queryFile(queryFile)
 {
-	READ_ID = new char[_config.MAX_READ_ID_LENGTH];
-	for (int i = 0; i < 3; ++i) {
-		READ_QUALITY[i] = (char*) calloc(_config.MAX_READ_LENGTH + 1, sizeof(char));
-		if (READ_QUALITY[i] == NULL) {
-			fprintf(stderr, "[init_defaults] Could not allocate memory\n");
-			exit(1);
-		}
-	}
+	READ_QUALITY[0][0] = READ_QUALITY[1][0] = READ_QUALITY[2][0] = '\0';
 	READ_LENGTH = 0;
 	orig_read = NULL ;
 }
@@ -38,14 +31,6 @@ Read::Read(QueryFile &queryFile)
 Read::Read(const Read& read)
 :	_queryFile(read._queryFile)
 {
-	READ_ID = new char[_config.MAX_READ_ID_LENGTH];
-	for (int i = 0; i < 3; ++i) {
-		READ_QUALITY[i] = (char*) calloc(_config.MAX_READ_LENGTH + 1, sizeof(char));
-		if (READ_QUALITY[i] == NULL) {
-			fprintf(stderr, "[init_defaults] Could not allocate memory\n");
-			exit(1);
-		}
-	}
 	READ_LENGTH = read.READ_LENGTH ;
 	strncpy(READ_ID, read.READ_ID, _config.MAX_READ_ID_LENGTH) ;
 	strncpy(READ, read.READ, _config.MAX_READ_LENGTH+1) ;
@@ -82,7 +67,7 @@ int Read::read_short_read()
 
 	if (!_queryFile.next_line(line, sizeof(line))) {
 		if (READ_LENGTH == 0)
-			cerr << "\n!!! WARNING: Input read file '" << /*_config.*/_config.QUERY_FILE_NAME << "' is empty!\n\n";
+			cerr << "\n!!! WARNING: Input read file '" << _config.QUERY_FILE_NAME << "' is empty!\n\n";
 		return 1;
 	}
 
@@ -90,7 +75,7 @@ int Read::read_short_read()
 		do {
 			if (!_queryFile.next_line(line, sizeof(line))) {
 				if (READ_LENGTH == 0)
-					cerr << "\n!!! WARNING: Input read file '" << /*_config.*/_config.QUERY_FILE_NAME << "' is empty!\n\n";
+					cerr << "\n!!! WARNING: Input read file '" << _config.QUERY_FILE_NAME << "' is empty!\n\n";
 				return 1;
 			}
 		} while (strcspn(line, " \n\t") == 0);
@@ -106,9 +91,10 @@ int Read::read_short_read()
 		/////// FastQ input ///////
 
 		// R E A D _ I D
-		memset(READ, 0, /*_config.*/_config.MAX_READ_LENGTH) ;
-		memset(READ_QUALITY[0], 0, /*_config.*/_config.MAX_READ_LENGTH) ;
-		memset(READ_ID, 0, /*_config.*/_config.MAX_READ_ID_LENGTH) ;
+		memset(READ, 0, _config.MAX_READ_LENGTH) ;
+		memset(READ_QUALITY[0], 0, _config.MAX_READ_LENGTH) ;
+		memset(READ_ID, 0, _config.MAX_READ_ID_LENGTH);
+
 		strncpy(READ_ID, line+1, strcspn(line, " \t\n")-1);
 		
 		{
@@ -120,7 +106,7 @@ int Read::read_short_read()
 
 		do {
 			if (!_queryFile.next_line(line, sizeof(line))) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence and quality!\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.QUERY_FILE_NAME.c_str());
+				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence and quality!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
 				exit(0);
 			}
 		} while (strcspn(line, " \t\n") == 0);
@@ -128,12 +114,12 @@ int Read::read_short_read()
 		// R E A D
 		strncpy(READ, line, strcspn(line, " \t\n"));
 		//READ[36]=0 ;
-		if (strlen(READ) > /*_config.*/_config.MAX_READ_LENGTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.MAX_READ_LENGTH);
+		if (strlen(READ) > _config.MAX_READ_LENGTH) {
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
 			return -1;
 		}
 		else if (strlen(READ) == 0) {
-			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.QUERY_FILE_NAME.c_str());
+			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
 			exit(0);
 		}
 		if (strcspn(READ, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
@@ -141,14 +127,14 @@ int Read::read_short_read()
 			return -1;
 		}
 
-		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
+		if (strlen(READ) < _config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
 
 		do {
 			if (!_queryFile.next_line(line, sizeof(line))) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.QUERY_FILE_NAME.c_str());
+				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
 				exit(0);
 			}
 		} while (strcspn(line, " \t\n") == 0);
@@ -183,16 +169,12 @@ int Read::read_short_read()
 
 		// O T H E R
 		READ_PE_FLAG = 0;
-		READ_QUALITY[1]=(char*)"" ;
-		READ_QUALITY[2]=(char*)"";
-
 		READ_FORMAT = 0;
-
 	}
 	else if (line[0] == '>') {
 		/////// Fasta input ///////
-		memset(READ, 0, /*_config.*/_config.MAX_READ_LENGTH) ;
-		memset(READ_ID, 0, /*_config.*/_config.MAX_READ_LENGTH) ;
+		memset(READ, 0, _config.MAX_READ_LENGTH) ;
+		memset(READ_ID, 0, _config.MAX_READ_LENGTH) ;
 
 		strncpy(READ_ID, line+1, strcspn(line, " \t\n")-1);
 
@@ -205,8 +187,8 @@ int Read::read_short_read()
 
 		// R E A D
 		strncpy(READ, line, strcspn(line, " \t\n"));
-		if (strlen(READ) > /*_config.*/_config.MAX_READ_LENGTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), /*_config.*/_config.MAX_READ_LENGTH);
+		if (strlen(READ) > _config.MAX_READ_LENGTH) {
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
 			return -1;
 		}
 		else if (strlen(READ) == 0) {
@@ -225,7 +207,7 @@ int Read::read_short_read()
 			return -1;
 		}
 
-		if (strlen(READ) < /*_config.*/_config.INDEX_DEPTH) {
+		if (strlen(READ) < _config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
@@ -237,24 +219,20 @@ int Read::read_short_read()
 		memset(READ_QUALITY[0], 'h', strlen(READ)) ;
 
 		//READ_QUALITY[0] = (char*)"";
-		READ_QUALITY[1] = (char*)"";
-		READ_QUALITY[2] = (char*)"";
-
 		READ_FORMAT = 1;
-
 	}
 	else {
 		/////// Flatfile input ///////
-		READ_ID = strtok(line, "\t");
-
-		if ((int)strlen(READ_ID) == linelen) {
-			fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
-			exit(0);
-		}
-		if (READ_ID == NULL) {
+		char const *rid = strtok(line, "\t");
+		if (rid == NULL) {
 			fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
+		if ((int)strlen(rid) == linelen) {
+			fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
+			exit(0);
+		}
+		strcpy(READ_ID, rid);
 
 		char *tok = strtok(NULL, "\t");
 		if (tok == NULL) {
@@ -262,7 +240,7 @@ int Read::read_short_read()
 			exit(0);
 		}
 
-		if (strlen(tok) > /*_config.*/_config.MAX_READ_LENGTH) {
+		if (strlen(tok) > _config.MAX_READ_LENGTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
 			return -1;
 		}
@@ -274,7 +252,7 @@ int Read::read_short_read()
 
 		strcpy(READ, tok);
 		READ_LENGTH = strlen(tok);
-		if (READ_LENGTH < /*_config.*/_config.INDEX_DEPTH) {
+		if (READ_LENGTH < _config.INDEX_DEPTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 			return -1;
 		}
@@ -286,38 +264,39 @@ int Read::read_short_read()
 		}
 		READ_PE_FLAG = atoi(tmp);
 
-		READ_QUALITY[0] = strtok('\0', "\t");
+		char const *rq0 = strtok('\0', "\t");
+		if (READ_QUALITY[0] == NULL) {
+			fprintf(stderr, "ERROR: Read Quality 1 is empty, line %lu!\n", _queryFile.line_nr());
+			exit(0);
+		}
+		strcpy(READ_QUALITY[0], rq0);
 
 		//fprintf(stderr, "hack!!!\n") ;
 		//for (int i=0; i<strlen(READ_QUALITY[0]); i++)
 		//	READ_QUALITY[0][i]='h' ;
 
-		if (READ_QUALITY[0] == NULL) {
-			fprintf(stderr, "ERROR: Read Quality 1 is empty, line %lu!\n", _queryFile.line_nr());
-			exit(0);
-		}
 		/*if (strlen(READ_QUALITY[0]) != READ_LENGTH) {
 			fprintf(stderr, "ERROR: Read quality 1 hasn't length of read, line %lu!\n", linenr);
 			exit(0);
 		}*/
 
-		// TODO it is very questionable to reassign the READ_QUALITY pointer since other branches of
-		// this method function are memset()ting on it...
-		READ_QUALITY[1] = strtok(NULL, "\t");
-		if (READ_QUALITY[1] == NULL) {
+		char const *rq1 = strtok(NULL, "\t");
+		if (rq1 == NULL) {
 			fprintf(stderr, "ERROR: Read Quality 2 is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
+		strcpy(READ_QUALITY[1], rq1);
 		/*if (strlen(READ_QUALITY[1]) != READ_LENGTH) {
 			fprintf(stderr, "ERROR: Read quality 2 hasn't length of read, line %lu!\n", linenr);
 			exit(0);
 		}*/
 
-		READ_QUALITY[2] = strtok(NULL, "\n");
+		char const *rq2 = strtok(NULL, "\n");
 		if (READ_QUALITY[2] == NULL) {
 			fprintf(stderr, "ERROR: Read Quality 3 is empty, line %lu!\n", _queryFile.line_nr());
 			exit(0);
 		}
+		strcpy(READ_QUALITY[2], rq2);
 		/*if (strlen(READ_QUALITY[2]) != READ_LENGTH) {
 			fprintf(stderr, "ERROR: Read quality 3 hasn't length of read, line %lu!\n", linenr);
 			exit(0);

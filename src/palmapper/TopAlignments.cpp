@@ -583,7 +583,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read)
 		}
 
 		char *read_anno=new char[strlen(best->read_anno)+(polytrim_cut_start+polytrim_cut_end)*4+20] ;
-		const char *read_qual = read.quality()[0] ;
+		const char *read_qual = read.quality(0);
 		int read_len = read.length() ;
 		
 		if ((_config.POLYTRIM_STRATEGY||_config.RTRIM_STRATEGY) && (polytrim_cut_start>0 || polytrim_cut_end>0))
@@ -591,7 +591,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read)
 			char* orig_read = read.get_orig()->data() ;
 			int orig_len = read.get_orig()->length() ;
 			read_len = orig_len ;
-			read_qual = read.get_orig()->quality()[0] ;
+			read_qual = read.get_orig()->quality(0);
 
 			if (best->orientation=='+')
 			{
@@ -772,13 +772,12 @@ int TopAlignments::print_alignment_shorebed(Read const &read, HIT* hit, unsigned
 
 	if (read.format() == 2)
 		fprintf(OUT_FP, "\t%d", read.pe_flag());
-	if (strlen(read.quality()[0]) != 0)
-				
-		fprintf(OUT_FP, "\t%s", read.quality()[0]);
-	if (strlen(read.quality()[1]) != 0)
-		fprintf(OUT_FP, "\t%s", read.quality()[1]);
-	if (strlen(read.quality()[2]) != 0)
-		fprintf(OUT_FP, "\t%s", read.quality()[2]);
+	if (strlen(read.quality(0)) != 0)
+		fprintf(OUT_FP, "\t%s", read.quality(0));
+	if (strlen(read.quality(1)) != 0)
+		fprintf(OUT_FP, "\t%s", read.quality(1));
+	if (strlen(read.quality(2)) != 0)
+		fprintf(OUT_FP, "\t%s", read.quality(2));
 
 	if (_config.FLANKING != 0) {
 
@@ -1278,14 +1277,14 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read)
 		}*/
 
         if (curr_align->orientation=='+')
-            fprintf(MY_OUT_FP, "\t%s\t%s", curr_read->data(), curr_read->quality()[0]) ;
+            fprintf(MY_OUT_FP, "\t%s\t%s", curr_read->data(), curr_read->quality(0)) ;
         else
         {
             // reverse order of quality
             char qual[500] ;
             for (int k=0; k<((int)curr_read->length()); k++)
                 //qual[k]=_read.get_orig()->quality()[0][((int)_read.get_orig()->length())-k-1] ;
-                qual[k]=(curr_read->quality())[0][((int)(curr_read->length()))-k-1] ;
+                qual[k]=(curr_read->quality(0))[((int)(curr_read->length()))-k-1] ;
             qual[((int)(curr_read->length()))]=0 ;
             
             // complementary reverse read 

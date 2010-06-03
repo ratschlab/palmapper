@@ -1502,7 +1502,7 @@ int QPalma::capture_hits(ReadMappings &hits)
   }
   
   std::string read_quality[2];
-  read_quality[0] = std::string(read.quality()[0], read.length());
+  read_quality[0] = std::string(read.quality(0), read.length());
   read_quality[1] = reverse(read_quality[0]);
   if (verbosity >= 3)
     fprintf(stdout, "# readqual[0]: %s\n", read_quality[0].c_str());
@@ -2761,9 +2761,9 @@ float QPalma::score_unspliced(Read const &read, const char * read_anno)
 	}
 	for (size_t i = 0; i < read.length(); i++)
 	{
-		prb[i] = (read.quality()[0][i] - alignment_parameters->quality_offset);
+		prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
 		if (prb[i]<-10 || prb[i]>70)
-			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, read.quality()[0], read.data()) ;
+			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, read.quality(0), read.data()) ;
 		
 		//assert(prb[i]>=-10 && prb[i]<=70) ;
 	}

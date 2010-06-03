@@ -32,8 +32,8 @@ public:
 		return READ_ID;
 	}
 
-	char const * const *quality() const {
-		return READ_QUALITY;
+	char const *quality(int index) const {
+		return READ_QUALITY[index];
 	}
 
 	int pe_flag() const {
@@ -217,6 +217,7 @@ public:
 			
 			for (unsigned int i=0; i<READ_LENGTH; i++)
 			{
+				//TODO: dd sollte man nicht gleich ein toupper machen?
 				if (READ[i]=='T' || READ[i]=='t')
 					num_t++ ;
 				if (READ[i]=='A' || READ[i]=='a')
@@ -240,10 +241,10 @@ private:
 	unsigned int READ_LENGTH;
 //	Config &_config;
 
-	char *READ_QUALITY[3];
+	char READ_QUALITY[3][Config::MAX_READ_LENGTH + 1];
 	char READ[Config::MAX_READ_LENGTH + 1];
 	char READ_FORMAT;	// 0: fq, 1: fa, 2: flat
-	char *READ_ID;
+	char READ_ID[Config::MAX_READ_ID_LENGTH];
 	int READ_PE_FLAG;
 	
 	QueryFile &_queryFile;

@@ -129,22 +129,22 @@ void print_leftovers(Read const &read, const char * tag, FILE *LEFTOVER_FP)
 	if (read.get_orig()==NULL)
 	{
 		if (read.format() == 0)
-			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.data(), read.quality()[0]);
+			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.data(), read.quality(0));
 		else if (read.format() == 1)
 			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", read.id(), tag, read.data());
 		else
 			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", read.id(), tag, read.data(),
-					read.pe_flag(), read.quality()[0], read.quality()[1], read.quality()[2]);
+					read.pe_flag(), read.quality(0), read.quality(1), read.quality(2));
 	}
 	else
 	{
 		if (read.format() == 0)
-			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.get_orig()->data(), read.get_orig()->quality()[0]);
+			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.get_orig()->data(), read.get_orig()->quality(0));
 		else if (read.format() == 1)
 			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", read.id(), tag, read.get_orig()->data());
 		else
 			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", read.id(), tag, read.get_orig()->data(),
-					read.pe_flag(), read.get_orig()->quality()[0], read.get_orig()->quality()[1], read.get_orig()->quality()[2]);
+					read.pe_flag(), read.get_orig()->quality(0), read.get_orig()->quality(1), read.get_orig()->quality(2));
 	}
 }
 

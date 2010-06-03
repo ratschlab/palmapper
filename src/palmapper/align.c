@@ -47,6 +47,7 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 		edit_op[ii] = hit->edit_op[ii] ;
 
 	int i, j, h;
+	// TODO: dd make this stack vars?
 	double** M = (double**) malloc ((2 * K + 1) * sizeof(double*));
 	char** T = (char**) malloc ((2 * K + 1) * sizeof(char*));
 
