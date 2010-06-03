@@ -46,7 +46,7 @@ int init_defaults()
 	LONGEST_CHROMOSOME = 0;
 
 	POWER[0] = 1;
-	for(i = 1 ; i <= MAX_INDEX_DEPTH; i++) {
+	for(i = 1 ; i < MAX_INDEX_DEPTH; i++) {
 		POWER[i] = POWER[i-1] * 4;
 	}
 
