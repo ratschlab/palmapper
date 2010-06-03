@@ -21,13 +21,19 @@ bool QueryFile::next_line(char *buf, int maxLen) {
 
 Read *QueryFile::next_read() {
 	Read *read = new Read(*this);
-	if (read->read_short_read() > 0) {
+	if (!next_read(*read)) {
 		delete read;
 		return NULL;
 	}
-	if (read->length() > _maxReadLen)
-		_maxReadLen = read->length();
 	return read;
+}
+
+bool QueryFile::next_read(Read &read) {
+	if (read.read_short_read() > 0)
+		return false;
+	if (read.length() > _maxReadLen)
+		_maxReadLen = read.length();
+	return true;
 }
 
 int QueryFile::determine_read_length(std::string const &filename) {

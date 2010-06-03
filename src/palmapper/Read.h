@@ -11,6 +11,7 @@
 class QueryFile;
 
 class Read {
+	friend class QueryFile;
 public:
 	Read(QueryFile &queryFile);
 	Read(const Read & read); // copy constructor
@@ -230,16 +231,13 @@ public:
 			return false ;
 		}
 	
-	int read_short_read();
-
 	Read* get_orig() const { return orig_read ; } ;
 	void set_orig(Read* orig) { orig_read=orig ; } ;
 
 private:
-//	Statistics _stats;
-//	unsigned long int linenr;
+	int read_short_read();
+
 	unsigned int READ_LENGTH;
-//	Config &_config;
 
 	char READ_QUALITY[3][Config::MAX_READ_LENGTH + 1];
 	char READ[Config::MAX_READ_LENGTH + 1];
@@ -250,6 +248,4 @@ private:
 	QueryFile &_queryFile;
 
 	Read* orig_read ;
-
-//	unsigned int ASSUMED_READ_LENGTH ;
 };
