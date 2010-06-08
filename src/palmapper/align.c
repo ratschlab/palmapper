@@ -361,7 +361,7 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 
 
 // k-bound global alignment algorithm:
-int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation)
+int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation, int Num_edit_ops)
 {
 	// global vars -> local vars
 	char const * const READ = read.data();
@@ -372,7 +372,6 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 	double Match_score = _config.M_SCORE;
 	double Worst_score = WORST_SCORE;
 	char Gaps_most_right = _config.GAPS_MOST_RIGHT;
-	int Num_edit_ops = _config.NUM_EDIT_OPS;
 	int Num_mismatches = _config.NUM_MISMATCHES;
 	char Stringent_gaplimit = _config.STRINGENT_GAPLIMIT;
 	int K = _config.NUM_GAPS;
