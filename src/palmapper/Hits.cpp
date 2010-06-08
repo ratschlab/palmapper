@@ -14,7 +14,7 @@ void printhit(Read const &read, HIT* hit);
 
 unsigned int Hits::SLOTS[2];
 Hits::Hits(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile)
-:	_genome(genome_), _genomeMaps(genomemaps_), CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _queryFile(queryFile)
+:	_genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile)
 {
 	REDUNDANT = 0;
 	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
@@ -37,7 +37,7 @@ char ReadMappings::HAS_SLOT;
 unsigned int ReadMappings::SLOTS[2];
 ReadMappings::ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Hits &hits, Read const &read)
 :	_genome(genome), _genomeMaps(genomeMaps), _outer(hits), _read(read),
- 	CHROMOSOME_ENTRY_OPERATOR(hits.CHROMOSOME_ENTRY_OPERATOR), _topAlignments(&genomeMaps)
+ 	CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _topAlignments(&genomeMaps)
 {
 	GENOME = hits.GENOME;
 	HITS_IN_SCORE_LIST = 0;
@@ -355,7 +355,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 					// removing duplicates:
 					hits.dealloc_mapping_entries();
 					
-					CHROMOSOME_ENTRY_OPERATOR.used = 0;
+					hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
 					
 					time2b += clock()-start_time ;
 					
@@ -482,7 +482,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 						hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
 						hits.dealloc_hits();
 						hits.dealloc_hits_by_score();
-						CHROMOSOME_ENTRY_OPERATOR.used = 0;
+						hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
 						if (LONGEST_HIT != 0)
 							hits.dealloc_hit_lists_operator();
 
@@ -548,7 +548,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 							hits.dealloc_mapping_entries();
 							hits.dealloc_hits();
 							hits.dealloc_hits_by_score();
-							CHROMOSOME_ENTRY_OPERATOR.used = 0;
+							hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
 							if (LONGEST_HIT != 0)
 								hits.dealloc_hit_lists_operator();
 							
@@ -578,7 +578,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 			hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
 			hits.dealloc_hits();
 			hits.dealloc_hits_by_score();
-			CHROMOSOME_ENTRY_OPERATOR.used = 0;
+			hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
 			if (LONGEST_HIT != 0)
 				hits.dealloc_hit_lists_operator();
 
@@ -1719,7 +1719,7 @@ int ReadMappings::init_hit_lists() {
 	return (0);
 }
 
-CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand)
+CHROMOSOME_ENTRY* ReadMappings::alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand)
 {
 	if (CHROMOSOME_ENTRY_OPERATOR.used > _config.CHROM_CONTAINER_SIZE - 1) {
 		fprintf(stderr, "\n!!! WARNING: Chromosome container size of %d is too small! Hits for read %s cannot be reported any more!\n\n", _config.CHROM_CONTAINER_SIZE, read.id());
@@ -1737,8 +1737,8 @@ CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int po
     
     CHROMOSOME_ENTRY_OPERATOR.used++;
 
-    if (_config.STATISTICS && CHROMOSOME_ENTRY_OPERATOR.used > MAX_USED_SLOTS)
-    	MAX_USED_SLOTS = CHROMOSOME_ENTRY_OPERATOR.used;
+    if (_config.STATISTICS && CHROMOSOME_ENTRY_OPERATOR.used > Hits::MAX_USED_SLOTS)
+    	Hits::MAX_USED_SLOTS = CHROMOSOME_ENTRY_OPERATOR.used;
 
 	return(entry);
 }
