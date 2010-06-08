@@ -8,7 +8,7 @@ extern double WORST_SCORE;
 extern double WORST_MM_SCORE;
 
 int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readstart, int start, int end, unsigned short int hitreadpos, Chromosome const &chromosome, char orientation, unsigned char mismatches);
-int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation);
+int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitreadpos, unsigned int start, unsigned int end, Chromosome const &chromosome, char orientation, int Num_edit_ops);
 
 
 //align.c

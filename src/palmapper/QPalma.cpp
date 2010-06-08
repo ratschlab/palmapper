@@ -1614,7 +1614,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 		    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 		    bool isunspliced ;
 		    {
-				int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[ori], read_quality[ori], current_seq, current_regions,
+				int ret = perform_alignment_starter(read, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
 													current_positions, chr, '+', ori, hit_read_position,
 													corres_long_regions[0]->start, hit_len);
 				/*, num_alignments_reported*/
@@ -1632,7 +1632,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 				//      corres_long_regions[0]->end, hit_len);					  
 				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-				int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[1 - ori],
+				int ret = perform_alignment_starter(read, hits, read_seq[1 - ori],
 													read_quality[1 - ori], current_seq,
 													current_regions, current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
 													corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
@@ -1715,7 +1715,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 	    //    corres_long_regions[0]->start, hit_len);
 	    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 	    {
-			int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[ori], read_quality[ori],
+			int ret = perform_alignment_starter(read, hits, read_seq[ori], read_quality[ori],
 												current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
 												corres_long_regions[0]->start, hit_len); 
 			/*, num_alignments_reported */
@@ -1733,7 +1733,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 			//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 			//      corres_long_regions[0]->end, hit_len);					  
 			//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-			int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[1 - ori],
+			int ret = perform_alignment_starter(read, hits, read_seq[1 - ori],
 												read_quality[1 - ori], current_seq,
 												current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
 												corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
@@ -1783,7 +1783,7 @@ void *perform_alignment_wrapper(perform_alignment_t *data)
 	try
 	{
 		assert(data->qpalma!=NULL) ;
-		data->ret = data->qpalma->perform_alignment(*data->read, *data->topAlignments, data->read_string, data->read_quality, data->dna,
+		data->ret = data->qpalma->perform_alignment(*data->read, *data->readMappings, data->read_string, data->read_quality, data->dna,
 													data->current_regions, data->positions, *data->contig_idx,
 													data->strand, data->ori, data->num_reported,data->hit_read,
 													data->hit_dna,data->hit_length) ;
@@ -1799,7 +1799,7 @@ void *perform_alignment_wrapper(perform_alignment_t *data)
 }
 
 // TODO: dd remove relicts from multithreading
-int QPalma::perform_alignment_starter(Read const &read, TopAlignments &topAlignments, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
+int QPalma::perform_alignment_starter(Read const &read, ReadMappings &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -1824,7 +1824,7 @@ int QPalma::perform_alignment_starter(Read const &read, TopAlignments &topAlignm
 		data = new struct perform_alignment_t ;
 		
 		data->read = &read;
-		data->topAlignments = &topAlignments;
+		data->readMappings = &readMappings;
 		data->read_string=read_string ;
 		data->read_quality=read_quality ;
 		data->dna = dna ;
@@ -1911,81 +1911,82 @@ int QPalma::perform_alignment_wait(int & num_reported)
 	return ret ;
 }
 
-int QPalma::rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num)
-{
-	unsigned int read_pos = 0 ;
-	int genome_pos = 0 ;
-	int last_good_pos = 0 ;
-	int alignment_gaps = 0 ;
-	int alignment_mismatches = 0 ;
-	
-  for (unsigned int i=0; i<read_anno.length(); i++)
-    {
-      //fprintf(stdout, "%c", read_anno[i]) ;
-      assert(read_anno[i]!=']') ;
-      if (read_anno[i]!='[')
-	{
-	  genome_pos++ ;
-	  read_pos++ ;
-	  num++ ;
-	  if (read_anno[i]=='A' || read_anno[i]=='a')
-	    num_A++ ;
-	  if (read_anno[i]=='T' || read_anno[i]=='t')
-	    num_T++ ;
-	}
-      else
-	{
-	  if (read_anno[i+1]=='-')
-	    {
-	      alignment_gaps++ ;
-	      if (ori==0)
-		read_pos++ ;
-	      else
-		genome_pos++ ;
-	      num++ ;
-	      if (read_anno[i+2]=='A' || read_anno[i+2]=='a')
-		num_A++ ;
-	      if (read_anno[i+2]=='T' || read_anno[i+2]=='t')
-		num_T++ ;
-	    }
-	  else if (read_anno[i+2]=='-')
-	    {
-	      if (ori==0)
-		genome_pos++ ;
-	      else
-		read_pos++ ;
-	      alignment_gaps++ ;
-	    }
-	  else
-	    {
-	      read_pos++ ;
-	      genome_pos++ ;
-	      alignment_mismatches++ ;
-	      num++ ;
-	      if (read_anno[i+2]=='A' || read_anno[i+2]=='a')
-		num_A++ ;
-	      if (read_anno[i+2]=='T' || read_anno[i+2]=='t')
-		num_T++ ;
-	    }
-	  i+=3 ;
-	}
-      if (!(read_pos<=read.length()))
-	fprintf(stderr, "ASSERT: %i, %i, %i, %i: %s\n", i, ori, read_pos, read.length(), read_anno.c_str()) ;
+//TODO: remove me 08.06.2010
+//int QPalma::rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num)
+//{
+//	unsigned int read_pos = 0 ;
+//	int genome_pos = 0 ;
+//	int last_good_pos = 0 ;
+//	int alignment_gaps = 0 ;
+//	int alignment_mismatches = 0 ;
+//
+//  for (unsigned int i=0; i<read_anno.length(); i++)
+//    {
+//      //fprintf(stdout, "%c", read_anno[i]) ;
+//      assert(read_anno[i]!=']') ;
+//      if (read_anno[i]!='[')
+//	{
+//	  genome_pos++ ;
+//	  read_pos++ ;
+//	  num++ ;
+//	  if (read_anno[i]=='A' || read_anno[i]=='a')
+//	    num_A++ ;
+//	  if (read_anno[i]=='T' || read_anno[i]=='t')
+//	    num_T++ ;
+//	}
+//      else
+//	{
+//	  if (read_anno[i+1]=='-')
+//	    {
+//	      alignment_gaps++ ;
+//	      if (ori==0)
+//		read_pos++ ;
+//	      else
+//		genome_pos++ ;
+//	      num++ ;
+//	      if (read_anno[i+2]=='A' || read_anno[i+2]=='a')
+//		num_A++ ;
+//	      if (read_anno[i+2]=='T' || read_anno[i+2]=='t')
+//		num_T++ ;
+//	    }
+//	  else if (read_anno[i+2]=='-')
+//	    {
+//	      if (ori==0)
+//		genome_pos++ ;
+//	      else
+//		read_pos++ ;
+//	      alignment_gaps++ ;
+//	    }
+//	  else
+//	    {
+//	      read_pos++ ;
+//	      genome_pos++ ;
+//	      alignment_mismatches++ ;
+//	      num++ ;
+//	      if (read_anno[i+2]=='A' || read_anno[i+2]=='a')
+//		num_A++ ;
+//	      if (read_anno[i+2]=='T' || read_anno[i+2]=='t')
+//		num_T++ ;
+//	    }
+//	  i+=3 ;
+//	}
+//      if (!(read_pos<=read.length()))
+//	fprintf(stderr, "ASSERT: %i, %i, %i, %i: %s\n", i, ori, read_pos, read.length(), read_anno.c_str()) ;
+//
+//      double frac=read_pos/read.length() ;
+//      if (alignment_mismatches <= _config.NUM_MISMATCHES*frac && alignment_gaps <= _config.NUM_GAPS*frac && alignment_mismatches+alignment_gaps <= hits.*frac)
+//	{
+//	  last_good_pos = read_pos ;
+//	  num_A=0 ;
+//	  num_T=0 ;
+//	  num=0 ;
+//	}
+//    }
+//  return last_good_pos ;
+//}
 
-      double frac=read_pos/read.length() ;
-      if (alignment_mismatches <= _config.NUM_MISMATCHES*frac && alignment_gaps <= _config.NUM_GAPS*frac && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS*frac)
-	{
-	  last_good_pos = read_pos ;
-	  num_A=0 ;
-	  num_T=0 ;
-	  num=0 ;
-	}
-    }
-  return last_good_pos ;
-}
 
-
-int QPalma::perform_alignment(Read const &read, TopAlignments &topAlignments, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
+int QPalma::perform_alignment(Read const &read, ReadMappings &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
 // ori = read orientation
 // strand = dna strand/orientation
 
@@ -2385,7 +2386,7 @@ int QPalma::perform_alignment(Read const &read, TopAlignments &topAlignments, st
 				* alignment_parameters->matchmatrix_dim[1], donor, d_len,
 				acceptor, a_len, alignment_parameters->qualityPlifs,
 				remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
-				_config.NUM_GAPS,_config.NUM_MISMATCHES,_config.NUM_EDIT_OPS, MIN_NUM_MATCHES); 
+				_config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.num_edit_ops(), MIN_NUM_MATCHES);
 
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
@@ -2660,7 +2661,7 @@ int QPalma::perform_alignment(Read const &read, TopAlignments &topAlignments, st
 	}
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
-	if (alignment_valid && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
+	if (alignment_valid && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= readMappings.num_edit_ops()))
 		&& (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) ) // it must be spliced and not have too many mismatches
 	{
 		ALIGNMENT *aln = NULL;
@@ -2700,7 +2701,7 @@ int QPalma::perform_alignment(Read const &read, TopAlignments &topAlignments, st
 
 		strcpy(aln->read_id, read.id());
 
-		topAlignments.add_alignment_record(read, aln, 1);
+		readMappings.topAlignments().add_alignment_record(read, aln, 1);
 		num_reported++ ;
 		
 		if (verbosity >= 2) 

@@ -182,7 +182,11 @@ public:
 		return _topAlignments;
 	}
 
-	inline void reset_num_edit_ops(int num_edit_ops)
+	int num_edit_ops() const {
+		return _numEditOps;
+	}
+
+	inline void reset_num_edit_ops()
 	{
 		SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.resize(0) ;
 	}
@@ -246,6 +250,7 @@ private:
 	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	TopAlignments _topAlignments;
+	int _numEditOps;
 
 	static char HAS_SLOT;
 	static unsigned int SLOTS[2];
