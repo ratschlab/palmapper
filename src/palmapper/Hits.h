@@ -129,6 +129,7 @@ protected:
 	int init_statistic_vars() ;
 	int init_operators() ;
 	int init_alignment_structures(Config * config);
+	void map_read(Read &read, int count_reads, QPalma* qpalma);
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 
 	Genome &_genome;
@@ -141,6 +142,11 @@ public:
 	static unsigned int MAX_USED_SLOTS;
 private:
 	QueryFile &_queryFile;
+    FILE *LEFTOVER_FP;
+	FILE *ADAPTERTRIM_LOG_FP;
+	unsigned int MAXHITS;
+	int c_map_fast;
+	int c_map_short_read;
 };
 
 class ReadMappings {
