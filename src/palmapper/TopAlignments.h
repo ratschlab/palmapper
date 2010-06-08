@@ -7,6 +7,7 @@
 class Hits ;
 class GenomeMaps ;
 class QPalma ;
+struct HIT;
 
 typedef struct alignment_t {
   double qpalma_score;

@@ -19,8 +19,8 @@
 clock_t QPalma::last_timing_report=0 ;
 clock_t QPalma::last_filter_report=0 ;
 
-QPalma::QPalma(Genome* genome_, TopAlignments* topalignments_, GenomeMaps* genomemaps_,
-			   int verbosity_): verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
+QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
+: 	verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 {
 	region_align_time = 0;
 	region1_time = 0;
@@ -36,7 +36,6 @@ QPalma::QPalma(Genome* genome_, TopAlignments* topalignments_, GenomeMaps* genom
 	total_num_thread_tasks = 0 ;
 
 	genome=genome_ ;
-	topalignments = topalignments_ ;
 	genomemaps = genomemaps_ ;
 	alignment_parameters = NULL;
 	
@@ -1615,7 +1614,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 		    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 		    bool isunspliced ;
 		    {
-				int ret = perform_alignment_starter(read, read_seq[ori], read_quality[ori], current_seq, current_regions,
+				int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[ori], read_quality[ori], current_seq, current_regions,
 													current_positions, chr, '+', ori, hit_read_position,
 													corres_long_regions[0]->start, hit_len);
 				/*, num_alignments_reported*/
@@ -1633,7 +1632,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 				//      corres_long_regions[0]->end, hit_len);					  
 				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-				int ret = perform_alignment_starter(read, read_seq[1 - ori],
+				int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[1 - ori],
 													read_quality[1 - ori], current_seq,
 													current_regions, current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
 													corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
@@ -1716,7 +1715,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 	    //    corres_long_regions[0]->start, hit_len);
 	    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 	    {
-			int ret = perform_alignment_starter(read, read_seq[ori], read_quality[ori],
+			int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[ori], read_quality[ori],
 												current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
 												corres_long_regions[0]->start, hit_len); 
 			/*, num_alignments_reported */
@@ -1734,7 +1733,7 @@ int QPalma::capture_hits(ReadMappings &hits)
 			//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 			//      corres_long_regions[0]->end, hit_len);					  
 			//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-			int ret = perform_alignment_starter(read, read_seq[1 - ori],
+			int ret = perform_alignment_starter(read, hits.topAlignments(), read_seq[1 - ori],
 												read_quality[1 - ori], current_seq,
 												current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
 												corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
@@ -1784,7 +1783,7 @@ void *perform_alignment_wrapper(perform_alignment_t *data)
 	try
 	{
 		assert(data->qpalma!=NULL) ;
-		data->ret = data->qpalma->perform_alignment(*data->read, data->read_string, data->read_quality, data->dna,
+		data->ret = data->qpalma->perform_alignment(*data->read, *data->topAlignments, data->read_string, data->read_quality, data->dna,
 													data->current_regions, data->positions, *data->contig_idx,
 													data->strand, data->ori, data->num_reported,data->hit_read,
 													data->hit_dna,data->hit_length) ;
@@ -1800,7 +1799,7 @@ void *perform_alignment_wrapper(perform_alignment_t *data)
 }
 
 // TODO: dd remove relicts from multithreading
-int QPalma::perform_alignment_starter(Read const &read, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
+int QPalma::perform_alignment_starter(Read const &read, TopAlignments &topAlignments, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -1825,6 +1824,7 @@ int QPalma::perform_alignment_starter(Read const &read, std::string read_string,
 		data = new struct perform_alignment_t ;
 		
 		data->read = &read;
+		data->topAlignments = &topAlignments;
 		data->read_string=read_string ;
 		data->read_quality=read_quality ;
 		data->dna = dna ;
@@ -1985,7 +1985,7 @@ int QPalma::rescue_alignment(Read const &read, std::string & read_anno, int ori,
 }
 
 
-int QPalma::perform_alignment(Read const &read, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
+int QPalma::perform_alignment(Read const &read, TopAlignments &topAlignments, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
 // ori = read orientation
 // strand = dna strand/orientation
 
@@ -2700,7 +2700,7 @@ int QPalma::perform_alignment(Read const &read, std::string &read_string, std::s
 
 		strcpy(aln->read_id, read.id());
 
-		topalignments->add_alignment_record(read, aln, 1);
+		topAlignments.add_alignment_record(read, aln, 1);
 		num_reported++ ;
 		
 		if (verbosity >= 2) 

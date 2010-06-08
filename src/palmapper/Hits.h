@@ -6,6 +6,7 @@
 #include <palmapper/Chromosome.h>
 #include <palmapper/QueryFile.h>
 #include <palmapper/Read.h>
+#include <palmapper/TopAlignments.h>
 
 #define CONTAINER_SIZE 100000
 #define SCORE_INTERVAL 1
@@ -120,7 +121,7 @@ public:
 	Hits(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile);
 	~Hits();
 
-	int map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments* topalignments, QPalma* qpalma) ;
+	int map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma) ;
 	int REDUNDANT;
 
 protected:
@@ -171,13 +172,17 @@ public:
 	int init_from_meta_index() ;
 	int init_hit_lists()  ;
 
-	int analyze_hits(TopAlignments* topalignments, QPalma * qpalma) ;
+	int analyze_hits(QPalma * qpalma) ;
 	int report_read_alignment(HIT* hit, int nbest)  ;
 
 	HIT **HIT_LISTS_OPERATOR;
 	unsigned int HITS_IN_SCORE_LIST;
 	void dealloc_mapping_entries() {_mappings.clear();}
 	void dealloc_hits() {_hits.clear();}
+
+	TopAlignments &topAlignments() {
+		return _topAlignments;
+	}
 
 	inline void reset_num_edit_ops(int num_edit_ops)
 	{
@@ -244,6 +249,7 @@ private:
 	Read const &_read;
 	CHROMOSOME_ENTRY_CONTAINER &CHROMOSOME_ENTRY_OPERATOR;
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
+	TopAlignments _topAlignments;
 
 	static char HAS_SLOT;
 	static unsigned int SLOTS[2];

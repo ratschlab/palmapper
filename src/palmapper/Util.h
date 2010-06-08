@@ -25,7 +25,8 @@ public:
 			while (!feof(fd))
 			{
 				long pos = ftell(fd) ;
-				fgets(buffer, buffer_len, fd) ;
+				if (fgets(buffer, buffer_len, fd) == NULL)
+					return;
 				if (buffer[0]!='#' && buffer[0]!=0)
 				{
 					fseek(fd, pos, SEEK_SET) ;
