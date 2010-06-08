@@ -36,7 +36,8 @@ Hits::~Hits() {
 char ReadMappings::HAS_SLOT;
 unsigned int ReadMappings::SLOTS[2];
 ReadMappings::ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Hits &hits, Read const &read)
-:	_genome(genome), _genomeMaps(genomeMaps), _outer(hits), _read(read), CHROMOSOME_ENTRY_OPERATOR(hits.CHROMOSOME_ENTRY_OPERATOR)
+:	_genome(genome), _genomeMaps(genomeMaps), _outer(hits), _read(read),
+ 	CHROMOSOME_ENTRY_OPERATOR(hits.CHROMOSOME_ENTRY_OPERATOR), _topAlignments(&genomeMaps)
 {
 	GENOME = hits.GENOME;
 	HITS_IN_SCORE_LIST = 0;
@@ -187,7 +188,7 @@ void map_reads_timing(int count_reads, float this_read=-1)
 		fprintf(stdout, "\n") ;
 }
 
-int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topalignments, QPalma* qpalma)
+int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 {
 
 	char eof = 0, read_mapped;
@@ -394,16 +395,16 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 			
 			if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
 			{
-				topalignments->start_top_alignment_record();
+				hits._topAlignments.start_top_alignment_record();
 
-				read_mapped = hits.analyze_hits(topalignments, qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+				read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
 				if (_config.VERBOSE)
-					printf("%i unspliced alignment found\n", (int)topalignments->size()); 
+					printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
 
 				bool trigger = false ;
 				if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
-					trigger = topalignments->size()==0 || 
-						qpalma->qpalma_filter(_read, topalignments->get_alignment(0), num_N)!=0 ;
+					trigger = hits._topAlignments.size()==0 ||
+						qpalma->qpalma_filter(_read, hits._topAlignments.get_alignment(0), num_N)!=0 ;
 
 				if ( trigger )
 				{
@@ -451,12 +452,12 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 
 			if (!cancel)
 			{
-				if (topalignments->size()>0)
+				if (hits._topAlignments.size()>0)
 					read_mapped = 1 ;
 				//if (_config.VERBOSE && read_mapped)
 				//	printf("unspliced or spliced alignment found\n"); 
 				
-				topalignments->end_top_alignment_record(_read, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
+				hits._topAlignments.end_top_alignment_record(_read, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 				
 				if (read_mapped)
 					_stats.READS_MAPPED++ ;
@@ -2695,7 +2696,7 @@ int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int rea
 
 // prints out all hits which have been inserted into HITS_BY_EDITOPS
 // called once for each read (?)
-int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
+int ReadMappings::analyze_hits(QPalma* qpalma)
 {
 	int i, printed = 0, nr;
 	HIT *hit;
@@ -2742,7 +2743,7 @@ int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 				for (j = 0; j != HITS_BY_SCORE[i].num; ++j) {
 
 					if (lhits[nr] == j) {
-						printed += topalignments->report_unspliced_hit(_read, hit, -_config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+						printed += _topAlignments.report_unspliced_hit(_read, hit, -_config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
 						nr++;
 					}
 
@@ -2761,7 +2762,7 @@ int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 				// code was set up: we see the hits in the order of their score here - better hits first.
 				while (hit != NULL) 
 				{
-					printed += topalignments->report_unspliced_hit(_read, hit, 0, qpalma) ;
+					printed += _topAlignments.report_unspliced_hit(_read, hit, 0, qpalma) ;
 					hit = hit->same_eo_succ;
 				}
 
@@ -2777,9 +2778,9 @@ int ReadMappings::analyze_hits(TopAlignments* topalignments, QPalma* qpalma)
 						nr = HITS_IN_SCORE_LIST;
 
 					if (_config.OUTPUT_FILTER_NUM_LIMIT == 0) { // no max nr of hits per read was specified, print all
-						printed += topalignments->report_unspliced_hit(_read, hit, nr, qpalma);
+						printed += _topAlignments.report_unspliced_hit(_read, hit, nr, qpalma);
 					} else if (_config.OUTPUT_FILTER_NUM_LIMIT > 0 && printed < _config.OUTPUT_FILTER_NUM_LIMIT) {
-						printed += topalignments->report_unspliced_hit(_read, hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+						printed += _topAlignments.report_unspliced_hit(_read, hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
 					} else if (_config.OUTPUT_FILTER_NUM_LIMIT == printed) { // repeatmap many alignments already printed out -> stop printing -> next read
 						return 1;
 					}

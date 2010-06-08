@@ -1,6 +1,7 @@
 #pragma once
 
 #include <palmapper/Config.h>
+#include <palmapper/Hits.h>
 #include <palmapper/dyn_prog/qpalma_dp.h>
 
 struct region_t {
@@ -14,11 +15,16 @@ struct region_t {
 	//char strand ;
 };
 
+class GenomeMaps;
+struct HIT;
 class QPalma ;
+class ReadMappings;
+class TopAlignments;
 
 struct perform_alignment_t
 {
 	Read const *read;
+	TopAlignments *topAlignments;
 	std::string read_string ;
 	std::string read_quality ;
 	std::string dna ; 
@@ -55,7 +61,7 @@ class QPalma
 
 public:
 
-	QPalma(Genome* genome_, TopAlignments* topalignments_, GenomeMaps* genomemaps_, int verbosity_=2) ;
+	QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_=2) ;
 	~QPalma() ;
 
 	int map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report) ;
@@ -89,7 +95,7 @@ protected:
 
 public:
 	int capture_hits(ReadMappings &hits);
-	int perform_alignment(Read const &read, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
+	int perform_alignment(Read const &read, TopAlignments &topAlignments, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) ;
 	float score_unspliced(Read const &read, const char * read_anno) ;
 	void capture_hits_timing(int read_count=-1, float this_read=-1.0) ;
@@ -110,7 +116,7 @@ protected:
 	void print_region(region_t *region, const char * bla)  ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(Read const &read, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
+	int perform_alignment_starter(Read const &read, TopAlignments &topAlignments, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
 	int perform_alignment_wait(int & num_reported) ;
 
 	void delete_regions() ;
@@ -248,7 +254,6 @@ protected:
 	int qpalma_filter_stat_unspliced[num_filter_reasons] ;
 
 	Genome * genome ;
-	TopAlignments* topalignments ;
 	GenomeMaps* genomemaps ;
 	
 } ;

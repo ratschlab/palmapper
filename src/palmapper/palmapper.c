@@ -41,8 +41,7 @@ int main(int argc, char *argv[])
 	QueryFile queryFile(_config.QUERY_FILE_NAME);
 	Hits hits(_genome, _genomemaps, queryFile);
 
-	TopAlignments _topalignments(&_genomemaps) ;
-	QPalma _qpalma(&_genome, &_topalignments, &_genomemaps, 0) ;
+	QPalma _qpalma(&_genome, &_genomemaps, 0) ;
 
 	// initialize GenomeMaps
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
@@ -105,7 +104,7 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	hits.map_reads(_genome, _genomemaps, &_topalignments, &_qpalma);
+	hits.map_reads(_genome, _genomemaps, &_qpalma);
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);
