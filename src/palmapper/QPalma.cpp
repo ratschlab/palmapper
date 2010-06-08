@@ -1779,10 +1779,8 @@ int QPalma::capture_hits(ReadMappings &hits)
 }
 
 
-void *perform_alignment_wrapper(void *data_)
+void *perform_alignment_wrapper(perform_alignment_t *data)
 {
-	struct perform_alignment_t* data = (struct perform_alignment_t *)data_ ;
-
 	try
 	{
 		assert(data->qpalma!=NULL) ;
@@ -1801,6 +1799,7 @@ void *perform_alignment_wrapper(void *data_)
 	return data ;
 }
 
+// TODO: dd remove relicts from multithreading
 int QPalma::perform_alignment_starter(Read const &read, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
 {
 	struct perform_alignment_t* data = NULL ;
@@ -1841,14 +1840,16 @@ int QPalma::perform_alignment_starter(Read const &read, std::string read_string,
 		data->hit_length = hit_length;
 		data->qpalma = this ;
 		data->joined=false ;
+		perform_alignment_wrapper(data);
+		data->joined = true;
 
-		int rc = pthread_create( &(data->thread), NULL, &perform_alignment_wrapper, data) ;
-		if (rc)
-		{
-			fprintf(stderr, "thread #%i creation failed: %i\n", (int)thread_data.size(), rc) ;
-			delete data ;
-			return -1 ;
-		}
+//		int rc = pthread_create( &(data->thread), NULL, &perform_alignment_wrapper, data) ;
+//		if (rc)
+//		{
+//			fprintf(stderr, "thread #%i creation failed: %i\n", (int)thread_data.size(), rc) ;
+//			delete data ;
+//			return -1 ;
+//		}
 		//fprintf(stderr, "thread #%i started\n", (int)thread_data.size()) ;
 		
 		thread_data.push_back(data) ;
