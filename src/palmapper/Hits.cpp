@@ -125,42 +125,42 @@ int Hits::init_alignment_structures(Config * config) {
 }
 
 
-void ReadMappings::printhits()
-{
-	//printf("list:\n");
-	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
-	int i;
-	int c = 0;
-	HIT* hit;
-	for (i = _config.INDEX_DEPTH; i != ((int)_read.length()) + 1; ++i) {
-
-		if (*(HIT_LISTS_OPERATOR + i) != NULL) {
-			//printf("%i: ", i);
-			hit = *(HIT_LISTS_OPERATOR + i);
-			do {
-				//if (hit->orientation == '-') {
-				printf("[%i: %i-%i/%c/chr%i/rp%i/%imm", hit->end - hit->start
-						+ 1, hit->start, hit->end, hit->orientation,
-						hit->chromosome->nr() + 1, hit->readpos, hit->mismatches);
-				if (hit->mismatches != 0) {
-					printf(":");
-					int j;
-					for (j = 0; j != hit->mismatches; ++j)
-						printf(" %i%c", hit->edit_op[j].pos,
-								(hit->edit_op[j].mm) ? 'M' : 'G');
-				}
-				printf("/%s]\n", _read.id());
-				++c;
-				//}
-				hit = hit->next;
-				//if (c > 4) hit = NULL;
-			} while (hit != NULL);
-			//printf("\n");
-		}
-		c = 0;
-	}
-	//printf("done\n");
-}
+//void ReadMappings::printhits()
+//{
+//	//printf("list:\n");
+//	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
+//	int i;
+//	int c = 0;
+//	HIT* hit;
+//	for (i = _config.INDEX_DEPTH; i != ((int)_read.length()) + 1; ++i) {
+//
+//		if (*(HIT_LISTS_OPERATOR + i) != NULL) {
+//			//printf("%i: ", i);
+//			hit = *(HIT_LISTS_OPERATOR + i);
+//			do {
+//				//if (hit->orientation == '-') {
+//				printf("[%i: %i-%i/%c/chr%i/rp%i/%imm", hit->end - hit->start
+//						+ 1, hit->start, hit->end, hit->orientation,
+//						hit->chromosome->nr() + 1, hit->readpos, hit->mismatches);
+//				if (hit->mismatches != 0) {
+//					printf(":");
+//					int j;
+//					for (j = 0; j != hit->mismatches; ++j)
+//						printf(" %i%c", hit->edit_op[j].pos,
+//								(hit->edit_op[j].mm) ? 'M' : 'G');
+//				}
+//				printf("/%s]\n", _read.id());
+//				++c;
+//				//}
+//				hit = hit->next;
+//				//if (c > 4) hit = NULL;
+//			} while (hit != NULL);
+//			//printf("\n");
+//		}
+//		c = 0;
+//	}
+//	//printf("done\n");
+//}
 
 
 
@@ -194,8 +194,6 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 	unsigned int count_reads = 0;
 	//int first_slot = 0, first_pos = 0 ;
 	int num_edit_ops = _config.NUM_EDIT_OPS;
-	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-		reset_num_edit_ops(num_edit_ops) ;
 	if (_config.STATISTICS) MAX_USED_SLOTS = 0;
 	unsigned int MAXHITS = 0;
 	int c_map_fast = 0;
@@ -238,6 +236,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 		if (!_queryFile.next_read(_read))
 			break;
 		ReadMappings hits(genome, genomeMaps, *this, _read);
+
 
 		unsigned int adapter_cut_start = 0 ;
 		unsigned int adapter_cut_end = 0 ;
@@ -340,7 +339,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 			if (!cancel)
 			{
 				if (((_config.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
-					 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()==0)) &&
+					 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()==0)) &&
 				    (!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0) ) )
 				{
 					c_map_short_read++;
@@ -389,7 +388,7 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments * topa
 
 			_config.NUM_EDIT_OPS = num_edit_ops;		// resetting _config.NUM_EDIT_OPS.. has been changed probably in alignments and map_fast
 			if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-				reset_num_edit_ops(num_edit_ops) ;
+				hits.reset_num_edit_ops(num_edit_ops) ;
 					
 			read_mapped = 0 ;
 			
@@ -1409,7 +1408,7 @@ int ReadMappings::browse_hits()
 						
 						//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _config.NUM_EDIT_OPS)
 						//	_config.NUM_EDIT_OPS = hit->mismatches;
-						_outer.update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
+						update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
 					}
 				}
 				// 2) Hit has to be aligned:
@@ -1534,7 +1533,7 @@ int ReadMappings::insert_into_scorelist(HIT* hit, char d)
 
 	//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _config.NUM_EDIT_OPS)
 	//_config.NUM_EDIT_OPS = hit->mismatches;
-	_outer.update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
+	update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
 
 	return 1;
 }
@@ -2089,7 +2088,7 @@ int ReadMappings::map_fast(Read & read)
 								//if (!_config.ALL_HIT_STRATEGY && nr_mms < max_mms)
 								//	max_mms = nr_mms;
 
-								_outer.update_num_edit_ops(nr_mms, _config.ALL_HIT_STRATEGY, max_mms) ;
+								update_num_edit_ops(nr_mms, _config.ALL_HIT_STRATEGY, max_mms) ;
 
 								// perfect matching read
 								if (/*_config.*/_config.STATISTICS) {
@@ -2508,7 +2507,7 @@ int ReadMappings::align_hit_simple(HIT* hit, int start, int end, int readpos, Ch
 			assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
 		}
 		
-		_outer.update_num_edit_ops(mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
+		update_num_edit_ops(mismatches, _config.ALL_HIT_STRATEGY, _config.NUM_EDIT_OPS) ;
 
 		return 1;
 	}
@@ -2571,7 +2570,7 @@ int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int rea
 
 		//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 		//	_config.NUM_EDIT_OPS = mismatches;
-		_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+		update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 
 		return 1;
 	}
@@ -2623,7 +2622,7 @@ int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int rea
 				assert(mismatches<Config::MAX_EDIT_OPS) ;
 				//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 				//_config.NUM_EDIT_OPS = mismatches;
-				_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+				update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 				return 1;
 			}
 
@@ -2670,7 +2669,7 @@ int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int rea
 				assert(mismatches<Config::MAX_EDIT_OPS) ;
 				//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 				//_config.NUM_EDIT_OPS = mismatches;
-				_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+				update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 
 				return 1;
 			}
@@ -2686,7 +2685,7 @@ int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int rea
 
 	//if (!All_hit_strategy && mismatches < _config.NUM_EDIT_OPS)
 	//_config.NUM_EDIT_OPS = mismatches;
-	_outer.update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
+	update_num_edit_ops(mismatches, All_hit_strategy, _config.NUM_EDIT_OPS) ;
 
 	// successful alignment:
 	return 1;

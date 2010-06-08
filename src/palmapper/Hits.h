@@ -123,53 +123,6 @@ public:
 	int map_reads(Genome &genome, GenomeMaps &genomeMaps, TopAlignments* topalignments, QPalma* qpalma) ;
 	int REDUNDANT;
 
-	inline void reset_num_edit_ops(int num_edit_ops)
-	{
-		SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.resize(0) ;
-	}
-
-	inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_)
-	{
-		assert(num_edit_ops<Config::MAX_EDIT_OPS) ;
-		
-		if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_)
-			NUM_EDIT_OPS_ = num_edit_ops ;
-		
-		if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-		{
-			// keep a list of minimal edit operation (assuming that each hit is only reported once)
-			// the list is twice as long as NUM_TOP_ALIGNMENTS, as will be filtered later according to
-			// the qpalma-alignment score (this is a heuristic, which may work well enough; alternatively, one
-			// would need to compute the qpalma score for each hit, which will be too expensive
-			
-			bool inserted = false ;
-			
-			std::vector<int>::iterator it = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.begin();
-			
-			for (uint8_t i = 0; i < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size(); i++, it++)
-			{
-				if ( num_edit_ops < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[i] )
-				{
-					SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.insert(it, num_edit_ops);
-					inserted = true;
-					
-					if (SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() > _config.OUTPUT_FILTER_NUM_TOP*2)
-						SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.pop_back();
-					
-					break;
-				}
-			}
-			if (!inserted && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() < _config.OUTPUT_FILTER_NUM_TOP*2)
-			{
-				SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.push_back(num_edit_ops) ;
-				inserted = true ;
-			}
-		}
-		
-		if (!all_hit_strategy && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()>0)
-			NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ;
-	}
-	
 protected:
 	int init_constants()  ;
 	int init_statistic_vars() ;
@@ -181,8 +134,6 @@ protected:
 	Genome &_genome;
 	GenomeMaps &_genomeMaps ;
 
-	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
-	
 	unsigned int LONGEST_HIT;
 	static unsigned int SLOTS[2];
 
@@ -194,6 +145,7 @@ private:
 };
 
 class ReadMappings {
+	friend class Hits;
 public:
 	ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Hits &hits, Read const &read);
 	~ReadMappings();
@@ -226,6 +178,54 @@ public:
 	unsigned int HITS_IN_SCORE_LIST;
 	void dealloc_mapping_entries() {_mappings.clear();}
 	void dealloc_hits() {_hits.clear();}
+
+	inline void reset_num_edit_ops(int num_edit_ops)
+	{
+		SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.resize(0) ;
+	}
+
+	inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_)
+	{
+		assert(num_edit_ops<Config::MAX_EDIT_OPS) ;
+
+		if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_)
+			NUM_EDIT_OPS_ = num_edit_ops ;
+
+		if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
+		{
+			// keep a list of minimal edit operation (assuming that each hit is only reported once)
+			// the list is twice as long as NUM_TOP_ALIGNMENTS, as will be filtered later according to
+			// the qpalma-alignment score (this is a heuristic, which may work well enough; alternatively, one
+			// would need to compute the qpalma score for each hit, which will be too expensive
+
+			bool inserted = false ;
+
+			std::vector<int>::iterator it = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.begin();
+
+			for (uint8_t i = 0; i < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size(); i++, it++)
+			{
+				if ( num_edit_ops < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[i] )
+				{
+					SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.insert(it, num_edit_ops);
+					inserted = true;
+
+					if (SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() > _config.OUTPUT_FILTER_NUM_TOP*2)
+						SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.pop_back();
+
+					break;
+				}
+			}
+			if (!inserted && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() < _config.OUTPUT_FILTER_NUM_TOP*2)
+			{
+				SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.push_back(num_edit_ops) ;
+				inserted = true ;
+			}
+		}
+
+		if (!all_hit_strategy && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()>0)
+			NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ;
+	}
+
 private:
 	int alloc_hits_by_score() ;
 	int alloc_hit_lists_operator() ;
@@ -243,6 +243,7 @@ private:
 	Hits &_outer;
 	Read const &_read;
 	CHROMOSOME_ENTRY_CONTAINER &CHROMOSOME_ENTRY_OPERATOR;
+	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 
 	static char HAS_SLOT;
 	static unsigned int SLOTS[2];
