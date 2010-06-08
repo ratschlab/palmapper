@@ -129,7 +129,6 @@ protected:
 	int init_statistic_vars() ;
 	int init_operators() ;
 	int init_alignment_structures(Config * config);
-	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand) ;
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 
 	Genome &_genome;
@@ -140,7 +139,6 @@ protected:
 
 public:
 	static unsigned int MAX_USED_SLOTS;
-	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
 private:
 	QueryFile &_queryFile;
 };
@@ -234,9 +232,7 @@ public:
 private:
 	int alloc_hits_by_score() ;
 	int alloc_hit_lists_operator() ;
-	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand) {
-		return _outer.alloc_chromosome_entry(read, pos, chr, strand);
-	}
+	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand);
 
 	Genome &_genome;
 	GenomeMaps &_genomeMaps;
@@ -247,7 +243,7 @@ private:
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 	Hits &_outer;
 	Read const &_read;
-	CHROMOSOME_ENTRY_CONTAINER &CHROMOSOME_ENTRY_OPERATOR;
+	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	TopAlignments _topAlignments;
 
