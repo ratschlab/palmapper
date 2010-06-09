@@ -29,14 +29,14 @@ typedef struct position_structure {
 	unsigned int chr;
 } POS;
 
-class Hits ;
+class Mapper ;
 
 class Genome {
 public:
 	Genome();
 	Genome(bool dontCare) {hits=NULL ;}
 
-	void set_hits(Hits* hits_)
+	void set_hits(Mapper* hits_)
 	{
 		hits=hits_ ;
 	}
@@ -123,7 +123,7 @@ public:
 
 	unsigned long int MAX_POSITIONS;
 
-	Hits* hits ;
+	Mapper* hits ;
 };
 
 inline char unique_base(char c)
