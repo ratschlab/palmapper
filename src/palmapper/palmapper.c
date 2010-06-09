@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	hits.map_reads(genome, genomemaps, &qpalma);
+	hits.map_reads();
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);

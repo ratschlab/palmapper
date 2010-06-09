@@ -32,7 +32,7 @@ public:
 	Mapper(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma);
 	~Mapper();
 
-	int map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma) ;
+	int map_reads() ;
 	int REDUNDANT;
 
 protected:

@@ -101,7 +101,7 @@ int Mapper::init_alignment_structures(Config * config) {
 	return (0);
 }
 
-int Mapper::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
+int Mapper::map_reads()
 {
 	unsigned int count_reads = 0;
 	//int first_slot = 0, first_pos = 0 ;
@@ -117,7 +117,7 @@ int Mapper::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 
 		count_reads++;
 		Read _read(_queryFile);
-		Result result(count_reads, _read, *this);
+		Result result(_queryFile.read_count(), _read, *this);
 		if (!_queryFile.next_read(_read))
 			break;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
@@ -137,7 +137,7 @@ int Mapper::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 	}
 
 	map_reads_timing(count_reads) ;
-	qpalma->capture_hits_timing() ;
+	_qpalma.capture_hits_timing();
 
 	//TODO dd use otehr criteria
 	fprintf(stdout, "\n#done\n") ;

@@ -6,6 +6,7 @@ QueryFile::QueryFile(std::string filename) {
 	_file = Util::openFile(filename, "r");
 	_lineNr = 0;
 	_maxReadLen = 0;
+	_readCount = 0;
 }
 
 QueryFile::~QueryFile() {
@@ -31,6 +32,7 @@ Read *QueryFile::next_read() {
 bool QueryFile::next_read(Read &read) {
 	if (read.read_short_read() > 0)
 		return false;
+	++_readCount;
 	if (read.length() > _maxReadLen)
 		_maxReadLen = read.length();
 	return true;
