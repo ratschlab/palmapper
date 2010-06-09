@@ -33,26 +33,26 @@ int main(int argc, char *argv[])
 	init_output_file(&_config);
 	init_spliced_output_file(&_config);
 
-	Genome _genome;
-	GenomeMaps _genomemaps(&_genome) ;
+	Genome genome;
+	GenomeMaps genomemaps(&genome) ;
 
-	_config.applyDefaults(&_genome) ;
+	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
 
 	QueryFile queryFile(_config.QUERY_FILE_NAME);
-	Mapper hits(_genome, _genomemaps, queryFile);
+	QPalma qpalma(&genome, &genomemaps, 0);
+	Mapper hits(genome, genomemaps, queryFile, qpalma);
 
-	QPalma _qpalma(&_genome, &_genomemaps, 0) ;
 
 	// initialize GenomeMaps
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
 	{
-		_genomemaps.init_reporting() ;
+		genomemaps.init_reporting() ;
 
 		if (!_config.REPORT_RESET)
 		{
-			_genomemaps.read_reporting() ;
-			_genomemaps.do_reporting(1) ;
+			genomemaps.read_reporting() ;
+			genomemaps.do_reporting(1) ;
 		}
 	}
 
@@ -65,13 +65,13 @@ int main(int argc, char *argv[])
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_ACC = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		_qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> acceptor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_ACC) ;
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_DON = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		_qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> donor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_DON) ;
 	}
@@ -85,19 +85,19 @@ int main(int argc, char *argv[])
 		
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		_qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> acceptor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC) ;
 			
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_DON = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		_qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> donor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_DON) ;
 	}
 
 	if (_config.REPORT_GFF_FILE_NAME.size()>0)
-		_genomemaps.init_with_gff(_config.REPORT_GFF_FILE_NAME) ;
+		genomemaps.init_with_gff(_config.REPORT_GFF_FILE_NAME) ;
 	
 	// timing //////////////
 	timer_mid=time(NULL);
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	hits.map_reads(_genome, _genomemaps, &_qpalma);
+	hits.map_reads(genome, genomemaps, &qpalma);
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);
@@ -138,8 +138,8 @@ int main(int argc, char *argv[])
 
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL)
 	{
-		_genomemaps.do_reporting(1) ;
-		_genomemaps.write_reporting() ;
+		genomemaps.do_reporting(1) ;
+		genomemaps.write_reporting() ;
 		//_genomemaps.clean_reporting() ;
 	}
 
