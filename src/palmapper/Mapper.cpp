@@ -22,8 +22,8 @@ void map_reads_timing(int count_reads, float this_read=-1)
 		fprintf(stdout, "\n") ;
 }
 
-Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile)
-:	_genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile)
+Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma)
+:	_genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma)
 {
 	REDUNDANT = 0;
 	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
@@ -117,12 +117,12 @@ int Mapper::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 
 		count_reads++;
 		Read _read(_queryFile);
-		QPalma::Result qpalmaResult(_read, *qpalma);
+		Result result(count_reads, _read, *this);
 		if (!_queryFile.next_read(_read))
 			break;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;
-		map_read(_read, count_reads, qpalmaResult);
+		map_read(result);
 		if (_config.READ_COUNT_LIMIT && count_reads >= _config.READ_COUNT_LIMIT)
 			break ;
 		// progress output, just for user convenience
@@ -169,8 +169,8 @@ int Mapper::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 	return(0);
 }
 
-void Mapper::map_read(Read &_read, int count_reads, QPalma::Result &qpalmeResult) {
-	QPalma *qpalma = &qpalmeResult._qpalma;
+void Mapper::map_read(Result &result) {
+	QPalma *qpalma = &result._qpalma._qpalma;
 	LONGEST_HIT = 0;
 	unsigned int rtrim_cut = 0 ;
 	unsigned int polytrim_cut_start = 0 ;
@@ -188,7 +188,8 @@ void Mapper::map_read(Read &_read, int count_reads, QPalma::Result &qpalmeResult
 	clock_t start_time = clock() ;
 
 
-	Hits hits(_genome, _genomeMaps, *this, _read);
+	Hits &hits(result._readMappings);
+	Read &_read(result._read);
 
 
 	unsigned int adapter_cut_start = 0 ;
@@ -245,7 +246,7 @@ restart:
 	if (_read.length() < _config.HITLEN_LIMIT)
 	{
 		fprintf(stderr, "\n!!! WARNING! Read %d (%s) with length %d is shorter than the hitlength limit (=%d) and will not be processed!\n\n",
-			count_reads, _read.id(), _read.length(), _config.HITLEN_LIMIT);
+			result._nr, _read.id(), _read.length(), _config.HITLEN_LIMIT);
 	}
 	else {
 		//printf("%d ", count_reads); fflush(stdout);
@@ -279,7 +280,7 @@ restart:
 			{
 				c_map_short_read++;
 
-				int ret = hits.map_short_read(_read, count_reads);
+				int ret = hits.map_short_read(_read, result._nr);
 
 				if (ret<0)
 					cancel=2 ;
@@ -337,7 +338,7 @@ restart:
 			bool trigger = false ;
 			if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
 				trigger = hits._topAlignments.size()==0 ||
-					qpalma->qpalma_filter(qpalmeResult, hits._topAlignments.get_alignment(0), num_N)!=0 ;
+					qpalma->qpalma_filter(result._qpalma, hits._topAlignments.get_alignment(0), num_N)!=0 ;
 
 			if ( trigger )
 			{
@@ -360,14 +361,14 @@ restart:
 					//(top_alignments.size()==0 || top_alignments[0]->num_matches <= _read.lenght() - _config.NUM_EDIT_OPS/2) )
 					try
 						{
-							int ret = qpalma->capture_hits(hits, qpalmeResult);
+							int ret = qpalma->capture_hits(hits, result._qpalma);
 							//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 							if (ret<0)
 								cancel=4 ;
 							if (_config.VERBOSE)
 								fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
 							if (FILTER_STAT)
-								qpalma->qpalma_filter_stat(qpalmeResult, ret>0) ;
+								qpalma->qpalma_filter_stat(result._qpalma, ret>0) ;
 						}
 					catch (std::bad_alloc&)
 						{
@@ -523,7 +524,7 @@ restart:
 		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 		{
 			last_timing_report = clock() ;
-			map_reads_timing(count_reads, ((float)clock()-start_time)/CLOCKS_PER_SEC) ;
+			map_reads_timing(result._nr, ((float)clock()-start_time)/CLOCKS_PER_SEC) ;
 		}
 	}
 }

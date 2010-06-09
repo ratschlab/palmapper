@@ -106,6 +106,7 @@ protected:
 	Genome* genome ;
 	
 public:
+	//TODO: dd check for multithreading
 	int REPORT_REPETITIVE_SEED_DEPTH_EXTRA ;
 
 } ;
