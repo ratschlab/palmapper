@@ -55,9 +55,9 @@ unsigned int extend_seed(Read const &read, int direction, unsigned int seed_dept
 	return e ;
 }
 
-char ReadMappings::HAS_SLOT;
-unsigned int ReadMappings::SLOTS[2];
-ReadMappings::ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read)
+char Hits::HAS_SLOT;
+unsigned int Hits::SLOTS[2];
+Hits::Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read)
 :	_genome(genome), _genomeMaps(genomeMaps), _outer(hits), _read(read),
  	CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _topAlignments(&genomeMaps)
 {
@@ -69,7 +69,7 @@ ReadMappings::ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits,
 	alloc_hits_by_score();
 }
 
-ReadMappings::~ReadMappings() {
+Hits::~Hits() {
 	dealloc_hit_lists_operator();
 	dealloc_hits_by_score();
 //	for (unsigned int i=0; i!=NUM_SCORE_INTERVALS; ++i) {
@@ -99,7 +99,7 @@ void printhit(Read const &read, HIT* hit) {
 	printf("/ID: %s]\n", read.id());
 }
 
-//void ReadMappings::printhits()
+//void Hits::printhits()
 //{
 //	//printf("list:\n");
 //	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
@@ -153,7 +153,7 @@ struct seedlist
 	int pos ;
 } ;
 
-int ReadMappings::seed2genome(unsigned int num, unsigned int readpos)
+int Hits::seed2genome(unsigned int num, unsigned int readpos)
 {
 #ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
@@ -668,7 +668,7 @@ int ReadMappings::seed2genome(unsigned int num, unsigned int readpos)
 	return(1);
 }
 
-void ReadMappings::printgenome()
+void Hits::printgenome()
 {
 	printf("G E N O M E: \n");
 	unsigned int i,c;
@@ -692,7 +692,7 @@ void ReadMappings::printgenome()
 }
 
 //@TODO remove num
-int ReadMappings::size_hit(HIT *hit, unsigned int *oldlength, char num)
+int Hits::size_hit(HIT *hit, unsigned int *oldlength, char num)
 {
 	HIT *last, *next;
 
@@ -746,7 +746,7 @@ int ReadMappings::size_hit(HIT *hit, unsigned int *oldlength, char num)
 }
 
 
-int ReadMappings::browse_hits()
+int Hits::browse_hits()
 {
 	HIT* hit;
 	int i;
@@ -979,7 +979,7 @@ int ReadMappings::browse_hits()
  *
  */
 
-int ReadMappings::insert_into_scorelist(HIT* hit, char d)
+int Hits::insert_into_scorelist(HIT* hit, char d)
 {
 	if (d)
 	{
@@ -1014,7 +1014,7 @@ int ReadMappings::insert_into_scorelist(HIT* hit, char d)
 }
 
 
-int ReadMappings::duplicate(HIT* hit)
+int Hits::duplicate(HIT* hit)
 {
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart, readend;
@@ -1169,7 +1169,7 @@ char* get_seq(Read const &read, unsigned int n)
 	return seq;
 }
 
-int ReadMappings::init_from_meta_index()
+int Hits::init_from_meta_index()
 {
 	if (!_config.HITLEN_LIMIT)
 		_config.HITLEN_LIMIT = _config.INDEX_DEPTH;
@@ -1186,14 +1186,14 @@ int Mapper::init_statistic_vars() {
 }
 
 
-int ReadMappings::init_hit_lists() {
+int Hits::init_hit_lists() {
 	alloc_hit_lists_operator();
 	alloc_hits_by_score(); // A T T E N T I O N ! ! !   needs correct _config.NUM_EDIT_OPS which can be changed in init_alignment_structures() !!!
 
 	return (0);
 }
 
-CHROMOSOME_ENTRY* ReadMappings::alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand)
+CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand)
 {
 	if (CHROMOSOME_ENTRY_OPERATOR.used > _config.CHROM_CONTAINER_SIZE - 1) {
 		fprintf(stderr, "\n!!! WARNING: Chromosome container size of %d is too small! Hits for read %s cannot be reported any more!\n\n", _config.CHROM_CONTAINER_SIZE, read.id());
@@ -1217,7 +1217,7 @@ CHROMOSOME_ENTRY* ReadMappings::alloc_chromosome_entry(Read const &read, unsigne
 	return(entry);
 }
 
-int ReadMappings::alloc_hit_lists_operator()
+int Hits::alloc_hit_lists_operator()
 {
 	if ((HIT_LISTS_OPERATOR = (HIT **) calloc (_config.MAX_READ_LENGTH, sizeof(HIT*))) == NULL) {
 		fprintf(stderr, "ERROR : not enough memory for hitlist (alloc_hit_lists_operator)\n");
@@ -1227,7 +1227,7 @@ int ReadMappings::alloc_hit_lists_operator()
 	return(0);
 }
 
-int ReadMappings::alloc_hits_by_score()
+int Hits::alloc_hits_by_score()
 {
 	double max_score = _config.NUM_GAPS * _config.GAP_SCORE + (_numEditOps - _config.NUM_GAPS) * _config.MM_SCORE;
 	NUM_SCORE_INTERVALS = max_score / SCORE_INTERVAL;
@@ -1248,7 +1248,7 @@ int ReadMappings::alloc_hits_by_score()
 	return(0);
 }
 
-int ReadMappings::dealloc_hit_lists_operator()
+int Hits::dealloc_hit_lists_operator()
 {
 	unsigned int i;
 
@@ -1261,7 +1261,7 @@ int ReadMappings::dealloc_hit_lists_operator()
 	return(0);
 }
 
-int ReadMappings::dealloc_hits_by_score()
+int Hits::dealloc_hits_by_score()
 {
 	unsigned int i;
 
@@ -1296,7 +1296,7 @@ int ReadMappings::dealloc_hits_by_score()
 }*/
 
 
-int ReadMappings::map_fast(Read & read)
+int Hits::map_fast(Read & read)
 {
 #ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
@@ -1618,7 +1618,7 @@ int ReadMappings::map_fast(Read & read)
 }
 
 
-int ReadMappings::map_short_read(Read& read, unsigned int num)
+int Hits::map_short_read(Read& read, unsigned int num)
 {
 	unsigned int readpos = 0;//first_pos ;
 	unsigned int spacer = 0;//first_pos;
@@ -1739,7 +1739,7 @@ int ReadMappings::map_short_read(Read& read, unsigned int num)
  *  \return A slot
  */
 
-int ReadMappings::get_slots(Read & read, int pos)
+int Hits::get_slots(Read & read, int pos)
 {
 	unsigned int i;
 	int c = 0;
@@ -1810,7 +1810,7 @@ int ReadMappings::get_slots(Read & read, int pos)
 	return 1;
 }
 
-int ReadMappings::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches)
+int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches)
 {
 	int Read_length = _read.length();
 	char const * const READ = _read.data();
@@ -1992,7 +1992,7 @@ int ReadMappings::align_hit_simple(HIT* hit, int start, int end, int readpos, Ch
 
 
 // returns if aligned hit fulfills MM and gap-criterias, thus is printed out (alignments are called in this method)
-int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches)
+int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches)
 {
 	// global vars -> local vars
 	int Read_length = _read.length();
@@ -2166,7 +2166,7 @@ int ReadMappings::prepare_kbound_alignment(HIT* hit, int start, int end, int rea
 
 // prints out all hits which have been inserted into HITS_BY_EDITOPS
 // called once for each read (?)
-int ReadMappings::analyze_hits(QPalma* qpalma)
+int Hits::analyze_hits(QPalma* qpalma)
 {
 	int i, printed = 0, nr;
 	HIT *hit;
@@ -2283,7 +2283,7 @@ int ReadMappings::analyze_hits(QPalma* qpalma)
 
 
 
-int ReadMappings::report_read_alignment(HIT* hit, int nbest)
+int Hits::report_read_alignment(HIT* hit, int nbest)
 {
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart;

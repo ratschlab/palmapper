@@ -1004,7 +1004,7 @@ void QPalma::capture_hits_timing(int read_count_, float this_read)
 	fprintf(stdout, "\n");
 }
 
-int QPalma::capture_hits(ReadMappings &hits, Result &result)
+int QPalma::capture_hits(Hits &hits, Result &result)
 {
 	Read const &read(hits.read());
   read_count++;
@@ -1801,7 +1801,7 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 }
 
 // TODO: dd remove relicts from multithreading
-int QPalma::perform_alignment_starter(Result &result, ReadMappings &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
+int QPalma::perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -1988,7 +1988,7 @@ int QPalma::perform_alignment_wait(int & num_reported)
 //}
 
 
-int QPalma::perform_alignment(Result &result, ReadMappings &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
+int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
 // ori = read orientation
 // strand = dna strand/orientation
 

@@ -113,11 +113,11 @@ class GenomeMaps ;
 class TopAlignments ;
 
 
-class ReadMappings {
+class Hits {
 	friend class Mapper;
 public:
-	ReadMappings(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read);
-	~ReadMappings();
+	Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read);
+	~Hits();
 	Read const &read() const {
 		return _read;
 	}
