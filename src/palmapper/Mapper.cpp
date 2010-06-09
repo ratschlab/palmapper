@@ -188,7 +188,7 @@ void Mapper::map_read(Read &_read, int count_reads, QPalma::Result &qpalmeResult
 	clock_t start_time = clock() ;
 
 
-	ReadMappings hits(_genome, _genomeMaps, *this, _read);
+	Hits hits(_genome, _genomeMaps, *this, _read);
 
 
 	unsigned int adapter_cut_start = 0 ;

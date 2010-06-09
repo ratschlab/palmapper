@@ -19,7 +19,7 @@ struct region_t {
 class GenomeMaps;
 struct HIT;
 class QPalma ;
-class ReadMappings;
+class Hits;
 class TopAlignments;
 
 struct alignment_parameter_struct {
@@ -58,7 +58,7 @@ public:
 	struct perform_alignment_t
 	{
 		QPalma::Result *result;
-		ReadMappings *readMappings;
+		Hits *readMappings;
 		std::string read_string ;
 		std::string read_quality ;
 		std::string dna ;
@@ -113,8 +113,8 @@ protected:
 	////////////////////
 
 public:
-	int capture_hits(ReadMappings &hits, Result &result);
-	int perform_alignment(Result &result, ReadMappings &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
+	int capture_hits(Hits &hits, Result &result);
+	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) ;
 	float score_unspliced(Read const &read, const char * read_anno) ;
 	void capture_hits_timing(int read_count=-1, float this_read=-1.0) ;
@@ -134,7 +134,7 @@ protected:
 	void print_region(region_t *region, const char * bla)  ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(Result &result, ReadMappings &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
+	int perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
 	int perform_alignment_wait(int & num_reported) ;
 
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) ;

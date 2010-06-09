@@ -6,7 +6,7 @@
 
 class Mapper {
 
-	friend class ReadMappings;
+	friend class Hits;
 
 public:
 
@@ -14,7 +14,7 @@ public:
 	public:
 		Read const &_read;
 		QPalma::Result _result;
-		ReadMappings _readMappings;
+		Hits _readMappings;
 	};
 
 	Mapper(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile);
