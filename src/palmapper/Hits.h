@@ -4,6 +4,7 @@
 #include <vector>
 #include <palmapper/Config.h>
 #include <palmapper/Chromosome.h>
+#include <palmapper/QPalma.h>
 #include <palmapper/QueryFile.h>
 #include <palmapper/Read.h>
 #include <palmapper/TopAlignments.h>
@@ -111,43 +112,6 @@ class Genome ;
 class GenomeMaps ;
 class TopAlignments ;
 
-
-class Hits {
-
-	friend class ReadMappings;
-
-public:
-	
-	Hits(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile);
-	~Hits();
-
-	int map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma) ;
-	int REDUNDANT;
-
-protected:
-	int init_constants()  ;
-	int init_statistic_vars() ;
-	int init_operators() ;
-	int init_alignment_structures(Config * config);
-	void map_read(Read &read, int count_reads, QPalma* qpalma);
-	CHROMOSOME_ENTRY **GENOME; // doppelt
-
-	Genome &_genome;
-	GenomeMaps &_genomeMaps ;
-
-	unsigned int LONGEST_HIT;
-	static unsigned int SLOTS[2];
-
-public:
-	static unsigned int MAX_USED_SLOTS;
-private:
-	QueryFile &_queryFile;
-    FILE *LEFTOVER_FP;
-	FILE *ADAPTERTRIM_LOG_FP;
-	unsigned int MAXHITS;
-	int c_map_fast;
-	int c_map_short_read;
-};
 
 class ReadMappings {
 	friend class Hits;
@@ -260,4 +224,48 @@ private:
 
 	static char HAS_SLOT;
 	static unsigned int SLOTS[2];
+};
+
+class Hits {
+
+	friend class ReadMappings;
+
+public:
+
+	class Result {
+	public:
+		Read const &_read;
+		QPalma::Result _result;
+		ReadMappings _readMappings;
+	};
+
+	Hits(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile);
+	~Hits();
+
+	int map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma) ;
+	int REDUNDANT;
+
+protected:
+	int init_constants()  ;
+	int init_statistic_vars() ;
+	int init_operators() ;
+	int init_alignment_structures(Config * config);
+	void map_read(Read &read, int count_reads, QPalma::Result &qpalmaResult);
+	CHROMOSOME_ENTRY **GENOME; // doppelt
+
+	Genome &_genome;
+	GenomeMaps &_genomeMaps ;
+
+	unsigned int LONGEST_HIT;
+	static unsigned int SLOTS[2];
+
+public:
+	static unsigned int MAX_USED_SLOTS;
+private:
+	QueryFile &_queryFile;
+    FILE *LEFTOVER_FP;
+	FILE *ADAPTERTRIM_LOG_FP;
+	unsigned int MAXHITS;
+	int c_map_fast;
+	int c_map_short_read;
 };

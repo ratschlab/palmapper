@@ -2,6 +2,7 @@
 
 #include <palmapper/Config.h>
 #include <palmapper/Hits.h>
+#include <palmapper/Read.h>
 #include <palmapper/dyn_prog/qpalma_dp.h>
 
 struct region_t {
@@ -21,28 +22,6 @@ class QPalma ;
 class ReadMappings;
 class TopAlignments;
 
-struct perform_alignment_t
-{
-	Read const *read;
-	ReadMappings *readMappings;
-	std::string read_string ;
-	std::string read_quality ;
-	std::string dna ; 
-	std::vector<region_t *> current_regions ;
-	std::vector<int> positions ;
-	Chromosome const *contig_idx ;
-	char strand ;
-	int ori ;
-	int num_reported ;
-	int ret ;
-	pthread_t thread ;
-	int hit_read;
-	int hit_dna;
-	int hit_length;
-	QPalma * qpalma ;
-	bool joined ;
-} ;
-
 struct alignment_parameter_struct {
 	struct penalty_struct h, a, d, *qualityPlifs;
 	int num_qualityPlifs;
@@ -56,10 +35,50 @@ const int num_filter_reasons=4  ;
 
 class QPalma
 {
+public:
+	class Result {
+	public:
+		Result(Read const &read, QPalma &qpalma);
+		void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) ;
+		void delete_regions() ;
+		void cleanup() {
+		  for (int i = 0; i < 2; i++)
+			for (int32_t chrN = 0; chrN < (int)regions[i].size(); chrN++) {
+			  regions[i][chrN].clear();
+			}
+		}
+
+	public:
+		std::vector<std::vector<region_t *> > regions[2];
+		int qpalma_filter_reason;
+		QPalma &_qpalma;
+		Read const &_read;
+	};
+
+	struct perform_alignment_t
+	{
+		QPalma::Result *result;
+		ReadMappings *readMappings;
+		std::string read_string ;
+		std::string read_quality ;
+		std::string dna ;
+		std::vector<region_t *> current_regions ;
+		std::vector<int> positions ;
+		Chromosome const *contig_idx ;
+		char strand ;
+		int ori ;
+		int num_reported ;
+		int ret ;
+		pthread_t thread ;
+		int hit_read;
+		int hit_dna;
+		int hit_length;
+		QPalma * qpalma ;
+		bool joined ;
+	} ;
+
     // initialization
 	////////////////////
-
-public:
 
 	QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_=2) ;
 	~QPalma() ;
@@ -82,8 +101,8 @@ protected:
 	////////////////////
 	
 public:
-	int qpalma_filter(Read const &read, struct alignment_t *ali, int num_N) ;
-	void qpalma_filter_stat(bool spliced) ;
+	int qpalma_filter(Result &result, struct alignment_t *ali, int num_N) ;
+	void qpalma_filter_stat(Result &result, bool spliced) ;
 	void qpalma_filter_stat_report() ;
 
 protected:
@@ -94,8 +113,8 @@ protected:
 	////////////////////
 
 public:
-	int capture_hits(ReadMappings &hits);
-	int perform_alignment(Read const &read, ReadMappings &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
+	int capture_hits(ReadMappings &hits, Result &result);
+	int perform_alignment(Result &result, ReadMappings &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) ;
 	float score_unspliced(Read const &read, const char * read_anno) ;
 	void capture_hits_timing(int read_count=-1, float this_read=-1.0) ;
@@ -107,7 +126,6 @@ protected:
 	
 	
 	int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) ;
-	void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) ;
 	void qsort(region_t** output, int size) ;
 	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) ;
 	int convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions) ;
@@ -116,10 +134,9 @@ protected:
 	void print_region(region_t *region, const char * bla)  ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(Read const &read, ReadMappings &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
+	int perform_alignment_starter(Result &result, ReadMappings &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
 	int perform_alignment_wait(int & num_reported) ;
 
-	void delete_regions() ;
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) ;
 //	int rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
 
@@ -127,7 +144,7 @@ protected:
 	// inline helpers
 	////////////////////
 
-	inline int ori_map(char c) 
+	static inline int ori_map(char c)
 	{
 		if (c == '+')
 			return 0;
@@ -138,7 +155,7 @@ protected:
 		assert(0);
 	};
 
-	inline std::string reverse(std::string str) 
+	static inline std::string reverse(std::string str)
 	{
 		for (int i = 0; i < (int)str.length() / 2; i++) 
 		{
@@ -150,7 +167,7 @@ protected:
 		return str;
 	}
 	
-	inline std::vector<int> reverse(std::vector<int> vec) 
+	static inline std::vector<int> reverse(std::vector<int> vec)
 	{
 		for (int i = 0; i < (int)vec.size() / 2; i++) 
 		{
@@ -162,7 +179,7 @@ protected:
 		return vec;
 	}
 	
-	inline void reverse(double *vec, int len) 
+	static inline void reverse(double *vec, int len)
 	{
 		for (int i = 0; i < (int)len / 2; i++) {
 			double c = vec[i];
@@ -171,7 +188,7 @@ protected:
 		}
 	}
 	
-	inline std::string complement(std::string str) {
+	static inline std::string complement(std::string str) {
 		for (int i = 0; i < (int)str.length(); i++) {
 			char c = str[i];
 			switch (c) {
@@ -221,14 +238,14 @@ protected:
 		return str;
 	}
 
-public:
-	std::vector<std::vector<region_t *> > regions[2];
-
 protected:
 	
 	struct alignment_parameter_struct *alignment_parameters;
 
 	std::vector<perform_alignment_t*> thread_data ;
+
+	int qpalma_filter_stat_spliced[num_filter_reasons] ;
+	int qpalma_filter_stat_unspliced[num_filter_reasons] ;
 
 	clock_t region_align_time ;
 	clock_t region1_time ;
@@ -248,10 +265,6 @@ protected:
 
 
 	static clock_t last_filter_report ;
-
-	int qpalma_filter_reason  ;
-	int qpalma_filter_stat_spliced[num_filter_reasons] ;
-	int qpalma_filter_stat_unspliced[num_filter_reasons] ;
 
 	Genome * genome ;
 	GenomeMaps* genomemaps ;

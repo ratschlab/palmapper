@@ -215,11 +215,12 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 		
 		count_reads++;
 		Read _read(_queryFile);
+		QPalma::Result qpalmaResult(_read, *qpalma);
 		if (!_queryFile.next_read(_read))
 			break;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;
-		map_read(_read, count_reads, qpalma);
+		map_read(_read, count_reads, qpalmaResult);
 		if (_config.READ_COUNT_LIMIT && count_reads >= _config.READ_COUNT_LIMIT)
 			break ;
 		// progress output, just for user convenience
@@ -266,7 +267,8 @@ int Hits::map_reads(Genome &genome, GenomeMaps &genomeMaps, QPalma* qpalma)
 	return(0);
 }
 
-void Hits::map_read(Read &_read, int count_reads, QPalma* qpalma) {
+void Hits::map_read(Read &_read, int count_reads, QPalma::Result &qpalmeResult) {
+	QPalma *qpalma = &qpalmeResult._qpalma;
 	LONGEST_HIT = 0;
 	unsigned int rtrim_cut = 0 ;
 	unsigned int polytrim_cut_start = 0 ;
@@ -433,7 +435,7 @@ restart:
 			bool trigger = false ;
 			if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
 				trigger = hits._topAlignments.size()==0 ||
-					qpalma->qpalma_filter(_read, hits._topAlignments.get_alignment(0), num_N)!=0 ;
+					qpalma->qpalma_filter(qpalmeResult, hits._topAlignments.get_alignment(0), num_N)!=0 ;
 
 			if ( trigger )
 			{
@@ -456,14 +458,14 @@ restart:
 					//(top_alignments.size()==0 || top_alignments[0]->num_matches <= _read.lenght() - _config.NUM_EDIT_OPS/2) )
 					try
 						{
-							int ret = qpalma->capture_hits(hits);
+							int ret = qpalma->capture_hits(hits, qpalmeResult);
 							//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 							if (ret<0)
 								cancel=4 ;
 							if (_config.VERBOSE)
 								fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
 							if (FILTER_STAT)
-								qpalma->qpalma_filter_stat(ret>0) ;
+								qpalma->qpalma_filter_stat(qpalmeResult, ret>0) ;
 						}
 					catch (std::bad_alloc&)
 						{
