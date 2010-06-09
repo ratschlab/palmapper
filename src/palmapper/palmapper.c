@@ -6,6 +6,7 @@
 
 #include "palmapper.h"
 #include "print.h"
+#include <palmapper/Mapper.h>
 
 FILE *OUT_FP;
 FILE *SP_OUT_FP;
@@ -39,7 +40,7 @@ int main(int argc, char *argv[])
 	_config.checkConfig() ;
 
 	QueryFile queryFile(_config.QUERY_FILE_NAME);
-	Hits hits(_genome, _genomemaps, queryFile);
+	Mapper hits(_genome, _genomemaps, queryFile);
 
 	QPalma _qpalma(&_genome, &_genomemaps, 0) ;
 
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);
 		printf("R E D U N D A N T : %d\n", hits.REDUNDANT);
-		printf("Max used slots: %d\n", Hits::MAX_USED_SLOTS);
+		printf("Max used slots: %d\n", Mapper::MAX_USED_SLOTS);
 		printf("\nList iterations: %d\n", _stats.listcount);
 		printf("List iterations occurrences: %d\n",_stats.listocc);
 	}

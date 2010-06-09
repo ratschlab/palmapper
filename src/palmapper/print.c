@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <palmapper/QueryFile.h>
+#include <palmapper/print.h>
 
 static const int MAX_EXON_LEN=100 ;
 

@@ -4,7 +4,7 @@
 #include "GenomeMaps.h"
 #include <pthread.h>
 
-class Hits ;
+class Mapper ;
 class GenomeMaps ;
 class QPalma ;
 struct HIT;

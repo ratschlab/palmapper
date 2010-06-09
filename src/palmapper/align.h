@@ -1,5 +1,9 @@
 #pragma once
 
+#include <palmapper/Chromosome.h>
+#include <palmapper/Hits.h>
+#include <palmapper/Read.h>
+
 #define DIAGONAL 'D'
 #define LEFT 'L'
 #define UP 'U'
