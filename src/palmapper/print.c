@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <vector>
 
+#include <palmapper/Genome.h>
+#include <palmapper/Hits.h>
 #include <palmapper/QueryFile.h>
 #include <palmapper/print.h>
 
@@ -13,9 +15,6 @@ static const int MAX_EXON_LEN=100 ;
 
 int num_unmapped=0 ;
 clock_t last_spliced_report = 0 ;
-
-int compare_int(const void *a, const void *b) ;
-int report_read_alignment(HIT* hit, int num)  ;
 
 void print_stats(QueryFile &queryFile) {
 	printf("\n########### _config.STATISTICS ###########\n");

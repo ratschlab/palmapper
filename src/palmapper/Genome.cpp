@@ -5,9 +5,10 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#include "palmapper.h"
-
 #include <palmapper/Genome.h>
+#include <palmapper/Util.h>
+
+#include <palmapper/palmapper.h>
 
 inline char get_compl_base_(char c)
 {

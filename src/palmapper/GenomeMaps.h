@@ -9,6 +9,7 @@
 // define this if CDNAArray4 is chosen
 //#define CHR_MAP_DNAARRAY_2BIT
 
+#include <palmapper/Chromosome.h>
 
 #ifndef CHR_MAP_DNAARRAY
 #define MASK_MAPPED_READ_BEST      1

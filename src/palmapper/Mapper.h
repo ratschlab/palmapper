@@ -1,5 +1,6 @@
 #pragma once
 
+#include <palmapper/Genome.h>
 #include <palmapper/Hits.h>
 #include <palmapper/QPalma.h>
 #include <palmapper/Read.h>
@@ -37,7 +38,7 @@ public:
 	Mapper(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma);
 	~Mapper();
 
-	int map_reads() ;
+	int map_reads(FILE *OUT_FP, FILE *SP_OUT_FP) ;
 	int REDUNDANT;
 
 protected:
@@ -58,8 +59,13 @@ public:
 private:
 	QueryFile &_queryFile;
 	QPalma &_qpalma;
-    FILE *LEFTOVER_FP;
-	FILE *ADAPTERTRIM_LOG_FP;
+
+	FILE *_OUT_FP;
+	FILE *_SP_OUT_FP;
+    FILE *_LEFTOVER_FP;
+	FILE *_ADAPTERTRIM_LOG_FP;
+	FILE *_TRIGGERED_LOG_FP;
+
 	unsigned int MAXHITS;
 	int c_map_fast;
 	int c_map_short_read;

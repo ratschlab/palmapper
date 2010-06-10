@@ -16,7 +16,7 @@ int Util::POWER[MAX_INDEX_DEPTH+1];
 FILE *Util::openFile(char const *name, char const *mode) {
 	FILE *ret = fopen(name, mode);
 	if (ret == NULL) {
-		fprintf(stderr, "ERROR : Couldn't open input file %s\n", name);
+		fprintf(stderr, "ERROR : Couldn't open file %s for %s\n", name, mode);
 		exit(1);
 	}
 	return ret;

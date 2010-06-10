@@ -10,6 +10,7 @@
 #include "IntervalQuery.h"
 #include "dyn_prog/qpalma_dp.h"
 
+#include <palmapper/Genome.h>
 #include <palmapper/QPalma.h>
 
 #define LONG_HIT_EXTEND_REGION _config.SPLICED_LONGEST_INTRON_LENGTH

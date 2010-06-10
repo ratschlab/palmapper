@@ -8,10 +8,6 @@
 #include "print.h"
 #include <palmapper/Mapper.h>
 
-FILE *OUT_FP;
-FILE *SP_OUT_FP;
-FILE *TRIGGERED_LOG_FP; // #A#
-
 Config _config;
 Statistics _stats;
 
@@ -30,8 +26,8 @@ int main(int argc, char *argv[])
 	// initialize variables
 	_config.parseCommandLine(argc, argv);
 	
-	init_output_file(&_config);
-	init_spliced_output_file(&_config);
+	FILE *OUT_FP = init_output_file(_config);
+	FILE *SP_OUT_FP = init_spliced_output_file(_config, OUT_FP);
 
 	Genome genome;
 	GenomeMaps genomemaps(&genome) ;
@@ -105,7 +101,7 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	hits.map_reads();
+	hits.map_reads(OUT_FP, SP_OUT_FP);
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);

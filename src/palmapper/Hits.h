@@ -140,7 +140,7 @@ public:
 	int init_from_meta_index() ;
 	int init_hit_lists()  ;
 
-	int analyze_hits(QPalma * qpalma) ;
+	int analyze_hits(QPalma * qpalma, FILE *OUT_FP, FILE *SP_OUT_FP);
 	int report_read_alignment(HIT* hit, int nbest)  ;
 
 	HIT **HIT_LISTS_OPERATOR;
