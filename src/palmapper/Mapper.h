@@ -29,6 +29,11 @@ public:
 		TopAlignments _topAlignments;
 	};
 
+	class Reporter {
+	public:
+
+	};
+
 	Mapper(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma);
 	~Mapper();
 
