@@ -258,7 +258,7 @@ restart:
 	// map_fast IF 1) best hit strategy 2) only hits up to RL/ID mismatches without gaps should be found
 	// READ_LENGTH / _config.INDEX_DEPTH is the number of seeds fitting in the current read
 	int nr_seeds = (int) (_read.length() / _config.INDEX_DEPTH);
-	if (!_config.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
+	if (!hits.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
 	{
 		int ret	= hits.map_fast(_read);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 		if (ret<0)
@@ -274,7 +274,7 @@ restart:
 		// map_complete IF 1) all hit strategy 2) best hit strategy and no mappings found in map_fast BUT NOT IF MM < RL/ID AND gaps=0 (since map_fast has already found them)
 	if (!cancel)
 	{
-		if (((_config.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
+		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
 			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()==0)) &&
 			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0) ) )
 		{
@@ -299,8 +299,8 @@ restart:
 			if (ret<0)
 				cancel = 3 ;
 
-			if (_config.ALL_HIT_STRATEGY < 0)
-				_config.ALL_HIT_STRATEGY = 0;		// resetting _config.ALL_HIT_STRATEGY
+			if (hits.ALL_HIT_STRATEGY < 0)
+				hits.ALL_HIT_STRATEGY = 0;		// resetting _config.ALL_HIT_STRATEGY
 		} else
 		{
 			if (_config.VERBOSE)
@@ -316,8 +316,8 @@ restart:
 
 	time2c += clock()-start_time ;
 
-	if (_config.ALL_HIT_STRATEGY < 0)
-		_config.ALL_HIT_STRATEGY = 0;         // resetting _config.ALL_HIT_STRATEGY
+	if (hits.ALL_HIT_STRATEGY < 0)
+		hits.ALL_HIT_STRATEGY = 0;         // resetting _config.ALL_HIT_STRATEGY
 
 	if (_config.STATISTICS && _stats.HITS_PER_READ > MAXHITS)
 		MAXHITS = _stats.HITS_PER_READ;

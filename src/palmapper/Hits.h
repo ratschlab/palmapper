@@ -221,6 +221,7 @@ private:
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	TopAlignments _topAlignments;
 	int _numEditOps;
+	char ALL_HIT_STRATEGY;
 
 	static char HAS_SLOT;
 	static unsigned int SLOTS[2];

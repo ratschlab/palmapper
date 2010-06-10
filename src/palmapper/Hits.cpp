@@ -63,6 +63,7 @@ Hits::Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &rea
 {
 	GENOME = hits.GENOME;
 	HITS_IN_SCORE_LIST = 0;
+	ALL_HIT_STRATEGY = _config.ALL_HIT_STRATEGY;
 	_numEditOps = _config.NUM_EDIT_OPS;
 	alloc_hit_lists_operator();
 	dealloc_hit_lists_operator();
@@ -883,7 +884,7 @@ int Hits::browse_hits()
 						
 						//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _numEditOps)
 						//	_numEditOps = hit->mismatches;
-						update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _numEditOps) ;
+						update_num_edit_ops(hit->mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 					}
 				}
 				// 2) Hit has to be aligned:
@@ -1008,7 +1009,7 @@ int Hits::insert_into_scorelist(HIT* hit, char d)
 
 	//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _config.NUM_EDIT_OPS)
 	//_config.NUM_EDIT_OPS = hit->mismatches;
-	update_num_edit_ops(hit->mismatches, _config.ALL_HIT_STRATEGY, _numEditOps) ;
+	update_num_edit_ops(hit->mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 	return 1;
 }
@@ -1563,7 +1564,7 @@ int Hits::map_fast(Read & read)
 								//if (!_config.ALL_HIT_STRATEGY && nr_mms < max_mms)
 								//	max_mms = nr_mms;
 
-								update_num_edit_ops(nr_mms, _config.ALL_HIT_STRATEGY, max_mms) ;
+								update_num_edit_ops(nr_mms, ALL_HIT_STRATEGY, max_mms) ;
 
 								// perfect matching read
 								if (/*_config.*/_config.STATISTICS) {
@@ -1599,9 +1600,9 @@ int Hits::map_fast(Read & read)
 
 	} // end of runs = different slots
 
-	if (!/*_config.*/_config.ALL_HIT_STRATEGY && !hits_reported)
+	if (!ALL_HIT_STRATEGY && !hits_reported)
 	{	//if best hit strategy, but no mappings found -> prepare for complete mapping!
-		/*_config.*/_config.ALL_HIT_STRATEGY = -1;
+		ALL_HIT_STRATEGY = -1;
 	}
 	else
 	{
@@ -1982,7 +1983,7 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 			assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
 		}
 		
-		update_num_edit_ops(mismatches, _config.ALL_HIT_STRATEGY, _numEditOps) ;
+		update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 		return 1;
 	}
@@ -1997,7 +1998,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 	// global vars -> local vars
 	int Read_length = _read.length();
 	int Chr_length = chromosome.length();
-	char All_hit_strategy = _config.ALL_HIT_STRATEGY;
+	char All_hit_strategy = ALL_HIT_STRATEGY;
 	//int Num_edit_ops = _config.NUM_EDIT_OPS;
 	int Num_gaps = _config.NUM_GAPS;
 	// variable _config.OVERHANG_ALIGNMENT is used only once -> no local variable
