@@ -3,6 +3,9 @@
 #include <stdio.h>
 
 #include <palmapper/Read.h>
+#include <lang/Thread.h>
+
+using lang::Mutex;
 
 class QueryFile {
 
@@ -29,10 +32,12 @@ public:
 	}
 
 	static int determine_read_length(std::string const &filename);
+
 private:
 	FILE *_file;
 	int _lineNr;
 	unsigned int _maxReadLen;
 	std::string _filename;
 	int _readCount;
+	Mutex _mutex;
 };

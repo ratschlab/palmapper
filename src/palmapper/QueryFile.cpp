@@ -30,6 +30,7 @@ Read *QueryFile::next_read() {
 }
 
 bool QueryFile::next_read(Read &read) {
+	Mutex::Locker locker(_mutex);
 	if (read.read_short_read() > 0)
 		return false;
 	++_readCount;

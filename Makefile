@@ -9,6 +9,7 @@ CC = g++
 #CFLAGS = -Wall -g # debug
 #CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
 CFLAGS = -O9 -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+#CFLAGS = -O9 -Wall -g -pg -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS = 
@@ -29,6 +30,8 @@ DYNPROG_OBJ = $(ObjDir)/pm/palmapper/dyn_prog/Mathmatics_dp.o \
 	$(ObjDir)/pm/palmapper/dyn_prog/penalty_info_dp.o \
 	$(ObjDir)/pm/palmapper/dyn_prog/result_align.o \
 	$(ObjDir)/pm/palmapper/dyn_prog/fill_matrix.o
+	
+LANG_OBJ = $(ObjDir)/pm/lang/Thread.o
 
 GM_OBJ = $(ObjDir)/gm/palmapper/GenomeMaps.o \
 	$(ObjDir)/gm/palmapper/QPalma.o \
@@ -47,7 +50,7 @@ GM_OBJ = $(ObjDir)/gm/palmapper/GenomeMaps.o \
 	$(ObjDir)/gm/palmapper/Read.o \
 	$(ObjDir)/gm/palmapper/Statistics.o \
 	$(ObjDir)/gm/palmapper/Util.o \
-	$(SHOGUN_OBJ) $(DYNPROG_OBJ)
+	$(SHOGUN_OBJ) $(DYNPROG_OBJ) $(LANG_OBJ)
 
 PM_OBJ = $(ObjDir)/pm/palmapper/GenomeMaps.o \
 	$(ObjDir)/pm/palmapper/QPalma.o \
@@ -66,7 +69,7 @@ PM_OBJ = $(ObjDir)/pm/palmapper/GenomeMaps.o \
 	$(ObjDir)/pm/palmapper/Read.o \
 	$(ObjDir)/pm/palmapper/Statistics.o \
 	$(ObjDir)/pm/palmapper/Util.o \
-	$(SHOGUN_OBJ) $(DYNPROG_OBJ)
+	$(SHOGUN_OBJ) $(DYNPROG_OBJ) $(LANG_OBJ)
 
 PMIDX_OBJ = $(ObjDir)/pm/pmindex/init.o \
 	$(ObjDir)/pm/pmindex/printindex.o \
