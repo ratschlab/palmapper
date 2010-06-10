@@ -6,7 +6,9 @@
 
 #include "palmapper.h"
 #include "dyn_prog/qpalma_dp.h"
-#include "GenomeMaps.h"
+#include <palmapper/Genome.h>
+#include <palmapper/GenomeMaps.h>
+#include <palmapper/Util.h>
 
 clock_t GenomeMaps::last_report = 0 ;
 

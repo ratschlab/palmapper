@@ -35,9 +35,9 @@ Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, Q
 		init_statistic_vars(); //updated
 	}
 	init_alignment_structures(&_config);
-    LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
-	ADAPTERTRIM_LOG_FP = _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0 ? Util::openFile(_config.ADAPTERTRIM_STRATEGY_LOG, "w+") : NULL;
-	if (ADAPTERTRIM_LOG_FP==NULL && _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0)
+    _LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
+	_ADAPTERTRIM_LOG_FP = _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0 ? Util::openFile(_config.ADAPTERTRIM_STRATEGY_LOG, "w+") : NULL;
+	if (_ADAPTERTRIM_LOG_FP==NULL && _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0)
 	{
 		fprintf(stderr, "ERROR : could not open log file %s\n", _config.ADAPTERTRIM_STRATEGY_LOG.c_str()) ;
 		exit(1) ;
@@ -100,15 +100,17 @@ int Mapper::init_alignment_structures(Config * config) {
 	return (0);
 }
 
-int Mapper::map_reads()
+int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 {
+	_OUT_FP = OUT_FP;
+	_SP_OUT_FP = SP_OUT_FP;
 	unsigned int count_reads = 0;
 	//int first_slot = 0, first_pos = 0 ;
 	if (_config.STATISTICS) MAX_USED_SLOTS = 0;
 
  	if (_config.VERBOSE) { printf("Start mapping: "); }
 
-    if (_config.LOG_TRIGGERED && (TRIGGERED_LOG_FP = fopen(_config.TRIGGERED_LOG_FILE.c_str(), "w")) == NULL) { // #A#
+    if (_config.LOG_TRIGGERED && (_TRIGGERED_LOG_FP = fopen(_config.TRIGGERED_LOG_FILE.c_str(), "w")) == NULL) { // #A#
 		fprintf(stderr, "ERROR : Couldn't open log file %s\n", _config.TRIGGERED_LOG_FILE.c_str());     // #A#
 		exit(1);                                                                        // #A#
 	}                                                                                   // #A#
@@ -145,14 +147,14 @@ int Mapper::map_reads()
 	if (SP_OUT_FP!=stdout)
 		fprintf(SP_OUT_FP, "#done\n") ;
 	if (_config.LEFTOVER_FILE_NAME.length() > 0)
-		fprintf(LEFTOVER_FP, "#done\n");
+		fprintf(_LEFTOVER_FP, "#done\n");
 
 	if (_config.OUT_FILE_NAME.length() > 0)
 		fclose(OUT_FP);
 	if (_config.SPLICED_OUT_FILE_NAME.length() > 0)
 		fclose(SP_OUT_FP);
 	if (_config.LEFTOVER_FILE_NAME.length() > 0)
-		fclose(LEFTOVER_FP);
+		fclose(_LEFTOVER_FP);
 
 	if (_config.STATISTICS)
 	{
@@ -200,7 +202,7 @@ void Mapper::map_read(Result &result) {
 		if (_read.length()-(adapter_cut_start+adapter_cut_end) < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
 		{
 			if (_config.LEFTOVER_FILE_NAME.length() > 0)
-				print_leftovers(_read, "(too short after trimming)", LEFTOVER_FP);
+				print_leftovers(_read, "(too short after trimming)", _LEFTOVER_FP);
 			return;
 		}
 
@@ -216,8 +218,8 @@ void Mapper::map_read(Result &result) {
 			_read.trim_read_end(trim_read, adapter_cut_end) ;
 			delete trim_read ;
 		}
-		if (ADAPTERTRIM_LOG_FP)// && (adapter_cut_start!=0 || adapter_cut_end!=0))
-			fprintf(ADAPTERTRIM_LOG_FP, "%s\t%i\t%i\t%i\t%i\n", _read.id(), orig_len, adapter_cut_start, adapter_cut_end, _read.length()) ;
+		if (_ADAPTERTRIM_LOG_FP)// && (adapter_cut_start!=0 || adapter_cut_end!=0))
+			fprintf(_ADAPTERTRIM_LOG_FP, "%s\t%i\t%i\t%i\t%i\n", _read.id(), orig_len, adapter_cut_start, adapter_cut_end, _read.length()) ;
 	}
 
 restart:
@@ -329,7 +331,7 @@ restart:
 	{
 		hits._topAlignments.start_top_alignment_record();
 
-		read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+		read_mapped = hits.analyze_hits(qpalma, _OUT_FP, _SP_OUT_FP);	// returns 1 if at least one hit is printed, 0 otherwise
 		if (_config.VERBOSE)
 			printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
 
@@ -342,11 +344,11 @@ restart:
 		{
 			if (_config.LOG_TRIGGERED) { // #A# begin
 				if (_read.format() == 0)
-					fprintf(TRIGGERED_LOG_FP, "@%s\n%s\n+\n%s\n", _read.id(), READ, _read.quality(0));
+					fprintf(_TRIGGERED_LOG_FP, "@%s\n%s\n+\n%s\n", _read.id(), READ, _read.quality(0));
 				else if (_read.format() == 1)
-					fprintf(TRIGGERED_LOG_FP, ">%s\n%s\n", _read.id(), READ);
+					fprintf(_TRIGGERED_LOG_FP, ">%s\n%s\n", _read.id(), READ);
 				else
-					fprintf(TRIGGERED_LOG_FP, "%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), READ,
+					fprintf(_TRIGGERED_LOG_FP, "%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), READ,
 							_read.pe_flag(), _read.quality(0), _read.quality(1), _read.quality(2));
 			}    // #A# end
 
@@ -389,7 +391,7 @@ restart:
 		//if (_config.VERBOSE && read_mapped)
 		//	printf("unspliced or spliced alignment found\n");
 
-		hits._topAlignments.end_top_alignment_record(_read, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
+		hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 
 		if (read_mapped)
 			_stats.READS_MAPPED++ ;
@@ -487,7 +489,7 @@ restart:
 			}
 
 			if (_config.LEFTOVER_FILE_NAME.length() > 0)
-				print_leftovers(_read, "", LEFTOVER_FP);
+				print_leftovers(_read, "", _LEFTOVER_FP);
 		}
 	}
 	else
@@ -502,7 +504,7 @@ restart:
 	{
 		fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", _read.id(), cancel, READ) ;
 		if (_config.LEFTOVER_FILE_NAME.length() > 0)
-			print_leftovers(_read, " (read mapping failed)", LEFTOVER_FP);
+			print_leftovers(_read, " (read mapping failed)", _LEFTOVER_FP);
 	}
 
 	// forget about the original read

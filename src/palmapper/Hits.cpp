@@ -7,6 +7,7 @@
 #include "Hits.h"
 #include "align.h"
 #include "print.h"
+#include <palmapper/Genome.h>
 #include <palmapper/Mapper.h>
 
 char* get_seq(Read const &read, unsigned int n);
@@ -2139,7 +2140,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 // prints out all hits which have been inserted into HITS_BY_EDITOPS
 // called once for each read (?)
-int Hits::analyze_hits(QPalma* qpalma)
+int Hits::analyze_hits(QPalma* qpalma, FILE *OUT_FP, FILE *SP_OUT_FP)
 {
 	int i, printed = 0, nr;
 	HIT *hit;
@@ -2186,7 +2187,7 @@ int Hits::analyze_hits(QPalma* qpalma)
 				for (j = 0; j != HITS_BY_SCORE[i].num; ++j) {
 
 					if (lhits[nr] == j) {
-						printed += _topAlignments.report_unspliced_hit(_read, hit, -_config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+						printed += _topAlignments.report_unspliced_hit(_read, OUT_FP, SP_OUT_FP, hit, -_config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
 						nr++;
 					}
 
@@ -2205,7 +2206,7 @@ int Hits::analyze_hits(QPalma* qpalma)
 				// code was set up: we see the hits in the order of their score here - better hits first.
 				while (hit != NULL) 
 				{
-					printed += _topAlignments.report_unspliced_hit(_read, hit, 0, qpalma) ;
+					printed += _topAlignments.report_unspliced_hit(_read, OUT_FP, SP_OUT_FP, hit, 0, qpalma) ;
 					hit = hit->same_eo_succ;
 				}
 
@@ -2221,9 +2222,9 @@ int Hits::analyze_hits(QPalma* qpalma)
 						nr = HITS_IN_SCORE_LIST;
 
 					if (_config.OUTPUT_FILTER_NUM_LIMIT == 0) { // no max nr of hits per read was specified, print all
-						printed += _topAlignments.report_unspliced_hit(_read, hit, nr, qpalma);
+						printed += _topAlignments.report_unspliced_hit(_read, OUT_FP, SP_OUT_FP, hit, nr, qpalma);
 					} else if (_config.OUTPUT_FILTER_NUM_LIMIT > 0 && printed < _config.OUTPUT_FILTER_NUM_LIMIT) {
-						printed += _topAlignments.report_unspliced_hit(_read, hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+						printed += _topAlignments.report_unspliced_hit(_read, OUT_FP, SP_OUT_FP, hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
 					} else if (_config.OUTPUT_FILTER_NUM_LIMIT == printed) { // repeatmap many alignments already printed out -> stop printing -> next read
 						return 1;
 					}

@@ -28,7 +28,8 @@ enum OutputFilterEnum
 }  ;
 
 const int DEFAULT_SETTING=123456789 ;
-class Genome ;
+
+class Genome;
 
 class Config {
 public:

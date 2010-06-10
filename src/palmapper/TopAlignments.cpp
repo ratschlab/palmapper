@@ -9,8 +9,9 @@
 #include "print.h"
 #include "dyn_prog/qpalma_dp.h"
 
-#include "TopAlignments.h"
-#include "Hits.h"
+#include <palmapper/Genome.h>
+#include <palmapper/Hits.h>
+#include <palmapper/TopAlignments.h>
 
 
 TopAlignments::TopAlignments(GenomeMaps* genomemaps_) 
@@ -36,7 +37,7 @@ TopAlignments::TopAlignments(GenomeMaps* genomemaps_)
 	MAX_EXON_LEN = 200 ;
 }
 
-u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma* qpalma)
+u_int8_t TopAlignments::report_unspliced_hit(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP, HIT *hit, int num, QPalma* qpalma)
 {
 	alignment_t *algn_hit = gen_alignment_from_hit(read, hit, qpalma) ;
 	algn_hit->hit = hit ;
@@ -51,7 +52,7 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	else
 	{
 		top_alignments.push_back(algn_hit) ;
-		unsigned int printed = print_top_alignment_records(read) ;
+		unsigned int printed = print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
 		start_top_alignment_record() ;
 		return printed ;
 	}
@@ -354,7 +355,7 @@ void TopAlignments::check_alignment(struct alignment_t * alignment)
 	}
 }
 
-void TopAlignments::end_top_alignment_record(Read const &read, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
+void TopAlignments::end_top_alignment_record(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
 
 	if (top_alignments.empty())
 		return;
@@ -388,7 +389,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, int rtrim_cut, in
 		}
 	}
 
-	print_top_alignment_records(read) ;
+	print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
 	
 	pthread_mutex_unlock( &top_mutex) ;
 
@@ -487,21 +488,21 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 	pthread_mutex_unlock( &top_mutex) ;
 }
 
-int TopAlignments::print_top_alignment_records(Read const &read)
+int TopAlignments::print_top_alignment_records(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP)
 {
 	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_BEDX)
 	{
-		return print_top_alignment_records_bedx(read) ;
+		return print_top_alignment_records_bedx(read, OUT_FP, SP_OUT_FP) ;
 	}
 
 	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || _config.OUTPUT_FORMAT==OUTPUT_FORMAT_BED)
 	{
-		return print_top_alignment_records_shorebed(read) ;
+		return print_top_alignment_records_shorebed(read, OUT_FP) ;
 	}
 
 	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
 	{
-		return print_top_alignment_records_sam(read) ;
+		return print_top_alignment_records_sam(read, OUT_FP) ;
 	}
 	
 	fprintf(stderr, "ERROR: unknow output format\n") ;
@@ -510,7 +511,7 @@ int TopAlignments::print_top_alignment_records(Read const &read)
 }
 
 
-int TopAlignments::print_top_alignment_records_bedx(Read const &read)
+int TopAlignments::print_top_alignment_records_bedx(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP)
 {
 	if (top_alignments.size()==0)
 		return 0 ;
@@ -721,17 +722,17 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read)
 	return top_alignments.size() ;
 }
 
-int TopAlignments::print_top_alignment_records_shorebed(Read const &read)
+int TopAlignments::print_top_alignment_records_shorebed(Read const &read, FILE *OUT_FP)
 {
 	int printed = 0 ;
 	for (unsigned int i=0; i<top_alignments.size(); i++)
 	{
-		printed+= print_alignment_shorebed(read, top_alignments[i]->hit, top_alignments[i]->num)  ;
+		printed+= print_alignment_shorebed(read, OUT_FP, top_alignments[i]->hit, top_alignments[i]->num)  ;
 	}
 	return printed ;
 }
 
-int TopAlignments::print_alignment_shorebed(Read const &read, HIT* hit, unsigned int num)
+int TopAlignments::print_alignment_shorebed(Read const &read, FILE *OUT_FP, HIT* hit, unsigned int num)
 {
 	if (_config.STATISTICS)
 		_stats.HITS_MM[hit->mismatches]++;
@@ -1058,7 +1059,7 @@ int TopAlignments::print_alignment_shorebed(Read const &read, HIT* hit, unsigned
 }*/
 
 // SAM format
-int TopAlignments::print_top_alignment_records_sam(Read const &read)
+int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_FP)
 {
 	if (top_alignments.size()==0)
 		return 0 ;

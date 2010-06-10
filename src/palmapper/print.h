@@ -1,5 +1,6 @@
 #pragma once
 
+#include <palmapper/Chromosome.h>
 #include <palmapper/QueryFile.h>
 
 extern int compare_editops(const void *a, const void *b) ;
