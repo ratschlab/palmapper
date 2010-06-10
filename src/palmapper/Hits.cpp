@@ -65,6 +65,7 @@ Hits::Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &rea
 	HITS_IN_SCORE_LIST = 0;
 	ALL_HIT_STRATEGY = _config.ALL_HIT_STRATEGY;
 	_numEditOps = _config.NUM_EDIT_OPS;
+	LONGEST_HIT = 0;
 	alloc_hit_lists_operator();
 	dealloc_hit_lists_operator();
 	alloc_hits_by_score();
@@ -195,17 +196,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 		
 		if (index_entry.num) {
 
-			//TODO: dd make this a stack local?
-			STORAGE_ENTRY* se_buffer=NULL;
-
-			try
-			{
-				se_buffer=new STORAGE_ENTRY[index_entry.num];
-			}
-			catch (std::bad_alloc)
-			{
-				return -1;
-			}
+			STORAGE_ENTRY se_buffer[index_entry.num];
 
 			// make sure that every seed is only processed once
 			unsigned int index_entry_num=index_entry.num ;
@@ -258,7 +249,6 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				mapping_entry = _mappings.newEntry();
 				if (!mapping_entry)
 				{
-					delete[] se_buffer;
 					TIME_CODE(time2a_part1 += clock()-start_time) ;
 					return -1 ;
 				}
@@ -353,7 +343,6 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 					if (!chromosome_director)
 					{
-						delete[] se_buffer;
 						TIME_CODE(time2a_part2 += clock()-start_time) ;
 						return -1;    // chrom_container_size too small -> cancel this read
 					}
@@ -386,7 +375,6 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 						if (!chromosome_director)
 						{
-							delete[] se_buffer;
 							TIME_CODE(time2a_part2 += clock()-start_time) ;
 							return -1;    // chrom_container_size too small -> cancel this read
 						}
@@ -416,7 +404,6 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					chromosome_director_new = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 					if (!chromosome_director_new)
 					{
-						delete[] se_buffer;
 						TIME_CODE(time2a_part2 += clock()-start_time) ;
 						return -1;
 					}
@@ -613,7 +600,6 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						{
 							return -1 ;
 							TIME_CODE(time2a_part5 += clock()-start_time) ;
-							delete[] se_buffer;
 						}
 
 						mapping_entry->hit = hit;
@@ -636,7 +622,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				// for MM=0: if hit doesn't start at readpos=1, then do not report hit (due to: all perfect hits are extended from a hit starting at readpos 1!!!)
 				if ( hit != NULL && !(_config.NUM_MISMATCHES == 0 && hit->readpos != 1 && !_config.NOT_MAXIMAL_HITS) )
 				{
-					size_hit(hit, &oldlength, (read_num==num));
+					size_hit(hit, oldlength);
 //if (strcmp(_read.id(), "HWUSI-EAS627_1:1:1:1335:1076/1") == 0) 
 //{ printhit(_read,hit) ; fprintf(stdout, "\n") ;}
 				}
@@ -649,8 +635,6 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				hit = NULL;
 
 			} //end of for each seed on read
-
-			delete[] se_buffer;
 
 			if (report_repetitive_seeds)
 			{
@@ -692,17 +676,16 @@ void Hits::printgenome()
 	}
 }
 
-//@TODO remove num
-int Hits::size_hit(HIT *hit, unsigned int *oldlength, char num)
+int Hits::size_hit(HIT *hit, unsigned int oldlength)
 {
 	HIT *last, *next;
 
 	// close the gap where the hit is taken out
 	// shortest possible hits are not under control of the operator so far
-	if ((int)*oldlength > (int)(_config.INDEX_DEPTH) - 1) {
+	if ((int)oldlength > (int)(_config.INDEX_DEPTH) - 1) {
 
 		if (hit->last == NULL) { //hit is the first in the list, the operator must be re-linked
-			*(HIT_LISTS_OPERATOR+*oldlength) = hit->next;
+			HIT_LISTS_OPERATOR[oldlength] = hit->next;
 			next = hit->next;
 			if (next != NULL) {
 				next->last = NULL;
@@ -739,8 +722,8 @@ int Hits::size_hit(HIT *hit, unsigned int *oldlength, char num)
 		*(HIT_LISTS_OPERATOR+length) = hit;
 	}
 
-	if (length > _outer.LONGEST_HIT) {
-		_outer.LONGEST_HIT = length;
+	if (length > LONGEST_HIT) {
+		LONGEST_HIT = length;
 	}
 
 	return(1);
@@ -1254,7 +1237,7 @@ int Hits::dealloc_hit_lists_operator()
 	unsigned int i;
 
 	//for (i = _config.INDEX_DEPTH; i <= LONGEST_HIT; i++) {
-	for (i = 0; i <= _outer.LONGEST_HIT; i++)
+	for (i = 0; i <= LONGEST_HIT; i++)
 	{
 		*(HIT_LISTS_OPERATOR+i) = NULL;
 	}
@@ -1311,7 +1294,7 @@ int Hits::map_fast(Read & read)
 	//firstslot = -1 ; firstpos=0 ;
 
 	unsigned char position;
-	char nr_runs, rev, nr_seeds = read.length() / _config.INDEX_DEPTH, mm, perfect = 0, cancel=0;
+	char nr_runs, nr_seeds = read.length() / _config.INDEX_DEPTH, mm, perfect = 0, cancel=0;
 
 	if (/*_config.*/_config.NUM_GAPS != 0)
 		nr_runs = (nr_seeds > 1)? 2: 1;
@@ -1368,7 +1351,7 @@ int Hits::map_fast(Read & read)
 		if (SLOTS[0] >= 0)
 		{	// tests if slot has an unallowed char!
 
-			for (rev=0; rev <= /*_config.*/_config.MAP_REVERSE; ++rev) {
+			for (int rev=0; rev <= /*_config.*/_config.MAP_REVERSE; ++rev) {
 
 				index_entry = _genome.INDEX[SLOTS[rev]];
 				index_mmap = _genome.INDEX_FWD_MMAP;
@@ -1376,16 +1359,7 @@ int Hits::map_fast(Read & read)
 				// for each mapping position
 				if (index_entry.num) {
 
-					STORAGE_ENTRY* se_buffer=NULL;
-
-					try
-					{
-						se_buffer=new STORAGE_ENTRY[index_entry.num];
-					}
-					catch (std::bad_alloc)
-					{
-						return -1;
-					}
+					STORAGE_ENTRY se_buffer[index_entry.num];
 
 					int index_entry_num=index_entry.num ;
 					if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) { // && !REPORT_REPETITIVE_SEEDS)
@@ -1532,7 +1506,6 @@ int Hits::map_fast(Read & read)
 								HIT* hit = new HIT();
 								if (!hit)
 								{
-									delete[] se_buffer;
 									return -1 ;
 								}
 
@@ -1591,7 +1564,6 @@ int Hits::map_fast(Read & read)
 
 					} // end of for each mapping pos
 
-					delete[] se_buffer;
 				} // end of index entry num
 
 			} // end of forward/reverse	rev

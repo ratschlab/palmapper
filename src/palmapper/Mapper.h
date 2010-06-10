@@ -51,7 +51,6 @@ protected:
 	Genome &_genome;
 	GenomeMaps &_genomeMaps ;
 
-	unsigned int LONGEST_HIT;
 	static unsigned int SLOTS[2];
 
 public:

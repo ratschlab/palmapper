@@ -1006,7 +1006,7 @@ void QPalma::capture_hits_timing(int read_count_, float this_read)
 
 int QPalma::capture_hits(Hits &hits, Result &result)
 {
-	Read const &read(hits.read());
+	Read const &read(hits.getRead());
   read_count++;
   int num_alignments_reported = 0 ;
   
@@ -1031,7 +1031,7 @@ int QPalma::capture_hits(Hits &hits, Result &result)
   for (int32_t i = read.length(); i >= _config.SPLICED_HIT_MIN_LENGTH_SHORT; i--) {
 
 
-    hit = *(hits.HIT_LISTS_OPERATOR + i);
+    hit = hits.HIT_LISTS_OPERATOR[i];
     
     while (hit != NULL) 
       {
@@ -2389,7 +2389,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				* alignment_parameters->matchmatrix_dim[1], donor, d_len,
 				acceptor, a_len, alignment_parameters->qualityPlifs,
 				remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
-				_config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.num_edit_ops(), MIN_NUM_MATCHES);
+				_config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.get_num_edit_ops(), MIN_NUM_MATCHES);
 
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
@@ -2664,7 +2664,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
-	if (alignment_valid && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= readMappings.num_edit_ops()))
+	if (alignment_valid && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= readMappings.get_num_edit_ops()))
 		&& (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) ) // it must be spliced and not have too many mismatches
 	{
 		ALIGNMENT *aln = NULL;
