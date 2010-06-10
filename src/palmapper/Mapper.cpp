@@ -31,7 +31,6 @@ Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, Q
 		GENOME[i] = NULL;
 
 	// initialize with meta information
-	LONGEST_HIT = 0;
 	if (_config.STATISTICS) {
 		init_statistic_vars(); //updated
 	}
@@ -171,7 +170,6 @@ int Mapper::map_reads()
 
 void Mapper::map_read(Result &result) {
 	QPalma *qpalma = &result._qpalma._qpalma;
-	LONGEST_HIT = 0;
 	unsigned int rtrim_cut = 0 ;
 	unsigned int polytrim_cut_start = 0 ;
 	unsigned int polytrim_cut_end = 0 ;
@@ -417,8 +415,7 @@ restart:
 				hits.dealloc_hits();
 				hits.dealloc_hits_by_score();
 				hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
-				if (LONGEST_HIT != 0)
-					hits.dealloc_hit_lists_operator();
+				hits.dealloc_hit_lists_operator();
 
 				goto restart ;
 			}
@@ -483,8 +480,7 @@ restart:
 					hits.dealloc_hits();
 					hits.dealloc_hits_by_score();
 					hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
-					if (LONGEST_HIT != 0)
-						hits.dealloc_hit_lists_operator();
+					hits.dealloc_hit_lists_operator();
 
 					goto restart ;
 				}
@@ -508,13 +504,6 @@ restart:
 		if (_config.LEFTOVER_FILE_NAME.length() > 0)
 			print_leftovers(_read, " (read mapping failed)", LEFTOVER_FP);
 	}
-
-	hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
-	hits.dealloc_hits();
-	hits.dealloc_hits_by_score();
-	hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
-	if (LONGEST_HIT != 0)
-		hits.dealloc_hit_lists_operator();
 
 	// forget about the original read
 	_read.set_orig(NULL) ;

@@ -118,14 +118,14 @@ class Hits {
 public:
 	Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read);
 	~Hits();
-	Read const &read() const {
+	Read const &getRead() const {
 		return _read;
 	}
 	int dealloc_hit_lists_operator() ;
 	int dealloc_hits_by_score() ;
 	int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches) ;
 	int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches) ;
-	int size_hit(HIT *hit, unsigned int *oldlength, char num) ;
+	int size_hit(HIT *hit, unsigned int oldlength);
 	int seed2genome(unsigned int num, unsigned int readpos) ;
 	void printgenome() ;
 //	int alloc_genome_memory() ;
@@ -152,7 +152,7 @@ public:
 		return _topAlignments;
 	}
 
-	int num_edit_ops() const {
+	int get_num_edit_ops() const {
 		return _numEditOps;
 	}
 
@@ -222,6 +222,7 @@ private:
 	TopAlignments _topAlignments;
 	int _numEditOps;
 	char ALL_HIT_STRATEGY;
+	unsigned int LONGEST_HIT;
 
 	static char HAS_SLOT;
 	static unsigned int SLOTS[2];
