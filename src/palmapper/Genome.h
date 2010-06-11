@@ -41,7 +41,7 @@ public:
 		hits=hits_ ;
 	}
 	
-	Chromosome &chromosome(int index) {
+	Chromosome const &chromosome(int index) const{
 		return _chromosomes[index];
 	}
 	unsigned int nrChromosomes() const {
@@ -52,10 +52,10 @@ public:
 	unsigned int LONGEST_CHROMOSOME;
 
 #ifndef BinaryStream_MAP
-	void index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) ;
+	void index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const;
 #endif
 
-	int find_desc(const char * desc)
+	int find_desc(const char * desc) const
 		{
 			for (unsigned int i=0; i<NUM_CHROMOSOMES; i++)
 				if (strcmp(desc, _chromosomes[i].desc())==0)
@@ -63,7 +63,7 @@ public:
 			return -1 ;
 		}
 
-	void print_desc(FILE * fd = stdout)
+	void print_desc(FILE * fd = stdout) const
 		{
 			for (unsigned int i=0; i<NUM_CHROMOSOMES; i++)
 			{

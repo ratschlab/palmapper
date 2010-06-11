@@ -31,7 +31,7 @@ public:
 	}
 
 	void unlock() {
-		::pthread_mutex_destroy(&_mutex);
+		::pthread_mutex_unlock(&_mutex);
 	}
 
 private:
@@ -71,7 +71,20 @@ class Thread : Runnable {
 
 public:
 
+	Thread() {
+		_runnable = this;
+	}
+
+	Thread(Runnable &runnable) {
+		_runnable = &runnable;
+	}
+
    virtual ~Thread() {
+   }
+
+   virtual void run() {
+	   if (_runnable != NULL)
+		   _runnable->run();
    }
 
    int launch();
@@ -88,6 +101,7 @@ public:
 
 
 private:
+   Runnable *_runnable;
    static void *launchInterface(void *self);
    ::pthread_t _handle;
 };

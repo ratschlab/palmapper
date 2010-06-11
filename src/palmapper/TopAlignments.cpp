@@ -37,7 +37,7 @@ TopAlignments::TopAlignments(GenomeMaps* genomemaps_)
 	MAX_EXON_LEN = 200 ;
 }
 
-u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma* qpalma)
+u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma const *qpalma)
 {
 	alignment_t *algn_hit = gen_alignment_from_hit(read, hit, qpalma) ;
 	algn_hit->hit = hit ;
@@ -208,7 +208,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 
 }
 
-alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma * qpalma)
+alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma const * qpalma)
 {
 	int hitlength = best_hit->end - best_hit->start + 1;
 	unsigned int readstart;

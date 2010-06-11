@@ -384,7 +384,7 @@ int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 
 #ifndef BinaryStream_MAP
 
-void Genome::index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size)
+void Genome::index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const
 {
 	assert(index>=0);
 	assert(size>=0);

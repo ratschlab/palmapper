@@ -38,7 +38,7 @@ class QPalma
 public:
 	class Result {
 	public:
-		Result(Read const &read, QPalma &qpalma);
+		Result(Read const &read, QPalma const &qpalma);
 		void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) ;
 		void delete_regions() ;
 		void cleanup() {
@@ -51,7 +51,7 @@ public:
 	public:
 		std::vector<std::vector<region_t *> > regions[2];
 		int qpalma_filter_reason;
-		QPalma &_qpalma;
+		QPalma const &_qpalma;
 		Read const &_read;
 	};
 
@@ -73,7 +73,7 @@ public:
 		int hit_read;
 		int hit_dna;
 		int hit_length;
-		QPalma * qpalma ;
+		QPalma const * qpalma ;
 		bool joined ;
 	} ;
 
@@ -101,43 +101,43 @@ protected:
 	////////////////////
 	
 public:
-	int qpalma_filter(Result &result, struct alignment_t *ali, int num_N) ;
-	void qpalma_filter_stat(Result &result, bool spliced) ;
-	void qpalma_filter_stat_report() ;
+	int qpalma_filter(Result &result, struct alignment_t *ali, int num_N) const;
+	void qpalma_filter_stat(Result &result, bool spliced) const;
+	void qpalma_filter_stat_report() const;
 
 protected:
-	int get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh) ;
+	int get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh) const;
 	
 	
     // qpalma alignment
 	////////////////////
 
 public:
-	int capture_hits(Hits &hits, Result &result);
+	int capture_hits(Hits &hits, Result &result) const;
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
-						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) ;
-	float score_unspliced(Read const &read, const char * read_anno) ;
-	void capture_hits_timing(int read_count=-1, float this_read=-1.0) ;
+						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) const;
+	float score_unspliced(Read const &read, const char * read_anno) const;
+	void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
 	
 protected:
 	
 	int get_splicesite_positions(std::string file_template, const char *type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
-								 std::vector<int> &positions) ;
+								 std::vector<int> &positions) const;
 	
 	
-	int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) ;
-	void qsort(region_t** output, int size) ;
-	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) ;
-	int convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions) ;
-	int get_first_read_map(Read const &read, bool* read_map) ;
+	int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) const;
+	void qsort(region_t** output, int size) const;
+	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) const;
+	int convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions) const;
+	int get_first_read_map(Read const &read, bool* read_map) const;
 	void print_hit(HIT *hit) ;
 	void print_region(region_t *region, const char * bla)  ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) ;
-	int perform_alignment_wait(int & num_reported) ;
+	int perform_alignment_starter(Result &result, std::vector<perform_alignment_t*> &thread_data,Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) const;
+	int perform_alignment_wait(int & num_reported, std::vector<perform_alignment_t*> thread_data) const;
 
-	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) ;
+	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const;
 //	int rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
 
 
@@ -276,26 +276,26 @@ protected:
 	
 	struct alignment_parameter_struct *alignment_parameters;
 
-	std::vector<perform_alignment_t*> thread_data ;
+//	std::vector<perform_alignment_t*> thread_data ;
 
-	int qpalma_filter_stat_spliced[num_filter_reasons] ;
-	int qpalma_filter_stat_unspliced[num_filter_reasons] ;
+	mutable int qpalma_filter_stat_spliced[num_filter_reasons] ;
+	mutable int qpalma_filter_stat_unspliced[num_filter_reasons] ;
 
-	clock_t region_align_time ;
-	clock_t region1_time ;
-	clock_t align_time ;
-	int read_count ;
+	mutable clock_t region_align_time ;
+	mutable clock_t region1_time ;
+	mutable clock_t align_time ;
 	
-	long int total_dna_length ;
-	long int total_alignments ;
+	mutable long int total_dna_length ;
+	mutable long int total_alignments ;
+	mutable int read_count;
 	
 	static clock_t last_timing_report ;
 	
 	const int verbosity ;
 	const int MIN_NUM_MATCHES ;
 	
-	int total_num_threads ;
-	int total_num_thread_tasks  ;
+	mutable int total_num_threads ;
+	mutable int total_num_thread_tasks  ;
 
 
 	static clock_t last_filter_report ;

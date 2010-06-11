@@ -39,7 +39,7 @@
 class GenomeMaps
 {
 public:
-	GenomeMaps(Genome* genome) ;
+	GenomeMaps(Genome const &genome) ;
 	~GenomeMaps() ;
 
 	inline unsigned char CHR_MAP(Chromosome const &chr, size_t index)
@@ -104,7 +104,7 @@ protected:
 
 	static clock_t last_report ;
 
-	Genome* genome ;
+	Genome const *genome;
 	
 public:
 	//TODO: dd check for multithreading

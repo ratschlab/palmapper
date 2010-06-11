@@ -2,9 +2,6 @@
 #include <palmapper/align.h>
 #include <palmapper/print.h>
 
-unsigned int Mapper::MAX_USED_SLOTS;
-unsigned int Mapper::SLOTS[2];
-
 void Mapper::map_reads_timing(int count_reads, float this_read)
 {
 	fprintf(stdout, "# [map_reads] timing: %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, avg/read: %1.3f (%i/%i spliced alignm., %2.1f%%)",
@@ -18,7 +15,7 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 		fprintf(stdout, "\n") ;
 }
 
-Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
+Mapper::Mapper(Genome const &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
 :	_genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
 {
 	REDUNDANT = 0;
@@ -44,6 +41,7 @@ Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, Q
 	time1 = time2a = time2c = time3 = 0;
 	last_timing_report=0 ;
 	num_spliced_alignments_triggered=0 ;
+	_progressChar = '.';
 }
 
 Mapper::~Mapper() {
@@ -105,7 +103,8 @@ int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 	_SP_OUT_FP = SP_OUT_FP;
 	unsigned int count_reads = 0;
 	//int first_slot = 0, first_pos = 0 ;
-	if (_config.STATISTICS) MAX_USED_SLOTS = 0;
+	if (_config.STATISTICS)
+		MAX_USED_SLOTS = 0;
 
  	if (_config.VERBOSE) { printf("Start mapping: "); }
 
@@ -134,7 +133,7 @@ int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 			break ;
 		// progress output, just for user convenience
 		if ((count_reads % 1000 == 0)) {
-			printf(".");
+			printf("%c", _progressChar);
 			fflush(stdout);
 		}
 		if ((count_reads % 10000 == 0)) {
@@ -146,12 +145,7 @@ int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 	map_reads_timing(count_reads) ;
 	_qpalma.capture_hits_timing();
 
-	//TODO dd use otehr criteria
-	fprintf(stdout, "\n#done\n") ;
-	if (OUT_FP!=stdout)
-		fprintf(OUT_FP, "#done\n") ;
-	if (SP_OUT_FP!=stdout)
-		fprintf(SP_OUT_FP, "#done\n") ;
+	//TODO mt report leftovers in Reporter
 	if (_config.LEFTOVER_FILE_NAME.length() > 0)
 		fprintf(_LEFTOVER_FP, "#done\n");
 
@@ -173,7 +167,7 @@ int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 }
 
 void Mapper::map_read(Result &result, clock_t start_time) {
-	QPalma *qpalma = &result._qpalma._qpalma;
+	QPalma const *qpalma = &result._qpalma._qpalma;
 	unsigned int rtrim_cut = 0 ;
 	unsigned int polytrim_cut_start = 0 ;
 	unsigned int polytrim_cut_end = 0 ;

@@ -116,7 +116,7 @@ class TopAlignments ;
 class Hits {
 	friend class Mapper;
 public:
-	Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read);
+	Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read);
 	~Hits();
 	Read const &getRead() const {
 		return _read;
@@ -140,7 +140,7 @@ public:
 	int init_from_meta_index() ;
 	int init_hit_lists()  ;
 
-	int analyze_hits(QPalma * qpalma);
+	int analyze_hits(QPalma const * qpalma);
 	int report_read_alignment(HIT* hit, int nbest)  ;
 
 	HIT **HIT_LISTS_OPERATOR;
@@ -216,7 +216,7 @@ private:
 	int alloc_hit_lists_operator() ;
 	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand);
 
-	Genome &_genome;
+	Genome const &_genome;
 	GenomeMaps &_genomeMaps;
 	HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
 	unsigned int NUM_SCORE_INTERVALS;

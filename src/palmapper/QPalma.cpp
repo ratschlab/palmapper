@@ -26,10 +26,10 @@ QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
 	region_align_time = 0;
 	region1_time = 0;
 	align_time = 0;
-	read_count = 0;
 	
 	total_dna_length=0 ;
 	total_alignments=0 ;
+	read_count = 0;
 	
 	last_timing_report=0 ;
 	
@@ -101,7 +101,7 @@ QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
 	}
 }
 
-QPalma::Result::Result(Read const &read, QPalma &qpalma)
+QPalma::Result::Result(Read const &read, QPalma const &qpalma)
 :	_qpalma(qpalma), _read(read)
 {
 	qpalma_filter_reason = -1 ;
@@ -550,7 +550,7 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 
 
 int QPalma::get_splicesite_positions(std::string file_template, const char * type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
-							 std::vector<int> &positions)
+							 std::vector<int> &positions) const
 {
 	char basename[1000] ;
 
@@ -686,7 +686,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 	return num ;
 }
 
-int QPalma::get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) 
+int QPalma::get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) const
 {
 
 	assert(region->end > region->start);
@@ -733,7 +733,7 @@ void QPalma::Result::add_buffer_to_region(int ori, Chromosome const &chrN, int32
 
 /** performs a quicksort on an array output of length size
  * it is sorted from in ascending (for type T) */
-void QPalma::qsort(region_t** output, int size) {
+void QPalma::qsort(region_t** output, int size) const {
 	if (size == 2) {
 		if (output[0]->start > output[1]->start) {
 			region_t *c = output[0];
@@ -787,13 +787,13 @@ void QPalma::print_map(Read const &read, bool* read_map, const char *name)
 // filter
 
 
-int QPalma::get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh)
+int QPalma::get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh) const
 {
 	std::vector<int> positions ;
 	return get_splicesite_positions(file_template, type, chr, strand, start, end, thresh, false, positions) ;
 }
 
-void QPalma::qpalma_filter_stat_report()
+void QPalma::qpalma_filter_stat_report() const
 {
 	for (int i=0; i<num_filter_reasons; i++)
 	{
@@ -801,7 +801,7 @@ void QPalma::qpalma_filter_stat_report()
 	}
 }
 
-void QPalma::qpalma_filter_stat(Result &result, bool spliced)
+void QPalma::qpalma_filter_stat(Result &result, bool spliced) const
 {
 	if (result.qpalma_filter_reason<0)
 		return ;
@@ -820,7 +820,7 @@ void QPalma::qpalma_filter_stat(Result &result, bool spliced)
 	result.qpalma_filter_reason=-1 ;
 }
 
-int QPalma::qpalma_filter(Result &result, struct alignment_t *ali, int num_N)
+int QPalma::qpalma_filter(Result &result, struct alignment_t *ali, int num_N) const
 {
 	assert(ali->exons.size()<=2) ;
 	static bool use_ss_for_filtering = true ;
@@ -897,7 +897,8 @@ int QPalma::qpalma_filter(Result &result, struct alignment_t *ali, int num_N)
 // alignment
 
 /** find long regions included in the set of current regions */
-void QPalma::recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions){
+void QPalma::recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) const
+{
 
   // Sort long_regions by start position
   region_t ** arr = NULL ;
@@ -939,7 +940,7 @@ void QPalma::recover_long_regions(Read const &read, std::vector<region_t*> &long
 }
 
 /** Gives the relative position on dna sequence to align  */
-int QPalma::convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions)
+int QPalma::convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions) const
 {
   for (size_t j = 0; j < current_regions.size(); j++)
     if (real_position >= current_regions[j]->start && real_position< current_regions[j]->end)
@@ -953,7 +954,7 @@ int QPalma::convert_dna_position(int real_position, size_t* cum_length, const st
   return -1;
 }
 
-int QPalma::get_first_read_map(Read const &read, bool* read_map)
+int QPalma::get_first_read_map(Read const &read, bool* read_map) const
 {
 
   for(unsigned int i=0; i < read.length(); i++)
@@ -995,7 +996,7 @@ void QPalma::Result::delete_regions()
 	}
 }
 
-void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_regions)
+void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const
 { 
   //long_regions need to be deleted: deep copy of initial regions into long_regions
   for (int ori = 0; ori < 2; ori++)
@@ -1008,7 +1009,7 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 	}
 }
 
-void QPalma::capture_hits_timing(int read_count_, float this_read) 
+void QPalma::capture_hits_timing(int read_count_, float this_read) const
 {
 	fprintf(stdout, "# [capture_hits] timing: %1.4f, %1.4f, %1.4f (%1.4f ss access; %lint and %1.1f threads per alignment)",
 			((float) region1_time) / CLOCKS_PER_SEC,
@@ -1028,11 +1029,11 @@ void QPalma::capture_hits_timing(int read_count_, float this_read)
 	fprintf(stdout, "\n");
 }
 
-int QPalma::capture_hits(Hits &hits, Result &result)
+int QPalma::capture_hits(Hits &hits, Result &result) const
 {
 	Read const &read(hits.getRead());
-  read_count++;
   int num_alignments_reported = 0 ;
+  std::vector<perform_alignment_t*> thread_data ;
   
   clock_t start_time = clock();
   
@@ -1481,7 +1482,7 @@ int QPalma::capture_hits(Hits &hits, Result &result)
 
 	}
   
-  region1_time += clock() - start_time;
+  //TODO: mt region1_time += clock() - start_time;
   
 	
   /*printf("Clusters after consolidation: \n");
@@ -1640,13 +1641,13 @@ int QPalma::capture_hits(Hits &hits, Result &result)
 		    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 		    bool isunspliced ;
 		    {
-				int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
+				int ret = perform_alignment_starter(result, thread_data, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
 													current_positions, chr, '+', ori, hit_read_position,
 													corres_long_regions[0]->start, hit_len);
 				/*, num_alignments_reported*/
 				if (ret < 0)
 				{
-					perform_alignment_wait(num_alignments_reported) ;
+					perform_alignment_wait(num_alignments_reported, thread_data) ;
 					result.delete_regions();
 					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 					return ret;
@@ -1658,14 +1659,14 @@ int QPalma::capture_hits(Hits &hits, Result &result)
 				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 				//      corres_long_regions[0]->end, hit_len);					  
 				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-				int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
+				int ret = perform_alignment_starter(result, thread_data, hits, read_seq[1 - ori],
 													read_quality[1 - ori], current_seq,
 													current_regions, current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
 													corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
 				/* , num_alignments_reported */
 				if (ret < 0)
 				{
-					perform_alignment_wait(num_alignments_reported) ;
+					perform_alignment_wait(num_alignments_reported, thread_data) ;
 					result.delete_regions();
 					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 					return ret;
@@ -1741,13 +1742,13 @@ int QPalma::capture_hits(Hits &hits, Result &result)
 	    //    corres_long_regions[0]->start, hit_len);
 	    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 	    {
-			int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori],
+			int ret = perform_alignment_starter(result, thread_data, hits, read_seq[ori], read_quality[ori],
 												current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
 												corres_long_regions[0]->start, hit_len); 
 			/*, num_alignments_reported */
 			if (ret < 0)
 			{
-				perform_alignment_wait(num_alignments_reported) ;
+				perform_alignment_wait(num_alignments_reported, thread_data) ;
 				result.delete_regions();
 				delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 				return ret;
@@ -1759,14 +1760,14 @@ int QPalma::capture_hits(Hits &hits, Result &result)
 			//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 			//      corres_long_regions[0]->end, hit_len);					  
 			//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-			int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
+			int ret = perform_alignment_starter(result, thread_data, hits, read_seq[1 - ori],
 												read_quality[1 - ori], current_seq,
 												current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
 												corres_long_regions[0]->end-1, hit_len);//end nucleotide in dna not included
 			/* , num_alignments_reported */
 			if (ret < 0)
 			{
-				perform_alignment_wait(num_alignments_reported) ;
+				perform_alignment_wait(num_alignments_reported, thread_data) ;
 				result.delete_regions();
 				delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 				return ret;
@@ -1780,7 +1781,7 @@ int QPalma::capture_hits(Hits &hits, Result &result)
       }
   
   // wait for all alignment threads to finish
-  int ret = perform_alignment_wait(num_alignments_reported) ;
+  int ret = perform_alignment_wait(num_alignments_reported, thread_data) ;
   //fprintf(stderr, "perform_alignment_wait ret=%i\n", ret) ;
 
   if (ret<0)
@@ -1825,7 +1826,8 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 }
 
 // TODO: dd remove relicts from multithreading
-int QPalma::perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length)
+int QPalma::perform_alignment_starter(Result &result, std::vector<perform_alignment_t*> &thread_data,
+Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length) const
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -1878,7 +1880,7 @@ int QPalma::perform_alignment_starter(Result &result, Hits &readMappings, std::s
 //		}
 		//fprintf(stderr, "thread #%i started\n", (int)thread_data.size()) ;
 		
-		thread_data.push_back(data) ;
+//		thread_data.push_back(data) ;
 		
 		return 0 ; // in the meaning of perform_alignment this corresponds to a spliced alignment
 	}
@@ -1891,7 +1893,7 @@ int QPalma::perform_alignment_starter(Result &result, Hits &readMappings, std::s
     }
 }
 
-int QPalma::perform_alignment_wait(int & num_reported)
+int QPalma::perform_alignment_wait(int & num_reported, std::vector<perform_alignment_t*> thread_data) const
 {
 	// return 1 if no alignment was spliced, 0 when at least one alignment was spliced
 	int ret = 1 ;
@@ -2012,7 +2014,7 @@ int QPalma::perform_alignment_wait(int & num_reported)
 //}
 
 
-int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length)
+int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length) const
 // ori = read orientation
 // strand = dna strand/orientation
 
@@ -2798,7 +2800,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	return (int) isunspliced;
 }
 
-float QPalma::score_unspliced(Read const &read, const char * read_anno)
+float QPalma::score_unspliced(Read const &read, const char * read_anno) const
 {
 	if (alignment_parameters==NULL)
 	{
