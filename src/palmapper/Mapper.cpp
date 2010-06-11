@@ -335,7 +335,7 @@ restart:
 	{
 		hits._topAlignments.start_top_alignment_record();
 
-		read_mapped = hits.analyze_hits(qpalma, _OUT_FP, _SP_OUT_FP);	// returns 1 if at least one hit is printed, 0 otherwise
+		read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
 		if (_config.VERBOSE)
 			printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
 

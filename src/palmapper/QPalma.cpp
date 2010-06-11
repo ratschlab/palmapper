@@ -172,6 +172,25 @@ int QPalma::check_splice_files(std::string file_template)
 			}
 			fclose(fd) ;
 			
+			struct stat pos_stat ;
+			int statret = stat(posname, & pos_stat) ;
+			if (statret!=0)
+			  {
+			    fprintf(stderr, "stat on %s failed\n", posname) ;
+			    return -1 ;
+			  }
+
+			struct stat confcum_stat ;
+			statret = stat(confcumname, & confcum_stat) ;
+			if (statret!=0)
+			  {
+			    fprintf(stderr, "stat on %s failed\n", confcumname) ;
+			    return -1 ;
+			  }
+			
+			if (pos_stat.st_size!=confcum_stat.st_size)
+			    fprintf(stdout, "**The two files %s and %s have different sizes (%ld, %ld).**\n**Continuing anyway.**\n\n", posname, confcumname, pos_stat.st_size, confcum_stat.st_size);
+
 			if (strand=='+')
 				strand='-' ;
 			else
@@ -551,49 +570,53 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 	{
 		if (strcmp(type, "acc")==0)
 		{
-			if (strand=='+')
-			{
-				for (int i=start; i<end; i++)
-					if (chr[i] =='A' && chr[i+1]=='G')
-					{
-						num++ ;
-						if (store_pos)
-							positions.push_back(i) ;
-					}
-			} 
-			else
-			{
-				for (int i=start; i<end; i++)
-					if (chr[i] =='C' && chr[i+1]=='T')
-					{
-						num++ ;
-						if (store_pos)
-							positions.push_back(i) ;
-					}
-			} 
+		  if (strand=='+')
+		    {
+		      for (int i=start; i<end; i++)
+			for (unsigned int j=0; j<_config.ACC_CONSENSUS.size(); j++)
+			  if (chr[i] == _config.ACC_CONSENSUS[j][0] && chr[i+1]==_config.ACC_CONSENSUS[j][1])
+			    {
+			      num++ ;
+			      if (store_pos)
+				positions.push_back(i) ;
+			    }
+		    } 
+		  else
+		    {
+		      for (int i=start; i<end; i++)
+			for (unsigned int j=0; j<_config.ACC_CONSENSUS_REV.size(); j++)
+			  if (chr[i] == _config.ACC_CONSENSUS_REV[j][0] && chr[i+1] == _config.ACC_CONSENSUS_REV[j][1])
+			    {
+			      num++ ;
+			      if (store_pos)
+				positions.push_back(i) ;
+			    }
+		    } 
 		}
 		if (strcmp(type, "don")==0)
 		{
-			if (strand=='+')
-			{
-				for (int i=start; i<end; i++)
-					if (chr[i]=='G' && (chr[i+1]=='T' || chr[i+1]=='C'))
-					{
-						num++ ;
-						if (store_pos)
-							positions.push_back(i) ;
-					}
-			} 
-			else
-			{
-				for (int i=start; i<end; i++)
-					if ((chr[i]=='A' || chr[i]=='G') && chr[i+1]=='C')
-					{
-						num++ ;
-						if (store_pos)
-							positions.push_back(i) ;
-					}
-			} 
+		  if (strand=='+')
+		    {
+		      for (int i=start; i<end; i++)
+			for (unsigned int j=0; j<_config.DON_CONSENSUS.size(); j++)
+			  if (chr[i]== _config.DON_CONSENSUS[j][0] && chr[i+1]==_config.DON_CONSENSUS[j][1])
+			    {
+			      num++ ;
+			      if (store_pos)
+				positions.push_back(i) ;
+			    }
+		    } 
+		  else
+		    {
+		      for (int i=start; i<end; i++)
+			for (unsigned int j=0; j<_config.DON_CONSENSUS_REV.size(); j++)
+			  if (chr[i]== _config.DON_CONSENSUS_REV[j][0] && chr[i+1]==_config.DON_CONSENSUS_REV[j][1])
+			    {
+			      num++ ;
+			      if (store_pos)
+				positions.push_back(i) ;
+			    }
+		    } 
 		}
 	}
 	else
@@ -2320,19 +2343,30 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		fprintf(stdout, "# read: %s\n", read_string.c_str());
 
 	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
-	//If no splice predictions, put score 0 for 'GT/C' and 'AG'
-	//if(!_config.NO_SPLICE_PREDICTIONS && read_count<1000){
-	  
-	  int match = 0, num = 0;
-	  for (int i = 2; i < d_len - 2; i++, num++)
-	    if (dna[i] == 'G' && (dna[i + 1] == 'T' || dna[i + 1] == 'C')) {
-	      if (_config.NO_SPLICE_PREDICTIONS) // fill in donor 
-		donor[i] = 0.0 ;
-	      match += (donor[i] > -ALMOST_INFINITY);
-	    } else {
-	      match += (donor[i] <= -ALMOST_INFINITY);
-	      donor[i] = -ALMOST_INFINITY;
-	    }
+
+	int match = 0, num = 0;
+	for (int i = 2; i < d_len - 2; i++, num++)
+	  {
+	    bool is_ss = false ;
+	    for (unsigned int j=0; j<_config.DON_CONSENSUS.size(); j++)
+	      if (dna[i] == _config.DON_CONSENSUS[j][0] && dna[i+1] == _config.DON_CONSENSUS[j][1])
+		{
+		  is_ss = true ;
+		  break ;
+		}
+	    if (is_ss) 
+	      {
+		// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
+		if (_config.NO_SPLICE_PREDICTIONS) // fill in donor 
+		  donor[i] = 0.0 ;
+		match += (donor[i] > -ALMOST_INFINITY);
+	      } 
+	    else 
+	      {
+		match += (donor[i] <= -ALMOST_INFINITY);
+		donor[i] = -ALMOST_INFINITY;
+	      }
+	      }
 	  
 	  if (match < num * 0.9)
 	    fprintf(stderr,
@@ -2341,26 +2375,37 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		    current_regions[0]->start, current_regions[current_regions.size() - 1]->end);
 	  //assert(match>=num*0.9) ; // otherwise positions will are shifted somehow
 	  
-	  match = 0;
-	  num = 0;
+	  match = 0; num = 0;
 	  for (int i = 2; i < a_len - 2; i++, num++)
-	    if (i > 0 && dna[i - 1] == 'A' && dna[i] == 'G') {
-	      //if (!(acceptor[i]>-ALMOST_INFINITY))
-	      //fprintf(stdout, "acc miss %i\n", i) ;
-	      if (_config.NO_SPLICE_PREDICTIONS) // fill in acceptor
-		acceptor[i] = 0.0 ;
-	      match += (acceptor[i] > -ALMOST_INFINITY);
-	    } else {
-	      //if (acceptor[i]>-ALMOST_INFINITY)
-	      //	fprintf(stdout, "acc over %i\n", i) ;
-	      match += (acceptor[i] <= -ALMOST_INFINITY);
-	      acceptor[i] = -ALMOST_INFINITY;
-	    }
+	    {
+	      bool is_ss = false ;
+	      for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
+		if (i>0 && dna[i-1] == _config.ACC_CONSENSUS[j][0] && dna[i] == _config.ACC_CONSENSUS[j][1])
+		  {
+		    is_ss = true ;
+		    break ;
+		  }
+	      if (is_ss)
+		{
+		  //if (!(acceptor[i]>-ALMOST_INFINITY))
+		  //fprintf(stdout, "acc miss %i\n", i) ;
+		  // if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'AG')
+		  if (_config.NO_SPLICE_PREDICTIONS) // fill in acceptor
+		    acceptor[i] = 0.0 ;
+		  match += (acceptor[i] > -ALMOST_INFINITY);
+		} 
+	      else 
+		{
+		  //if (acceptor[i]>-ALMOST_INFINITY)
+		  //	fprintf(stdout, "acc over %i\n", i) ;
+		  match += (acceptor[i] <= -ALMOST_INFINITY);
+		  acceptor[i] = -ALMOST_INFINITY;
+		}
+		}
+
 	  if (match<num*0.9)
 	    fprintf(stderr, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n", 
 		    match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end) ;
-	  //assert(match>=num*0.9) ; // otherwise positions will are shifted somehow
-	  //}
 
 	/* apply donor and acceptor plifs */
 	for (int i = 0; i < d_len; i++)

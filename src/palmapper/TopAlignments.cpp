@@ -37,25 +37,18 @@ TopAlignments::TopAlignments(GenomeMaps* genomemaps_)
 	MAX_EXON_LEN = 200 ;
 }
 
-u_int8_t TopAlignments::report_unspliced_hit(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP, HIT *hit, int num, QPalma* qpalma)
+u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma* qpalma)
 {
 	alignment_t *algn_hit = gen_alignment_from_hit(read, hit, qpalma) ;
 	algn_hit->hit = hit ;
 	algn_hit->num = num ;
 	algn_hit->from_gm = 2;
 	
-	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-	{
-		add_alignment_record(read, algn_hit, 1) ;
-		return 1 ;
-	} 
-	else
-	{
-		top_alignments.push_back(algn_hit) ;
-		unsigned int printed = print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
-		start_top_alignment_record() ;
-		return printed ;
-	}
+	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
+	add_alignment_record(read, algn_hit, 1) ;
+	return 1 ;
+
+	//unsigned int printed = print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
 }
 
 int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p)
@@ -431,7 +424,7 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 	// Special case: list of top hits is still empty. Kick-start it with the
 	// current hit.
 
-	if (top_alignments.empty()) 
+	if (top_alignments.empty() || (_config.OUTPUT_FILTER!=OUTPUT_FILTER_TOP))
 	{
 		top_alignments.push_back(alignment);
 		//fprintf(stderr, "inserting beginning %s\n", alignment->read_id);
