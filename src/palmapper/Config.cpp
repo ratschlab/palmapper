@@ -78,6 +78,8 @@ Config::Config() {
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
 	SPLICED_CLUSTER_TOLERANCE = 10 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
+	SPLICED_MIN_SEGMENT_LENGTH = 1 ;
+
 	STATISTICS = 0;
 	CHROM_CONTAINER_SIZE = 15000000 ;
 
@@ -1207,6 +1209,23 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		//min spliced segment length
+		if (strcmp(argv[i], "-min-spliced-segment-len") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) 
+			  {
+			    fprintf(stderr, "ERROR: Argument missing for option -min-spliced-segment-len\n") ;
+			    usage();
+			    exit(1);
+			  }
+			i++;
+			if ((SPLICED_MIN_SEGMENT_LENGTH = atoi(argv[i])) == 0) {
+			  fprintf(stderr,
+				  "ERROR: min-spliced-segment-length must be a positive integer value !\n");
+			  exit(1);
+			}
+		}
+
 		//chromosome container size
 		if (strcmp(argv[i], "-c") == 0) {
 			not_defined = 0;
@@ -1462,7 +1481,8 @@ int Config::usage()
 	printf(" -SA INT                               maximum number of spliced alignments per read (10)\n");
 	printf(" -NI INT                               maximum number of introns in spliced alignments (auto)\n");
 	printf(" -CT INT                               distance to tolerate between hit and existing hit cluster (10)\n");
-	printf(" -QMM INT                              number of matches required for identifying a splice site (3)\n\n");
+	printf(" -QMM INT                              number of matches required for identifying a splice site (3)\n");
+	printf(" -min-spliced-segment-len INT          minimal number of nucleotides in a spliced segment (1)\n\n") ;
 
 	printf(" -report STRING                        file for map reporting\n");
 	printf(" -report-ro STRING                     file for map reporting (read only)\n");
