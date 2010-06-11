@@ -233,6 +233,7 @@ public:
 	
 	Read* get_orig() const { return orig_read ; } ;
 	void set_orig(Read* orig) { orig_read=orig ; } ;
+	void printOn(FILE *file) const;
 
 private:
 	int read_short_read();

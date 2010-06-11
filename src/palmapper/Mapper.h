@@ -17,8 +17,7 @@ public:
 		Result(int nr, Read &read, Mapper &mapper)
 		: 	_read(read),
 		  	_readMappings(mapper._genome, mapper._genomeMaps, mapper, read),
-		  	_qpalma(read, mapper._qpalma),
-		  	_topAlignments(&mapper._genomeMaps)
+		  	_qpalma(read, mapper._qpalma)
 		{
 			_nr = nr;
 		}
@@ -27,7 +26,6 @@ public:
 		Read &_read;
 		Hits _readMappings;
 		QPalma::Result _qpalma;
-		TopAlignments _topAlignments;
 	};
 
 	class Reporter {
@@ -42,11 +40,12 @@ public:
 	int REDUNDANT;
 
 protected:
+	void map_reads_timing(int count_reads, float this_read=-1);
 	int init_constants()  ;
 	int init_statistic_vars() ;
 	int init_operators() ;
 	int init_alignment_structures(Config * config);
-	void map_read(Result &result);
+	void map_read(Result &result, clock_t start_time);
 	CHROMOSOME_ENTRY **GENOME; // doppelt
 
 	Genome &_genome;
@@ -65,6 +64,9 @@ private:
     FILE *_LEFTOVER_FP;
 	FILE *_ADAPTERTRIM_LOG_FP;
 	FILE *_TRIGGERED_LOG_FP;
+
+	clock_t time1, time2a, time2b, time2c, time3;
+	clock_t last_timing_report;
 
 	unsigned int MAXHITS;
 	int c_map_fast;

@@ -306,3 +306,14 @@ int Read::read_short_read()
 	}
 	return 0;
 }
+
+void Read::printOn(FILE *file) const {
+	if (READ_FORMAT == 0)
+		fprintf(file, "@%s\n%s\n+\n%s\n", READ_ID, READ, READ_QUALITY[0]);
+	else if (READ_FORMAT == 1)
+		fprintf(file, ">%s\n%s\n", READ_ID, READ);
+	else
+		fprintf(file, "%s\t%s\t%d\t%s\t%s\t%s\n", READ_ID, READ,
+				READ_PE_FLAG, READ_QUALITY[0], READ_QUALITY[1], READ_QUALITY[2]);
+
+}

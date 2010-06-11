@@ -203,6 +203,14 @@ public:
 			NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ;
 	}
 
+	void clear() {
+		dealloc_mapping_entries();
+		dealloc_hits();
+		dealloc_hits_by_score();
+		CHROMOSOME_ENTRY_OPERATOR.used = 0;
+		dealloc_hit_lists_operator();
+	}
+
 private:
 	int alloc_hits_by_score() ;
 	int alloc_hit_lists_operator() ;
@@ -215,7 +223,7 @@ private:
 	Container<true, MAPPING_ENTRY> _mappings;
 	Container<true, HIT> _hits;
 	CHROMOSOME_ENTRY **GENOME; // doppelt
-	Mapper &_outer;
+	Mapper &_mapper;
 	Read const &_read;
 	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;

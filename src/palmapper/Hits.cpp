@@ -59,7 +59,7 @@ unsigned int extend_seed(Read const &read, int direction, unsigned int seed_dept
 char Hits::HAS_SLOT;
 unsigned int Hits::SLOTS[2];
 Hits::Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read)
-:	_genome(genome), _genomeMaps(genomeMaps), _outer(hits), _read(read),
+:	_genome(genome), _genomeMaps(genomeMaps), _mapper(hits), _read(read),
  	CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _topAlignments(&genomeMaps)
 {
 	GENOME = hits.GENOME;
@@ -1098,7 +1098,7 @@ int Hits::duplicate(HIT* hit)
 					 + existing_entry->hit->gaps * _config.GAP_SCORE - (((int)_read.length()) - existing_entry->hit->mismatches) * _config.M_SCORE;
 
 			if (existing_entry->readpos == readend && score1 == score2) {
-				if (_config.STATISTICS) _outer.REDUNDANT++;
+				if (_config.STATISTICS) _mapper.REDUNDANT++;
 				return 1;
 			}
 
