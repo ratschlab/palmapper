@@ -382,16 +382,19 @@ restart:
 
 	if (!cancel)
 	{
-		if (hits._topAlignments.size()>0)
+		if (hits._topAlignments.size()>0) {
+			_stats.READS_MAPPED++ ;
+			hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
+			_read.set_orig(NULL) ;
+			delete trim_orig_read ;
+			trim_orig_read=NULL ;
+			return;
+		}
 			read_mapped = 1 ;
 		//if (_config.VERBOSE && read_mapped)
 		//	printf("unspliced or spliced alignment found\n");
 
-		hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 
-		if (read_mapped)
-			_stats.READS_MAPPED++ ;
-		else
 		{
 			if (_config.RTRIM_STRATEGY && (_read.length() > _config.RTRIM_STRATEGY_MIN_LEN))
 			{
