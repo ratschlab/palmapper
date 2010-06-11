@@ -26,14 +26,18 @@ public:
 		Read &_read;
 		Hits _readMappings;
 		QPalma::Result _qpalma;
+
+		int _rtrim_cut;
+		int _polytrim_cut_start;
+		int _polytrim_cut_end;
 	};
 
 	class Reporter {
 	public:
-
+		virtual void report(Result &result) = 0;
 	};
 
-	Mapper(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma);
+	Mapper(Genome &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter);
 	~Mapper();
 
 	int map_reads(FILE *OUT_FP, FILE *SP_OUT_FP) ;
@@ -58,6 +62,9 @@ public:
 private:
 	QueryFile &_queryFile;
 	QPalma &_qpalma;
+	Reporter &_reporter;
+
+	int num_spliced_alignments_triggered;
 
 	FILE *_OUT_FP;
 	FILE *_SP_OUT_FP;
