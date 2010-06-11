@@ -232,6 +232,6 @@ private:
 	char ALL_HIT_STRATEGY;
 	unsigned int LONGEST_HIT;
 
-	static char HAS_SLOT;
-	static unsigned int SLOTS[2];
+	char HAS_SLOT;
+	unsigned int SLOTS[2];
 };

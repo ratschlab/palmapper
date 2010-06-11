@@ -56,8 +56,8 @@ unsigned int extend_seed(Read const &read, int direction, unsigned int seed_dept
 	return e ;
 }
 
-char Hits::HAS_SLOT;
-unsigned int Hits::SLOTS[2];
+//char Hits::HAS_SLOT;
+//unsigned int Hits::SLOTS[2];
 Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read)
 :	_genome(genome), _genomeMaps(genomeMaps), _mapper(hits), _read(read),
  	CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _topAlignments(&genomeMaps)
@@ -70,6 +70,8 @@ Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read cons
 	alloc_hit_lists_operator();
 	dealloc_hit_lists_operator();
 	alloc_hits_by_score();
+	HAS_SLOT = 0;
+	SLOTS[0] = SLOTS[1] = 0;
 }
 
 Hits::~Hits() {
