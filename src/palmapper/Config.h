@@ -165,4 +165,33 @@ public:
 private:
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;
+	int postprocess_consensus_list(std::vector<const char *> & consensus_list) ;
 };
+
+
+inline void split_string(std::string text, std::vector<const char *>& words, char sep)
+{
+  int i=0;
+  char ch;
+  std::string word;
+
+  while ((ch=text[i++]))
+    {
+      if (ch==sep)
+	{
+	  if (!word.empty())
+	    {
+	      words.push_back(strdup(word.c_str()));
+	    }
+	  word = "";
+	}
+      else
+	{
+	  word += ch;
+	}
+    }
+  if (!word.empty())
+    {
+      words.push_back(strdup(word.c_str())) ;
+    }
+}

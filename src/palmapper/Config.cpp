@@ -234,6 +234,54 @@ int Config::checkConfig()
 	return 0 ;
 }
 
+int Config::postprocess_consensus_list(std::vector<const char *> & consensus_list) 
+{
+  for (unsigned int i=0; i<consensus_list.size(); i++)
+    {
+      if (strlen(consensus_list[i])!=2)
+	{
+	  fprintf(stderr, "invalid consensus %s\n", consensus_list[i]) ;
+	  return -1 ;
+	}
+      if (consensus_list[i][0]=='?')
+	{
+	  char con[3] ;
+	  con[2]=0 ;
+	  con[1]=consensus_list[i][1] ;
+	  const char *acgt="ACGT" ;
+	  con[0]=acgt[0] ;
+	  //free(consensus_list[i]) ;
+	  consensus_list[i]=strdup(con) ;
+	  for (int j=1; j<4; j++)
+	    {
+	      con[0]=acgt[j] ;
+	      consensus_list.push_back(strdup(con)) ;
+	    }
+	}
+      if (consensus_list[i][1]=='?')
+	{
+	  char con[3] ;
+	  con[2]=0 ;
+	  con[0]=consensus_list[i][0] ;
+	  const char *acgt="ACGT" ;
+	  con[1]=acgt[0] ;
+	  //free(consensus_list[i]) ;
+	  consensus_list[i]=strdup(con) ;
+	  for (int j=1; j<4; j++)
+	    {
+	      con[1]=acgt[j] ;
+	      consensus_list.push_back(strdup(con)) ;
+	    }
+	}
+    }
+
+  fprintf(stdout, "consensus list: ") ;
+  for (unsigned int i=0; i<consensus_list.size(); i++)
+    fprintf(stdout, "%s, ", consensus_list[i]) ;
+
+  return 0 ;
+}
+
 int Config::parseCommandLine(int argc, char *argv[]) 
 {
 	int i;
@@ -1230,8 +1278,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-flanking") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(
-						stderr,
+				fprintf(stderr,
 						"-flanking needs an integer value, the length of one of the symmetric flanking regions of a hit\n");
 				exit(1);
 			}
@@ -1281,6 +1328,32 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-no-ss-pred") == 0) {
 			not_defined = 0;
 			NO_SPLICE_PREDICTIONS = 1 ;
+		}
+
+		if (strcmp(argv[i], "-acc-consensus") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "-acc-consensus needs an argument\n");
+				exit(1);
+			}
+			i++;
+			std::string consensus_list = argv[i] ;
+			ACC_CONSENSUS.clear() ;
+			split_string(consensus_list, ACC_CONSENSUS, ',') ;
+			postprocess_consensus_list(ACC_CONSENSUS) ;
+		}
+
+		if (strcmp(argv[i], "-don-consensus") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "-don-consensus needs an argument\n");
+				exit(1);
+			}
+			i++;
+			std::string consensus_list = argv[i] ;
+			DON_CONSENSUS.clear() ;
+			split_string(consensus_list, DON_CONSENSUS, ',') ;
+			postprocess_consensus_list(DON_CONSENSUS) ;
 		}
 
         // qpalma-triggered reads file                     //  #A#
