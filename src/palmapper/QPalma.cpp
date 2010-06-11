@@ -2470,164 +2470,166 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	bool rescued_alignment=false;
 
 	//Alignment not found with less than _config.NUM_EDIT_OPS or _config.NUM_GAPS or _config.NUM_MISMATCHES
-	if (result_length<est_len_p){
-	  alignment_valid=false;
-	  if (verbosity>=2)
-	    fprintf(stdout, "No alignment found\n") ;
-	}
-	else{  	
-	  for (size_t i = 0; i < dna.length(); i++) 
-	    {
-	      if (exon_start == -1 && s_align[i] == 0 && i<dna.length()-1) 
-		{
-		  exon_start = i;
-		  continue;
-		}
-	      if (exon_start!=-1 && i>0)
-		{
-		  alignment_valid = alignment_valid && ((positions[i-1]+1 == positions[i]) || (positions[i-1] == positions[i]+1)) ;
-		  if (verbosity>=3)
-		    fprintf(stdout, "pos[%i]=%i   pos[%i]=%i  valid=%i\n", (int)i-1, (int)positions[i-1], (int)i, (int)positions[i], alignment_valid) ;
-		}
-		
-	      if (exon_start!=-1 && (s_align[i]!=0 || i==dna.length()-1))
-		{
-		  if (exons.size()>0)
-		    {
-		      int intron_len = positions[exon_start]-exons[exons.size()-1] ;
-		      if (strand=='-')
-			intron_len*=-1 ;
-		      if (intron_len>max_intron_len)
-			max_intron_len=intron_len ;
-		    }
-		  exons.push_back(positions[exon_start]) ;
-		  exons.push_back(positions[i-1]) ;
-		  int exon_len=positions[i-1] - positions[exon_start] ;
-		  if (strand=='-')
-		    exon_len*=-1 ;
-		  exon_len++ ;
-		  assert(exon_len>=1) ;
-		  if (exon_len<min_exon_len)
-		    min_exon_len = exon_len ;
-		  exon_start = -1 ;
-		  continue ;
-		}
-	    }
-	  assert(exon_start==-1) ;
-	  assert(exons.size()>0) ;
-	  if (verbosity>=2)
-	    fprintf(stdout, "alignment valid=%i (0 means that exons went over block boundaries)\n", alignment_valid) ;
-
-	  if (strand=='-')
-	    exons=reverse(exons) ;
-	  for (size_t i=0; i<exons.size(); i+=2)
-	    exons[i+1]++ ;
-
-	  if (verbosity >= 2) {
-	    fprintf(stdout, "# exons:\n");
-	    for (size_t i = 0; i < exons.size(); i += 2)
-	      fprintf(stdout, "# %i. %i - %i\n", (int)i / 2, exons[i], exons[i + 1]);
+	if (result_length<est_len_p)
+	  {
+	    alignment_valid=false;
+	    if (verbosity>=2)
+	      fprintf(stdout, "No alignment found\n") ;
 	  }
-
-	  /*fprintf(stdout, "DNA: %d ", s_align[0]);
-	    for (int i = 0; i < dna.length(); i++)
-	    fprintf(stdout, "%i ", s_align[i]);
-	    fprintf(stdout, "\n");
-
-	    fprintf(stdout, "EST: ");
-	    for (int i = 0; i < est_len_p; i++)
-	    fprintf(stdout, "%i ", e_align[i]);
-	    fprintf(stdout, "\n");*/
-
-	  int dna_align[result_length];
-	  int est_align[result_length];
-	  char dna_align_str[result_length + 1];
-	  char est_align_str[result_length + 1];
-
-	  alignment.getAlignmentArrays(dna_align, est_align);
-
-	
-	  //	int alignment_matches = 0;
-	  //int alignment_gaps = 0;
-	  //int alignment_mismatches = 0 ;
-	
-	  //std::string read_anno = std::string("");
-	  char map[8] = "-ACGTN*";
-	  for (int i = 0; i < result_length; i++) {
-	    assert(dna_align[i]>=0 && dna_align[i]<=6);
-	    dna_align_str[i] = map[dna_align[i]];
-
-	    assert(est_align[i]>=0 && est_align[i]<=6);
-	    est_align_str[i] = map[est_align[i]];
-
-	    if (est_align[i]!=0 && est_align[i]!=6 && dna_align[i]!=0)
+	else
+	  {  	
+	    for (size_t i = 0; i < dna.length(); i++) 
 	      {
-		if (est_align[i]==dna_align[i])
-		  read_anno.push_back(map[est_align[i]]) ;
-		else
+		if (exon_start == -1 && s_align[i] == 0 && i<dna.length()-1) 
 		  {
-		    read_anno.push_back('[') ;
-		    if (strand=='+')
+		    exon_start = i;
+		    continue;
+		  }
+		if (exon_start!=-1 && i>0)
+		  {
+		    alignment_valid = alignment_valid && ((positions[i-1]+1 == positions[i]) || (positions[i-1] == positions[i]+1)) ;
+		    if (verbosity>=3)
+		      fprintf(stdout, "pos[%i]=%i   pos[%i]=%i  valid=%i\n", (int)i-1, (int)positions[i-1], (int)i, (int)positions[i], alignment_valid) ;
+		  }
+		
+		if (exon_start!=-1 && (s_align[i]!=0 || i==dna.length()-1))
+		  {
+		    if (exons.size()>0)
 		      {
-			read_anno.push_back(map[dna_align[i]]) ;
-			read_anno.push_back(map[est_align[i]]) ;
-		      } else
+			int intron_len = positions[exon_start]-exons[exons.size()-1] ;
+			if (strand=='-')
+			  intron_len*=-1 ;
+			if (intron_len>max_intron_len)
+			  max_intron_len=intron_len ;
+		      }
+		    exons.push_back(positions[exon_start]) ;
+		    exons.push_back(positions[i-1]) ;
+		    int exon_len=positions[i-1] - positions[exon_start] ;
+		    if (strand=='-')
+		      exon_len*=-1 ;
+		    exon_len++ ;
+		    assert(exon_len>=1) ;
+		    if (exon_len<min_exon_len)
+		      min_exon_len = exon_len ;
+		    exon_start = -1 ;
+		    continue ;
+		  }
+	      }
+	    assert(exon_start==-1) ;
+	    assert(exons.size()>0) ;
+	    if (verbosity>=2)
+	      fprintf(stdout, "alignment valid=%i (0 means that exons went over block boundaries)\n", alignment_valid) ;
+	    
+	    if (strand=='-')
+	      exons=reverse(exons) ;
+	    for (size_t i=0; i<exons.size(); i+=2)
+	      exons[i+1]++ ;
+	    
+	    if (verbosity >= 2) {
+	      fprintf(stdout, "# exons:\n");
+	      for (size_t i = 0; i < exons.size(); i += 2)
+		fprintf(stdout, "# %i. %i - %i\n", (int)i / 2, exons[i], exons[i + 1]);
+	    }
+
+	    /*fprintf(stdout, "DNA: %d ", s_align[0]);
+	      for (int i = 0; i < dna.length(); i++)
+	      fprintf(stdout, "%i ", s_align[i]);
+	      fprintf(stdout, "\n");
+	      
+	      fprintf(stdout, "EST: ");
+	      for (int i = 0; i < est_len_p; i++)
+	      fprintf(stdout, "%i ", e_align[i]);
+	      fprintf(stdout, "\n");*/
+	    
+	    int dna_align[result_length];
+	    int est_align[result_length];
+	    char dna_align_str[result_length + 1];
+	    char est_align_str[result_length + 1];
+	    
+	    alignment.getAlignmentArrays(dna_align, est_align);
+	    
+	    
+	    //	int alignment_matches = 0;
+	    //int alignment_gaps = 0;
+	    //int alignment_mismatches = 0 ;
+	    
+	    //std::string read_anno = std::string("");
+	    char map[8] = "-ACGTN*";
+	    for (int i = 0; i < result_length; i++) {
+	      assert(dna_align[i]>=0 && dna_align[i]<=6);
+	      dna_align_str[i] = map[dna_align[i]];
+	      
+	      assert(est_align[i]>=0 && est_align[i]<=6);
+	      est_align_str[i] = map[est_align[i]];
+	      
+	      if (est_align[i]!=0 && est_align[i]!=6 && dna_align[i]!=0)
+		{
+		  if (est_align[i]==dna_align[i])
+		    read_anno.push_back(map[est_align[i]]) ;
+		  else
+		    {
+		      read_anno.push_back('[') ;
+		      if (strand=='+')
+			{
+			  read_anno.push_back(map[dna_align[i]]) ;
+			  read_anno.push_back(map[est_align[i]]) ;
+			} else
 			{
 			  read_anno.push_back(map[est_align[i]]) ;
 			  read_anno.push_back(map[dna_align[i]]) ;
 			}
-		    read_anno.push_back(']');
-		    alignment_mismatches++ ;
-		  }
-		alignment_matches += (est_align[i]==dna_align[i]) ;
-	      }
-	    else if ( est_align[i]==0 )
+		      read_anno.push_back(']');
+		      alignment_mismatches++ ;
+		    }
+		  alignment_matches += (est_align[i]==dna_align[i]) ;
+		}
+	      else if ( est_align[i]==0 )
+		{
+		  if (dna_align[i]!=0)
+		    {
+		      read_anno.push_back('[') ;
+		      if (strand=='+')
+			{
+			  read_anno.push_back(map[dna_align[i]]) ;
+			  read_anno.push_back('-') ;
+			}
+		      else
+			{
+			  read_anno.push_back('-') ;
+			  read_anno.push_back(map[dna_align[i]]) ;
+			}
+		      read_anno.push_back(']');
+		    }
+		  alignment_gaps++ ;
+		}
+	      else if ( dna_align[i]==0)
+		{
+		  read_anno.push_back('[') ;
+		  if (strand=='+')
+		    {
+		      read_anno.push_back('-') ;
+		      read_anno.push_back(map[est_align[i]]) ;
+		    }
+		  else
+		    {
+		      read_anno.push_back(map[est_align[i]]) ;
+		      read_anno.push_back('-') ;
+		    }
+		  read_anno.push_back(']');
+		  alignment_gaps++;
+		}
+	    }
+	    dna_align_str[result_length] = 0;
+	    est_align_str[result_length] = 0;
+	    
+	    /*if (exons.size() == 2 && strand=='+' && ori==0)
 	      {
-		if (dna_align[i]!=0)
-		  {
-		    read_anno.push_back('[') ;
-		    if (strand=='+')
-		      {
-			read_anno.push_back(map[dna_align[i]]) ;
-			read_anno.push_back('-') ;
-		      }
-		    else
-		      {
-			read_anno.push_back('-') ;
-			read_anno.push_back(map[dna_align[i]]) ;
-		      }
-		    read_anno.push_back(']');
-		  }
-		alignment_gaps++ ;
-	      }
-	    else if ( dna_align[i]==0)
-	      {
-		read_anno.push_back('[') ;
-		if (strand=='+')
-		  {
-		    read_anno.push_back('-') ;
-		    read_anno.push_back(map[est_align[i]]) ;
-		  }
-		else
-		  {
-		    read_anno.push_back(map[est_align[i]]) ;
-		    read_anno.push_back('-') ;
-		  }
-		read_anno.push_back(']');
-		alignment_gaps++;
-	      }
-	  }
-	  dna_align_str[result_length] = 0;
-	  est_align_str[result_length] = 0;
-
-	  /*if (exons.size() == 2 && strand=='+' && ori==0)
-	    {
-	    fprintf(stderr, "unspliced alignscore=%2.4f\n", alignscore) ;
-
-	    float score2=score_unspliced(read_anno.c_str()) ;
-	    //float score2=alignment.scoreUnsplicedAlignment(read_anno.c_str(), prb, _read.lenght(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix) ;
-	    fprintf(stderr, "recomputed alignscore=%2.4f\n", score2) ;
-	    }*/
+	      fprintf(stderr, "unspliced alignscore=%2.4f\n", alignscore) ;
+	      
+	      float score2=score_unspliced(read_anno.c_str()) ;
+	      //float score2=alignment.scoreUnsplicedAlignment(read_anno.c_str(), prb, _read.lenght(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix) ;
+	      fprintf(stderr, "recomputed alignscore=%2.4f\n", score2) ;
+	      }*/
 
 
 	  if (strand=='-')
@@ -2711,7 +2713,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
 	if (alignment_valid && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= readMappings.get_num_edit_ops()))
-		&& (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) ) // it must be spliced and not have too many mismatches
+	    && (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH) ) // it must be spliced and not have too many mismatches
 	{
 		ALIGNMENT *aln = NULL;
 		try 
@@ -2724,6 +2726,24 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			result.delete_regions();
 			return -1;
 		}
+
+		for (unsigned int ne=0; ne<(exons.size()/2)-1; ne++)
+		  {
+		    int istart=exons[ne*2+1] ;
+		    int istop =exons[(ne+1)*2] ;
+		    char buf[1000] ;
+		    if ((ori==0 && strand=='+') || (ori==1 && strand=='+'))
+		      {
+			sprintf(buf, "%c%c..%c%c", contig_idx[istart], contig_idx[istart+1], contig_idx[istop-2], contig_idx[istop-1]) ;
+			//fprintf(stdout, "intron+: %s\n", buf) ;
+		      }
+		    else
+		      {
+			sprintf(buf, "%c%c..%c%c", complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0])) ;
+			//fprintf(stdout, "intron-: %s\n", buf) ;
+		      }
+		    aln->intron_consensus.push_back(strdup(buf)) ;
+		  }
 
 		aln->qpalma_score = alignscore;
 		aln->num_matches = alignment_matches;

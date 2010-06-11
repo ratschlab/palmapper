@@ -31,7 +31,8 @@ typedef struct alignment_t {
 
   HIT* hit ;
   int num ;
-	
+  std::vector<std::string> intron_consensus ;
+
 } ALIGNMENT;
 
 class TopAlignments

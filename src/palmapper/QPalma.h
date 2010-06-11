@@ -188,6 +188,40 @@ protected:
 		}
 	}
 	
+	static inline char complement(char c) {
+	  switch (c) {
+	  case 'a':
+	    return 't';
+	  case 'c':
+	    return 'g';
+	  case 'g':
+	    return 'c';
+	  case 't':
+	    return 'a';
+	  case 'A':
+	    return 'T';
+	  case 'C':
+	    return 'G';
+	  case 'G':
+	    return 'C';
+	  case 'T':
+	    return 'A';
+	  case '[':
+	    return ']';
+	  case ']':
+	    return '[';
+	  case '-':
+	    return '-';
+	  default:
+	    if (c >= 'a' && c <= 'z')
+	      return 'n';
+	    else if (c >= 'A' && c <= 'Z')
+	      return 'N';
+	    else
+	      assert(0);
+	  }
+	}
+
 	static inline std::string complement(std::string str) {
 		for (int i = 0; i < (int)str.length(); i++) {
 			char c = str[i];
