@@ -72,6 +72,7 @@ Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read cons
 	alloc_hits_by_score();
 	HAS_SLOT = 0;
 	SLOTS[0] = SLOTS[1] = 0;
+	seed_covered_reporting_time = 0;
 }
 
 Hits::~Hits() {
@@ -148,8 +149,8 @@ void printhit(Read const &read, HIT* hit) {
 int size_hit(HIT *hit, unsigned int *oldlength, char num);
 void printgenome();
 
-std::vector<bool> seed_covered ;
-clock_t seed_covered_reporting_time = 0 ;
+//std::vector<bool> seed_covered ;
+//clock_t seed_covered_reporting_time = 0 ;
 
 struct seedlist
 {
@@ -204,23 +205,23 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 			// make sure that every seed is only processed once
 			unsigned int index_entry_num=index_entry.num ;
 			int report_repetitive_seeds = _config.REPORT_REPETITIVE_SEEDS ;
-			if (seed_covered.size()<SLOTS[reverse])
-				seed_covered.resize(SLOTS[reverse]+1, false) ;
+			if (_mapper.seed_covered.size()<SLOTS[reverse])
+				_mapper.seed_covered.resize(SLOTS[reverse]+1, false) ;
 			if (report_repetitive_seeds)
 			{
-				if (seed_covered[SLOTS[reverse]])
+				if (_mapper.seed_covered[SLOTS[reverse]])
 					report_repetitive_seeds=0 ;
 				else
-					seed_covered[SLOTS[reverse]] = true ;
+					_mapper.seed_covered[SLOTS[reverse]] = true ;
 
 				if ((clock()-seed_covered_reporting_time)/CLOCKS_PER_SEC>10)
 				{
 					seed_covered_reporting_time=clock() ;
 					size_t num_covered = 0 ;
-					for (size_t ii=0; ii<seed_covered.size(); ii++)
-						if (seed_covered[ii])
+					for (size_t ii=0; ii<_mapper.seed_covered.size(); ii++)
+						if (_mapper.seed_covered[ii])
 							num_covered++ ;
-					fprintf(stdout, "# seed coverage: %ld/%ld (%2.1f%%)\n", num_covered, seed_covered.size(), 100*((float)num_covered)/seed_covered.size()) ;
+					fprintf(stdout, "# seed coverage: %ld/%ld (%2.1f%%)\n", num_covered, _mapper.seed_covered.size(), 100*((float)num_covered)/_mapper.seed_covered.size()) ;
 				}
 			}
 			
