@@ -4,12 +4,10 @@
 
 unsigned int Mapper::MAX_USED_SLOTS;
 unsigned int Mapper::SLOTS[2];
-static clock_t last_timing_report=0 ;
-clock_t time1 = 0, time2a=0, time2a_part1=0, time2a_part2=0, time2a_part3=0, time2a_part4=0, time2a_part5=0, time2b=0, time2c, time3=0 ;
 
 int num_spliced_alignments_triggered=0 ;
 
-void map_reads_timing(int count_reads, float this_read=-1)
+void Mapper::map_reads_timing(int count_reads, float this_read)
 {
 	fprintf(stdout, "# [map_reads] timing: %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, avg/read: %1.3f (%i/%i spliced alignm., %2.1f%%)",
 			((float)time1)/CLOCKS_PER_SEC, ((float)time2a)/CLOCKS_PER_SEC,
@@ -45,6 +43,8 @@ Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, Q
 	MAXHITS = 0;
 	c_map_fast = 0;
 	c_map_short_read = 0;
+	time1 = time2a = time2c = time3 = 0;
+	last_timing_report=0 ;
 }
 
 Mapper::~Mapper() {
@@ -121,9 +121,16 @@ int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 		Result result(_queryFile.read_count(), _read, *this);
 		if (!_queryFile.next_read(_read))
 			break;
+		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;
-		map_read(result);
+		map_read(result, start_time);
+		time3 += clock()-start_time ;
+		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
+		{
+			last_timing_report = clock() ;
+			map_reads_timing(result._nr, ((float)clock()-start_time)/CLOCKS_PER_SEC) ;
+		}
 		if (_config.READ_COUNT_LIMIT && count_reads >= _config.READ_COUNT_LIMIT)
 			break ;
 		// progress output, just for user convenience
@@ -170,7 +177,7 @@ int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 	return(0);
 }
 
-void Mapper::map_read(Result &result) {
+void Mapper::map_read(Result &result, clock_t start_time) {
 	QPalma *qpalma = &result._qpalma._qpalma;
 	unsigned int rtrim_cut = 0 ;
 	unsigned int polytrim_cut_start = 0 ;
@@ -184,9 +191,6 @@ void Mapper::map_read(Result &result) {
 	bool FILTER_STAT = false ;
 
 	Read* trim_orig_read = NULL ;
-
-	clock_t start_time = clock() ;
-
 
 	Hits &hits(result._readMappings);
 	Read &_read(result._read);
@@ -342,16 +346,8 @@ restart:
 
 		if ( trigger )
 		{
-			if (_config.LOG_TRIGGERED) { // #A# begin
-				if (_read.format() == 0)
-					fprintf(_TRIGGERED_LOG_FP, "@%s\n%s\n+\n%s\n", _read.id(), READ, _read.quality(0));
-				else if (_read.format() == 1)
-					fprintf(_TRIGGERED_LOG_FP, ">%s\n%s\n", _read.id(), READ);
-				else
-					fprintf(_TRIGGERED_LOG_FP, "%s\t%s\t%d\t%s\t%s\t%s\n", _read.id(), READ,
-							_read.pe_flag(), _read.quality(0), _read.quality(1), _read.quality(2));
-			}    // #A# end
-
+			if (_config.LOG_TRIGGERED)
+				_read.printOn(_TRIGGERED_LOG_FP);
 		}
 
 		if (_config.SPLICED_HITS && (trigger  || FILTER_STAT))
@@ -412,13 +408,7 @@ restart:
 					_read.cutOffLast();
 					rtrim_cut += 1 ;
 				}
-
-				hits.dealloc_mapping_entries(); //muss eigentlich nur der container zaehler zurückgesetzt werden... optimization?
-				hits.dealloc_hits();
-				hits.dealloc_hits_by_score();
-				hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
-				hits.dealloc_hit_lists_operator();
-
+				hits.clear();
 				goto restart ;
 			}
 
@@ -477,13 +467,7 @@ restart:
 				if (restart)
 				{
 					//fprintf(stdout, "polytrim_cut_start_curr=%i, polytrim_cut_end_curr=%i: %s\n", polytrim_cut_start_curr, polytrim_cut_end_curr, _read.data()) ;
-
-					hits.dealloc_mapping_entries();
-					hits.dealloc_hits();
-					hits.dealloc_hits_by_score();
-					hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
-					hits.dealloc_hit_lists_operator();
-
+					hits.clear();
 					goto restart ;
 				}
 			}
@@ -498,7 +482,6 @@ restart:
 			fprintf(stderr, "lost unspliced alignments\n") ;
 	}
 
-	time3 += clock()-start_time ;
 
 	if (cancel)
 	{
@@ -511,10 +494,4 @@ restart:
 	_read.set_orig(NULL) ;
 	delete trim_orig_read ;
 	trim_orig_read=NULL ;
-
-	if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
-	{
-		last_timing_report = clock() ;
-		map_reads_timing(result._nr, ((float)clock()-start_time)/CLOCKS_PER_SEC) ;
-	}
 }
