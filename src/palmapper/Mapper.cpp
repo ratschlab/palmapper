@@ -97,10 +97,8 @@ int Mapper::init_alignment_structures(Config * config) {
 	return (0);
 }
 
-int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
+int Mapper::map_reads()
 {
-	_OUT_FP = OUT_FP;
-	_SP_OUT_FP = SP_OUT_FP;
 	unsigned int count_reads = 0;
 	//int first_slot = 0, first_pos = 0 ;
 	if (_config.STATISTICS)

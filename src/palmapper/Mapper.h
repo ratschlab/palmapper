@@ -43,7 +43,7 @@ public:
 		_progressChar = c;
 	}
 
-	int map_reads(FILE *OUT_FP, FILE *SP_OUT_FP) ;
+	int map_reads() ;
 	int REDUNDANT;
 
 protected:
@@ -53,12 +53,10 @@ protected:
 	int init_operators() ;
 	int init_alignment_structures(Config * config);
 	void map_read(Result &result, clock_t start_time);
-	CHROMOSOME_ENTRY **GENOME; // doppelt
+	CHROMOSOME_ENTRY **GENOME;
 
 	Genome const &_genome;
 	GenomeMaps &_genomeMaps ;
-
-	static unsigned int SLOTS[2];
 
 private:
 	QueryFile &_queryFile;
@@ -68,8 +66,6 @@ private:
 	int num_spliced_alignments_triggered;
 	char _progressChar;
 
-	FILE *_OUT_FP;
-	FILE *_SP_OUT_FP;
     FILE *_LEFTOVER_FP;
 	FILE *_ADAPTERTRIM_LOG_FP;
 	FILE *_TRIGGERED_LOG_FP;
@@ -81,4 +77,5 @@ private:
 	unsigned int MAXHITS;
 	int c_map_fast;
 	int c_map_short_read;
+	std::vector<bool> seed_covered ;
 };

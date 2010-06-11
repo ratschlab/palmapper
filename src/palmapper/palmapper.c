@@ -45,7 +45,7 @@ public:
 	MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
 	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter) {}
 	void run() {
-		map_reads(NULL, NULL);
+		map_reads();
 	}
 };
 

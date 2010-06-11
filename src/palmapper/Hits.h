@@ -231,6 +231,7 @@ private:
 	int _numEditOps;
 	char ALL_HIT_STRATEGY;
 	unsigned int LONGEST_HIT;
+	clock_t seed_covered_reporting_time;
 
 	char HAS_SLOT;
 	unsigned int SLOTS[2];
