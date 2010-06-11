@@ -402,11 +402,16 @@ int IntervalQuery::interval_query(char* basename, char** score_names, unsigned i
 	      for (i = 0; i < num_scores; i++)
 		  {
 			  /*score_ptr[i + num_scores * (k + m)] = (double)score_maps[i][lindex_ + m];*/
+		    if ((lindex_ + m)*sizeof(score_maps[i][0]) >= (unsigned) score_sizes[i])
+		      score_ptr[i * total_num_pos + (k + m)] = 0.0 ; // rescue, when the conf_cum file is too short
+		    else
+		      {
 #ifdef CONVERT_SCORE_MAPS
-			  score_ptr[i * total_num_pos + (k + m)] = ((double) score_maps[i][lindex_ + m])/65535 ;
+			score_ptr[i * total_num_pos + (k + m)] = ((double) score_maps[i][lindex_ + m])/65535 ;
 #else
-			  score_ptr[i * total_num_pos + (k + m)] = (double) score_maps[i][lindex_ + m] ;
+			score_ptr[i * total_num_pos + (k + m)] = (double) score_maps[i][lindex_ + m] ;
 #endif
+		      }
 		  }
 		}
 	    k += ret;
