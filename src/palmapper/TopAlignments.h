@@ -44,9 +44,9 @@ public:
 		clean_top_alignment_record() ;
 	}
 
-	u_int8_t report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma * qpalma)  ;
+	u_int8_t report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma const * qpalma)  ;
 	int construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
-	alignment_t *gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma * qpalma) ;
+	alignment_t *gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma const *qpalma) ;
 
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;

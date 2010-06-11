@@ -12,7 +12,7 @@
 
 clock_t GenomeMaps::last_report = 0 ;
 
-GenomeMaps::GenomeMaps(Genome* genome_)
+GenomeMaps::GenomeMaps(Genome const &genome_)
 {
 	CHR_MAP_c = NULL ;
 
@@ -34,7 +34,7 @@ GenomeMaps::GenomeMaps(Genome* genome_)
 
 	REPORT_REPETITIVE_SEED_DEPTH_EXTRA = 31 - MAX_INDEX_DEPTH ;
 
-	genome=genome_ ;
+	genome = &genome_ ;
 	
 }
 
@@ -164,7 +164,7 @@ int GenomeMaps::init_reporting()
 
 	for (size_t i=0; i!=genome->nrChromosomes(); ++i) 
 	{
-		Chromosome &chr = genome->chromosome(i);
+		Chromosome const &chr = genome->chromosome(i);
 #ifdef CHR_MAP_DNAARRAY
 		CHR_MAP_a.push_back(new CHR_MAP_DNAARRAY_CLASS(CHR_LENGTH[i])) ;
 		CHR_MAP_c[i]=NULL ;
@@ -488,7 +488,7 @@ int GenomeMaps::read_reporting()
 
 	for (size_t i=0; i<genome->nrChromosomes(); i++)
 	{
-		Chromosome &chr = genome->chromosome(i);
+		Chromosome const &chr = genome->chromosome(i);
 #ifdef CHR_MAP_DNAARRAY
 		bool to_be_transfered=false ;
 		if (CHR_MAP_c[i]==NULL)
@@ -548,7 +548,7 @@ int GenomeMaps::write_reporting()
 	fprintf(stdout, "writing QPALMA reporting map to %s:\n", fname) ;
 	for (size_t i=0; i<genome->nrChromosomes(); i++)
 	{
-		Chromosome &chr = genome->chromosome(i);
+		Chromosome const &chr = genome->chromosome(i);
 #ifdef CHR_MAP_DNAARRAY
 		bool to_be_deleted=false ;
 		if (CHR_MAP_c[i]==NULL)
@@ -634,7 +634,7 @@ int GenomeMaps::init_with_gff(std::string &gff_fname)
 				genome->print_desc(stderr) ;
 				return -1 ;
 			}
-			Chromosome & chr = genome->chromosome(chr_idx) ;
+			Chromosome const &chr = genome->chromosome(chr_idx) ;
 			
 			if (!(start>=0 && (size_t)start<=chr.length()))
 			{

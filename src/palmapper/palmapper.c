@@ -6,10 +6,14 @@
 
 #include "palmapper.h"
 #include "print.h"
+
 #include <palmapper/Mapper.h>
+#include <lang/Thread.h>
 
 Config _config;
 Statistics _stats;
+
+using namespace lang;
 
 class FileReporter : public Mapper::Reporter {
 public:
@@ -17,13 +21,32 @@ public:
 		_out = out;
 		_sp_out = sp_out;
 	}
+
 	void report(Mapper::Result &result) {
+		Mutex::Locker locker(_mutex);
 		result._readMappings.topAlignments().end_top_alignment_record(result._read, _out, _sp_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end);
 	}
 
+	void done() {
+		if (_out != stdout)
+			fprintf(_out, "#done\n") ;
+		if (_sp_out !=stdout)
+			fprintf(_sp_out, "#done\n") ;
+
+	}
 private:
+	Mutex _mutex;
 	FILE *_out;
 	FILE *_sp_out;
+};
+
+class MapperThread : public Thread, public Mapper {
+public:
+	MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
+	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter) {}
+	void run() {
+		map_reads(NULL, NULL);
+	}
 };
 
 int main(int argc, char *argv[]) 
@@ -45,7 +68,7 @@ int main(int argc, char *argv[])
 	FILE *SP_OUT_FP = init_spliced_output_file(_config, OUT_FP);
 
 	Genome genome;
-	GenomeMaps genomemaps(&genome) ;
+	GenomeMaps genomemaps(genome) ;
 
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
@@ -53,8 +76,6 @@ int main(int argc, char *argv[])
 	QueryFile queryFile(_config.QUERY_FILE_NAME);
 	QPalma qpalma(&genome, &genomemaps, 0);
 	FileReporter reporter(OUT_FP, SP_OUT_FP);
-	Mapper mapper(genome, genomemaps, queryFile, qpalma, reporter);
-
 
 	// initialize GenomeMaps
 	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
@@ -117,7 +138,19 @@ int main(int argc, char *argv[])
   	////////////////////////
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	mapper.map_reads(OUT_FP, SP_OUT_FP);
+
+ 	unsigned int numThreads = 1; // _config.NUM_THREADS;
+	MapperThread *threads[numThreads];
+	for (unsigned int i = 0; i < numThreads; ++i) {
+		threads[i] = new MapperThread(genome, genomemaps, queryFile, qpalma, reporter);
+		//threads[i]->setProgressChar((char)('A' + i));
+		printf("Starting thread %d\n", i);
+		threads[i]->launch();
+	}
+	for (unsigned int i = 0; i < numThreads; ++i)
+		threads[i]->join();
+	reporter.done();
+
 	if (_config.OUT_FILE_NAME.length() > 0)
 		fclose(OUT_FP);
 	if (_config.SPLICED_OUT_FILE_NAME.length() > 0)
@@ -125,8 +158,8 @@ int main(int argc, char *argv[])
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);
-		printf("R E D U N D A N T : %d\n", mapper.REDUNDANT);
-		printf("Max used slots: %d\n", Mapper::MAX_USED_SLOTS);
+//TODO:		printf("R E D U N D A N T : %d\n", mapper.REDUNDANT);
+//		printf("Max used slots: %d\n", MAX_USED_SLOTS);
 		printf("\nList iterations: %d\n", _stats.listcount);
 		printf("List iterations occurrences: %d\n",_stats.listocc);
 	}
@@ -160,6 +193,7 @@ int main(int argc, char *argv[])
 	}
 
 	//if (_config.VERBOSE) { printf("La Fin.\n"); }
+	fprintf(stdout, "\n#done\n") ;
 
 	return 0;
 }

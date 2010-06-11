@@ -17,7 +17,7 @@ clock_t time2a_seek=0;
 clock_t time2a_seed2genome = 0 ;
 
 
-unsigned int extend_seed(Read const &read, int direction, unsigned int seed_depth_extra, Chromosome &chr, int genome_pos, int readpos)
+unsigned int extend_seed(Read const &read, int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos)
 {
 	unsigned int e = 0 ;
 	if (direction==-1)	// forward strand
@@ -58,7 +58,7 @@ unsigned int extend_seed(Read const &read, int direction, unsigned int seed_dept
 
 char Hits::HAS_SLOT;
 unsigned int Hits::SLOTS[2];
-Hits::Hits(Genome &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read)
+Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read)
 :	_genome(genome), _genomeMaps(genomeMaps), _mapper(hits), _read(read),
  	CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _topAlignments(&genomeMaps)
 {
@@ -152,7 +152,7 @@ clock_t seed_covered_reporting_time = 0 ;
 struct seedlist
 {
 // dd	int chr ;
-	Chromosome *chr;
+	Chromosome const *chr;
 	int pos ;
 } ;
 
@@ -290,7 +290,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 
 				unsigned int genome_pos = pos + _genome.BLOCK_TABLE[block].pos;
 				//unsigned int genome_chr = BLOCK_TABLE[block].chr;
-				Chromosome &genome_chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
+				Chromosome const &genome_chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
 
 				// Check that read doesn't cross chrom borders
 				if ((!reverse && (genome_pos < readpos-1 || genome_pos+_read.length()-readpos >= genome_chr.length())) ||
@@ -1196,8 +1196,8 @@ CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int po
     
     CHROMOSOME_ENTRY_OPERATOR.used++;
 
-    if (_config.STATISTICS && CHROMOSOME_ENTRY_OPERATOR.used > Mapper::MAX_USED_SLOTS)
-    	Mapper::MAX_USED_SLOTS = CHROMOSOME_ENTRY_OPERATOR.used;
+//TODO:    if (_config.STATISTICS && CHROMOSOME_ENTRY_OPERATOR.used > _outer.MAX_USED_SLOTS)
+//    	_outer.MAX_USED_SLOTS = CHROMOSOME_ENTRY_OPERATOR.used;
 
 	return(entry);
 }
@@ -1406,7 +1406,7 @@ int Hits::map_fast(Read & read)
 						p_block[2]=p_id[2];
 						position = p_id[3];
 						pos = (unsigned int) position + _genome.BLOCK_TABLE[block].pos;	// 0-initialized
-						Chromosome &chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
+						Chromosome const &chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
 
 						//if (_config.REPORT_REPETITIVE_SEEDS)
 						//	report_repetitive_seed(chr, pos, index_entry.num)  ;
@@ -2140,7 +2140,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 // prints out all hits which have been inserted into HITS_BY_EDITOPS
 // called once for each read (?)
-int Hits::analyze_hits(QPalma* qpalma)
+int Hits::analyze_hits(QPalma const * qpalma)
 {
 	int i, printed = 0, nr;
 	HIT *hit;
