@@ -11,6 +11,21 @@
 Config _config;
 Statistics _stats;
 
+class FileReporter : public Mapper::Reporter {
+public:
+	FileReporter(FILE *out, FILE *sp_out) {
+		_out = out;
+		_sp_out = sp_out;
+	}
+	void report(Mapper::Result &result) {
+		result._readMappings.topAlignments().end_top_alignment_record(result._read, _out, _sp_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end);
+	}
+
+private:
+	FILE *_out;
+	FILE *_sp_out;
+};
+
 int main(int argc, char *argv[]) 
 {
 	_config.VersionHeader() ;
@@ -37,7 +52,8 @@ int main(int argc, char *argv[])
 
 	QueryFile queryFile(_config.QUERY_FILE_NAME);
 	QPalma qpalma(&genome, &genomemaps, 0);
-	Mapper mapper(genome, genomemaps, queryFile, qpalma);
+	FileReporter reporter(OUT_FP, SP_OUT_FP);
+	Mapper mapper(genome, genomemaps, queryFile, qpalma, reporter);
 
 
 	// initialize GenomeMaps
@@ -102,6 +118,10 @@ int main(int argc, char *argv[])
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
 	mapper.map_reads(OUT_FP, SP_OUT_FP);
+	if (_config.OUT_FILE_NAME.length() > 0)
+		fclose(OUT_FP);
+	if (_config.SPLICED_OUT_FILE_NAME.length() > 0)
+		fclose(SP_OUT_FP);
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);

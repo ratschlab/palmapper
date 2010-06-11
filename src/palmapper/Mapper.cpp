@@ -5,8 +5,6 @@
 unsigned int Mapper::MAX_USED_SLOTS;
 unsigned int Mapper::SLOTS[2];
 
-int num_spliced_alignments_triggered=0 ;
-
 void Mapper::map_reads_timing(int count_reads, float this_read)
 {
 	fprintf(stdout, "# [map_reads] timing: %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, avg/read: %1.3f (%i/%i spliced alignm., %2.1f%%)",
@@ -20,8 +18,8 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 		fprintf(stdout, "\n") ;
 }
 
-Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma)
-:	_genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma)
+Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
+:	_genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
 {
 	REDUNDANT = 0;
 	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
@@ -45,6 +43,7 @@ Mapper::Mapper(Genome &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, Q
 	c_map_short_read = 0;
 	time1 = time2a = time2c = time3 = 0;
 	last_timing_report=0 ;
+	num_spliced_alignments_triggered=0 ;
 }
 
 Mapper::~Mapper() {
@@ -156,10 +155,6 @@ int Mapper::map_reads(FILE *OUT_FP, FILE *SP_OUT_FP)
 	if (_config.LEFTOVER_FILE_NAME.length() > 0)
 		fprintf(_LEFTOVER_FP, "#done\n");
 
-	if (_config.OUT_FILE_NAME.length() > 0)
-		fclose(OUT_FP);
-	if (_config.SPLICED_OUT_FILE_NAME.length() > 0)
-		fclose(SP_OUT_FP);
 	if (_config.LEFTOVER_FILE_NAME.length() > 0)
 		fclose(_LEFTOVER_FP);
 
@@ -384,7 +379,11 @@ restart:
 	{
 		if (hits._topAlignments.size()>0) {
 			_stats.READS_MAPPED++ ;
-			hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
+			result._rtrim_cut = rtrim_cut;
+			result._polytrim_cut_start = polytrim_cut_start_curr;
+			result._polytrim_cut_end = polytrim_cut_end_curr;
+			_reporter.report(result);
+//			hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 			_read.set_orig(NULL) ;
 			delete trim_orig_read ;
 			trim_orig_read=NULL ;
