@@ -142,6 +142,7 @@ public:
 	int NUM_EDIT_OPS;
 	int NUM_MISMATCHES;
 	int NUM_GAPS;
+    int STRAND;
 	double MM_SCORE;
 	double M_SCORE;
 	double GAP_SCORE;
