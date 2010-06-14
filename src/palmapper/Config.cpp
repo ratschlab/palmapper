@@ -1399,7 +1399,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1);
 			}
 			i++;
-			if ((strcmp(argv[i], "left") != 0 || strcmp(argv[i], "plus") != 0)) {
+			if ((strcmp(argv[i], "left") == 0 || strcmp(argv[i], "plus") == 0)) {
                 STRAND = 1 ; // plus
             }
             else {
