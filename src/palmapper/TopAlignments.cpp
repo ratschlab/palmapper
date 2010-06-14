@@ -1299,7 +1299,14 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
             fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
         }
-	fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
+        else if (_config.STRAND > -1) {
+            if (( curr_align->orientation == '+') && _config.STRAND)
+                fprintf(MY_OUT_FP, "\tXS:A:+") ;
+            else
+                fprintf(MY_OUT_FP, "\tXS:A:-") ;
+        }
+
+        fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
         fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
         fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
         fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;

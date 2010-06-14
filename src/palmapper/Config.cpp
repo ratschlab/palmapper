@@ -95,6 +95,8 @@ Config::Config() {
 	DON_CONSENSUS.push_back(strdup("GC")) ;
 	DON_CONSENSUS_REV.push_back(strdup("AC")) ;
 	DON_CONSENSUS_REV.push_back(strdup("GC")) ;
+
+    STRAND = -1 ;
 };
 
 int Config::applyDefaults(Genome * genome)
@@ -1388,6 +1390,23 @@ int Config::parseCommandLine(int argc, char *argv[])
 			TRIGGERED_LOG_FILE.assign(argv[i]);
 		}                                                   // #A#
 
+		//report output file
+		if (strcmp(argv[i], "-stranded") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1 || (strcmp(argv[i + 1], "left") != 0 && strcmp(argv[i + 1], "right") != 0 && strcmp(argv[i + 1], "plus") != 0 && strcmp(argv[i + 1], "minus") != 0)) {
+				fprintf(stderr, "ERROR: Argument missing for option -stranded\nMust be [ left | right | plus | minus ]") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			if ((strcmp(argv[i], "left") != 0 || strcmp(argv[i], "plus") != 0)) {
+                STRAND = 1 ; // plus
+            }
+            else {
+                STRAND = 0 ; // minus
+            }
+		}
+
 		if (not_defined == 1) {
 			fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
 			usage();
@@ -1447,6 +1466,7 @@ int Config::usage()
 	printf(" -index-extend-threshold INT        number of hits of a seed that lead to an seed-length extension\n");
 	printf(" -index-extend INT                  length of seed-length extension\n");
 	printf(" -index-precache                    linearly read index file to fill caches\n\n");
+    printf(" -stranded STRING                   strand specific experiment [ left | right | plus | minus ]\n");
 
 	printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n");
 	printf(" -polytrim INT                      trims polyA or polyT ends until a hit is found or the minimal length is reached (INT)\n");
