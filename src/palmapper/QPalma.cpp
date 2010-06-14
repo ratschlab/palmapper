@@ -2736,12 +2736,16 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		    char buf[1000] ;
 		    if ((ori==0 && strand=='+') || (ori==1 && strand=='+'))
 		      {
-			sprintf(buf, "%c%c..%c%c", contig_idx[istart], contig_idx[istart+1], contig_idx[istop-2], contig_idx[istop-1]) ;
+			sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istart, istop-1, 
+				contig_idx[istart-2], contig_idx[istart-1], contig_idx[istart], contig_idx[istart+1],  contig_idx[istart+2], contig_idx[istart+3], 
+				contig_idx[istop-4], contig_idx[istop-3], contig_idx[istop-2], contig_idx[istop-1], contig_idx[istop], contig_idx[istop+1]) ;
 			//fprintf(stdout, "intron+: %s\n", buf) ;
 		      }
 		    else
 		      {
-			sprintf(buf, "%c%c..%c%c", complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0])) ;
+			sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istop-1, istart, 
+				complement(contig_idx[istop+1]), complement(contig_idx[istop]), complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istop-3]), complement(contig_idx[istop-4]), 
+				complement(contig_idx[istart+3]), complement(contig_idx[istart+2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0]), complement(contig_idx[istart-1]), complement(contig_idx[istart-2])) ;
 			//fprintf(stdout, "intron-: %s\n", buf) ;
 		      }
 		    aln->intron_consensus.push_back(strdup(buf)) ;

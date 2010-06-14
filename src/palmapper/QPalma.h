@@ -188,7 +188,8 @@ protected:
 		}
 	}
 	
-	static inline char complement(char c) {
+	static inline char complement(char c) 
+	{
 	  switch (c) {
 	  case 'a':
 	    return 't';
