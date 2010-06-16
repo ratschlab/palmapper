@@ -1300,7 +1300,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
         }
         else if (_config.STRAND > -1) {
-            if (( curr_align->orientation == '+') && _config.STRAND)
+            if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
                 fprintf(MY_OUT_FP, "\tXS:A:+") ;
             else
                 fprintf(MY_OUT_FP, "\tXS:A:-") ;
