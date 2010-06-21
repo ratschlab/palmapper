@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <new>
 #include <lang/Thread.h>
 
 namespace lang {
@@ -12,6 +13,8 @@ int Thread::launch() {
 void *Thread::launchInterface(void *self) {
    try {
       ((Thread*) self)->run();
+   } catch (std::exception &ex) {
+	   ::printf("Unhandled exception in thread: %s", ex.what());
    } catch (...) {
       ::printf("Unhandled exception in thread\n");
    }
