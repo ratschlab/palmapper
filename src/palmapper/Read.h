@@ -235,6 +235,10 @@ public:
 	void set_orig(Read* orig) { orig_read=orig ; } ;
 	void printOn(FILE *file) const;
 
+	int getNr() const {
+		return _nr;
+	}
+
 private:
 	int read_short_read();
 
@@ -245,6 +249,7 @@ private:
 	char READ_FORMAT;	// 0: fq, 1: fa, 2: flat
 	char READ_ID[Config::MAX_READ_ID_LENGTH];
 	int READ_PE_FLAG;
+	int _nr;
 	
 	QueryFile &_queryFile;
 

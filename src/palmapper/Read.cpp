@@ -18,8 +18,6 @@
 
 using namespace std;
 
-int get_slot(int pos);
-
 Read::Read(QueryFile &queryFile)
 :	_queryFile(queryFile)
 {

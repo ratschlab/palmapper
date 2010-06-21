@@ -16,12 +16,9 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 }
 
 Mapper::Mapper(Genome const &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
-:	_genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
+:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter), CHROMOSOME_ENTRY_OPERATOR(_genome.LONGEST_CHROMOSOME)
 {
 	REDUNDANT = 0;
-	GENOME = new CHROMOSOME_ENTRY *[_genome.LONGEST_CHROMOSOME];
-	for (unsigned int i=0; i!=_genome.LONGEST_CHROMOSOME; ++i)
-		GENOME[i] = NULL;
 
 	// initialize with meta information
 	if (_config.STATISTICS) {
@@ -45,7 +42,6 @@ Mapper::Mapper(Genome const &genome_,	GenomeMaps &genomemaps_, QueryFile &queryF
 }
 
 Mapper::~Mapper() {
-	delete[] GENOME;
 }
 
 int Mapper::init_alignment_structures(Config * config) {
@@ -113,19 +109,19 @@ int Mapper::map_reads()
 	for (;;) {
 
 		count_reads++;
-		Read _read(_queryFile);
-		Result result(_queryFile.read_count(), _read, *this);
-		if (!_queryFile.next_read(_read))
+		Result &result = *new Result(*this);
+		if (!_queryFile.next_read(result._read))
 			break;
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;
 		map_read(result, start_time);
 		time3 += clock()-start_time ;
+		_reporter.report(result);
 		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 		{
 			last_timing_report = clock() ;
-			map_reads_timing(result._nr, ((float)clock()-start_time)/CLOCKS_PER_SEC) ;
+			//map_reads_timing(result._nr, ((float)clock()-start_time)/CLOCKS_PER_SEC) ;
 		}
 		if (_config.READ_COUNT_LIMIT && count_reads >= _config.READ_COUNT_LIMIT)
 			break ;
@@ -135,7 +131,7 @@ int Mapper::map_reads()
 			fflush(stdout);
 		}
 		if ((count_reads % 10000 == 0)) {
-			printf("%i", count_reads);
+			printf("%i", count_reads); // (%i,%i)", count_reads, GENOME.accesssCount(), GENOME.accesssCountConst());
 			fflush(stdout);
 		}
 	}
@@ -237,7 +233,7 @@ restart:
 	if (_read.length() < _config.HITLEN_LIMIT)
 	{
 		fprintf(stderr, "\n!!! WARNING! Read %d (%s) with length %d is shorter than the hitlength limit (=%d) and will not be processed!\n\n",
-			result._nr, _read.id(), _read.length(), _config.HITLEN_LIMIT);
+			_read.getNr(), _read.id(), _read.length(), _config.HITLEN_LIMIT);
 		return;
 	}
 	//printf("%d ", count_reads); fflush(stdout);
@@ -271,7 +267,7 @@ restart:
 		{
 			c_map_short_read++;
 
-			int ret = hits.map_short_read(_read, result._nr);
+			int ret = hits.map_short_read(_read, _read.getNr());
 
 			if (ret<0)
 				cancel=2 ;
@@ -281,7 +277,8 @@ restart:
 			// removing duplicates:
 			hits.dealloc_mapping_entries();
 
-			hits.CHROMOSOME_ENTRY_OPERATOR.used = 0;
+			CHROMOSOME_ENTRY_OPERATOR.used = 0;
+			GENOME.clear();
 
 			time2b += clock()-start_time ;
 
@@ -374,7 +371,7 @@ restart:
 			result._rtrim_cut = rtrim_cut;
 			result._polytrim_cut_start = polytrim_cut_start_curr;
 			result._polytrim_cut_end = polytrim_cut_end_curr;
-			_reporter.report(result);
+			result._state = HitFound;
 //			hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 			_read.set_orig(NULL) ;
 			delete trim_orig_read ;
@@ -488,4 +485,13 @@ restart:
 	_read.set_orig(NULL) ;
 	delete trim_orig_read ;
 	trim_orig_read=NULL ;
+}
+
+int Mapper::init_operators() {
+	return (0);
+}
+
+int Mapper::init_statistic_vars() {
+	new (&_stats) Statistics();
+	return (0);
 }

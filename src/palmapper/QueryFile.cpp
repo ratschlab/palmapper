@@ -33,7 +33,7 @@ bool QueryFile::next_read(Read &read) {
 	Mutex::Locker locker(_mutex);
 	if (read.read_short_read() > 0)
 		return false;
-	++_readCount;
+	read._nr = _readCount++;
 	if (read.length() > _maxReadLen)
 		_maxReadLen = read.length();
 	return true;

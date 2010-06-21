@@ -7,38 +7,14 @@
 #include "palmapper.h"
 #include "print.h"
 
-#include <palmapper/Mapper.h>
 #include <lang/Thread.h>
+#include <palmapper/FileReporter.h>
+#include <palmapper/Mapper.h>
 
 Config _config;
 Statistics _stats;
 
 using namespace lang;
-
-class FileReporter : public Mapper::Reporter {
-public:
-	FileReporter(FILE *out, FILE *sp_out) {
-		_out = out;
-		_sp_out = sp_out;
-	}
-
-	void report(Mapper::Result &result) {
-		Mutex::Locker locker(_mutex);
-		result._readMappings.topAlignments().end_top_alignment_record(result._read, _out, _sp_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end);
-	}
-
-	void done() {
-		if (_out != stdout)
-			fprintf(_out, "#done\n") ;
-		if (_sp_out !=stdout)
-			fprintf(_sp_out, "#done\n") ;
-
-	}
-private:
-	Mutex _mutex;
-	FILE *_out;
-	FILE *_sp_out;
-};
 
 class MapperThread : public Thread, public Mapper {
 public:
@@ -78,16 +54,16 @@ int main(int argc, char *argv[])
 	FileReporter reporter(OUT_FP, SP_OUT_FP);
 
 	// initialize GenomeMaps
-	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
-	{
-		genomemaps.init_reporting() ;
-
-		if (!_config.REPORT_RESET)
-		{
-			genomemaps.read_reporting() ;
-			genomemaps.do_reporting(1) ;
-		}
-	}
+//	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
+//	{
+//		genomemaps.init_reporting() ;
+//
+//		if (!_config.REPORT_RESET)
+//		{
+//			genomemaps.read_reporting() ;
+//			genomemaps.do_reporting(1) ;
+//		}
+//	}
 
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{
@@ -129,8 +105,8 @@ int main(int argc, char *argv[])
 			fprintf(stdout, "-> donor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_DON) ;
 	}
 
-	if (_config.REPORT_GFF_FILE_NAME.size()>0)
-		genomemaps.init_with_gff(_config.REPORT_GFF_FILE_NAME) ;
+//	if (_config.REPORT_GFF_FILE_NAME.size()>0)
+//		genomemaps.init_with_gff(_config.REPORT_GFF_FILE_NAME) ;
 	
 	// timing //////////////
 	timer_mid=time(NULL);
@@ -139,16 +115,19 @@ int main(int argc, char *argv[])
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
 
- 	unsigned int numThreads = 1; // _config.NUM_THREADS;
+ 	unsigned int numThreads = 1; //_config.NUM_THREADS;
 	MapperThread *threads[numThreads];
 	for (unsigned int i = 0; i < numThreads; ++i) {
 		threads[i] = new MapperThread(genome, genomemaps, queryFile, qpalma, reporter);
-		//threads[i]->setProgressChar((char)('A' + i));
+		threads[i]->setProgressChar((char)('A' + i));
 		printf("Starting thread %d\n", i);
 		threads[i]->launch();
 	}
-	for (unsigned int i = 0; i < numThreads; ++i)
+	for (unsigned int i = 0; i < numThreads; ++i) {
 		threads[i]->join();
+		//TODO: make delete not segfault
+		//delete threads[i];
+	}
 	reporter.done();
 
 	if (_config.OUT_FILE_NAME.length() > 0)

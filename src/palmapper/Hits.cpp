@@ -10,14 +10,13 @@
 #include <palmapper/Genome.h>
 #include <palmapper/Mapper.h>
 
-char* get_seq(Read const &read, unsigned int n);
 void printhit(Read const &read, HIT* hit);
 
 clock_t time2a_seek=0;
 clock_t time2a_seed2genome = 0 ;
 
 
-unsigned int extend_seed(Read const &read, int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos)
+unsigned int Hits::extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos)
 {
 	unsigned int e = 0 ;
 	if (direction==-1)	// forward strand
@@ -25,14 +24,14 @@ unsigned int extend_seed(Read const &read, int direction, unsigned int seed_dept
 		for (e=0; e<seed_depth_extra; e++)
 		{
 			int readpos_ = readpos+_config.INDEX_DEPTH+e-1 ;
-			if (readpos_>=(int)read.length())
+			if (readpos_>=(int)_read.length())
 				break ;
 			int genome_pos_ = genome_pos+_config.INDEX_DEPTH+e ;
 			if (genome_pos_>=(int)chr.length())
 				break ;
 
 //fprintf(stdout,"%c - %c +\n", READ[readpos_], CHR_SEQ(genome_chr,genome_pos_)) ;
-			if (read.data()[readpos_]!=chr[genome_pos_])
+			if (_read.data()[readpos_]!=chr[genome_pos_])
 				break ;
 		}
 	}
@@ -41,14 +40,14 @@ unsigned int extend_seed(Read const &read, int direction, unsigned int seed_dept
 		for (e=0; e<seed_depth_extra; e++)
 		{
 			int readpos_ = readpos+_config.INDEX_DEPTH+e-1;
-			if (readpos_>=(int)read.length())
+			if (readpos_>=(int)_read.length())
 				break ;
 			int genome_pos_ = genome_pos-e-1;
 			if (genome_pos_ < 0)
 				break ;
 
 //fprintf(stdout,"%c - %c -\n", get_compl_base(READ[readpos_]), CHR_SEQ(genome_chr,genome_pos_)) ;
-			if (get_compl_base(read.data()[readpos_])!=chr[genome_pos_])
+			if (get_compl_base(_read.data()[readpos_])!=chr[genome_pos_])
 				break ;
 		}
 	}
@@ -58,11 +57,10 @@ unsigned int extend_seed(Read const &read, int direction, unsigned int seed_dept
 
 //char Hits::HAS_SLOT;
 //unsigned int Hits::SLOTS[2];
-Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read)
-:	_genome(genome), _genomeMaps(genomeMaps), _mapper(hits), _read(read),
- 	CHROMOSOME_ENTRY_OPERATOR(_config.CHROM_CONTAINER_SIZE), _topAlignments(&genomeMaps)
+Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &mapper, Read const &read)
+:	_genome(genome), _genomeMaps(genomeMaps), _mapper(mapper), _read(read),
+ 	GENOME(_mapper.GENOME), CHROMOSOME_ENTRY_OPERATOR(_mapper.CHROMOSOME_ENTRY_OPERATOR), _topAlignments(&genomeMaps)
 {
-	GENOME = hits.GENOME;
 	HITS_IN_SCORE_LIST = 0;
 	ALL_HIT_STRATEGY = _config.ALL_HIT_STRATEGY;
 	_numEditOps = _config.NUM_EDIT_OPS;
@@ -76,8 +74,8 @@ Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read cons
 }
 
 Hits::~Hits() {
-	dealloc_hit_lists_operator();
-	dealloc_hits_by_score();
+//	dealloc_hit_lists_operator();
+//	dealloc_hits_by_score();
 //	for (unsigned int i=0; i!=NUM_SCORE_INTERVALS; ++i) {
 //		for (HIT *hit = HITS_BY_SCORE[i].hitpointer; hit != NULL; ) {
 //			HIT *next = hit->same_eo_succ;
@@ -146,7 +144,6 @@ void printhit(Read const &read, HIT* hit) {
 
 #define TIME_CODE(x) 
 
-int size_hit(HIT *hit, unsigned int *oldlength, char num);
 void printgenome();
 
 //std::vector<bool> seed_covered ;
@@ -194,7 +191,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 		if (read_num == num) 
 		{
 			printf("###############################################\n");
-			printf("Add seed to genomepositions from slot # %d (%s) containing %u genomepositions (%c strand)\n", SLOTS[reverse], get_seq(_read, SLOTS[reverse]), index_entry.num, reverse? '-':'+');
+			printf("Add seed to genomepositions from slot # %d (%s) containing %u genomepositions (%c strand)\n", SLOTS[reverse], get_seq(SLOTS[reverse]), index_entry.num, reverse? '-':'+');
 		}
 
 		
@@ -307,7 +304,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				if (report_repetitive_seeds)
 				{   // check every seed, whether it is extendable by REPORT_REPETITIVE_SEED_DEPTH_EXTRA nucleotides 
 					/// and report it
-					int e = extend_seed(_read, direction, _genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
+					int e = extend_seed(direction, _genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
 
 					if (e==_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA)
 					{
@@ -321,7 +318,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 
 				if (index_entry.num>=_config.INDEX_DEPTH_EXTRA_THRESHOLD)
 				{
-					unsigned int ee = extend_seed(_read, direction, _config.INDEX_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
+					unsigned int ee = extend_seed(direction, _config.INDEX_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
 					if (ee!=_config.INDEX_DEPTH_EXTRA)
 						continue ;
 				}
@@ -351,7 +348,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						return -1;    // chrom_container_size too small -> cancel this read
 					}
 
-					*(GENOME + genome_pos) = chromosome_director;
+					GENOME[genome_pos] = chromosome_director;
 
 				}
 				else {
@@ -383,7 +380,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 							return -1;    // chrom_container_size too small -> cancel this read
 						}
 
-						*(GENOME + genome_pos) = chromosome_director;
+						GENOME[genome_pos] = chromosome_director;
 
 						if (read_num == num) {
 							printf("Overwrite chromosome director %p\n", chromosome_director);
@@ -1024,11 +1021,11 @@ int Hits::duplicate(HIT* hit)
 	char flag = 0;
 
 	if (*(GENOME+readstart) == NULL) {
-				flag = 1;
-				chromosome_director = alloc_chromosome_entry(_read, readstart, *hit->chromosome, strand);
-				if (!chromosome_director)
-					return(-1);	// chrom_container_size too small -> cancel this read
-				*(GENOME + readstart) = chromosome_director;
+		flag = 1;
+		chromosome_director = alloc_chromosome_entry(_read, readstart, *hit->chromosome, strand);
+		if (!chromosome_director)
+			return(-1);	// chrom_container_size too small -> cancel this read
+		GENOME[readstart] = chromosome_director;
 	}
 	else {
 
@@ -1044,7 +1041,7 @@ int Hits::duplicate(HIT* hit)
 
 					if (!chromosome_director)
 						return(-1);	// chrom_container_size too small -> cancel this read
-					*(GENOME + readstart) = chromosome_director;
+					GENOME[readstart] = chromosome_director;
 
 		}
 	}
@@ -1127,11 +1124,11 @@ int Hits::duplicate(HIT* hit)
 }
 
 // for debugging
-char* get_seq(Read const &read, unsigned int n)
+char* Hits::get_seq(unsigned int n)
 {
 	char *seq = (char *) malloc ((_config.INDEX_DEPTH+1)*sizeof(char));
 	if (seq == NULL) {
-		fprintf(stderr, "[get_seq] Could not allocate memory (read.id() = %s)\n", read.id());
+		fprintf(stderr, "[get_seq] Could not allocate memory (read.id() = %s)\n", _read.id());
 		exit(1);
 	}
 	int i, c;
@@ -1164,16 +1161,6 @@ int Hits::init_from_meta_index()
 	return (0);
 }
 
-int Mapper::init_operators() {
-	return (0);
-}
-
-int Mapper::init_statistic_vars() {
-	new (&_stats) Statistics();
-	return (0);
-}
-
-
 int Hits::init_hit_lists() {
 	alloc_hit_lists_operator();
 	alloc_hits_by_score(); // A T T E N T I O N ! ! !   needs correct _config.NUM_EDIT_OPS which can be changed in init_alignment_structures() !!!
@@ -1187,7 +1174,7 @@ CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int po
 		fprintf(stderr, "\n!!! WARNING: Chromosome container size of %d is too small! Hits for read %s cannot be reported any more!\n\n", _config.CHROM_CONTAINER_SIZE, read.id());
 		return(NULL);
 	}
-	
+
 	CHROMOSOME_ENTRY *entry;
 
 	entry = &(CHROMOSOME_ENTRY_OPERATOR.entries[CHROMOSOME_ENTRY_OPERATOR.used]);
@@ -1196,7 +1183,7 @@ CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int po
 	entry->strand = strand;
 	entry->next = NULL;
     entry->mapping_entries = NULL;
-    
+
     CHROMOSOME_ENTRY_OPERATOR.used++;
 
 //TODO:    if (_config.STATISTICS && CHROMOSOME_ENTRY_OPERATOR.used > _outer.MAX_USED_SLOTS)
