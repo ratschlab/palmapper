@@ -44,7 +44,6 @@ char Genome::compl_char[256];
 char Genome::upper_char[256];
 
 Genome::Genome() {
-	hits = NULL ;
 	MAX_POSITIONS = 0;
 	
 	NUM_CHROMOSOMES = 0;

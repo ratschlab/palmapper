@@ -42,10 +42,6 @@ Read::Read(const Read& read)
 }
 
 Read::~Read() {
-	// TODO: free used memory
-//	delete[] READ_ID;
-//	for (int i = 0; i < 3; ++i)
-//		delete[] READ_QUALITY[i];
 }
 
 /** Parses one line of read descriptions in either FASTA, FASTQ or FLATFILE

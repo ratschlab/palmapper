@@ -45,11 +45,11 @@ int QueryFile::determine_read_length(std::string const &filename) {
 	int sum_read_length = 0;
 	int nr_read = 0;
 
+	Read r(file);
 	for (;  nr_read < sample_size; ++nr_read) {
-		Read *r = file.next_read();
-		if (r == NULL)
+		if (!file.next_read(r))
 			break;
-		sum_read_length += r->length();
+		sum_read_length += r.length();
 	}
 	return sum_read_length / nr_read;
 }

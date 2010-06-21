@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
 	
 	FILE *OUT_FP = init_output_file(_config);
 	FILE *SP_OUT_FP = init_spliced_output_file(_config, OUT_FP);
+    FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
 
 	Genome genome;
 	GenomeMaps genomemaps(genome) ;
@@ -51,7 +52,7 @@ int main(int argc, char *argv[])
 
 	QueryFile queryFile(_config.QUERY_FILE_NAME);
 	QPalma qpalma(&genome, &genomemaps, 0);
-	FileReporter reporter(OUT_FP, SP_OUT_FP);
+	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
 
 	// initialize GenomeMaps
 //	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
 
- 	unsigned int numThreads = 1; //_config.NUM_THREADS;
+ 	unsigned int numThreads = _config.NUM_THREADS;
 	MapperThread *threads[numThreads];
 	for (unsigned int i = 0; i < numThreads; ++i) {
 		threads[i] = new MapperThread(genome, genomemaps, queryFile, qpalma, reporter);
@@ -134,6 +135,10 @@ int main(int argc, char *argv[])
 		fclose(OUT_FP);
 	if (_config.SPLICED_OUT_FILE_NAME.length() > 0)
 		fclose(SP_OUT_FP);
+	if (_config.LEFTOVER_FILE_NAME.length() > 0) {
+		fprintf(LEFTOVER_FP, "#done\n");
+		fclose(LEFTOVER_FP);
+	}
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);

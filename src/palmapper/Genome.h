@@ -34,13 +34,7 @@ class Mapper ;
 class Genome {
 public:
 	Genome();
-	Genome(bool dontCare) {hits=NULL ;}
 
-	void set_hits(Mapper* hits_)
-	{
-		hits=hits_ ;
-	}
-	
 	Chromosome const &chromosome(int index) const{
 		return _chromosomes[index];
 	}
@@ -122,8 +116,6 @@ public:
 #endif // dd
 
 	unsigned long int MAX_POSITIONS;
-
-	Mapper* hits ;
 };
 
 inline char unique_base(char c)
