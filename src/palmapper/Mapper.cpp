@@ -180,8 +180,6 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 		_read.find_adapter(adapter_cut_start, adapter_cut_end) ;
 		if (_read.length()-(adapter_cut_start+adapter_cut_end) < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
 		{
-//			if (_config.LEFTOVER_FILE_NAME.length() > 0)
-//				print_leftovers(_read, "(too short after trimming)", _LEFTOVER_FP);
 			result._state = TooShortAfterTrimming;
 			return;
 		}
@@ -367,7 +365,6 @@ restart:
 			result._polytrim_cut_start = polytrim_cut_start_curr;
 			result._polytrim_cut_end = polytrim_cut_end_curr;
 			result._state = ReadMapped;
-//			hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 			_read.set_orig(NULL) ;
 			delete trim_orig_read ;
 			trim_orig_read=NULL ;
@@ -458,8 +455,6 @@ restart:
 				}
 			}
 
-//			if (_config.LEFTOVER_FILE_NAME.length() > 0)
-//				print_leftovers(_read, "", _LEFTOVER_FP);
 			result._state = NothingFound;
 		}
 	}
@@ -473,8 +468,6 @@ restart:
 	if (cancel)
 	{
 		fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", _read.id(), cancel, READ) ;
-//		if (_config.LEFTOVER_FILE_NAME.length() > 0)
-//			print_leftovers(_read, " (read mapping failed)", _LEFTOVER_FP);
 		result._state = MappingFailed;
 	}
 
