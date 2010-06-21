@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <palmapper/Config.h>
 #include <palmapper/QueryFile.h>
@@ -8,7 +9,7 @@
 #include <palmapper/Genome.h>
 
 Config::Config() {
-	NUM_THREADS = 4;
+	NUM_THREADS = ::sysconf(_SC_NPROCESSORS_ONLN);
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
