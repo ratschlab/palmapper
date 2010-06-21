@@ -65,7 +65,7 @@ protected:
 	GenomeArr GENOME;
 
 	Genome const &_genome;
-	GenomeMaps _genomeMaps ;
+	GenomeMaps &_genomeMaps ;
 
 private:
 	QueryFile &_queryFile;

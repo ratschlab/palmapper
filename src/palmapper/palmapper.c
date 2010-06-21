@@ -126,8 +126,7 @@ int main(int argc, char *argv[])
 	}
 	for (unsigned int i = 0; i < numThreads; ++i) {
 		threads[i]->join();
-		//TODO: make delete not segfault
-		//delete threads[i];
+		delete threads[i];
 	}
 	reporter.done();
 
