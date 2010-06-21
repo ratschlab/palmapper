@@ -75,7 +75,6 @@ private:
 	int num_spliced_alignments_triggered;
 	char _progressChar;
 
-    //FILE *_LEFTOVER_FP;
 	FILE *_ADAPTERTRIM_LOG_FP;
 	FILE *_TRIGGERED_LOG_FP;
 
