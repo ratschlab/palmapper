@@ -35,7 +35,20 @@ GenomeMaps::GenomeMaps(Genome const &genome_)
 	REPORT_REPETITIVE_SEED_DEPTH_EXTRA = 31 - MAX_INDEX_DEPTH ;
 
 	genome = &genome_ ;
-	
+
+	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
+	{
+		init_reporting() ;
+
+		if (!_config.REPORT_RESET)
+		{
+			read_reporting() ;
+			do_reporting(1) ;
+		}
+	}
+
+	if (_config.REPORT_GFF_FILE_NAME.size()>0)
+		init_with_gff(_config.REPORT_GFF_FILE_NAME) ;
 }
 
 GenomeMaps::~GenomeMaps()

@@ -12,18 +12,22 @@ class Mapper {
 
 public:
 
+	enum ResultState {
+		NothingFound,
+		HitFound
+	};
 	class Result {
 	public:
-		Result(int nr, Read &read, Mapper &mapper)
-		: 	_read(read),
-		  	_readMappings(mapper._genome, mapper._genomeMaps, mapper, read),
-		  	_qpalma(read, mapper._qpalma)
+		Result(Mapper &mapper)
+		: 	_read(mapper._queryFile),
+		  	_readMappings(mapper._genome, mapper._genomeMaps, mapper, _read),
+		  	_qpalma(_read, mapper._qpalma)
 		{
-			_nr = nr;
+			_state = NothingFound;
 		}
 
-		int _nr;
-		Read &_read;
+		ResultState _state;
+		Read _read;
 		Hits _readMappings;
 		QPalma::Result _qpalma;
 
@@ -53,10 +57,10 @@ protected:
 	int init_operators() ;
 	int init_alignment_structures(Config * config);
 	void map_read(Result &result, clock_t start_time);
-	CHROMOSOME_ENTRY **GENOME;
+	GenomeArr GENOME;
 
 	Genome const &_genome;
-	GenomeMaps &_genomeMaps ;
+	GenomeMaps _genomeMaps ;
 
 private:
 	QueryFile &_queryFile;
@@ -78,4 +82,5 @@ private:
 	int c_map_fast;
 	int c_map_short_read;
 	std::vector<bool> seed_covered ;
+	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
 };

@@ -43,6 +43,7 @@ GM_OBJ = $(ObjDir)/gm/palmapper/GenomeMaps.o \
 	$(ObjDir)/gm/palmapper/print.o \
 	$(ObjDir)/gm/palmapper/Chromosome.o \
 	$(ObjDir)/gm/palmapper/Config.o \
+	$(ObjDir)/gm/palmapper/FileReporter.o \
 	$(ObjDir)/gm/palmapper/Genome.o \
 	$(ObjDir)/gm/palmapper/Hits.o \
 	$(ObjDir)/gm/palmapper/Mapper.o \
@@ -62,6 +63,7 @@ PM_OBJ = $(ObjDir)/pm/palmapper/GenomeMaps.o \
 	$(ObjDir)/pm/palmapper/print.o \
 	$(ObjDir)/pm/palmapper/Chromosome.o \
 	$(ObjDir)/pm/palmapper/Config.o \
+	$(ObjDir)/pm/palmapper/FileReporter.o \
 	$(ObjDir)/pm/palmapper/Genome.o \
 	$(ObjDir)/pm/palmapper/Hits.o \
 	$(ObjDir)/pm/palmapper/Mapper.o \

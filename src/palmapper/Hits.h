@@ -2,6 +2,8 @@
 
 #include <assert.h>
 #include <vector>
+#include <ext/hash_map>
+
 #include <palmapper/Config.h>
 #include <palmapper/Chromosome.h>
 #include <palmapper/QPalma.h>
@@ -89,6 +91,65 @@ struct CHROMOSOME_ENTRY {
 	// It seems to be cheaper to store the back-pointer information (pos)
 	// in each of these entries rather than having a superior structure.
 };
+
+
+template <class T> class  MyArr {
+public:
+	MyArr(int size) {
+		_accessCount = _accessCountConst = 0;
+		_array = new T[size];
+		memset(_array, 0, sizeof(T) * size);
+	}
+
+	~MyArr() {
+		delete[] _array;
+	}
+
+	T const &operator[] (size_t index) const {
+		++_accessCountConst;
+		return _array[index];
+	}
+
+	T &operator[] (size_t index) {
+		++_accessCount;
+		return _array[index];
+	}
+
+	T const *operator + (int size) const {
+		return &(*this)[size];
+	}
+
+	int accesssCountConst() const {
+		return _accessCountConst;
+	}
+
+	int accesssCount() const {
+		return _accessCount;
+	}
+
+	void clear() {
+	}
+
+private:
+	mutable int _accessCountConst;
+	mutable int _accessCount;
+	T *_array;
+};
+
+using namespace std;
+using namespace __gnu_cxx;
+template <class T> class GenomeMap : public hash_map<int, T> {
+public:
+
+	GenomeMap(int) : hash_map<int, T>(2048) {}
+
+	T const *operator + (int index) {
+		return &(*this)[index];
+	}
+};
+
+typedef MyArr<CHROMOSOME_ENTRY*> GenomeArr;
+//typedef GenomeMap<CHROMOSOME_ENTRY*> GenomeArr;
 
 struct CHROMOSOME_ENTRY_CONTAINER {
 	CHROMOSOME_ENTRY_CONTAINER(int nrEntries) {
@@ -208,24 +269,27 @@ public:
 		dealloc_hits();
 		dealloc_hits_by_score();
 		CHROMOSOME_ENTRY_OPERATOR.used = 0;
+		GENOME.clear();
 		dealloc_hit_lists_operator();
 	}
 
 private:
 	int alloc_hits_by_score() ;
 	int alloc_hit_lists_operator() ;
+	char* get_seq(unsigned int n);
 	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand);
-
+	unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos);
 	Genome const &_genome;
 	GenomeMaps &_genomeMaps;
 	HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
 	unsigned int NUM_SCORE_INTERVALS;
 	Container<true, MAPPING_ENTRY> _mappings;
 	Container<true, HIT> _hits;
-	CHROMOSOME_ENTRY **GENOME; // doppelt
+	//CHROMOSOME_ENTRY **GENOME; // doppelt
 	Mapper &_mapper;
 	Read const &_read;
-	CHROMOSOME_ENTRY_CONTAINER CHROMOSOME_ENTRY_OPERATOR;
+	GenomeArr &GENOME;
+	CHROMOSOME_ENTRY_CONTAINER &CHROMOSOME_ENTRY_OPERATOR;
 	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	TopAlignments _topAlignments;
 	int _numEditOps;
