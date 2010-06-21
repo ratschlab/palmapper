@@ -118,9 +118,10 @@ int main(int argc, char *argv[])
 
  	unsigned int numThreads = _config.NUM_THREADS;
 	MapperThread *threads[numThreads];
+	std::string threadIds(".+-:=!$'");
 	for (unsigned int i = 0; i < numThreads; ++i) {
 		threads[i] = new MapperThread(genome, genomemaps, queryFile, qpalma, reporter);
-		threads[i]->setProgressChar((char)('A' + i));
+		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
 		printf("Starting thread %d\n", i);
 		threads[i]->launch();
 	}
