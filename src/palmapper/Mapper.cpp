@@ -15,7 +15,7 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 		fprintf(stdout, "\n") ;
 }
 
-Mapper::Mapper(Genome const &genome_,	GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
+Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
 :	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter), CHROMOSOME_ENTRY_OPERATOR(_genome.LONGEST_CHROMOSOME)
 {
 	REDUNDANT = 0;
@@ -25,7 +25,6 @@ Mapper::Mapper(Genome const &genome_,	GenomeMaps &genomemaps_, QueryFile &queryF
 		init_statistic_vars(); //updated
 	}
 	init_alignment_structures(&_config);
-    _LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
 	_ADAPTERTRIM_LOG_FP = _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0 ? Util::openFile(_config.ADAPTERTRIM_STRATEGY_LOG, "w+") : NULL;
 	if (_ADAPTERTRIM_LOG_FP==NULL && _config.ADAPTERTRIM_STRATEGY_LOG.length() > 0)
 	{
@@ -139,13 +138,6 @@ int Mapper::map_reads()
 	map_reads_timing(count_reads) ;
 	_qpalma.capture_hits_timing();
 
-	//TODO mt report leftovers in Reporter
-	if (_config.LEFTOVER_FILE_NAME.length() > 0)
-		fprintf(_LEFTOVER_FP, "#done\n");
-
-	if (_config.LEFTOVER_FILE_NAME.length() > 0)
-		fclose(_LEFTOVER_FP);
-
 	if (_config.STATISTICS)
 	{
 		printf("\n\n    MAP_FAST  = %d\n", c_map_fast);
@@ -188,8 +180,9 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 		_read.find_adapter(adapter_cut_start, adapter_cut_end) ;
 		if (_read.length()-(adapter_cut_start+adapter_cut_end) < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
 		{
-			if (_config.LEFTOVER_FILE_NAME.length() > 0)
-				print_leftovers(_read, "(too short after trimming)", _LEFTOVER_FP);
+//			if (_config.LEFTOVER_FILE_NAME.length() > 0)
+//				print_leftovers(_read, "(too short after trimming)", _LEFTOVER_FP);
+			result._state = TooShortAfterTrimming;
 			return;
 		}
 
@@ -227,6 +220,7 @@ restart:
 	{
 		if (_config.VERBOSE)
 			fprintf(stdout, "read has %i non-ACGT characters, allowing only %i mismatches -> skip read\n", num_N, _config.NUM_MISMATCHES) ;
+		result._state = NonACGTChar;
 		return;
 	}
 
@@ -234,6 +228,7 @@ restart:
 	{
 		fprintf(stderr, "\n!!! WARNING! Read %d (%s) with length %d is shorter than the hitlength limit (=%d) and will not be processed!\n\n",
 			_read.getNr(), _read.id(), _read.length(), _config.HITLEN_LIMIT);
+		result._state = ReadShorterThanHitLengthLimit;
 		return;
 	}
 	//printf("%d ", count_reads); fflush(stdout);
@@ -371,7 +366,7 @@ restart:
 			result._rtrim_cut = rtrim_cut;
 			result._polytrim_cut_start = polytrim_cut_start_curr;
 			result._polytrim_cut_end = polytrim_cut_end_curr;
-			result._state = HitFound;
+			result._state = ReadMapped;
 //			hits._topAlignments.end_top_alignment_record(_read, _OUT_FP, _SP_OUT_FP, rtrim_cut, polytrim_cut_start_curr, polytrim_cut_end_curr);
 			_read.set_orig(NULL) ;
 			delete trim_orig_read ;
@@ -463,8 +458,9 @@ restart:
 				}
 			}
 
-			if (_config.LEFTOVER_FILE_NAME.length() > 0)
-				print_leftovers(_read, "", _LEFTOVER_FP);
+//			if (_config.LEFTOVER_FILE_NAME.length() > 0)
+//				print_leftovers(_read, "", _LEFTOVER_FP);
+			result._state = NothingFound;
 		}
 	}
 	else
@@ -477,8 +473,9 @@ restart:
 	if (cancel)
 	{
 		fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", _read.id(), cancel, READ) ;
-		if (_config.LEFTOVER_FILE_NAME.length() > 0)
-			print_leftovers(_read, " (read mapping failed)", _LEFTOVER_FP);
+//		if (_config.LEFTOVER_FILE_NAME.length() > 0)
+//			print_leftovers(_read, " (read mapping failed)", _LEFTOVER_FP);
+		result._state = MappingFailed;
 	}
 
 	// forget about the original read

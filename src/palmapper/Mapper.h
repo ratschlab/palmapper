@@ -13,8 +13,13 @@ class Mapper {
 public:
 
 	enum ResultState {
+		ReadMapped = 0,
 		NothingFound,
-		HitFound
+		TooShortAfterTrimming,
+		MappingFailed,
+		IgnoreResultBound,
+		NonACGTChar,
+		ReadShorterThanHitLengthLimit,
 	};
 	class Result {
 	public:
@@ -70,7 +75,7 @@ private:
 	int num_spliced_alignments_triggered;
 	char _progressChar;
 
-    FILE *_LEFTOVER_FP;
+    //FILE *_LEFTOVER_FP;
 	FILE *_ADAPTERTRIM_LOG_FP;
 	FILE *_TRIGGERED_LOG_FP;
 

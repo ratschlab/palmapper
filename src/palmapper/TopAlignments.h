@@ -41,6 +41,7 @@ public:
     TopAlignments(GenomeMaps* genomemaps_) ;
 	~TopAlignments()
 	{
+		free(ALIGNSEQ);
 		clean_top_alignment_record() ;
 	}
 

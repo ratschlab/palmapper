@@ -1880,7 +1880,7 @@ Hits &readMappings, std::string read_string, std::string read_quality, std::stri
 //		}
 		//fprintf(stderr, "thread #%i started\n", (int)thread_data.size()) ;
 		
-//		thread_data.push_back(data) ;
+		thread_data.push_back(data) ;
 		
 		return 0 ; // in the meaning of perform_alignment this corresponds to a spliced alignment
 	}

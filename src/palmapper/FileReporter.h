@@ -4,7 +4,7 @@
 
 class FileReporter : public Mapper::Reporter {
 public:
-	FileReporter(FILE *out, FILE *sp_out);
+	FileReporter(FILE *out, FILE *sp_out, FILE *left_overs);
 
 	void done() {
 		if (_out != stdout)
@@ -20,6 +20,7 @@ private:
 	Mutex _mutex;
 	FILE *_out;
 	FILE *_sp_out;
+	FILE *_left_overs;
 	Mapper::Result *_results[_nrResults];
 	volatile int _lastResult;
 };
