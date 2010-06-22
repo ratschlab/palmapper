@@ -34,7 +34,7 @@ Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryF
 	MAXHITS = 0;
 	c_map_fast = 0;
 	c_map_short_read = 0;
-	time1 = time2a = time2c = time3 = 0;
+	time1 = time2a = time2b = time2c = time3 = 0;
 	last_timing_report=0 ;
 	num_spliced_alignments_triggered=0 ;
 	_progressChar = '.';
