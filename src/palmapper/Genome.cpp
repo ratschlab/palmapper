@@ -57,6 +57,10 @@ Genome::Genome() {
 	init_constants(); // updated
 }
 
+Genome::~Genome() {
+	delete[] _chromosomes;
+	free(INDEX);
+}
 
 int Genome::alloc_index_memory()
 {

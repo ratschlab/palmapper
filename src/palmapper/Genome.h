@@ -34,6 +34,7 @@ class Mapper ;
 class Genome {
 public:
 	Genome();
+	~Genome();
 
 	Chromosome const &chromosome(int index) const{
 		return _chromosomes[index];

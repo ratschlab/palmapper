@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <stdio.h>
 #include <string>
 
 template <int bits> class ChromosomeBase {
@@ -89,19 +90,22 @@ template <int bits> void ChromosomeBase<bits>::data(char *ascii, uint32_t len) {
 		initClass();
 	_length = len;
 	_data = new uint8_t[(len + _valuesPerByte - 1) / _valuesPerByte];
-	char *end = ascii + len;
 	if (len == 0) {
 		delete[] ascii;
 		return;
 	}
 
+	char *src = ascii;
+	char *end = ascii + len;
 	uint8_t *pos = _data;
+
 	for (;;) {
 		uint8_t b = 0;
 		for (int i = 0; i < _valuesPerByte; ++i) {
-			b |= _dna2num[(unsigned)*ascii]  << (bits * i);
-			if (++ascii >= end) {
+			b |= _dna2num[(unsigned)*src]  << (bits * i);
+			if (++src >= end) {
 				*pos = b;
+				delete[] ascii;
 				return;
 			}
 		}
