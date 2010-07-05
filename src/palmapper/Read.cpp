@@ -59,21 +59,10 @@ int Read::read_short_read()
 	char *tmp;
 	int linelen;
 
-	if (!_queryFile.next_line(line, sizeof(line))) {
-		if (READ_LENGTH == 0)
-			cerr << "\n!!! WARNING: Input read file '" << _config.QUERY_FILE_NAME << "' is empty!\n\n";
-		return 1;
-	}
-
-	if (strcspn(line, " \n\t") == 0) {
-		do {
-			if (!_queryFile.next_line(line, sizeof(line))) {
-				if (READ_LENGTH == 0)
-					cerr << "\n!!! WARNING: Input read file '" << _config.QUERY_FILE_NAME << "' is empty!\n\n";
-				return 1;
-			}
-		} while (strcspn(line, " \n\t") == 0);
-	}
+	do {
+		if (!_queryFile.next_line(line, sizeof(line)))
+			return 1;
+	} while (strcspn(line, " \n\t") == 0);
 
 	linelen = strlen(line);
 	if (linelen < 3) {
