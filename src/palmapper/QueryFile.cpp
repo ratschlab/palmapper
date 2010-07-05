@@ -1,5 +1,9 @@
+#include <iostream>
+
 #include <palmapper/QueryFile.h>
 #include <palmapper/Read.h>
+
+using namespace std;
 
 QueryFile::QueryFile(std::string filename) {
 	_filename = filename;
@@ -31,8 +35,11 @@ Read *QueryFile::next_read() {
 
 bool QueryFile::next_read(Read &read) {
 	Mutex::Locker locker(_mutex);
-	if (read.read_short_read() > 0)
+	if (read.read_short_read() > 0) {
+		if (_readCount == 0)
+			cerr << "\n!!! WARNING: Input read file '" << _filename << "' contains no usable read!\n\n";
 		return false;
+	}
 	read._nr = _readCount++;
 	if (read.length() > _maxReadLen)
 		_maxReadLen = read.length();
