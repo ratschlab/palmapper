@@ -982,7 +982,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr, "ERROR: output filter already defined\n") ;
 				exit(1) ;
 			}
-			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
+			//OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
+			OUTPUT_FILTER=OUTPUT_FILTER_DEFAULT ;
 			ALL_HIT_STRATEGY = 1 ;
 		}
 
