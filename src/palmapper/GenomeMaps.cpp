@@ -217,7 +217,7 @@ int GenomeMaps::report_repetitive_seed(Chromosome const &chr, int chr_start, int
 		return 0 ;
 	if (!(chr_start>=0 && (size_t)chr_start<=chr.length()))
 	{
-		fprintf(stderr, "report_mapped_region: start out of bounds\n") ;
+		fprintf(stdout, "report_mapped_region: start out of bounds\n") ;
 		if (chr_start<0)
 			chr_start = 0 ;
 		else
@@ -270,7 +270,7 @@ int GenomeMaps::report_mapped_region(Chromosome const &chr, int chr_start, int c
 
 	if (!(chr_start>=0 && (size_t)chr_start<=chr.length()))
 	{
-		fprintf(stderr, "report_mapped_region: start out of bounds\n") ;
+		fprintf(stdout, "report_mapped_region: start out of bounds\n") ;
 		if (chr_start<0)
 			chr_start = 0 ;
 		else
@@ -278,7 +278,7 @@ int GenomeMaps::report_mapped_region(Chromosome const &chr, int chr_start, int c
 	}
 	if (!(chr_end>=0 && (size_t)chr_end<=chr.length()))
 	{
-		fprintf(stderr, "report_mapped_region: end out of bounds\n") ;
+		fprintf(stdout, "report_mapped_region: end out of bounds\n") ;
 		if (chr_end<0)
 			chr_end = 0 ;
 		else
@@ -302,7 +302,7 @@ int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, in
 	end = end + Config::QPALMA_USE_MAP_WINDOW;
 	if (!(start>=0 && (size_t)start<=chr.length()))
 	{
-		fprintf(stderr, "report_mapped_read: start out of bounds\n") ;
+		fprintf(stdout, "report_mapped_read: start out of bounds\n") ;
 		if (start<0)
 			start = 0 ;
 		else
@@ -311,7 +311,7 @@ int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, in
 	
 	if (!(end>=0 && (size_t)end<=chr.length()))
 	{
-		fprintf(stderr, "report_mapped_read: end out of bounds\n") ;
+		fprintf(stdout, "report_mapped_read: end out of bounds\n") ;
 		if (end<0)
 			end = 0 ;
 		else
@@ -367,7 +367,7 @@ int GenomeMaps::report_spliced_read(Chromosome const &chr, std::vector<int> & ex
 		
 		if (!(start>=0 && (size_t)start<=chr.length()))
 		{
-			fprintf(stderr, "report_spliced_read: start out of bounds\n") ;
+			fprintf(stdout, "report_spliced_read: start out of bounds\n") ;
 			if (start<0)
 				start = 0 ;
 			else
@@ -376,7 +376,7 @@ int GenomeMaps::report_spliced_read(Chromosome const &chr, std::vector<int> & ex
 	
 		if (!(end>=0 && (size_t)end<=chr.length()))
 		{
-			fprintf(stderr, "report_spliced_read: end out of bounds\n") ;
+			fprintf(stdout, "report_spliced_read: end out of bounds\n") ;
 			if (end<0)
 				end = 0 ;
 			else
