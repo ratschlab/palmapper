@@ -2,7 +2,8 @@ dataDir = data
 resultDir ?= $(dataDir)
 ext =
 binDir = ..
-nrThreads ?= $(shell grep processor /proc/cpuinfo | wc -l)
+#nrThreads ?= $(shell grep processor /proc/cpuinfo | wc -l)
+nrThreads=1
 
 Unmapped = split_1m.000.unmapped$(ext)
 Mapped = split_1m.000.mapped$(ext)
