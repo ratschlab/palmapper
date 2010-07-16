@@ -4,7 +4,7 @@
 
 namespace lang {
 
-::pthread_mutex_t Mutex::_mutexInitializer = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+::pthread_mutex_t Mutex::_mutexInitializer = PTHREAD_MUTEX_INITIALIZER;
 
 int Thread::launch() {
    return ::pthread_create(&_handle, NULL, &launchInterface, this);
