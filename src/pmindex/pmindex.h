@@ -17,7 +17,7 @@
 // ##############################################################
 
 #define MIN_INDEX_DEPTH 5
-#define MAX_INDEX_DEPTH 12
+#define MAX_INDEX_DEPTH 13
 
 extern char VERBOSE;
 extern char HAS_SLOT;
