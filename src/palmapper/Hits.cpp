@@ -12,9 +12,6 @@
 
 void printhit(Read const &read, HIT* hit);
 
-clock_t time2a_seek=0;
-clock_t time2a_seed2genome = 0 ;
-
 
 unsigned int Hits::extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos)
 {
@@ -83,7 +80,6 @@ Hits::~Hits() {
 //			hit = next;
 //		}
 //	}
-
 	free( HITS_BY_SCORE);
 	free(HIT_LISTS_OPERATOR);
 }
@@ -141,8 +137,20 @@ void printhit(Read const &read, HIT* hit) {
 //}
 
 
+//static clock_t time2a_seek=0, time2a_part1=0, time2a_part2=0, time2a_part3=0, time2a_part4=0, time2a_part5=0,time2a_last_report=0 ;
+//static int time2a_seek_cnt=0, time2a_part1_cnt=0, time2a_part2_cnt=0, time2a_part3_cnt=0, time2a_part4_cnt=0, time2a_part5_cnt=0 ;
+
+static bool mutex_initialized = false ;
+static pthread_mutex_t seed_mutex;
 
 #define TIME_CODE(x) 
+//#define TIME_CODE(x) pthread_mutex_lock( &seed_mutex) ; x ; pthread_mutex_unlock( &seed_mutex) ;
+
+static clock_t time2a_seed2genome=0, time2a_last_report_total=0;
+static int time2a_seed2genome_cnt=0; 
+
+//#define TIME_CODE_TOTAL(x) 
+#define TIME_CODE_TOTAL(x) pthread_mutex_lock( &seed_mutex) ; x ; pthread_mutex_unlock( &seed_mutex) ;
 
 void printgenome();
 
@@ -158,6 +166,31 @@ struct seedlist
 
 int Hits::seed2genome(unsigned int num, unsigned int readpos)
 {
+	if (!mutex_initialized) 
+	{
+		mutex_initialized=true ;
+		int ret = pthread_mutex_init(&seed_mutex, NULL) ;
+		assert(ret==0) ;
+	}
+	TIME_CODE_TOTAL(if ((clock()-time2a_last_report_total)/CLOCKS_PER_SEC>=1)
+	{
+	    time2a_last_report_total = clock() ;
+		fprintf(stdout, "time2a: total=%1.3f (avg. %1.6f)\n", 
+				((double)time2a_seed2genome)/CLOCKS_PER_SEC, ((double)time2a_seed2genome)/(time2a_seed2genome_cnt*CLOCKS_PER_SEC)) ;
+	})
+	TIME_CODE(if ((clock()-time2a_last_report)/CLOCKS_PER_SEC>=1)
+	{
+	    time2a_last_report = clock() ;
+		fprintf(stdout, "time2a: total=%1.3f (avg. %1.6f)\t seek=%1.3f (avg. %1.6f)\tpart1=%1.3f (avg. %1.6f)\tpart2=%1.3f (avg. %1.6f)\tpart3=%1.3f (avg. %1.6f)\tpart4=%1.4f (avg. %1.6f)\tpart5=%1.5f (avg. %1.6f)\n", 
+				((double)time2a_seed2genome)/CLOCKS_PER_SEC, ((double)time2a_seed2genome)/(time2a_seed2genome_cnt*CLOCKS_PER_SEC), 
+				((double)time2a_seek)/CLOCKS_PER_SEC, ((double)time2a_seek)/(time2a_seek_cnt*CLOCKS_PER_SEC), 
+				((double)time2a_part1)/CLOCKS_PER_SEC, ((double)time2a_part1)/(CLOCKS_PER_SEC*time2a_part1_cnt), 
+				((double)time2a_part2)/CLOCKS_PER_SEC, ((double)time2a_part1)/(CLOCKS_PER_SEC*time2a_part2_cnt), 
+				((double)time2a_part3)/CLOCKS_PER_SEC, ((double)time2a_part1)/(CLOCKS_PER_SEC*time2a_part3_cnt), 
+				((double)time2a_part4)/CLOCKS_PER_SEC, ((double)time2a_part1)/(CLOCKS_PER_SEC*time2a_part4_cnt), 
+				((double)time2a_part5)/CLOCKS_PER_SEC, ((double)time2a_part1)/(CLOCKS_PER_SEC*time2a_part5_cnt)) ;
+	})
+	
 #ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
 #else
@@ -226,14 +259,15 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				index_entry_num=0 ;
 			}
 			
-			TIME_CODE(clock_t start_time = clock()) ;
+			{
+				TIME_CODE(clock_t start_time = clock()) ;
 #ifndef BinaryStream_MAP
-			_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
-			index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
-			TIME_CODE(time2a_seek += clock()-start_time) ;
-			
+				TIME_CODE(time2a_seek += clock()-start_time; time2a_seek_cnt++ ;) ;
+			}
 
 			std::vector<struct seedlist> extended_seedlist ;
 			
@@ -250,7 +284,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				mapping_entry = _mappings.newEntry();
 				if (!mapping_entry)
 				{
-					TIME_CODE(time2a_part1 += clock()-start_time) ;
+					TIME_CODE(time2a_part1 += clock()-start_time; time2a_part1_cnt++;) ;
 					return -1 ;
 				}
 
@@ -315,12 +349,18 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					}
 				}
 
-
+				int INDEX_DEPTH = _config.INDEX_DEPTH ;
+				
 				if (index_entry.num>=_config.INDEX_DEPTH_EXTRA_THRESHOLD)
 				{
 					unsigned int ee = extend_seed(direction, _config.INDEX_DEPTH_EXTRA, genome_chr, genome_pos, readpos) ;
 					if (ee!=_config.INDEX_DEPTH_EXTRA)
+					{
+						TIME_CODE(time2a_part1 += clock()-start_time; time2a_part1_cnt++ ;) ;
 						continue ;
+					}
+					INDEX_DEPTH = _config.INDEX_DEPTH + _config.INDEX_DEPTH_EXTRA ;
+					oldlength = INDEX_DEPTH-1;
 				}
 				
 				//if (i<10 && index_entry.num>10000)
@@ -330,11 +370,12 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					printf("Genome Entry: chr %d   pos %d   \n", genome_chr.nr()+1, genome_pos);
 				}
 
-				TIME_CODE(time2a_part1 += clock()-start_time) ;
+				TIME_CODE(time2a_part1 += clock()-start_time; time2a_part1_cnt++ ;) ;
 				TIME_CODE(start_time = clock()) ;
 
 				// Check if there is already a chromosome director and get this or a new one
-				if (*(GENOME+genome_pos) == NULL) {
+				if (*(GENOME+genome_pos) == NULL) 
+				{
 					flag = 1;
 
 					if (read_num == num) {
@@ -344,7 +385,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 					if (!chromosome_director)
 					{
-						TIME_CODE(time2a_part2 += clock()-start_time) ;
+						TIME_CODE(time2a_part2 += clock()-start_time; time2a_part2_cnt++;) ;
 						return -1;    // chrom_container_size too small -> cancel this read
 					}
 
@@ -376,7 +417,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 						if (!chromosome_director)
 						{
-							TIME_CODE(time2a_part2 += clock()-start_time) ;
+							TIME_CODE(time2a_part2 += clock()-start_time; time2a_part2_cnt++ ;) ;
 							return -1;    // chrom_container_size too small -> cancel this read
 						}
 
@@ -405,7 +446,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					chromosome_director_new = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 					if (!chromosome_director_new)
 					{
-						TIME_CODE(time2a_part2 += clock()-start_time) ;
+						TIME_CODE(time2a_part2 += clock()-start_time; time2a_part2_cnt++ ;) ;
 						return -1;
 					}
 
@@ -443,7 +484,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				}
 
 
-				TIME_CODE(time2a_part2 += clock()-start_time) ;
+				TIME_CODE(time2a_part2 += clock()-start_time; time2a_part2_cnt++ ;) ;
 				TIME_CODE(start_time = clock()) ;
 				
 				// HIT EXTENSION
@@ -506,7 +547,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						printf("Will the hit be combined with adjacent neighbor? %d\n", (hit!=NULL));
 					}
 				
-					TIME_CODE(time2a_part3 += clock()-start_time) ;
+					TIME_CODE(time2a_part3 += clock()-start_time; time2a_part3_cnt++ ;) ;
 					TIME_CODE(start_time = clock()) ;
 
 					// MISMATCH extension
@@ -517,7 +558,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					{
 						// TODO: fix heuristics for missing seeds due to seed-hit-cancel strategy
 						if (read_num == num) printf("Now checking if hit can be extended over mismatch\n");
-						mmoffset = reverse? (int)_config.INDEX_DEPTH + 1 : -(int)_config.INDEX_DEPTH - 1;
+						mmoffset = reverse? (int)INDEX_DEPTH + 1 : -(int)INDEX_DEPTH - 1;
 
 						if ( (genome_pos + mmoffset > 0) && (genome_pos + mmoffset < genome_chr.length()) && (*(GENOME + (genome_pos + mmoffset)) != NULL) ) {
 							chromosome_director_neighbor = *(GENOME + (genome_pos + mmoffset));
@@ -545,7 +586,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 									if (read_num == num) printf("MM neighbor hit: ");
 									if (read_num == num) printhit(_read, neighbor->hit);
 									if (read_num == num) printf("  Found a potential entry, readops(neighbor)=%d, (actual)=%d\n",neighbor->readpos,readpos);
-									if (neighbor->readpos == mapping_entry->readpos - _config.INDEX_DEPTH - 1) {
+									if (neighbor->readpos == mapping_entry->readpos - INDEX_DEPTH - 1) {
 										if (read_num == num) printf("  Readpos matches\n");
 
 										if ((neighbor->hit)->mismatches < _numEditOps && (neighbor->hit)->mismatches-(neighbor->hit)->gaps < _config.NUM_MISMATCHES) {
@@ -565,10 +606,10 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 													if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
 												}
 												//hit->end = hit->end + _config.INDEX_DEPTH + 1;
-												hit->end = genome_pos + _config.INDEX_DEPTH;
+												hit->end = genome_pos + INDEX_DEPTH;
 											}
 											else {
-												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos+_config.INDEX_DEPTH,readpos-2,-1)) {
+												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos+INDEX_DEPTH,readpos-2,-1)) {
 													hit->edit_op[hit->mismatches].pos = ((INT)_read.length()) - readpos + 2;
 													hit->edit_op[hit->mismatches].mm = 1;
 													assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
@@ -587,7 +628,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					}
 				}
 
-				TIME_CODE(time2a_part4 += clock()-start_time) ;
+				TIME_CODE(time2a_part4 += clock()-start_time; time2a_part4_cnt++ ;) ;
 				TIME_CODE(start_time = clock()) ;
 
 				// for MM=0: if potential hit doesn't start at readpos 1, it cannot become perfect, thus it is not even allocated:
@@ -600,16 +641,16 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						if (!hit)
 						{
 							return -1 ;
-							TIME_CODE(time2a_part5 += clock()-start_time) ;
+							TIME_CODE(time2a_part5 += clock()-start_time; time2a_part5_cnt++ ;) ;
 						}
 
 						mapping_entry->hit = hit;
 
 						hit->chromosome = &genome_chr;
-						hit->end = genome_pos + _config.INDEX_DEPTH;	// -1
+						hit->end = genome_pos + INDEX_DEPTH;	// -1
 						hit->orientation = reverse? '-': '+';
 
-						oldlength = _config.INDEX_DEPTH - 1;
+						oldlength = INDEX_DEPTH - 1;
 
 						hit->readpos = readpos;
 						hit->start = genome_pos+1;	// +1 weg
@@ -624,11 +665,9 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 				if ( hit != NULL && !(_config.NUM_MISMATCHES == 0 && hit->readpos != 1 && !_config.NOT_MAXIMAL_HITS) )
 				{
 					size_hit(hit, oldlength);
-//if (strcmp(_read.id(), "HWUSI-EAS627_1:1:1:1335:1076/1") == 0) 
-//{ printhit(_read,hit) ; fprintf(stdout, "\n") ;}
 				}
 
-				TIME_CODE(time2a_part5 += clock()-start_time) ;
+				TIME_CODE(time2a_part5 += clock()-start_time; time2a_part5_cnt++ ;) ;
 
 				//printgenome();
 
@@ -1363,13 +1402,13 @@ int Hits::map_fast(Read & read)
 						else seed_already_inspected_fwd[run] = true;
 					}
 
-					time_t start_time = clock() ;
+					TIME_CODE(time_t start_time = clock() ;)
 #ifndef BinaryStream_MAP
 					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
 					index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
-					time2a_seek += clock()-start_time ;
+					TIME_CODE(time2a_seek += clock()-start_time ; time2a_seek_cnt++; ) 				   
 
 					for (i=0; (int)i<index_entry_num; i++)
 					{
@@ -1617,7 +1656,8 @@ int Hits::map_short_read(Read& read, unsigned int num)
 			clock_t seed2genome_start=clock() ;
 			//fprintf(stdout, "1: slot=%i\n", slot) ;
 			int ret = seed2genome(num, slot, readpos + 1, reverse) ;
-			time2a_seed2genome += clock() - seed2genome_start ;
+			TIME_CODE_TOTAL(time2a_seed2genome += clock() - seed2genome_start ;
+			time2a_seed2genome_cnt++ ;)
 
 			if (ret<0)
 			{
@@ -1669,10 +1709,13 @@ int Hits::map_short_read(Read& read, unsigned int num)
 					continue ;
 				}
 
-				clock_t seed2genome_start=clock() ;
+				TIME_CODE_TOTAL(clock_t seed2genome_start=clock() ;)
 
 				int ret = seed2genome(num, readpos + 1);//, reverse) ;
-				time2a_seed2genome += clock() - seed2genome_start ;
+
+				TIME_CODE_TOTAL(time2a_seed2genome += clock() - seed2genome_start ;
+								time2a_seed2genome_cnt++ ;)
+					
 				if (ret<0)
 				{
 					fprintf(stderr, "seed2genome<0 (2)\n") ;
