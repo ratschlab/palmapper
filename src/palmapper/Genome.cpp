@@ -47,7 +47,7 @@ Genome::Genome() {
 	MAX_POSITIONS = 0;
 	
 	NUM_CHROMOSOMES = 0;
-	INDEX_SIZE = Config::INDEX_SIZE_13 ;
+	INDEX_SIZE = Config::INDEX_SIZE_15 ;
 
  	if (_config.VERBOSE) { printf("Reading in indices\n"); }
 	build_index();
@@ -73,7 +73,11 @@ int Genome::alloc_index_memory()
 	//MEM_MGR.num_bins = 0;
 	//MEM_MGR.next_unused_entry = MEM_MGR.first_entry;
 
-	INDEX_SIZE=_config.INDEX_SIZE_13 ;
+	INDEX_SIZE=_config.INDEX_SIZE_15 ;
+	if (_config.INDEX_DEPTH==14)
+		INDEX_SIZE = _config.INDEX_SIZE_14 ;
+	if (_config.INDEX_DEPTH==13)
+		INDEX_SIZE = _config.INDEX_SIZE_13 ;
 	if (_config.INDEX_DEPTH==12)
 		INDEX_SIZE = _config.INDEX_SIZE_12 ;
 	
@@ -575,7 +579,14 @@ int Genome::init_constants()
 		BINARY_CODE[3] = 201326592; //binary number: 0011 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[4] = 268435455;    //binary number: 0000 1111 1111 1111 1111 1111 1111 1111
 	}
-	if (_config.INDEX_DEPTH>14 || _config.INDEX_DEPTH<5)
+	if (_config.INDEX_DEPTH == 15) {
+		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[4] = 268435456*4-1; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+	}
+	if (_config.INDEX_DEPTH>15 || _config.INDEX_DEPTH<5)
 	  {
 	    fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
 	    exit(1) ;

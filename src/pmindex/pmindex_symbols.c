@@ -4,8 +4,8 @@ char HAS_SLOT;
 unsigned int SLOT;
 unsigned int SLOT_REV;
 int INDEX_DEPTH;
-int POWER[MAX_INDEX_DEPTH];
-int BINARY_CODE[5];
+long int POWER[MAX_INDEX_DEPTH];
+long int BINARY_CODE[5];
 int debug;
 char GENOME_FILE_NAME[500];
 char CHR_INDEX_FILE_NAME[500];
@@ -28,10 +28,10 @@ unsigned long int POSITION_COUNTER;
 POS *BLOCK_TABLE;
 unsigned int BLOCK;
 unsigned short int POSITION;
-BIN *INDEX[INDEX_SIZE];
-BIN *INDEX_REV[INDEX_SIZE];
-int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
-int USED_SLOTS[INDEX_SIZE];
+BIN **INDEX;//[INDEX_SIZE];
+//BIN **INDEX_REV;//[INDEX_SIZE];
+long int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
+int *USED_SLOTS;//[INDEX_SIZE];
 STORAGE *MEM_MGR;
 
 unsigned int LONGEST_CHROMOSOME;

@@ -7,7 +7,7 @@
 
 //#define MAX_READ_LENGTH 1000
 //#define MAX_READ_ID_LENGTH 100
-#define MAX_INDEX_DEPTH 13
+#define MAX_INDEX_DEPTH 15
 #define VERSION "0.4"
 
 enum OutputFormatEnum
@@ -47,9 +47,11 @@ public:
 
 	static int const QPALMA_USE_MAP_WINDOW = 10 ; //Window used to go all away the extended long region to find mapped positions
 
-	static int const MAX_EDIT_OPS = 10;
+	static int const MAX_EDIT_OPS = 50;
 	static size_t const INDEX_SIZE_12 = 16777216; //4^12
 	static size_t const INDEX_SIZE_13 = 67108864; //4^13
+	static size_t const INDEX_SIZE_14 = 67108864*4; //4^14
+	static size_t const INDEX_SIZE_15 = 67108864*4*4; //4^15
 	static size_t const MAX_READ_LENGTH = 1000;
 	static int const MAX_READ_ID_LENGTH = 1000;
 	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;

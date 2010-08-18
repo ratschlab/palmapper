@@ -43,7 +43,7 @@ public:
 		return NUM_CHROMOSOMES;
 	}
 
-	int BINARY_CODE[5];
+	long int BINARY_CODE[5];
 	unsigned int LONGEST_CHROMOSOME;
 
 #ifndef BinaryStream_MAP
