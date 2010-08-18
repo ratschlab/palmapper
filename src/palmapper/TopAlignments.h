@@ -84,10 +84,12 @@ protected:
 
 	pthread_mutex_t top_mutex;
 
-	int num_unspliced_best ;
-	int num_unspliced_suboptimal ;
-	int num_spliced_best ;
-	int num_spliced_suboptimal ;
+	static pthread_mutex_t num_mutex ;
+	static bool num_mutex_initialized ;
+	static int num_unspliced_best ;
+	static int num_unspliced_suboptimal ;
+	static int num_spliced_best ;
+	static int num_spliced_suboptimal ;
 
 	GenomeMaps* genomemaps ;
 } ;
