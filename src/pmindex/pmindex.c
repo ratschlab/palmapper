@@ -22,6 +22,9 @@ int main(int argc, char *argv[])
 
 	init(argc, argv);
 
+	INDEX = (BIN**)malloc(INDEX_SIZE*sizeof(BIN*)) ;
+	USED_SLOTS =(int*)malloc(INDEX_SIZE*sizeof(int)) ;
+	
 	if (VERBOSE) { printf("Start loading\n"); }
 
 	load_chromosomes();

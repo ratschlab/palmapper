@@ -17,15 +17,15 @@
 // ##############################################################
 
 #define MIN_INDEX_DEPTH 5
-#define MAX_INDEX_DEPTH 13
+#define MAX_INDEX_DEPTH 15
 
 extern char VERBOSE;
 extern char HAS_SLOT;
 extern unsigned int SLOT;
 
 extern int INDEX_DEPTH;
-extern int POWER[MAX_INDEX_DEPTH];
-extern int BINARY_CODE[5];
+extern long int POWER[MAX_INDEX_DEPTH];
+extern long int BINARY_CODE[5];
 
 extern unsigned int LONGEST_CHROMOSOME;
 
@@ -70,7 +70,9 @@ extern unsigned long int POSITION_COUNTER;
 #define BIN_SIZE 3
 #define BIN_SIZE_EXT 20
 //#define INDEX_SIZE 16777216 //4^12
-#define INDEX_SIZE 67108864 //4^13
+//#define INDEX_SIZE 67108864 //4^13
+//#define INDEX_SIZE 268435456 //4^14
+#define INDEX_SIZE (268435456*4) //4^15
 // #define INDEX_SIZE 244140625 // 5^12
 
 #define BLOCK_TABLE_SIZE 16777216	// 2^24 (3 Byte)
@@ -104,10 +106,11 @@ typedef struct bin_structure {
 //BIN *INDEX;
 //BIN *INDEX_REV;
 
-extern BIN *INDEX[INDEX_SIZE];
+//extern BIN *INDEX[INDEX_SIZE];
+extern BIN **INDEX;//[INDEX_SIZE];
 
-extern int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
-extern int USED_SLOTS[INDEX_SIZE];
+extern long int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
+extern int *USED_SLOTS;//[INDEX_SIZE];
 
 
 // ##############################################################
