@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <vector>
-#include <ext/hash_map>
 
 #include <palmapper/Config.h>
 #include <palmapper/Chromosome.h>
@@ -106,12 +105,11 @@ public:
 	}
 
 	T const &operator[] (size_t index) const {
-		++_accessCountConst;
 		return _array[index];
 	}
 
 	T &operator[] (size_t index) {
-		++_accessCount;
+		_used.push_back(index);
 		return _array[index];
 	}
 
@@ -128,24 +126,16 @@ public:
 	}
 
 	void clear() {
+		for (size_t i = 0; i < _used.size(); ++i)
+			_array[_used[i]] = NULL;
+		_used.clear();
 	}
 
 private:
+	std::vector<size_t> _used;
 	mutable int _accessCountConst;
 	mutable int _accessCount;
 	T *_array;
-};
-
-using namespace std;
-using namespace __gnu_cxx;
-template <class T> class GenomeMap : public hash_map<int, T> {
-public:
-
-	GenomeMap(int) : hash_map<int, T>(2048) {}
-
-	T const *operator + (int index) {
-		return &(*this)[index];
-	}
 };
 
 typedef MyArr<CHROMOSOME_ENTRY*> GenomeArr;
