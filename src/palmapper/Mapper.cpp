@@ -111,6 +111,7 @@ int Mapper::map_reads()
 		Result &result = *new Result(*this);
 		if (!_queryFile.next_read(result._read))
 			break;
+		
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;

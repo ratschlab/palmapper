@@ -605,8 +605,8 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 													assert(hit->mismatches<Config::MAX_EDIT_OPS) ;
 													if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
 												}
-												//hit->end = hit->end + _config.INDEX_DEPTH + 1;
-												hit->end = genome_pos + INDEX_DEPTH;
+												hit->end = hit->end + _config.INDEX_DEPTH + 1;
+												//hit->end = genome_pos + INDEX_DEPTH;
 											}
 											else {
 												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos+INDEX_DEPTH,readpos-2,-1)) {
@@ -627,7 +627,12 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						}
 					}
 				}
-
+				if (hit)
+				{
+					assert((int)hit->start-(int)hit->end<10000) ;
+					assert((int)hit->end-(int)hit->start<10000) ;
+				}
+				
 				TIME_CODE(time2a_part4 += clock()-start_time; time2a_part4_cnt++ ;) ;
 				TIME_CODE(start_time = clock()) ;
 
