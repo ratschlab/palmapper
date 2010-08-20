@@ -239,6 +239,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	alignment_t *best = new alignment_t ;
 	best->qpalma_score = 1000 ;
 	best->num_matches = num_matches ;
+	best->num_mismatches = num_mismatches ;
 	best->num_gaps = num_gaps ;
 	strcpy(best->read_anno, ALIGNSEQ) ;
 	best->exons.push_back(readstart) ;
@@ -1074,6 +1075,20 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
     if (_config.RTRIM_STRATEGY)
         return 0;
 
+    // pre compute H0, H1, and H2 tags
+    uint32_t H0 = 0 ;
+    uint32_t H1 = 0 ;
+    uint32_t H2 = 0 ;
+	for (unsigned int j=0; j<top_alignments.size(); j++)
+	{
+        if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 0)
+            H0 += 1 ;
+        if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 1)
+            H1 += 1 ;
+        if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 2)
+            H2 += 1 ;
+    }
+
     FILE* MY_OUT_FP = OUT_FP ;
     Read const * curr_read;
 
@@ -1311,7 +1326,15 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             fprintf(MY_OUT_FP, "\t%s\t%s", cr_read, qual) ;
         }
 
-        fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i", curr_align->num_matches, read.length() - curr_align->num_matches) ;
+        //fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i", curr_align->num_matches, read.length() - curr_align->num_matches) ;
+        fprintf(MY_OUT_FP, "\tNM:i:%i", curr_align->num_mismatches + curr_align->num_gaps) ;
+        if (H0 > 0)
+            fprintf(MY_OUT_FP, "\tH0:i:%i", H0) ;
+        if (H1 > 0)
+            fprintf(MY_OUT_FP, "\tH1:i:%i", H1) ;
+        if (H2 > 0)
+            fprintf(MY_OUT_FP, "\tH2:i:%i", H2) ;
+
         if (curr_align->spliced)
         {
             fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
