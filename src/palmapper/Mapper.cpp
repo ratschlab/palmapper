@@ -166,6 +166,7 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 	int cancel = 0 ;
 	bool FILTER_STAT = false ;
 
+	GENOME.clear();
 	Read* trim_orig_read = NULL ;
 
 	Hits &hits(result._readMappings);
