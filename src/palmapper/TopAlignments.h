@@ -12,6 +12,7 @@ struct HIT;
 typedef struct alignment_t {
   double qpalma_score;
   uint32_t num_matches;
+  uint32_t num_mismatches;
   uint32_t num_gaps;
   char read_anno[4*Config::MAX_READ_LENGTH] ;
   std::vector<int> exons;
