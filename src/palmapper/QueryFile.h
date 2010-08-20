@@ -31,6 +31,10 @@ public:
 		return _readCount;
 	}
 
+	void reset_read_count() {
+		_readCount=0;
+	}
+
 	static int determine_read_length(std::string const &filename);
 
 private:
