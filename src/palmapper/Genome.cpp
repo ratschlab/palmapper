@@ -415,13 +415,20 @@ void Genome::mmap_indices()
 
     if (_config.INDEX_PRECACHE)
     {
-        //fprintf(stdout, "Linearly reading index files to fill caches: 1/2 ") ;
         STORAGE_ENTRY buffer[1024] ;
 
+		clock_t last_time = clock() ;
         for (size_t i=0; i<(fwd_size/sizeof(STORAGE_ENTRY))-1024; i+=1024)
+		{
             index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
-
-        //fprintf(stdout, "Done\n") ;
+			
+			if (i%1000==0 && ((1.0*clock()-last_time)/CLOCKS_PER_SEC>0.01)) // the timing is tricky. Clock only measures user time, but this statement mostly uses system or io time
+			{
+				fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", (100.0*i)/(fwd_size/sizeof(STORAGE_ENTRY))) ;
+				last_time = clock() ;
+			}
+		}
+        fprintf(stdout, "\n") ;
     }
 
 	return;
