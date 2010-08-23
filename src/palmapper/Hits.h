@@ -143,17 +143,18 @@ typedef MyArr<CHROMOSOME_ENTRY*> GenomeArr;
 
 struct CHROMOSOME_ENTRY_CONTAINER {
 	CHROMOSOME_ENTRY_CONTAINER(int nrEntries) {
-		if (nrEntries<=0)
+		/*if (nrEntries<=0)
 		{
 			fprintf(stderr, "nrEntries=%i\n", nrEntries) ;
 			entries=NULL ;
 			used=0;
+			
 			return ;
 		}
 		if (nrEntries>10000)
 		{	
-			fprintf(stderr, "nrEntries=%i (%ld bytes)\n", nrEntries, sizeof(CHROMOSOME_ENTRY)) ;
-		}
+			fprintf(stderr, "nrEntries=%i (%ld bytes)\n", nrEntries, nrEntries*sizeof(CHROMOSOME_ENTRY)) ;
+			}*/
 		entries = new CHROMOSOME_ENTRY[nrEntries];
 		used = 0;
 	}

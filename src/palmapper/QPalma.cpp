@@ -17,34 +17,12 @@
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
-clock_t QPalma::last_timing_report=0 ;
-clock_t QPalma::last_filter_report=0 ;
-
 QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
 : 	verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 {
-	region_align_time = 0;
-	region1_time = 0;
-	align_time = 0;
-	
-	total_dna_length=0 ;
-	total_alignments=0 ;
-	read_count = 0;
-	
-	last_timing_report=0 ;
-	
-	total_num_threads = 0 ;
-	total_num_thread_tasks = 0 ;
-
 	genome=genome_ ;
 	genomemaps = genomemaps_ ;
 	alignment_parameters = NULL;
-	
-	for (int i=0; i<num_filter_reasons; i++)
-	{
-		qpalma_filter_stat_spliced[i]=0 ;
-		qpalma_filter_stat_unspliced[i]=0 ;
-	}
 	
 	if (_config.SPLICED_HITS)
 	{
@@ -793,32 +771,6 @@ int QPalma::get_num_splicesites(std::string file_template, const char* type, Chr
 	return get_splicesite_positions(file_template, type, chr, strand, start, end, thresh, false, positions) ;
 }
 
-void QPalma::qpalma_filter_stat_report() const
-{
-	for (int i=0; i<num_filter_reasons; i++)
-	{
-		fprintf(stdout, "[filter] reason %i:\t%i spliced\t%i unspliced\t%1.2f%%\n", i, qpalma_filter_stat_spliced[i], qpalma_filter_stat_unspliced[i], 100*((float)qpalma_filter_stat_spliced[i])/((float)qpalma_filter_stat_unspliced[i]+qpalma_filter_stat_spliced[i])) ;
-	}
-}
-
-void QPalma::qpalma_filter_stat(Result &result, bool spliced) const
-{
-	if (result.qpalma_filter_reason<0)
-		return ;
-	
-	if (spliced)
-		qpalma_filter_stat_spliced[result.qpalma_filter_reason]++ ;
-	else
-		qpalma_filter_stat_unspliced[result.qpalma_filter_reason]++ ;
-	
-	if (((clock()-last_filter_report)/CLOCKS_PER_SEC>=10))
-	{
-		last_filter_report = clock() ;
-		qpalma_filter_stat_report() ;
-	}
-
-	result.qpalma_filter_reason=-1 ;
-}
 
 int QPalma::qpalma_filter(Result &result, struct alignment_t *ali, int num_N) const
 {
@@ -1009,25 +961,6 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 	}
 }
 
-void QPalma::capture_hits_timing(int read_count_, float this_read) const
-{
-	fprintf(stdout, "# [capture_hits] timing: %1.4f, %1.4f, %1.4f (%1.4f ss access; %lint and %1.1f threads per alignment)",
-			((float) region1_time) / CLOCKS_PER_SEC,
-			((float) region_align_time) / CLOCKS_PER_SEC, 
-			((float) align_time) / CLOCKS_PER_SEC, 
-			((float) IntervalQuery::total_time) / CLOCKS_PER_SEC, 
-			(total_dna_length+1)/(total_alignments+1),
-			(float) total_num_threads/(1e-6+total_num_thread_tasks));
-
-	if (this_read >= 0)
-		fprintf(stdout, " this read: %1.4f", this_read);
-
-	if (read_count_ >= 0)
-		fprintf(stdout, " average per read: %1.4f",
-				((float) region_align_time) / CLOCKS_PER_SEC / read_count_);
-
-	fprintf(stdout, "\n");
-}
 
 int QPalma::capture_hits(Hits &hits, Result &result) const
 {
@@ -1791,12 +1724,12 @@ int QPalma::capture_hits(Hits &hits, Result &result) const
 
   result.delete_regions();
   delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-  region_align_time += clock() - start_time;
+  _stats.qpalma_region_align_time += clock() - start_time;
 	
-  if (verbosity >= 1 || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
+  if (verbosity >= 1 || ((clock()-_stats.qpalma_last_timing_report)/CLOCKS_PER_SEC>=10))
     {
-      last_timing_report = clock() ;
-      capture_hits_timing(read_count, ((float) clock() - start_time) / CLOCKS_PER_SEC);
+      _stats.qpalma_last_timing_report = clock() ;
+      _stats.qpalma_timing(((float) clock() - start_time) / CLOCKS_PER_SEC);
     }
 
   //fprintf(stderr, "num_alignments_reported=%i\n", ret) ;
@@ -1901,8 +1834,8 @@ int QPalma::perform_alignment_wait(int & num_reported, std::vector<perform_align
 	if (thread_data.size()==0)
 		return 1 ;
 	
-	total_num_thread_tasks++ ;
-	total_num_threads+=thread_data.size() ;
+	_stats.qpalma_total_num_thread_tasks++ ;
+	_stats.qpalma_total_num_threads+=thread_data.size() ;
 
 	for (unsigned int i=0; i<thread_data.size(); i++)
 	{
@@ -1920,8 +1853,8 @@ int QPalma::perform_alignment_wait(int & num_reported, std::vector<perform_align
 		{
 			num_reported += thread_data[i]->num_reported ;
 
-			total_dna_length += thread_data[i]->dna.size() ;
-			total_alignments ++ ;
+			_stats.qpalma_total_dna_length += thread_data[i]->dna.size() ;
+			_stats.qpalma_total_alignments ++ ;
 
 			if (thread_data[i]->ret==0 && ret==1)
 				ret=0 ;
@@ -2031,7 +1964,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	
 	if (verbosity>=2)
-		fprintf(stdout, "average alignment length %lint\n", total_dna_length/(total_alignments+1)) ;
+		fprintf(stdout, "average alignment length %lint\n", _stats.qpalma_total_dna_length/(_stats.qpalma_total_alignments+1)) ;
 	
 	// TODO
 	//current_regions[0]->strand = strand ;
@@ -2441,7 +2374,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
-	align_time += clock() - start_time;
+	_stats.qpalma_align_time += clock() - start_time;
 	pthread_mutex_unlock( &clock_mutex) ;
 	
 

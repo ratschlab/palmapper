@@ -139,6 +139,8 @@ int IntervalQuery::find_interval(unsigned *pos_map, off_t num_entries,
 
 int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, off_t *size, bool convert)
 {
+	static size_t mmap_total_size = 0 ;
+	
 	std::string filename_s ;
 
 	filename_s.assign(filename) ;
@@ -196,6 +198,9 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 		//throw IntervalQueryException(buf) ;
 	}
 	*map = mmap(NULL, *size, mmap_prot, mmap_flags, fd, 0);
+	//fprintf(stderr, "##mmap %ld size %ld\n", (size_t)*map, *size) ;
+	mmap_total_size+=*size ;
+	
 	if (*map == MAP_FAILED)
 	{
 		fprintf(stderr, "mmap error: %s\n", strerror(errno));
@@ -207,6 +212,7 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 
 	//fprintf(stdout, "adding mmap #%i (%s)\n", (int)mmap_fname_list.size(), filename) ;
 
+	//fprintf(stderr, "mmap total size: %ld \n", mmap_total_size) ;
 	if (convert)
 	{
 		// convert float score files to short, unmap memory and use new memory block
@@ -218,8 +224,15 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 			map_i[i] = map_f[i]*65535 ;
 		}
 		munmap(*map, *size);
+		//fprintf(stderr, "##munmap %ld size %ld\n", (size_t)*map, *size) ;
+		mmap_total_size = mmap_total_size - *size ;
+		//fprintf(stderr, "mmap total size: %ld -\n", mmap_total_size) ;
+
 		*size = ((*size)*sizeof(unsigned short int))/sizeof(float) ;
 		*map = map_i ;
+
+		mmap_total_size+=*size ;
+		//fprintf(stderr, "mmap total size: %ld +\n", mmap_total_size) ;
 	}
 
 	pthread_mutex_lock(&mmap_mutex) ;

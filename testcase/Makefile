@@ -1,6 +1,6 @@
 dataDir = data
 resultDir ?= $(dataDir)
-ext =
+ext = 
 binDir = ..
 #nrThreads ?= $(shell grep processor /proc/cpuinfo | wc -l)
 nrThreads=1
@@ -32,7 +32,7 @@ threads = -threads $(nrThreads)
 
 allFlags=$(inFiles) $(accDon) $(outFiles) $(filter) $(qpalma) $(report) $(other) $(threads)
 
-MapCmd = $(binDir)/palmapper $(allFlags)
+MapCmd = $(binDir)/palmapper $(allFlags) #-no-ss-pred -min-spliced-segment-len 20  -rlim 10000  -don-consensus ?? -acc-consensus ??
 
 test: map
 
@@ -55,6 +55,8 @@ $(SpliceFiles):
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 	mkdir -p $(dataDir)
 	bash -c "time $(MapCmd)"
+#	valgrind $(MapCmd)
+	(cd $(resultDir) ; md5sum $(notdir $(ResultFiles))) 
 	(cd $(resultDir) ; md5sum -c $(CurrentDir)/result.md5)
 
 result.md5: $(ResultFiles)
