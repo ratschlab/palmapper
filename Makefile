@@ -6,13 +6,13 @@ ExeDir = $(OutDir)/a
 SVNVERSION = $(shell svnversion)
 
 CC = g++
-#CFLAGS = -Wall -g # debug
+CFLAGS = -Wall -g -O5 -pg # debug 
 #CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
-CFLAGS = -O9 -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+#CFLAGS = -O9 -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 #CFLAGS = -O9 -Wall -g -pg -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
-LDFLAGS = 
+LDFLAGS = -pg
 
 SHOGUN_OBJ = $(ObjDir)/pm/palmapper/shogun/init.o \
 	$(ObjDir)/pm/palmapper/shogun/Mathematics.o \
@@ -30,7 +30,7 @@ DYNPROG_OBJ = $(ObjDir)/pm/palmapper/dyn_prog/Mathmatics_dp.o \
 	$(ObjDir)/pm/palmapper/dyn_prog/penalty_info_dp.o \
 	$(ObjDir)/pm/palmapper/dyn_prog/result_align.o \
 	$(ObjDir)/pm/palmapper/dyn_prog/fill_matrix.o
-	
+
 LANG_OBJ = $(ObjDir)/pm/lang/Thread.o
 
 GM_OBJ = $(ObjDir)/gm/palmapper/GenomeMaps.o \

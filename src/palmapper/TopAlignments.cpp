@@ -13,26 +13,12 @@
 #include <palmapper/Hits.h>
 #include <palmapper/TopAlignments.h>
 
-pthread_mutex_t TopAlignments::num_mutex ;
-bool TopAlignments::num_mutex_initialized=false ;
-int TopAlignments::num_unspliced_best=0 ;
-int TopAlignments::num_unspliced_suboptimal=0 ;
-int TopAlignments::num_spliced_best=0 ;
-int TopAlignments::num_spliced_suboptimal=0 ;
-
 TopAlignments::TopAlignments(GenomeMaps* genomemaps_) 
   : top_alignments(), num_spliced_alignments(0),
 		num_unspliced_alignments(0), verbosity(0)
 {
 	int ret = pthread_mutex_init(&top_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
 	assert(ret==0) ;
-
-	if (!num_mutex_initialized)
-	{
-		num_mutex_initialized=true ;
-		ret = pthread_mutex_init(&num_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
-		assert(ret==0) ;
-	}
 
 	ALIGNSEQ = (char *) malloc((_config.MAX_READ_LENGTH + 3 * Config::MAX_EDIT_OPS)
 			* sizeof(char));
@@ -527,29 +513,27 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, FILE *OUT_
 
 	FILE* MY_OUT_FP = OUT_FP ;
 
-	pthread_mutex_lock( &num_mutex) ;
+	pthread_mutex_lock( &_stats.alignment_num_mutex ) ;
 
 	if (best->spliced)
 	{
 		assert(_config.SPLICED_HITS) ;
 		MY_OUT_FP = SP_OUT_FP ;
-		num_spliced_best++ ;
+		_stats.alignment_num_spliced_best++ ;
 	}
 	else
-		num_unspliced_best++ ;
+		_stats.alignment_num_unspliced_best++ ;
 	
 
 	for (int i=1; i<(int)top_alignments.size(); i++)
 		if (top_alignments[i]->spliced)
-			num_spliced_suboptimal+=1 ;
+			_stats.alignment_num_spliced_suboptimal+=1 ;
 		else
-			num_unspliced_suboptimal+= 1 ;
+			_stats.alignment_num_unspliced_suboptimal+= 1 ;
 
-
-	print_alignment_stats(num_unspliced_best, num_unspliced_suboptimal, 
-						  num_spliced_best, num_spliced_suboptimal) ;
+	_stats.print_alignment_stats() ;
 	
-	pthread_mutex_unlock( &num_mutex) ;
+	pthread_mutex_unlock( &_stats.alignment_num_mutex) ;
 
 	// Print spliced alignment to open file MY_OUT_FP in BED format
 	fprintf(MY_OUT_FP, "%s\t%s\t%d\t%d\t%s\t%d\t%c\t%i\t%i\t0,0,0\t%d\t",
@@ -1117,28 +1101,27 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             if (curr_align->polytrim_cut_start!=0)
                 assert(curr_align->polytrim_cut_end==0) ;
 			
-			pthread_mutex_lock( &num_mutex) ;
+			pthread_mutex_lock( &_stats.alignment_num_mutex) ;
 			
             if (curr_align->spliced)
             {
                 assert(_config.SPLICED_HITS) ;
                 //MY_OUT_FP = SP_OUT_FP ;
-                num_spliced_best++ ;
+                _stats.alignment_num_spliced_best++ ;
             }
             else
-                num_unspliced_best++ ;
+                _stats.alignment_num_unspliced_best++ ;
 			
             for (int i=1; i<(int)top_alignments.size(); i++)
                 if (top_alignments[i]->spliced)
-                    num_spliced_suboptimal+=1 ;
+                    _stats.alignment_num_spliced_suboptimal+=1 ;
                 else
-                    num_unspliced_suboptimal+= 1 ;
+                    _stats.alignment_num_unspliced_suboptimal+= 1 ;
 			
 			
-            print_alignment_stats(num_unspliced_best, num_unspliced_suboptimal, 
-                                  num_spliced_best, num_spliced_suboptimal) ;
+            _stats.print_alignment_stats() ;
 
-			pthread_mutex_unlock( &num_mutex ) ;
+			pthread_mutex_unlock( &_stats.alignment_num_mutex ) ;
         }
 
         if (_config.POLYTRIM_STRATEGY && (curr_align->polytrim_cut_start>0 || curr_align->polytrim_cut_end>0))

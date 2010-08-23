@@ -137,7 +137,7 @@ int Mapper::map_reads()
 	}
 
 	map_reads_timing(count_reads) ;
-	_qpalma.capture_hits_timing();
+	_stats.qpalma_timing();
 
 	if (_config.STATISTICS)
 	{
@@ -343,7 +343,7 @@ restart:
 						if (_config.VERBOSE)
 							fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
 						if (FILTER_STAT)
-							qpalma->qpalma_filter_stat(result._qpalma, ret>0) ;
+							_stats.qpalma_filter_stat(result._qpalma.qpalma_filter_reason, ret>0) ;
 					}
 				catch (std::bad_alloc&)
 					{
@@ -354,7 +354,7 @@ restart:
 		if (FILTER_STAT && num_spliced_alignments_triggered>=5000)
 		{
 			fprintf(stdout, "final filter stat report\n") ;
-			qpalma->qpalma_filter_stat_report() ;
+			_stats.qpalma_filter_stat_report() ;
 			FILTER_STAT=false ;
 		}
 	}

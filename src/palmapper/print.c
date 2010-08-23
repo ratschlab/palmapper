@@ -13,9 +13,6 @@
 
 static const int MAX_EXON_LEN=100 ;
 
-int num_unmapped=0 ;
-clock_t last_spliced_report = 0 ;
-
 void print_stats(QueryFile &queryFile) {
 	printf("\n########### _config.STATISTICS ###########\n");
 	printf("Mapped Reads: %i of all %d reads\n", _stats.READS_MAPPED, _stats.NUM_READS);
@@ -124,7 +121,7 @@ int compare_int(const void *a, const void *b)
 
 void print_leftovers(Read const &read, const char * tag, FILE *LEFTOVER_FP)
 {
-	num_unmapped++ ;
+	_stats.alignment_num_unmapped++ ;
 	
 	if (read.get_orig()==NULL)
 	{
@@ -203,17 +200,5 @@ void print_alignment_matrix(Read const &read, int chrstart, int readstart, int l
 				"----------------------------------------------------------------------------------------------\n");
 	}
 
-}
-
-void print_alignment_stats(int num_unspliced_best, int num_unspliced_suboptimal, 
-						   int num_spliced_best, int num_spliced_suboptimal)
-{
-	if ((clock()-last_spliced_report)/CLOCKS_PER_SEC>=10)
-	{
-		last_spliced_report = clock() ;
-		fprintf(stdout, "\n# %i (%i) unspliced, %i (%i) spliced alignments, %i unmapped (spliced %2.1f%%, unmapped %2.1f%%)\n", 
-				num_unspliced_best, num_unspliced_suboptimal, num_spliced_best, num_spliced_suboptimal, num_unmapped,
-				100.0*num_spliced_best/(num_spliced_best+num_unspliced_best), 100.0*num_unmapped/(num_spliced_best+num_unspliced_best+num_unmapped)) ;
-	}
 }
 

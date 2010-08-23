@@ -1,4 +1,5 @@
 #include <palmapper/Statistics.h>
+#include <assert.h>
 
 Statistics::Statistics() 
 {
@@ -32,4 +33,47 @@ Statistics::Statistics()
 	W = 0;
 	listcount = 0;
 	listocc = 0;
+
+	//Alignments
+	int ret = pthread_mutex_init(&alignment_num_mutex, NULL) ;
+	assert(ret==0) ;
+	alignment_num_unmapped=0 ;
+	alignment_num_unspliced_best=0 ;
+	alignment_num_unspliced_suboptimal=0 ;
+	alignment_num_spliced_best=0 ;
+	alignment_num_spliced_suboptimal=0 ;
+	alignment_last_spliced_report = clock() ;
+
+	//QPALMA Filter
+	qpalma_last_filter_report=0;
+	for (int i=0; i<num_filter_reasons; i++)
+	{
+		qpalma_filter_stat_spliced[i]=0 ;
+		qpalma_filter_stat_unspliced[i]=0 ;
+	}
+	
+
+	//QPALMA
+	qpalma_last_timing_report=0 ;
+	qpalma_region1_time=0; 
+	qpalma_region_align_time=0 ;
+	qpalma_align_time=0 ;
+	intervalquery_total_time=0 ;
+	
+	qpalma_total_dna_length=0 ;
+	qpalma_total_alignments=0 ;
+	qpalma_total_num_threads=0 ;
+	qpalma_total_num_thread_tasks=0 ;
+
+
+	// HITS
+	hits_seed2genome=0, hits_last_report_total=0;
+	hits_seed2genome_cnt=0;
+
+	hits_seek=0, hits_part1=0, hits_part2=0, hits_part3=0, hits_part4=0, hits_part5=0,hits_last_report=0 ;
+	hits_seek_cnt=0, hits_part1_cnt=0, hits_part2_cnt=0, hits_part3_cnt=0, hits_part4_cnt=0, hits_part5_cnt=0 ;
+
+	ret = pthread_mutex_init(&hit_seed_mutex, NULL) ;
+	assert(ret==0) ;
+
 }

@@ -31,8 +31,6 @@ struct alignment_parameter_struct {
 } ;
 
 
-const int num_filter_reasons=4  ;
-
 class QPalma
 {
 public:
@@ -102,8 +100,8 @@ protected:
 	
 public:
 	int qpalma_filter(Result &result, struct alignment_t *ali, int num_N) const;
-	void qpalma_filter_stat(Result &result, bool spliced) const;
-	void qpalma_filter_stat_report() const;
+	//void qpalma_filter_stat(Result &result, bool spliced) const;
+	//void qpalma_filter_stat_report() const;
 
 protected:
 	int get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh) const;
@@ -117,7 +115,7 @@ public:
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) const;
 	float score_unspliced(Read const &read, const char * read_anno) const;
-	void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
+	//void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
 	
 protected:
 	
@@ -278,29 +276,10 @@ protected:
 	struct alignment_parameter_struct *alignment_parameters;
 
 //	std::vector<perform_alignment_t*> thread_data ;
-
-	mutable int qpalma_filter_stat_spliced[num_filter_reasons] ;
-	mutable int qpalma_filter_stat_unspliced[num_filter_reasons] ;
-
-	mutable clock_t region_align_time ;
-	mutable clock_t region1_time ;
-	mutable clock_t align_time ;
-	
-	mutable long int total_dna_length ;
-	mutable long int total_alignments ;
-	mutable int read_count;
-	
-	static clock_t last_timing_report ;
 	
 	const int verbosity ;
 	const int MIN_NUM_MATCHES ;
 	
-	mutable int total_num_threads ;
-	mutable int total_num_thread_tasks  ;
-
-
-	static clock_t last_filter_report ;
-
 	Genome * genome ;
 	GenomeMaps* genomemaps ;
 	
