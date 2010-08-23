@@ -1142,7 +1142,10 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
         }
 
         if (_config.POLYTRIM_STRATEGY && (curr_align->polytrim_cut_start>0 || curr_align->polytrim_cut_end>0))
-            curr_read = read.get_orig() ;
+			if (read.get_orig())
+				curr_read = read.get_orig() ;
+			else
+				curr_read = &read ;
         else
             curr_read = &read ;
 
