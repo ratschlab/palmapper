@@ -6,6 +6,9 @@
 namespace lang {
 
 class Mutex {
+
+	friend class Signal;
+
 public:
 
 	class Locker {
@@ -37,6 +40,29 @@ public:
 private:
 	::pthread_mutex_t _mutex;
 	static ::pthread_mutex_t _mutexInitializer;
+};
+
+class Signal {
+public:
+	Signal() {
+		_cond = _initializer;
+	}
+
+	void wait(Mutex &mutex) {
+		::pthread_cond_wait(&_cond, &mutex._mutex);
+	}
+
+	void notify() {
+		::pthread_cond_signal(&_cond);
+	}
+
+	void notifyAll() {
+		::pthread_cond_broadcast(&_cond);
+	}
+
+private:
+	::pthread_cond_t _cond;
+	static ::pthread_cond_t _initializer;
 };
 
 /**

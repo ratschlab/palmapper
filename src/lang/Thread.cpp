@@ -5,6 +5,7 @@
 namespace lang {
 
 ::pthread_mutex_t Mutex::_mutexInitializer = PTHREAD_MUTEX_INITIALIZER;
+::pthread_cond_t Signal::_initializer = PTHREAD_COND_INITIALIZER;
 
 int Thread::launch() {
    return ::pthread_create(&_handle, NULL, &launchInterface, this);

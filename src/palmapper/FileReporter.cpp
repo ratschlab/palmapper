@@ -14,19 +14,16 @@ FileReporter::FileReporter(FILE *out, FILE *sp_out, FILE *left_overs) {
 void FileReporter::report(Mapper::Result &result) {
 	Mutex::Locker locker(_mutex);
 	//printf("Delivering result %i\n", result._read.getNr());
-	if (result._work.getNr() >= _lastResult + _nrResults) {
-		// buffer overrun
-		//TODO: the following is not really an option...
-		printf("!!!!!!!! Bad thing: result lost due to buffer overrun\n");
-		delete &result;
-		return;
+	while (result._work.getNr() >= _lastResult + _nrResults) {
+		printf("Warning: small result buffer may degrade performance\n");
+		_roomLeft.wait(_mutex);
 	}
 	assert(_results[result._work.getNr() % _nrResults] == NULL);
 	_results[result._work.getNr() % _nrResults] = &result;
 	for (int i = _lastResult + 1;  ; ++i) {
 		int pos = i % _nrResults;
 		if (_results[pos] == NULL)
-			return;
+			break;
 		//printf("Writing result %i\n", i);
 		Mapper::Result &r(*_results[pos]);
 		assert(&r != NULL);
@@ -53,4 +50,5 @@ void FileReporter::report(Mapper::Result &result) {
 		delete &r;
 		_results[pos] = NULL;
 	}
+	_roomLeft.notifyAll();
 }
