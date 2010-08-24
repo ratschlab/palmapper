@@ -1056,8 +1056,8 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
 {
 	if (top_alignments.size()==0)
 		return 0 ;
-    if (_config.RTRIM_STRATEGY)
-        return 0;
+   // if (_config.RTRIM_STRATEGY)
+   //     return 0;
 
     // pre compute H0, H1, and H2 tags
     uint32_t H0 = 0 ;
@@ -1079,6 +1079,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
 	for (unsigned int j=0; j<top_alignments.size(); j++)
 	{
 		alignment_t * curr_align  = top_alignments[j] ;
+
 		assert(curr_align->exons.size() >= 2);
 		
 		int min_exon_len = curr_align->exons[1]-curr_align->exons[0] ;
@@ -1124,7 +1125,16 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
 			pthread_mutex_unlock( &_stats.alignment_num_mutex ) ;
         }
 
-        if (_config.POLYTRIM_STRATEGY && (curr_align->polytrim_cut_start>0 || curr_align->polytrim_cut_end>0))
+		int polytrim_cut_start=curr_align->polytrim_cut_start ;
+		int polytrim_cut_end=curr_align->polytrim_cut_end ;
+
+		if (_config.RTRIM_STRATEGY && !_config.POLYTRIM_STRATEGY)
+		{
+			assert(polytrim_cut_end==0) ;
+			polytrim_cut_end = curr_align->rtrim_cut ;
+		}
+
+        if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && (polytrim_cut_start>0 || polytrim_cut_end>0))
 			if (read.get_orig())
 				curr_read = read.get_orig() ;
 			else
@@ -1160,16 +1170,13 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
         uint32_t idx = 0 ;
         
         // handle trimmed start as soft clips
-        //uint32_t start_pos = 0 ;
-		if (_config.POLYTRIM_STRATEGY && curr_align->polytrim_cut_start>0 )
+		if (_config.POLYTRIM_STRATEGY && polytrim_cut_start>0 )
         {
-            //start_pos = curr_align->polytrim_cut_start ;
-            snprintf (cig_buf, (size_t) 255, "%d", curr_align->polytrim_cut_start) ;
+            snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_start) ;
             for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
                 cigar[pos + ii] = cig_buf[ii] ;
             pos += strlen(cig_buf) ;
             cigar[pos++] = 'S' ;
-        //    cum_size += curr_align->polytrim_cut_start ;
         }
 
         for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
@@ -1251,17 +1258,16 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             indel_offset += count ; 
 
         // handle trimmed reads end
-		if (_config.POLYTRIM_STRATEGY && curr_align->polytrim_cut_end>0)
+		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0)
         {
-            snprintf (cig_buf, (size_t) 255, "%d", curr_align->polytrim_cut_end) ;
+            snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_end) ;
             for (ii=0; ii < strlen(cig_buf); ii++)
                 cigar[pos + ii] = cig_buf[ii] ;
             pos += strlen(cig_buf) ;
             cigar[pos++] = 'S' ;
-            //cum_size += curr_align->polytrim_cut_end ;
         }
-        if (cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end != curr_read->length()) 
-            fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
+        if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
+            fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + polytrim_cut_start + polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
             //fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s \n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno) ;
         //assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
         cigar[pos] = 0 ;
@@ -1298,7 +1304,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             // reverse order of quality
             char qual[500] ;
             for (int k=0; k<((int)curr_read->length()); k++)
-                //qual[k]=_read.get_orig()->quality()[0][((int)_read.get_orig()->length())-k-1] ;
                 qual[k]=(curr_read->quality(0))[((int)(curr_read->length()))-k-1] ;
             qual[((int)(curr_read->length()))]=0 ;
             
@@ -1312,7 +1317,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             fprintf(MY_OUT_FP, "\t%s\t%s", cr_read, qual) ;
         }
 
-        //fprintf(MY_OUT_FP, "\tH0:i:%i\tNM:i:%i", curr_align->num_matches, read.length() - curr_align->num_matches) ;
         fprintf(MY_OUT_FP, "\tNM:i:%i", curr_align->num_mismatches + curr_align->num_gaps) ;
         if (H0 > 0)
             fprintf(MY_OUT_FP, "\tH0:i:%i", H0) ;
