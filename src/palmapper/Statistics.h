@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <palmapper/Config.h>
 #include "IntervalQuery.h"
 
