@@ -1,3 +1,5 @@
+#include <new>
+
 #include <palmapper/Util.h>
 
 bool Util::doInit() {
@@ -19,5 +21,13 @@ FILE *Util::openFile(char const *name, char const *mode) {
 		fprintf(stderr, "ERROR : Couldn't open file %s for %s\n", name, mode);
 		exit(1);
 	}
+	return ret;
+}
+
+void *operator new(size_t size) {
+	static std::bad_alloc ex;
+	void *ret = operator new(size, std::nothrow);
+	if (ret == NULL)
+		throw ex;
 	return ret;
 }

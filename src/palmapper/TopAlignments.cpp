@@ -582,7 +582,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, FILE *OUT_
 		
 		if ((_config.POLYTRIM_STRATEGY||_config.RTRIM_STRATEGY) && (polytrim_cut_start>0 || polytrim_cut_end>0))
 		{
-			char* orig_read = read.get_orig()->data() ;
+			char const * orig_read = read.get_orig()->data() ;
 			int orig_len = read.get_orig()->length() ;
 			read_len = orig_len ;
 			read_qual = read.get_orig()->quality(0);

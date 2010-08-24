@@ -14,7 +14,7 @@ class Read {
 	friend class QueryFile;
 public:
 	Read(QueryFile &queryFile);
-	Read(const Read & read); // copy constructor
+	Read(Read const &src, unsigned cutStart = 0, unsigned cutEnd = 0);
 	~Read();
 
 	unsigned int length() const {
@@ -60,31 +60,35 @@ public:
 		--READ_LENGTH;
 	}
 
-	void trim_read_start(Read * read, int trim_start) 
-	{
-		for (unsigned int i=trim_start; i<read->length(); i++)
-		{
-			READ[i-trim_start] = read->READ[i];
-			READ_QUALITY[0][i-trim_start] = read->READ_QUALITY[0][i];
-		}
-		READ_LENGTH = read->length()-trim_start ;
-
-		READ[READ_LENGTH] = '\0';
-		READ_QUALITY[0][READ_LENGTH] = '\0';
+	void trim(unsigned cutStart, unsigned cutEnd) {
+		copyFrom(*this, cutStart, cutEnd);
 	}
 
-	void trim_read_end(Read * read, int trim_end) 
-	{
-		for (unsigned int i=0; i<read->length()-trim_end; i++)
-		{
-			READ[i] = read->READ[i];
-			READ_QUALITY[0][i] = read->READ_QUALITY[0][i];
-		}
-		READ_LENGTH = read->length()-trim_end ;
-
-		READ[READ_LENGTH] = '\0';
-		READ_QUALITY[0][READ_LENGTH] = '\0';
-	}
+//	void trim_read_start(Read * read, int trim_start)
+//	{
+//		for (unsigned int i=trim_start; i<read->length(); i++)
+//		{
+//			READ[i-trim_start] = read->READ[i];
+//			READ_QUALITY[0][i-trim_start] = read->READ_QUALITY[0][i];
+//		}
+//		READ_LENGTH = read->length()-trim_start ;
+//
+//		READ[READ_LENGTH] = '\0';
+//		READ_QUALITY[0][READ_LENGTH] = '\0';
+//	}
+//
+//	void trim_read_end(Read * read, int trim_end)
+//	{
+//		for (unsigned int i=0; i<read->length()-trim_end; i++)
+//		{
+//			READ[i] = read->READ[i];
+//			READ_QUALITY[0][i] = read->READ_QUALITY[0][i];
+//		}
+//		READ_LENGTH = read->length()-trim_end ;
+//
+//		READ[READ_LENGTH] = '\0';
+//		READ_QUALITY[0][READ_LENGTH] = '\0';
+//	}
 
 	bool is_match(char a, char b)
 		{
@@ -231,8 +235,8 @@ public:
 			return false ;
 		}
 	
-	Read* get_orig() const { return orig_read ; } ;
-	void set_orig(Read* orig) { orig_read=orig ; } ;
+	Read const * get_orig() const { return orig_read ; } ;
+//	void set_orig(Read* orig) { orig_read=orig ; } ;
 	void printOn(FILE *file) const;
 
 	int getNr() const {
@@ -240,6 +244,12 @@ public:
 	}
 
 private:
+	/**
+	 * Copies data from another read - possibly truncated. This method is private,
+	 * since the special case, src == this,  violates the const contract.
+	 */
+	void copyFrom(Read const &src, unsigned cutStart, unsigned cutEnd);
+
 	int read_short_read();
 
 	unsigned int READ_LENGTH;
@@ -253,5 +263,5 @@ private:
 	
 	QueryFile &_queryFile;
 
-	Read* orig_read ;
+	Read const * orig_read ;
 };
