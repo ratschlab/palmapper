@@ -167,7 +167,6 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 	bool FILTER_STAT = false ;
 
 	GENOME.clear();
-//	Read* trim_orig_read = NULL ;
 
 	Hits &hits(result._readMappings);
 
@@ -191,20 +190,20 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 	}
 
 	new(&result._work) Read(result._orig);
-	Read &_read(result._work);
+	Read &read(result._work);
 
 restart:
 
 	// make it somehow dependent on the read length, the index depth and the number of mismatches
-	_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA = _read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
+	_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA = read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
 
-	char const *READ = _read.data();
+	char const *READ = read.data();
 	if (_config.VERBOSE)
-		printf("# _read.id()=%s READ=%s\n", _read.id(), READ) ;
+		printf("# _read.id()=%s READ=%s\n", read.id(), READ) ;
 
 
 	int num_N=0 ;
-	for (unsigned int i=0; i < _read.length(); i++)
+	for (unsigned int i=0; i < read.length(); i++)
 		if (READ[i]!='A' && READ[i]!='C' && READ[i]!='G' && READ[i]!='T')
 			num_N++ ;
 	if (num_N>_config.NUM_MISMATCHES)
@@ -215,10 +214,10 @@ restart:
 		return;
 	}
 
-	if (_read.length() < _config.HITLEN_LIMIT)
+	if (read.length() < _config.HITLEN_LIMIT)
 	{
 		fprintf(stderr, "\n!!! WARNING! Read %d (%s) with length %d is shorter than the hitlength limit (=%d) and will not be processed!\n\n",
-			_read.getNr(), _read.id(), _read.length(), _config.HITLEN_LIMIT);
+			read.getNr(), read.id(), read.length(), _config.HITLEN_LIMIT);
 		result._state = ReadShorterThanHitLengthLimit;
 		return;
 	}
@@ -230,10 +229,10 @@ restart:
 
 	// map_fast IF 1) best hit strategy 2) only hits up to RL/ID mismatches without gaps should be found
 	// READ_LENGTH / _config.INDEX_DEPTH is the number of seeds fitting in the current read
-	int nr_seeds = (int) (_read.length() / _config.INDEX_DEPTH);
+	int nr_seeds = (int) (read.length() / _config.INDEX_DEPTH);
 	if (!hits.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
 	{
-		int ret	= hits.map_fast(_read);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
+		int ret	= hits.map_fast(read);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 		if (ret<0)
 			cancel = 1 ;
 		else
@@ -253,7 +252,7 @@ restart:
 		{
 			c_map_short_read++;
 
-			int ret = hits.map_short_read(_read, _read.getNr());
+			int ret = hits.map_short_read(read, read.getNr());
 
 			if (ret<0)
 				cancel=2 ;
@@ -317,14 +316,13 @@ restart:
 		if ( trigger )
 		{
 			if (_config.LOG_TRIGGERED)
-				_read.printOn(_TRIGGERED_LOG_FP);
+				read.printOn(_TRIGGERED_LOG_FP);
 		}
 
 		if (_config.SPLICED_HITS && (trigger  || FILTER_STAT))
 			{
 				num_spliced_alignments_triggered++ ;
 
-				//(top_alignments.size()==0 || top_alignments[0]->num_matches <= _read.lenght() - _config.NUM_EDIT_OPS/2) )
 				try
 					{
 						int ret = qpalma->capture_hits(hits, result._qpalma);
@@ -366,20 +364,15 @@ restart:
 
 
 		{
-			if (_config.RTRIM_STRATEGY && (_read.length() > _config.RTRIM_STRATEGY_MIN_LEN))
+			if (_config.RTRIM_STRATEGY && (read.length() > _config.RTRIM_STRATEGY_MIN_LEN))
 			{
-				_read.trim(0, _config.RTRIM_STRATEGY_STEP);
+				read.trim(0, _config.RTRIM_STRATEGY_STEP);
 				rtrim_cut += _config.RTRIM_STRATEGY_STEP;
-//				for (int s=0; s<(int)_config.RTRIM_STRATEGY_STEP; s++)
-//				{
-//					read.cutOffLast();
-//					rtrim_cut += 1 ;
-//				}
 				hits.clear();
 				goto restart ;
 			}
 
-			if (_config.POLYTRIM_STRATEGY && (_read.length() > _config.POLYTRIM_STRATEGY_MIN_LEN))
+			if (_config.POLYTRIM_STRATEGY && (read.length() > _config.POLYTRIM_STRATEGY_MIN_LEN))
 			{
 				// intended logic: increase start and end alternatively
 				// until the individual stopping conditions are reached
@@ -387,18 +380,12 @@ restart:
 				if (polytrim_cut_start==0 && polytrim_cut_end==0)
 				{
 					// determine the number of T's at beginning or A's at end
-					_read.find_poly(poly_length_start, poly_length_end) ;
+					read.find_poly(poly_length_start, poly_length_end) ;
 					//fprintf(stdout, "poly_length_start=%i, poly_length_end=%i\n", poly_length_start, poly_length_end) ;
 
-//					// copy original read
-//					read.set_orig(NULL) ;
-//					delete trim_orig_read ;
-//					trim_orig_read=new Read(read) ;
-//					read.set_orig(trim_orig_read) ;
-					if (_read.is_full_poly())
+					if (read.is_full_poly())
 						poly_length_start=poly_length_end=0 ;
 				}
-//				assert(trim_orig_read!=NULL) ;
 
 				if (poly_length_start <= _config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
 					poly_length_start=0 ;
@@ -410,15 +397,14 @@ restart:
 				{
 					// determine which side to cut
 					bool start_cond = (polytrim_cut_start < poly_length_start &&
-									   _read.length() - polytrim_cut_start >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
+									   read.length() - polytrim_cut_start >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
 					bool end_cond = (polytrim_cut_end < poly_length_end &&
-									 _read.length() - polytrim_cut_end >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
+									 read.length() - polytrim_cut_end >= _config.POLYTRIM_STRATEGY_MIN_LEN) ;
 
 					if (start_cond && (polytrim_cut_start<polytrim_cut_end || !end_cond))
 					{
 						polytrim_cut_start += _config.POLYTRIM_STRATEGY_STEP ;
 						new (&result._work) Read(result._orig, polytrim_cut_start, 0);
-//						read.trim_read_start(trim_orig_read, polytrim_cut_start) ;
 						restart = true ;
 						polytrim_cut_start_curr = polytrim_cut_start ;
 						polytrim_cut_end_curr = 0 ;
@@ -427,7 +413,6 @@ restart:
 					{
 						polytrim_cut_end += _config.POLYTRIM_STRATEGY_STEP ;
 						new (&result._work) Read(result._orig, 0, polytrim_cut_end);
-//						read.trim_read_end(trim_orig_read, polytrim_cut_end) ;
 						restart = true ;
 						polytrim_cut_start_curr = 0 ;
 						polytrim_cut_end_curr = polytrim_cut_end ;
@@ -453,14 +438,9 @@ restart:
 
 	if (cancel)
 	{
-		fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", _read.id(), cancel, READ) ;
+		fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", read.id(), cancel, READ) ;
 		result._state = MappingFailed;
 	}
-
-//	// forget about the original read
-//	read.set_orig(NULL) ;
-//	delete trim_orig_read ;
-//	trim_orig_read=NULL ;
 }
 
 int Mapper::init_operators() {
