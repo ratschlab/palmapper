@@ -24,15 +24,17 @@ public:
 	class Result {
 	public:
 		Result(Mapper &mapper)
-		: 	_read(mapper._queryFile),
-		  	_readMappings(mapper._genome, mapper._genomeMaps, mapper, _read),
-		  	_qpalma(_read, mapper._qpalma)
+		: 	_orig(mapper._queryFile),
+		  	_work(mapper._queryFile),
+		  	_readMappings(mapper._genome, mapper._genomeMaps, mapper, _work),
+		  	_qpalma(_work, mapper._qpalma)
 		{
 			_state = NothingFound;
 		}
 
 		ResultState _state;
-		Read _read;
+		Read _orig;
+		Read _work;
 		Hits _readMappings;
 		QPalma::Result _qpalma;
 

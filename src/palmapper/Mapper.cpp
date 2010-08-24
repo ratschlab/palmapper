@@ -109,7 +109,7 @@ int Mapper::map_reads()
 
 		count_reads++;
 		Result &result = *new Result(*this);
-		if (!_queryFile.next_read(result._read))
+		if (!_queryFile.next_read(result._orig))
 			break;
 		
 		clock_t start_time = clock() ;
@@ -167,40 +167,31 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 	bool FILTER_STAT = false ;
 
 	GENOME.clear();
-	Read* trim_orig_read = NULL ;
+//	Read* trim_orig_read = NULL ;
 
 	Hits &hits(result._readMappings);
-	Read &_read(result._read);
 
 
-	unsigned int adapter_cut_start = 0 ;
-	unsigned int adapter_cut_end = 0 ;
-	if (_config.ADAPTERTRIM_STRATEGY)
-	{
-		int orig_len = _read.length() ;
+	if (_config.ADAPTERTRIM_STRATEGY) {
+		int beforeTrimLen = result._orig.length() ;
 
-		_read.find_adapter(adapter_cut_start, adapter_cut_end) ;
-		if (_read.length()-(adapter_cut_start+adapter_cut_end) < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
+		unsigned int adapter_cut_start = 0 ;
+		unsigned int adapter_cut_end = 0 ;
+		result._orig.find_adapter(adapter_cut_start, adapter_cut_end) ;
+		if (result._orig.length()-(adapter_cut_start+adapter_cut_end) < _config.ADAPTERTRIM_STRATEGY_MIN_LEN)
 		{
 			result._state = TooShortAfterTrimming;
 			return;
 		}
 
-		if (adapter_cut_start!=0)
-		{
-			Read *trim_read=new Read(_read) ;
-			_read.trim_read_start(trim_read, adapter_cut_start) ;
-			delete trim_read ;
-		}
-		if (adapter_cut_end!=0)
-		{
-			Read *trim_read=new Read(_read) ;
-			_read.trim_read_end(trim_read, adapter_cut_end) ;
-			delete trim_read ;
-		}
+		if (adapter_cut_start != 0 || adapter_cut_end != 0)
+			result._orig.trim(adapter_cut_start, adapter_cut_end);
 		if (_ADAPTERTRIM_LOG_FP)// && (adapter_cut_start!=0 || adapter_cut_end!=0))
-			fprintf(_ADAPTERTRIM_LOG_FP, "%s\t%i\t%i\t%i\t%i\n", _read.id(), orig_len, adapter_cut_start, adapter_cut_end, _read.length()) ;
+			fprintf(_ADAPTERTRIM_LOG_FP, "%s\t%i\t%i\t%i\t%i\n", result._orig.id(), beforeTrimLen, adapter_cut_start, adapter_cut_end, result._orig.length()) ;
 	}
+
+	new(&result._work) Read(result._orig);
+	Read &_read(result._work);
 
 restart:
 
@@ -367,9 +358,6 @@ restart:
 			result._polytrim_cut_start = polytrim_cut_start_curr;
 			result._polytrim_cut_end = polytrim_cut_end_curr;
 			result._state = ReadMapped;
-			_read.set_orig(NULL) ;
-			delete trim_orig_read ;
-			trim_orig_read=NULL ;
 			return;
 		}
 			read_mapped = 1 ;
@@ -380,19 +368,13 @@ restart:
 		{
 			if (_config.RTRIM_STRATEGY && (_read.length() > _config.RTRIM_STRATEGY_MIN_LEN))
 			{
-				if (rtrim_cut==0)
-				{
-					_read.set_orig(NULL) ;
-					delete trim_orig_read ;
-					trim_orig_read=new Read(_read) ;
-					_read.set_orig(trim_orig_read) ;
-				}
-
-				for (int s=0; s<(int)_config.RTRIM_STRATEGY_STEP; s++)
-				{
-					_read.cutOffLast();
-					rtrim_cut += 1 ;
-				}
+				_read.trim(0, _config.RTRIM_STRATEGY_STEP);
+				rtrim_cut += _config.RTRIM_STRATEGY_STEP;
+//				for (int s=0; s<(int)_config.RTRIM_STRATEGY_STEP; s++)
+//				{
+//					read.cutOffLast();
+//					rtrim_cut += 1 ;
+//				}
 				hits.clear();
 				goto restart ;
 			}
@@ -408,15 +390,15 @@ restart:
 					_read.find_poly(poly_length_start, poly_length_end) ;
 					//fprintf(stdout, "poly_length_start=%i, poly_length_end=%i\n", poly_length_start, poly_length_end) ;
 
-					// copy original read
-					_read.set_orig(NULL) ;
-					delete trim_orig_read ;
-					trim_orig_read=new Read(_read) ;
-					_read.set_orig(trim_orig_read) ;
+//					// copy original read
+//					read.set_orig(NULL) ;
+//					delete trim_orig_read ;
+//					trim_orig_read=new Read(read) ;
+//					read.set_orig(trim_orig_read) ;
 					if (_read.is_full_poly())
 						poly_length_start=poly_length_end=0 ;
 				}
-				assert(trim_orig_read!=NULL) ;
+//				assert(trim_orig_read!=NULL) ;
 
 				if (poly_length_start <= _config.POLYTRIM_STRATEGY_POLY_MIN_LEN)
 					poly_length_start=0 ;
@@ -435,7 +417,8 @@ restart:
 					if (start_cond && (polytrim_cut_start<polytrim_cut_end || !end_cond))
 					{
 						polytrim_cut_start += _config.POLYTRIM_STRATEGY_STEP ;
-						_read.trim_read_start(trim_orig_read, polytrim_cut_start) ;
+						new (&result._work) Read(result._orig, polytrim_cut_start, 0);
+//						read.trim_read_start(trim_orig_read, polytrim_cut_start) ;
 						restart = true ;
 						polytrim_cut_start_curr = polytrim_cut_start ;
 						polytrim_cut_end_curr = 0 ;
@@ -443,7 +426,8 @@ restart:
 					if (end_cond && !restart)
 					{
 						polytrim_cut_end += _config.POLYTRIM_STRATEGY_STEP ;
-						_read.trim_read_end(trim_orig_read, polytrim_cut_end) ;
+						new (&result._work) Read(result._orig, 0, polytrim_cut_end);
+//						read.trim_read_end(trim_orig_read, polytrim_cut_end) ;
 						restart = true ;
 						polytrim_cut_start_curr = 0 ;
 						polytrim_cut_end_curr = polytrim_cut_end ;
@@ -473,10 +457,10 @@ restart:
 		result._state = MappingFailed;
 	}
 
-	// forget about the original read
-	_read.set_orig(NULL) ;
-	delete trim_orig_read ;
-	trim_orig_read=NULL ;
+//	// forget about the original read
+//	read.set_orig(NULL) ;
+//	delete trim_orig_read ;
+//	trim_orig_read=NULL ;
 }
 
 int Mapper::init_operators() {

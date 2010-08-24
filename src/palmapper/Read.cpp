@@ -23,25 +23,44 @@ Read::Read(QueryFile &queryFile)
 {
 	READ_QUALITY[0][0] = READ_QUALITY[1][0] = READ_QUALITY[2][0] = '\0';
 	READ_LENGTH = 0;
+	READ_ID[0] = '\0';
 	orig_read = NULL ;
+	_nr = -1;
 }
 
-Read::Read(const Read& read)
-:	_queryFile(read._queryFile)
+Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
+:	_queryFile(src._queryFile)
 {
-	READ_LENGTH = read.READ_LENGTH ;
-	strncpy(READ_ID, read.READ_ID, _config.MAX_READ_ID_LENGTH) ;
-	strncpy(READ, read.READ, _config.MAX_READ_LENGTH+1) ;
-	for (int i = 0; i < 3; ++i) {
-		strncpy(READ_QUALITY[i], read.READ_QUALITY[i], _config.MAX_READ_LENGTH + 1) ;
-	}
-	READ_FORMAT=read.READ_FORMAT ;
-	READ_PE_FLAG = read.READ_PE_FLAG ;
-
-	orig_read = NULL ;
+	copyFrom(src, cutStart, cutEnd);
+	READ_FORMAT = src.READ_FORMAT ;
+	READ_PE_FLAG = src.READ_PE_FLAG ;
+	::strcpy(READ_ID, src.READ_ID);
+	orig_read = &src;
+	_nr = src._nr;
 }
 
 Read::~Read() {
+}
+
+void Read::copyFrom(Read const &src, unsigned cutStart, unsigned cutEnd) {
+	assert(cutStart <= src.READ_LENGTH);
+	assert(cutEnd <= src.READ_LENGTH);
+	assert(cutStart + cutEnd <= src.READ_LENGTH);
+	size_t len = src.READ_LENGTH - (cutStart + cutEnd);
+
+	::memmove(READ, src.READ + cutStart, len);
+	READ[len] = '\0';
+
+	for (int i = 0; i < 3; ++i) {
+		if (src.READ_QUALITY[i][0] != 0) {
+			::memmove(READ_QUALITY[i], src.READ_QUALITY[i] + cutStart, len);
+			READ_QUALITY[i][len] = '\0';
+		} else {
+			READ_QUALITY[i][0] = '\0';
+		}
+	}
+
+	READ_LENGTH = len;
 }
 
 /** Parses one line of read descriptions in either FASTA, FASTQ or FLATFILE
