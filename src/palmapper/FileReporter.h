@@ -18,6 +18,7 @@ public:
 private:
 	static int const _nrResults = 1024;
 	Mutex _mutex;
+	lang::Signal _roomLeft;
 	FILE *_out;
 	FILE *_sp_out;
 	FILE *_left_overs;
