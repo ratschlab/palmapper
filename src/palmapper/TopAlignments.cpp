@@ -1176,7 +1176,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
                 cigar[pos + ii] = cig_buf[ii] ;
             pos += strlen(cig_buf) ;
-            cigar[pos++] = 'S' ;
+            cigar[pos++] = 'H' ;
         }
 
         for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
@@ -1264,10 +1264,12 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             for (ii=0; ii < strlen(cig_buf); ii++)
                 cigar[pos + ii] = cig_buf[ii] ;
             pos += strlen(cig_buf) ;
-            cigar[pos++] = 'S' ;
+            cigar[pos++] = 'H' ;
         }
-        if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
-            fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + polytrim_cut_start + polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
+        //if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
+        if (cum_size + indel_offset != curr_read->length()) 
+            fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
+            //fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + polytrim_cut_start + polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
             //fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s \n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno) ;
         //assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
         cigar[pos] = 0 ;
