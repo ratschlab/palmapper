@@ -1471,6 +1471,7 @@ int Config::usage()
     printf(" -stranded STRING                   strand specific experiment [ left | right | plus | minus ]\n");
 
 	printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n");
+	printf(" -rtrim-step INT                    rtrim step size (INT)\n");
 	printf(" -polytrim INT                      trims polyA or polyT ends until a hit is found or the minimal length is reached (INT)\n");
 	printf(" -adaptertrim INT                   trims away known adapter sequences, read is dropped, when shorter than parameter (INT)\n\n");
 
