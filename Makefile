@@ -6,13 +6,13 @@ ExeDir = $(OutDir)/a
 SVNVERSION = $(shell svnversion)
 
 CC = g++
-CFLAGS = -Wall -g -O5 -pg # debug 
+#CFLAGS = -Wall -g -O5 -pg # debug 
 #CFLAGS = -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
-#CFLAGS = -O9 -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+CFLAGS = -O9 -Wall -g -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 #CFLAGS = -O9 -Wall -g -pg -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
-LDFLAGS = -pg
+LDFLAGS = 
 
 SHOGUN_OBJ = $(ObjDir)/pm/palmapper/shogun/init.o \
 	$(ObjDir)/pm/palmapper/shogun/Mathematics.o \
@@ -71,6 +71,7 @@ PM_OBJ = $(ObjDir)/pm/palmapper/GenomeMaps.o \
 	$(ObjDir)/pm/palmapper/Read.o \
 	$(ObjDir)/pm/palmapper/Statistics.o \
 	$(ObjDir)/pm/palmapper/Util.o \
+	$(ObjDir)/pm/palmapper/bwt.o \
 	$(SHOGUN_OBJ) $(DYNPROG_OBJ) $(LANG_OBJ)
 
 PMIDX_OBJ = $(ObjDir)/pm/pmindex/init.o \
