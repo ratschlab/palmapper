@@ -47,7 +47,7 @@ public:
 
 	static int const QPALMA_USE_MAP_WINDOW = 10 ; //Window used to go all away the extended long region to find mapped positions
 
-	static int const MAX_EDIT_OPS = 50;
+	static int const MAX_EDIT_OPS = 55;
 	static size_t const INDEX_SIZE_12 = 16777216; //4^12
 	static size_t const INDEX_SIZE_13 = 67108864; //4^13
 	static size_t const INDEX_SIZE_14 = 67108864*4; //4^14
