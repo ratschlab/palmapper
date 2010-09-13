@@ -43,19 +43,23 @@ extern void printhit(Read const &read, HIT* hit);
 
 template <bool clearNew, class Entry> class Container {
 public:
-	Container() {
+	Container() : _entries(30) {
+		_containerSize = 64;
 		_current = _end = NULL;
+		_used = 0;
 	}
 	~Container() {
 		clear();
 	}
 	Entry *newEntry() {
 		if (_current >= _end) {
-			_entries.push_back(_current = new Entry[CONTAINER_SIZE]);
-			_end = _current + CONTAINER_SIZE;
+			_containerSize *= 2;
+			_entries.push_back(_current = new Entry[_containerSize]);
+			_end = _current + _containerSize;
 		}
 		if (clearNew)
 			::memset(_current, 0, sizeof(Entry));
+		++_used;
 		return _current++;
 	}
 	void clear() {
@@ -64,12 +68,20 @@ public:
 			_entries.pop_back();
 		}
 		_current = _end = NULL;
+		_used = 0;
+		_containerSize = 64;
+	}
+
+	unsigned int used() {
+		return _used;
 	}
 
 private:
 	std::vector<Entry*> _entries;
 	Entry *_current;
 	Entry *_end;
+	unsigned int _used;
+	unsigned int _containerSize;
 };
 
 struct MAPPING_ENTRY {
@@ -141,29 +153,7 @@ private:
 typedef MyArr<CHROMOSOME_ENTRY*> GenomeArr;
 //typedef GenomeMap<CHROMOSOME_ENTRY*> GenomeArr;
 
-struct CHROMOSOME_ENTRY_CONTAINER {
-	CHROMOSOME_ENTRY_CONTAINER(int nrEntries) {
-		/*if (nrEntries<=0)
-		{
-			fprintf(stderr, "nrEntries=%i\n", nrEntries) ;
-			entries=NULL ;
-			used=0;
-			
-			return ;
-		}
-		if (nrEntries>10000)
-		{	
-			fprintf(stderr, "nrEntries=%i (%ld bytes)\n", nrEntries, nrEntries*sizeof(CHROMOSOME_ENTRY)) ;
-			}*/
-		entries = new CHROMOSOME_ENTRY[nrEntries];
-		used = 0;
-	}
-	~CHROMOSOME_ENTRY_CONTAINER() {
-		delete[] entries;
-	}
-	CHROMOSOME_ENTRY* entries;
-	unsigned int used;
-};
+typedef Container<false, CHROMOSOME_ENTRY> CHROMOSOME_ENTRY_CONTAINER;
 
 typedef struct hits_by_score_structure {
 	HIT *hitpointer;
@@ -270,7 +260,7 @@ public:
 		dealloc_mapping_entries();
 		dealloc_hits();
 		dealloc_hits_by_score();
-		CHROMOSOME_ENTRY_OPERATOR.used = 0;
+		CHROMOSOME_ENTRY_OPERATOR.clear();
 		GENOME.clear();
 		dealloc_hit_lists_operator();
 	}
@@ -287,7 +277,6 @@ private:
 	unsigned int NUM_SCORE_INTERVALS;
 	Container<true, MAPPING_ENTRY> _mappings;
 	Container<true, HIT> _hits;
-	//CHROMOSOME_ENTRY **GENOME; // doppelt
 	Mapper &_mapper;
 	Read const &_read;
 	GenomeArr &GENOME;
