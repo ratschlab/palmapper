@@ -373,20 +373,18 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 					chromosome_director = *(GENOME + genome_pos);
 
 					if (read_num == num) {
-						printf("ChrEntryOp:       %p\n", (CHROMOSOME_ENTRY_OPERATOR.entries));
-						printf("ChrEntryOp[used]: %p\n", ((CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used)));
+						//TODO what should this be good for?
+//						printf("ChrEntryOp:       %p\n", (CHROMOSOME_ENTRY_OPERATOR.entries));
+//						printf("ChrEntryOp[used]: %p\n", ((CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used)));
 						printf("chrom_director:   %p\n", chromosome_director);
-						printf("used = %d\n",CHROMOSOME_ENTRY_OPERATOR.used);
+						printf("used = %d\n",CHROMOSOME_ENTRY_OPERATOR.used());
 						printf("chrom_dir->gen_pos: %d\n", chromosome_director->genome_pos);
 						printf("genome_pos: %d\n", genome_pos);
 					}
 
-					// is chrom_director from the actual read or from a former one?
-					if (chromosome_director >= (CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used)
-							|| (chromosome_director < (CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used) &&
-								(chromosome_director->genome_pos != genome_pos))) {
-
+					if (chromosome_director->genome_pos != genome_pos) {
 						// it's from a former read, thus we need a new chrom_director:
+						assert(false);
 						chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
 						if (!chromosome_director)
 						{
@@ -474,9 +472,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 						}
 						chromosome_director_neighbor = *(GENOME + (genome_pos + direction));
 
-						// Is the chrom director from actual read?
-						if (chromosome_director_neighbor < (CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used) &&
-								(chromosome_director_neighbor->genome_pos == genome_pos + direction)) {
+						if (chromosome_director_neighbor->genome_pos == genome_pos + direction) {
 
 							// is there a mapping entry in the right chromosome solt, mr. director?
 							// Search for chromosome_director_neighbor for the correct chromosome and strand
@@ -537,8 +533,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos)
 							chromosome_director_neighbor = *(GENOME + (genome_pos + mmoffset));
 
 
-							// Is the chrom director from actual read?
-							if  (chromosome_director_neighbor < (CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used) && (chromosome_director_neighbor->genome_pos == genome_pos + mmoffset)) {
+							if  (chromosome_director_neighbor->genome_pos == genome_pos + mmoffset) {
 
 								// is there a mapping entry in the right chromosome solt, mr. director?
 								c = 0;
@@ -1045,22 +1040,7 @@ int Hits::duplicate(HIT* hit)
 		GENOME[readstart] = chromosome_director;
 	}
 	else {
-
 		chromosome_director = *(GENOME + readstart);
-
-		// is chrom_director from the actual read or from a former one?
-		if (chromosome_director >= (CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used)
-			|| 	(chromosome_director < (CHROMOSOME_ENTRY_OPERATOR.entries+CHROMOSOME_ENTRY_OPERATOR.used) &&
-		   		(chromosome_director->genome_pos != readstart))) {
-
-		   			// it's from a former read, thus we need a new chrom_director:
-					chromosome_director = alloc_chromosome_entry(_read, readstart, *hit->chromosome, strand);
-
-					if (!chromosome_director)
-						return(-1);	// chrom_container_size too small -> cancel this read
-					GENOME[readstart] = chromosome_director;
-
-		}
 	}
 
 
@@ -1187,21 +1167,12 @@ int Hits::init_hit_lists() {
 
 CHROMOSOME_ENTRY* Hits::alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand)
 {
-	if (CHROMOSOME_ENTRY_OPERATOR.used > _config.CHROM_CONTAINER_SIZE - 1) {
-		fprintf(stderr, "\n!!! WARNING: Chromosome container size of %d is too small! Hits for read %s cannot be reported any more!\n\n", _config.CHROM_CONTAINER_SIZE, read.id());
-		return(NULL);
-	}
-
-	CHROMOSOME_ENTRY *entry;
-
-	entry = &(CHROMOSOME_ENTRY_OPERATOR.entries[CHROMOSOME_ENTRY_OPERATOR.used]);
+	CHROMOSOME_ENTRY *entry = CHROMOSOME_ENTRY_OPERATOR.newEntry();
 	entry->chromosome = chr.nr();
 	entry->genome_pos = pos;
 	entry->strand = strand;
 	entry->next = NULL;
     entry->mapping_entries = NULL;
-
-    CHROMOSOME_ENTRY_OPERATOR.used++;
 
 //TODO:    if (_config.STATISTICS && CHROMOSOME_ENTRY_OPERATOR.used > _outer.MAX_USED_SLOTS)
 //    	_outer.MAX_USED_SLOTS = CHROMOSOME_ENTRY_OPERATOR.used;

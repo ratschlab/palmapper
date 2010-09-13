@@ -16,7 +16,7 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 }
 
 Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
-:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter), CHROMOSOME_ENTRY_OPERATOR(_genome.LONGEST_CHROMOSOME)
+:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
 {
 	REDUNDANT = 0;
 
@@ -262,7 +262,7 @@ restart:
 			// removing duplicates:
 			hits.dealloc_mapping_entries();
 
-			CHROMOSOME_ENTRY_OPERATOR.used = 0;
+			CHROMOSOME_ENTRY_OPERATOR.clear();
 			GENOME.clear();
 
 			time2b += clock()-start_time ;
