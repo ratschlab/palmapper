@@ -50,3 +50,5 @@ private:
 	static bool _isInitialized;
 	static bool doInit();
 };
+
+void fprintf(std::ostream *out, char const *format, ...);
