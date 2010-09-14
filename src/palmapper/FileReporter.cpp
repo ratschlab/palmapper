@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <sstream>
 
 #include <palmapper/FileReporter.h>
 #include <palmapper/print.h>
@@ -29,7 +30,15 @@ void FileReporter::report(Mapper::Result &result) {
 		assert(&r != NULL);
 		assert(r._work.getNr() == i);
 		if (r._state == Mapper::ReadMapped) {
-			r._readMappings.topAlignments().end_top_alignment_record(r._work, _out, _sp_out, r._rtrim_cut, r._polytrim_cut_start, r._polytrim_cut_end);
+			std::stringstream out;
+			std::stringstream sp_out;
+			r._readMappings.topAlignments().end_top_alignment_record(r._work, &out, &sp_out, r._rtrim_cut, r._polytrim_cut_start, r._polytrim_cut_end);
+			std::string buf = out.str();
+			if (fwrite(buf.c_str(), 1, buf.length(), _out) != buf.length())
+				fprintf(stderr, "could not writer to destination file\n");
+			std::string buf_sp = sp_out.str();
+			if (fwrite(buf_sp.c_str(), 1, buf_sp.length(), _sp_out) != buf_sp.length())
+				fprintf(stderr, "could not writer to destination file\n");
 		} else {
 			if (r._state < Mapper::IgnoreResultBound && _config.LEFTOVER_FILE_NAME.length() > 0) {
 				char const *text = "";

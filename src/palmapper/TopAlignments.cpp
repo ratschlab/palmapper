@@ -12,6 +12,7 @@
 #include <palmapper/Genome.h>
 #include <palmapper/Hits.h>
 #include <palmapper/TopAlignments.h>
+#include <palmapper/Util.h>
 
 TopAlignments::TopAlignments(GenomeMaps* genomemaps_) 
   : top_alignments(), num_spliced_alignments(0),
@@ -343,7 +344,7 @@ void TopAlignments::check_alignment(struct alignment_t * alignment)
 	}
 }
 
-void TopAlignments::end_top_alignment_record(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
+void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
 
 	if (top_alignments.empty())
 		return;
@@ -476,7 +477,7 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 	pthread_mutex_unlock( &top_mutex) ;
 }
 
-int TopAlignments::print_top_alignment_records(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP)
+int TopAlignments::print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
 	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_BEDX)
 	{
@@ -499,7 +500,7 @@ int TopAlignments::print_top_alignment_records(Read const &read, FILE *OUT_FP, F
 }
 
 
-int TopAlignments::print_top_alignment_records_bedx(Read const &read, FILE *OUT_FP, FILE *SP_OUT_FP)
+int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
 	if (top_alignments.size()==0)
 		return 0 ;
@@ -511,7 +512,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, FILE *OUT_
 	if (best->polytrim_cut_start!=0)
 		assert(best->polytrim_cut_end==0) ;
 
-	FILE* MY_OUT_FP = OUT_FP ;
+	std::ostream* MY_OUT_FP = OUT_FP ;
 
 	pthread_mutex_lock( &_stats.alignment_num_mutex ) ;
 
@@ -715,7 +716,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, FILE *OUT_
 	return top_alignments.size() ;
 }
 
-int TopAlignments::print_top_alignment_records_shorebed(Read const &read, FILE *OUT_FP)
+int TopAlignments::print_top_alignment_records_shorebed(Read const &read, std::ostream *OUT_FP)
 {
 	int printed = 0 ;
 	for (unsigned int i=0; i<top_alignments.size(); i++)
@@ -725,7 +726,7 @@ int TopAlignments::print_top_alignment_records_shorebed(Read const &read, FILE *
 	return printed ;
 }
 
-int TopAlignments::print_alignment_shorebed(Read const &read, FILE *OUT_FP, HIT* hit, unsigned int num)
+int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_FP, HIT* hit, unsigned int num)
 {
 	if (_config.STATISTICS)
 		_stats.HITS_MM[hit->mismatches]++;
@@ -1052,7 +1053,7 @@ int TopAlignments::print_alignment_shorebed(Read const &read, FILE *OUT_FP, HIT*
 }*/
 
 // SAM format
-int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_FP)
+int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP)
 {
 	if (top_alignments.size()==0)
 		return 0 ;
@@ -1073,7 +1074,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, FILE *OUT_F
             H2 += 1 ;
     }
 
-    FILE* MY_OUT_FP = OUT_FP ;
+    std::ostream* MY_OUT_FP = OUT_FP ;
     Read const * curr_read;
 
 	for (unsigned int j=0; j<top_alignments.size(); j++)

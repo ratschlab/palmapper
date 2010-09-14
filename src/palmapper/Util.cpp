@@ -1,4 +1,7 @@
 #include <new>
+#include <stdarg.h>
+#include <stdio.h>
+#include <iostream>
 
 #include <palmapper/Util.h>
 
@@ -30,4 +33,19 @@ void *operator new(size_t size) {
 	if (ret == NULL)
 		throw ex;
 	return ret;
+}
+
+void fprintf(std::ostream *out, char const *format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	char *strp;
+	int len = vasprintf(&strp, format, ap);
+	va_end(ap);
+
+	if (len == -1) {
+		fprintf(stderr, "Unable to format string. Exiting!!\n");
+		exit(1);
+	}
+	out->write(strp, len);
+	free(strp);
 }
