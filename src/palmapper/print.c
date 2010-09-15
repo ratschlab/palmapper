@@ -119,7 +119,7 @@ int compare_int(const void *a, const void *b)
 	return (int) (*ia - *ib);
 }
 
-void print_leftovers(Read const &read, const char * tag, FILE *LEFTOVER_FP)
+void print_leftovers(Read const &read, const char * tag, std::ostream *LEFTOVER_FP)
 {
 	_stats.alignment_num_unmapped++ ;
 	
