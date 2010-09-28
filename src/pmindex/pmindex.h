@@ -71,8 +71,8 @@ extern unsigned long int POSITION_COUNTER;
 #define BIN_SIZE_EXT 20
 //#define INDEX_SIZE 16777216 //4^12
 //#define INDEX_SIZE 67108864 //4^13
-//#define INDEX_SIZE 268435456 //4^14
-#define INDEX_SIZE (268435456*4) //4^15
+#define INDEX_SIZE 268435456 //4^14
+//#define INDEX_SIZE (268435456*4) //4^15
 // #define INDEX_SIZE 244140625 // 5^12
 
 #define BLOCK_TABLE_SIZE 16777216	// 2^24 (3 Byte)

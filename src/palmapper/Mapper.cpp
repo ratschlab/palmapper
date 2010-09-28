@@ -420,7 +420,7 @@ restart:
 				}
 				if (restart)
 				{
-					//fprintf(stdout, "polytrim_cut_start_curr=%i, polytrim_cut_end_curr=%i: %s\n", polytrim_cut_start_curr, polytrim_cut_end_curr, _read.data()) ;
+					//fprintf(stdout, "polytrim_cut_start_curr=%i, polytrim_cut_end_curr=%i: %s\n", polytrim_cut_start_curr, polytrim_cut_end_curr, read.data()) ;
 					hits.clear();
 					goto restart ;
 				}

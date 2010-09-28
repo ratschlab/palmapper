@@ -119,6 +119,7 @@ public:
 	float QPALMA_USE_SPLICE_SITES_THRESH_DON;
 	float QPALMA_USE_SPLICE_SITES_THRESH_ACC;
 	float QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC;
+	bool QPALMA_PRB_OFFSET_FIX ;
 
 	unsigned int READ_COUNT_LIMIT; // limits the number of reads for alignment
 

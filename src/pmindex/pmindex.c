@@ -23,7 +23,17 @@ int main(int argc, char *argv[])
 	init(argc, argv);
 
 	INDEX = (BIN**)malloc(INDEX_SIZE*sizeof(BIN*)) ;
+	if (INDEX==NULL)
+	{
+		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(BIN*)) ;
+		exit(-1) ;
+	}
 	USED_SLOTS =(int*)malloc(INDEX_SIZE*sizeof(int)) ;
+	if (USED_SLOTS==NULL)
+	{
+		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(int)) ;
+		exit(-1) ;
+	}
 	
 	if (VERBOSE) { printf("Start loading\n"); }
 
