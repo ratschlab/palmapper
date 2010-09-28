@@ -9,7 +9,7 @@
 #include <palmapper/Genome.h>
 
 Config::Config() {
-	NUM_THREADS = ::sysconf(_SC_NPROCESSORS_ONLN);
+	NUM_THREADS = 1;//::sysconf(_SC_NPROCESSORS_ONLN);
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
@@ -49,6 +49,8 @@ Config::Config() {
 	QPALMA_USE_SPLICE_SITES_THRESH_ACC = 0.0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC = 0.0 ;
 	QPALMA_MIN_NUM_MATCHES = 3 ;
+	QPALMA_PRB_OFFSET_FIX = false ;
+	
 	READ_COUNT_LIMIT = 0 ; // limits the number of reads for alignment
 	LOG_TRIGGERED = false;  // #A#
 	FILTER_BY_MAX_MISMATCHES = 1 ;
@@ -1351,6 +1353,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-no-ss-pred") == 0) {
 			not_defined = 0;
 			NO_SPLICE_PREDICTIONS = 1 ;
+		}
+
+		if (strcmp(argv[i], "-qpalma-prb-offset-fix") == 0) {
+			not_defined = 0;
+			QPALMA_PRB_OFFSET_FIX = 1 ;
 		}
 
 		if (strcmp(argv[i], "-acc-consensus") == 0) {

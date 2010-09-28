@@ -2775,7 +2775,23 @@ float QPalma::score_unspliced(Read const &read, const char * read_anno) const
 		prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
 		if (prb[i]<-10 || prb[i]>70)
 			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, read.quality(0), read.data()) ;
-		
+
+		if (_config.QPALMA_PRB_OFFSET_FIX)
+		{
+			if (alignment_parameters->quality_offset==33 && prb[i]>70)
+			{
+				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 65) ;
+				_config.QPALMA_PRB_OFFSET_FIX=false ;
+				alignment_parameters->quality_offset=65 ;
+			}
+			if (alignment_parameters->quality_offset==65 && prb[i]<-10)
+			{
+				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 33) ;
+				_config.QPALMA_PRB_OFFSET_FIX=false ;
+				alignment_parameters->quality_offset=33 ;
+			}
+			prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
+		}
 		//assert(prb[i]>=-10 && prb[i]<=70) ;
 	}
 
