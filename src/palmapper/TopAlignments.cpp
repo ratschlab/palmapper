@@ -135,16 +135,19 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 
 		if (hit->edit_op[j].mm) 
 		{
-			num_mismatches++ ;
 			num_matches-- ;
 			
 			if (hit->orientation == '+')
 			{
 				sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset], read.data()[hit->edit_op[j].pos - 1]);
+				if ( read.data()[hit->edit_op[j].pos - 1]!='N' && (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset]!='N' )
+					num_mismatches++ ;
 			}
 			else
 			{
 				sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset], get_compl_base(read.data()[((int)read.length()) - hit->edit_op[j].pos]));
+				if ( (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset]!='N' && get_compl_base(read.data()[((int)read.length()) - hit->edit_op[j].pos])!='N' )
+					num_mismatches++ ;
 			}
 		} 
 		else if (gap_in_chr) 

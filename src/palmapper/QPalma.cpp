@@ -2490,69 +2490,71 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	    
 	    //std::string read_anno = std::string("");
 	    char map[8] = "-ACGTN*";
-	    for (int i = 0; i < result_length; i++) {
-	      assert(dna_align[i]>=0 && dna_align[i]<=6);
-	      dna_align_str[i] = map[dna_align[i]];
-	      
-	      assert(est_align[i]>=0 && est_align[i]<=6);
-	      est_align_str[i] = map[est_align[i]];
-	      
-	      if (est_align[i]!=0 && est_align[i]!=6 && dna_align[i]!=0)
+	    for (int i = 0; i < result_length; i++) 
 		{
-		  if (est_align[i]==dna_align[i])
-		    read_anno.push_back(map[est_align[i]]) ;
-		  else
-		    {
-		      read_anno.push_back('[') ;
-		      if (strand=='+')
+			assert(dna_align[i]>=0 && dna_align[i]<=6);
+			dna_align_str[i] = map[dna_align[i]];
+			
+			assert(est_align[i]>=0 && est_align[i]<=6);
+			est_align_str[i] = map[est_align[i]];
+			
+			if (est_align[i]!=0 && est_align[i]!=6 && dna_align[i]!=0)
 			{
-			  read_anno.push_back(map[dna_align[i]]) ;
-			  read_anno.push_back(map[est_align[i]]) ;
-			} else
-			{
-			  read_anno.push_back(map[est_align[i]]) ;
-			  read_anno.push_back(map[dna_align[i]]) ;
+				if (est_align[i]==dna_align[i])
+					read_anno.push_back(map[est_align[i]]) ;
+				else
+				{
+					read_anno.push_back('[') ;
+					if (strand=='+')
+					{
+						read_anno.push_back(map[dna_align[i]]) ;
+						read_anno.push_back(map[est_align[i]]) ;
+					} else
+					{
+						read_anno.push_back(map[est_align[i]]) ;
+						read_anno.push_back(map[dna_align[i]]) ;
+					}
+					read_anno.push_back(']');
+					if (map[dna_align[i]]!='N' && map[est_align[i]]!='N')
+						alignment_mismatches++ ;
+				}
+				alignment_matches += (est_align[i]==dna_align[i]) ;
 			}
-		      read_anno.push_back(']');
-		      alignment_mismatches++ ;
-		    }
-		  alignment_matches += (est_align[i]==dna_align[i]) ;
-		}
-	      else if ( est_align[i]==0 )
-		{
-		  if (dna_align[i]!=0)
-		    {
-		      read_anno.push_back('[') ;
-		      if (strand=='+')
+			else if ( est_align[i]==0 )
 			{
-			  read_anno.push_back(map[dna_align[i]]) ;
-			  read_anno.push_back('-') ;
+				if (dna_align[i]!=0)
+				{
+					read_anno.push_back('[') ;
+					if (strand=='+')
+					{
+						read_anno.push_back(map[dna_align[i]]) ;
+						read_anno.push_back('-') ;
+					}
+					else
+					{
+						read_anno.push_back('-') ;
+						read_anno.push_back(map[dna_align[i]]) ;
+					}
+					read_anno.push_back(']');
+				}
+				alignment_gaps++ ;
 			}
-		      else
+			else if ( dna_align[i]==0)
 			{
-			  read_anno.push_back('-') ;
-			  read_anno.push_back(map[dna_align[i]]) ;
+				read_anno.push_back('[') ;
+				if (strand=='+')
+				{
+					read_anno.push_back('-') ;
+					read_anno.push_back(map[est_align[i]]) ;
+				}
+				else
+				{
+					read_anno.push_back(map[est_align[i]]) ;
+					read_anno.push_back('-') ;
+				}
+				read_anno.push_back(']');
+				alignment_gaps++;
 			}
-		      read_anno.push_back(']');
-		    }
-		  alignment_gaps++ ;
-		}
-	      else if ( dna_align[i]==0)
-		{
-		  read_anno.push_back('[') ;
-		  if (strand=='+')
-		    {
-		      read_anno.push_back('-') ;
-		      read_anno.push_back(map[est_align[i]]) ;
-		    }
-		  else
-		    {
-		      read_anno.push_back(map[est_align[i]]) ;
-		      read_anno.push_back('-') ;
-		    }
-		  read_anno.push_back(']');
-		  alignment_gaps++;
-		}
 	    }
 	    dna_align_str[result_length] = 0;
 	    est_align_str[result_length] = 0;
