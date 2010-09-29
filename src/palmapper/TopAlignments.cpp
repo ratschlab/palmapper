@@ -1177,7 +1177,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
             for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
                 cigar[pos + ii] = cig_buf[ii] ;
             pos += strlen(cig_buf) ;
-            cigar[pos++] = 'H' ;
+            cigar[pos++] = 'S' ;
         }
 
         for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
@@ -1265,7 +1265,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
             for (ii=0; ii < strlen(cig_buf); ii++)
                 cigar[pos + ii] = cig_buf[ii] ;
             pos += strlen(cig_buf) ;
-            cigar[pos++] = 'H' ;
+            cigar[pos++] = 'S' ;
         }
         //if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
         if (cum_size + indel_offset != curr_read->length()) 
