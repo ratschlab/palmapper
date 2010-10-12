@@ -38,7 +38,7 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	algn_hit->hit = hit ;
 	algn_hit->num = num ;
 	algn_hit->from_gm = 2;
-	
+
 	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
 	add_alignment_record(read, algn_hit, 1) ;
 	return 1 ;
@@ -201,7 +201,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 		*num_mismatches_p = num_mismatches ;
 	if (num_matches_p)
 		*num_matches_p = num_matches ;
-
+	
 	return alignment_length ;
 
 }
@@ -478,6 +478,8 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 		delete alignment;
 
 	pthread_mutex_unlock( &top_mutex) ;
+
+
 }
 
 int TopAlignments::print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
@@ -724,13 +726,14 @@ int TopAlignments::print_top_alignment_records_shorebed(Read const &read, std::o
 	int printed = 0 ;
 	for (unsigned int i=0; i<top_alignments.size(); i++)
 	{
-		printed+= print_alignment_shorebed(read, OUT_FP, top_alignments[i]->hit, top_alignments[i]->num)  ;
+		printed+= print_alignment_shorebed(read, OUT_FP, top_alignments[i], top_alignments[i]->num)  ;
 	}
 	return printed ;
 }
 
-int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_FP, HIT* hit, unsigned int num)
+int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_FP, alignment_t* align, unsigned int num)
 {
+  HIT* hit=align->hit;
 	if (_config.STATISTICS)
 		_stats.HITS_MM[hit->mismatches]++;
 
@@ -751,7 +754,8 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 	fprintf(OUT_FP, "%s\t%d\t%s\t%s\t%c",
 		hit->chromosome->desc(),
 		readstart + 1, 	// 1-initialized
-		ALIGNSEQ,	//Alignment String
+		//		ALIGNSEQ,	//Alignment String: ALIGNSEQ is the last recorded alignment string
+		align->read_anno,	//Alignment String corresponding to this particular alignment
 		read.id(),
 		((hit->orientation == '+') ? 'D' : 'P'));
 
@@ -1274,7 +1278,8 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         if (cum_size + indel_offset != curr_read->length()) 
             fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
             //fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + polytrim_cut_start + polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
-            //fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s \n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno) ;
+	    fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s no exons %i\n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno, curr_align->exons.size()) ;
+	    //}
         //assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
         cigar[pos] = 0 ;
 
