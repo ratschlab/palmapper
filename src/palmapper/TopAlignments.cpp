@@ -1161,12 +1161,23 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
          * flag+=(curr_read.FIRST_IN_PAIR)?64:128 ;
          */
         flag+=((top_alignments.size()>1)*256) ;
-		fprintf(MY_OUT_FP, "\t%d\t%s\t%d\t%i", 
+		fprintf(MY_OUT_FP, "\t%d\t%s\t%d", 
 				flag, 
 				curr_align->chromosome->desc(),
-				curr_align->exons[0] + 1,
-                254 - j);
-
+				curr_align->exons[0] + 1) ; 
+		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MAQQUALITY)
+		{
+			fprintf(stderr, "MAQ quality not implemented yet\n") ;
+			exit(-1) ;
+		}
+		else
+		{
+			if (j<=254)
+				fprintf(MY_OUT_FP, "\t%i", 254 - j);
+			else
+				fprintf(MY_OUT_FP, "\t0");
+		}
+		
 	    //	double qpalma_score = best->qpalma_score ;
         
         // determine CIGAR
@@ -1278,7 +1289,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         if (cum_size + indel_offset != curr_read->length()) 
             fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
             //fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + polytrim_cut_start + polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
-	    fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s no exons %i\n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno, curr_align->exons.size()) ;
+	    //fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s no exons %i\n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno, curr_align->exons.size()) ;
 	    //}
         //assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
         cigar[pos] = 0 ;
@@ -1309,7 +1320,16 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		}*/
 
         if (curr_align->orientation=='+')
-            fprintf(MY_OUT_FP, "\t%s\t%s", curr_read->data(), curr_read->quality(0)) ;
+		{
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_READ)
+				fprintf(MY_OUT_FP, "\t%s", curr_read->data()) ;
+			else
+				fprintf(MY_OUT_FP, "\t*") ;
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_QUALITY)
+				fprintf(MY_OUT_FP, "\t%s", curr_read->quality(0)) ;
+			else
+				fprintf(MY_OUT_FP, "\t*") ;
+		}		
         else
         {
             // reverse order of quality
@@ -1322,38 +1342,53 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
             char cr_read[500] ;
             for (int i=0; i<((int)curr_read->length()); i++)
                 cr_read[i] = get_compl_base(curr_read->data()[((int)(curr_read->length()))-i-1]) ;
-
+			
             cr_read[((int)(curr_read->length()))]=0 ;
-
-            fprintf(MY_OUT_FP, "\t%s\t%s", cr_read, qual) ;
+			
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_READ)
+				fprintf(MY_OUT_FP, "\t%s\t%s", cr_read, qual) ;
+			else
+				fprintf(MY_OUT_FP, "\t*") ;
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_QUALITY)
+				fprintf(MY_OUT_FP, "\t%s") ;
+			else
+				fprintf(MY_OUT_FP, "\t*") ;
         }
 
-        fprintf(MY_OUT_FP, "\tNM:i:%i", curr_align->num_mismatches + curr_align->num_gaps) ;
-        if (H0 > 0)
+		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS)
+			fprintf(MY_OUT_FP, "\tNM:i:%i", curr_align->num_mismatches + curr_align->num_gaps) ;
+        if (H0 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
             fprintf(MY_OUT_FP, "\tH0:i:%i", H0) ;
-        if (H1 > 0)
+        if (H1 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
             fprintf(MY_OUT_FP, "\tH1:i:%i", H1) ;
-        if (H2 > 0)
+        if (H2 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
             fprintf(MY_OUT_FP, "\tH2:i:%i", H2) ;
 
         if (curr_align->spliced)
         {
-            fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
-            fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
-            fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
-            fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
+			{
+				fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
+				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
+				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
+				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
+			}
         }
         else if (_config.STRAND > -1) {
-            if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-                fprintf(MY_OUT_FP, "\tXS:A:+") ;
-            else
-                fprintf(MY_OUT_FP, "\tXS:A:-") ;
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
+				if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+					fprintf(MY_OUT_FP, "\tXS:A:+") ;
+				else
+					fprintf(MY_OUT_FP, "\tXS:A:-") ;
         }
 
-        fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
-        fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
-        fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
-        fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
+		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
+		{
+			fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
+			fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
+			fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
+			fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
+		}
         fprintf(MY_OUT_FP, "\n") ;
 
 	}
