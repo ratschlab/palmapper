@@ -16,15 +16,17 @@ public:
 
 	void done() {
 		if (_out != stdout)
-			fprintf(_out, "#done\n") ;
-		if (_sp_out !=stdout)
-			fprintf(_sp_out, "#done\n") ;
+			fprintf(_out, "\n") ;
+		//fprintf(_out, "#done\n") ;
+		if (_sp_out !=stdout && _sp_out!=_out)
+			fprintf(_sp_out, "\n") ;
+		//fprintf(_sp_out, "#done\n") ;
 	}
 
 	void report(Mapper::Result &result);
 
 private:
-	static int const _nrResults = 1024;
+	static int const _nrResults = 1024*10;
 	static void print(FILE *file, std::string &str);
 	Mutex _mutex;
 	lang::Signal _roomLeft;
