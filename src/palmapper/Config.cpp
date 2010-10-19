@@ -35,6 +35,7 @@ Config::Config() {
 	INDEX_DEPTH_EXTRA_THRESHOLD = 1000000000 ;
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
 	OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
+	OUTPUT_FORMAT_FLAGS = OUTPUT_FORMAT_FLAGS_DEFAULT ;
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
 	REPORT_REPETITIVE_SEEDS = 0 ;
@@ -42,6 +43,9 @@ Config::Config() {
 	REPORT_MAPPED_READS = 0 ;
 	REPORT_SPLICED_READS = 0 ;
 	REPORT_RESET = 0 ;
+	REPORT_GENOME_COVERAGE = false ;
+	REPORT_GENOME_COVERAGE_FILE = NULL;
+	
 	QPALMA_USE_MAP = 1 ;
 	QPALMA_USE_MAP_MAX_SIZE = 10000 ;
 	QPALMA_USE_SPLICE_SITES = 0 ;
@@ -104,12 +108,25 @@ Config::Config() {
 
 int Config::applyDefaults(Genome * genome)
 {
+	int any_default=false ;
+	
+	if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || 
+						  SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
+		NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING || OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT ||
+		(SPLICED_HITS && SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING) || (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) ||
+		((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING && POLYTRIM_STRATEGY) || 
+		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY))
+	{
+		fprintf(stdout, "\nSetting default parameters:\n") ;
+		any_default=true ;
+	}
+
 	{
 		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAME);
 
 		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
 			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
-			fprintf(stdout, "Automatically determining alignment parameters based on read length (%int):", read_length) ;
+			fprintf(stdout, "* Automatically determining alignment parameters based on read length (%int):", read_length) ;
 		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
 		{
 			SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
@@ -148,7 +165,16 @@ int Config::applyDefaults(Genome * genome)
 			NUM_GAPS = read_length*0.03 ;
 			fprintf(stdout, " -G %i", NUM_GAPS) ;
 		}
-		fprintf(stdout, "\n") ;
+		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
+			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
+			fprintf(stdout, "\n") ;
+	}
+
+	if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT)
+	{
+		OUTPUT_FILTER = OUTPUT_FILTER_TOP ;
+		OUTPUT_FILTER_NUM_TOP = 5 ;
+		fprintf(stdout, "* Reporting the best %i alignments per read\n", OUTPUT_FILTER_NUM_TOP) ;
 	}
 
 	if (SPLICED_HITS && SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING)
@@ -163,7 +189,7 @@ int Config::applyDefaults(Genome * genome)
 			SPLICED_LONGEST_INTRON_LENGTH = 50000 ;
 		else
 			SPLICED_LONGEST_INTRON_LENGTH = 200000 ;
-		fprintf(stdout, "Automatically determined maximal intron size based on genome size (%ikb)\n", SPLICED_LONGEST_INTRON_LENGTH/1000) ;
+		fprintf(stdout, "* Automatically determined maximal intron size based on genome size (%ikb)\n", SPLICED_LONGEST_INTRON_LENGTH/1000) ;
 	}
 
 	// determine default output format
@@ -171,12 +197,12 @@ int Config::applyDefaults(Genome * genome)
 		if (SPLICED_HITS)
 		{
 			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
-			fprintf(stdout, "Selecting SAM output format\n") ;
+			fprintf(stdout, "* Selecting SAM output format\n") ;
 		}
 		else
 		{
 			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
-			fprintf(stdout, "Selecting SAM output format\n") ;
+			fprintf(stdout, "* Selecting SAM output format\n") ;
 		}
 	}
 
@@ -185,7 +211,7 @@ int Config::applyDefaults(Genome * genome)
 		if ((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING)
 		{
 			POLYTRIM_STRATEGY_STEP = (NUM_EDIT_OPS>=1) ? NUM_EDIT_OPS : 1 ;
-			fprintf(stdout, "Automatically selecting polytrim step size: %int\n", POLYTRIM_STRATEGY_STEP) ;
+			fprintf(stdout, "* Automatically selecting polytrim step size: %int\n", POLYTRIM_STRATEGY_STEP) ;
 		}
 	}
 
@@ -194,10 +220,13 @@ int Config::applyDefaults(Genome * genome)
 		if ((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING)
 		{
 			RTRIM_STRATEGY_STEP = (NUM_EDIT_OPS>=2) ? NUM_EDIT_OPS/2 : 1 ;
-			fprintf(stdout, "Automatically selecting rtrim step size: %int\n", RTRIM_STRATEGY_STEP) ;
+			fprintf(stdout, "* Automatically selecting rtrim step size: %int\n", RTRIM_STRATEGY_STEP) ;
 		}
 	}
 
+	if (any_default)
+		fprintf(stdout, "\n") ;
+	
 	return 0 ;
 }
 
@@ -525,6 +554,21 @@ int Config::parseCommandLine(int argc, char *argv[])
 			i++;
 			REPORT_FILE=strdup(argv[i]) ;
 			REPORT_FILE_READONLY = 1 ;
+		}
+
+		//report output file
+		if (strcmp(argv[i], "-report-genome-coverage") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -report-genome-coverage\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			REPORT_GENOME_COVERAGE_FILE=strdup(argv[i]) ;
+			REPORT_MAPPED_READS = 1 ;
+			REPORT_SPLICED_READS = 1 ;
+			REPORT_GENOME_COVERAGE = 1 ;
 		}
 
 		//report repetitive seeds
@@ -885,6 +929,25 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		//output format flags
+		if (strcmp(argv[i], "-ff") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -ff\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			int tmp = atoi(argv[i]);
+			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option -ff too small (should be a number/bitmask between 0-255)\n") ;
+				usage();
+				exit(1);
+			}
+			OUTPUT_FORMAT_FLAGS = tmp;
+			
+		}
+
 		//leftover file
 		if (strcmp(argv[i], "-u") == 0) {
 			not_defined = 0;
@@ -985,7 +1048,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1) ;
 			}
 			//OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
-			OUTPUT_FILTER=OUTPUT_FILTER_DEFAULT ;
+			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
 			ALL_HIT_STRATEGY = 1 ;
 		}
 
