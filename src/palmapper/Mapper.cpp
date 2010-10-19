@@ -198,7 +198,7 @@ restart:
 	_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA = read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
 
 	char const *READ = read.data();
-	if (_config.VERBOSE)
+	if (_config.VERBOSE>1)
 		printf("# _read.id()=%s READ=%s\n", read.id(), READ) ;
 
 
@@ -237,7 +237,6 @@ restart:
 			cancel = 1 ;
 		else
 			c_map_fast++;
-
 		//if (first_slot<0) // in this case not a single seed could be found
 		//	cancel = 1 ;
 	}
@@ -247,11 +246,12 @@ restart:
 	if (!cancel)
 	{
 		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
-			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()==0)) &&
+			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()<=_config.OUTPUT_FILTER_NUM_TOP)) &&
 			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0) ) )
 		{
 			c_map_short_read++;
-
+			//fprintf(stdout, "performing hits.map_short_read\n") ;
+			
 			int ret = hits.map_short_read(read, read.getNr());
 
 			if (ret<0)
@@ -268,7 +268,12 @@ restart:
 			time2b += clock()-start_time ;
 
 			if (!_config.REPORT_REPETITIVE_SEEDS)
+			{
+				//fprintf(stdout, "performing hits.browse_hits\n") ;
 				ret = hits.browse_hits();
+				//fprintf(stdout, "ret=%i\n",ret) ;
+			}
+			
 			if (ret<0)
 				cancel = 3 ;
 
@@ -305,7 +310,7 @@ restart:
 		hits._topAlignments.start_top_alignment_record();
 
 		read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
-		if (_config.VERBOSE)
+		if (_config.VERBOSE>1)
 			printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
 
 		bool trigger = false ;
