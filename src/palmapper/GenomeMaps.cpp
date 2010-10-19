@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <zlib.h>
+#include <limits.h>
 
 #include "palmapper.h"
 #include "dyn_prog/qpalma_dp.h"
@@ -15,6 +16,7 @@ clock_t GenomeMaps::last_report = 0 ;
 GenomeMaps::GenomeMaps(Genome const &genome_)
 {
 	CHR_MAP_c = NULL ;
+	CHR_MAP_i = NULL ;
 
 	reported_repetitive_seeds = 0 ;
 	reported_mapped_regions = 0 ;
@@ -60,7 +62,7 @@ GenomeMaps::~GenomeMaps()
 void GenomeMaps::to_dnaarray(int chr=-1)
 {
 	assert(CHR_MAP_c!=NULL) ;
-	//fprintf(stdout, "to_dnaarray(%i)\n", chr) ;
+OB	//fprintf(stdout, "to_dnaarray(%i)\n", chr) ;
 	
 	size_t start = 0 ;
 	size_t end = 0 ;
@@ -159,6 +161,9 @@ int GenomeMaps::init_reporting()
 	try
 	{
 		CHR_MAP_c = new unsigned char*[genome->nrChromosomes()] ;
+		if (_config.REPORT_GENOME_COVERAGE)
+			CHR_MAP_i = new unsigned int*[genome->nrChromosomes()] ;
+			
 	}
 	catch (std::bad_alloc&) 
 	{
@@ -181,17 +186,24 @@ int GenomeMaps::init_reporting()
 #ifdef CHR_MAP_DNAARRAY
 		CHR_MAP_a.push_back(new CHR_MAP_DNAARRAY_CLASS(CHR_LENGTH[i])) ;
 		CHR_MAP_c[i]=NULL ;
+		CHR_MAP_i[i]=NULL ;
+
+		XXX
 #else
 		try 
 		{
 			CHR_MAP_c[i] = new unsigned char[chr.length()+1] ;
+			if (_config.REPORT_GENOME_COVERAGE)
+				CHR_MAP_i[i] = new unsigned int[chr.length()+1] ;
 		}
 		catch (std::bad_alloc&) 
 		{
 			fprintf(stderr, "ERROR : not enough memory for genome maps\n");
 			exit(1);
 		}
-		memset(CHR_MAP_c[i], 0, chr.length()) ;
+		memset(CHR_MAP_c[i], 0, chr.length()*sizeof(unsigned char)) ;
+		if (_config.REPORT_GENOME_COVERAGE)
+			memset(CHR_MAP_i[i], 0, chr.length()*sizeof(unsigned int)) ;
 #endif
 	}
 	 
@@ -217,7 +229,8 @@ int GenomeMaps::report_repetitive_seed(Chromosome const &chr, int chr_start, int
 		return 0 ;
 	if (!(chr_start>=0 && (size_t)chr_start<=chr.length()))
 	{
-		fprintf(stdout, "report_mapped_region: start out of bounds\n") ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "report_mapped_region: start out of bounds\n") ;
 		if (chr_start<0)
 			chr_start = 0 ;
 		else
@@ -270,7 +283,8 @@ int GenomeMaps::report_mapped_region(Chromosome const &chr, int chr_start, int c
 
 	if (!(chr_start>=0 && (size_t)chr_start<=chr.length()))
 	{
-		fprintf(stdout, "report_mapped_region: start out of bounds\n") ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "report_mapped_region: start out of bounds\n") ;
 		if (chr_start<0)
 			chr_start = 0 ;
 		else
@@ -278,7 +292,8 @@ int GenomeMaps::report_mapped_region(Chromosome const &chr, int chr_start, int c
 	}
 	if (!(chr_end>=0 && (size_t)chr_end<=chr.length()))
 	{
-		fprintf(stdout, "report_mapped_region: end out of bounds\n") ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "report_mapped_region: end out of bounds\n") ;
 		if (chr_end<0)
 			chr_end = 0 ;
 		else
@@ -298,11 +313,11 @@ int GenomeMaps::report_mapped_region(Chromosome const &chr, int chr_start, int c
 int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, int num_matches, int nbest_hit)
 {
 	reported_mapped_reads++ ;
-	start = start - Config::QPALMA_USE_MAP_WINDOW;
-	end = end + Config::QPALMA_USE_MAP_WINDOW;
+	
 	if (!(start>=0 && (size_t)start<=chr.length()))
 	{
-		fprintf(stdout, "report_mapped_read: start out of bounds\n") ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "report_mapped_read: start out of bounds (start=%i no in [0,%i))\n", start, chr.length()) ;
 		if (start<0)
 			start = 0 ;
 		else
@@ -311,7 +326,8 @@ int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, in
 	
 	if (!(end>=0 && (size_t)end<=chr.length()))
 	{
-		fprintf(stdout, "report_mapped_read: end out of bounds\n") ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "report_mapped_read: end out of bounds (end=%i not in [0,%i))\n", end, chr.length()) ;
 		if (end<0)
 			end = 0 ;
 		else
@@ -319,8 +335,15 @@ int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, in
 	}
 
 	//fprintf(stdout, "mapped_read:  \tchr=%s\tstart=%i\tend=%i\tmatches=%i\tnbest=%i\n", CHR_DESC[chr], start, end, num_matches, nbest_hit) ;
-
-	for (int i=start; i<end; i++)
+	int start_map=start-Config::QPALMA_USE_MAP_WINDOW ;
+	if (start_map<0)
+		start_map=0 ;
+	
+	int end_map=end+Config::QPALMA_USE_MAP_WINDOW ;
+	if (end_map>(int)chr.length())
+		end_map=chr.length() ;
+	
+	for (int i=start_map; i<end_map; i++)
 	{
 		if (nbest_hit==0 && (CHR_MAP(chr,i) & MASK_MAPPED_READ_BEST) == 0 )
 		{
@@ -344,6 +367,15 @@ int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, in
 #endif
 	}
 	
+	if (_config.REPORT_GENOME_COVERAGE)
+		for (int i=start; i<end; i++)
+		{
+			if (CHR_MAP_cov(chr,i)<std::numeric_limits<unsigned int>::max())
+			{
+				CHR_MAP_set_cov(chr, i, CHR_MAP_cov(chr,i)+1) ;
+			}
+		}
+	
 	do_reporting() ;
 				
 	return 0 ;
@@ -362,31 +394,39 @@ int GenomeMaps::report_spliced_read(Chromosome const &chr, std::vector<int> & ex
 
 	for (size_t e=0; e<exons.size(); e+=2)
 	{
-	  int start = exons[e] - Config::QPALMA_USE_MAP_WINDOW ;
-	  int end = exons[e+1] + Config::QPALMA_USE_MAP_WINDOW ;
+		int start = exons[e] ;
+		int end = exons[e+1] ;
 		
 		if (!(start>=0 && (size_t)start<=chr.length()))
 		{
-			fprintf(stdout, "report_spliced_read: start out of bounds\n") ;
+			if (_config.VERBOSE>0)
+				fprintf(stdout, "report_spliced_read: start out of bounds\n") ;
 			if (start<0)
 				start = 0 ;
 			else
 				start = chr.length();
 		}
-	
+		
 		if (!(end>=0 && (size_t)end<=chr.length()))
 		{
-			fprintf(stdout, "report_spliced_read: end out of bounds\n") ;
+			if (_config.VERBOSE>0)
+				fprintf(stdout, "report_spliced_read: end out of bounds\n") ;
 			if (end<0)
 				end = 0 ;
 			else
 				end = chr.length();
 		}
-
+		
 		//assert(start>=0 && (size_t)start<=CHR_LENGTH[chr]) ;
 		//assert(end>=0 && (size_t)end<=CHR_LENGTH[chr]) ;
-
-		for (int i=start; i<end; i++)
+		int start_map = start - Config::QPALMA_USE_MAP_WINDOW ;
+		if (start_map<0)
+			start_map=0 ;
+		int end_map = end + Config::QPALMA_USE_MAP_WINDOW ;
+		if (end_map>(int)chr.length())
+			end_map=chr.length() ;
+		
+		for (int i=start_map; i<end_map; i++)
 		{
 			if (nbest_hit==0 && (CHR_MAP(chr,i) & MASK_SPLICED_READ_BEST) == 0 )
 			{
@@ -411,6 +451,14 @@ int GenomeMaps::report_spliced_read(Chromosome const &chr, std::vector<int> & ex
 #endif
 #endif
 		}
+		if (_config.REPORT_GENOME_COVERAGE)
+			for (int i=start; i<end; i++)
+			{
+				if (CHR_MAP_cov(chr,i)<std::numeric_limits<unsigned int>::max())
+				{
+					CHR_MAP_set_cov(chr, i, CHR_MAP_cov(chr,i)+1) ;
+				}
+			}
 	}
 						
 	return 0 ;
@@ -591,6 +639,39 @@ int GenomeMaps::write_reporting()
 
 	if (_config.VERBOSE>0)
 		fprintf(stdout, "done.\n") ;
+
+	
+	return 0 ;
+}
+
+int GenomeMaps::write_cov_reporting()
+{
+	const char *fname = _config.REPORT_GENOME_COVERAGE_FILE ;//(char*) malloc(strlen(_config.REPORT_FILE)+10) ;
+	//sprintf(fname, "%s.cov.gz", _config.REPORT_FILE) ;
+	
+	if (fname==NULL || strlen(fname)==0)
+		return -1 ;
+	
+	gzFile fd = gzopen(fname, "wb6") ;
+	if (!fd)
+		return -1 ;
+	fprintf(stdout, "writing coverage map to %s:\n", fname) ;
+	for (size_t i=0; i<genome->nrChromosomes(); i++)
+	{
+		Chromosome const &chr = genome->chromosome(i);
+		int ret = gzwrite(fd, CHR_MAP_i[i], chr.length()*sizeof(unsigned int)) ;
+		assert((size_t)ret==chr.length()*sizeof(unsigned int)) ;
+		int num_covered = 0 ;
+		for (size_t p=0; p<chr.length(); p++)
+			if (CHR_MAP_i[i][p]>0)
+				num_covered++ ;
+		if (_config.VERBOSE>0)
+			fprintf(stdout, "  chr\t%s\thas \t%i\t/\t%i\t(%2.1f%%) covered positions\n", chr.desc(), num_covered, chr.length(), 100.0*num_covered/chr.length()) ;
+	}
+	gzclose(fd) ;
+
+	if (_config.VERBOSE>0)
+		fprintf(stdout, "done.\n") ;
 	return 0 ;
 }
 
@@ -602,6 +683,15 @@ int GenomeMaps::clean_reporting()
 			delete[] CHR_MAP_c[i] ;
 		
 		delete[] CHR_MAP_c ;
+		CHR_MAP_c=NULL ;
+	}
+	if (CHR_MAP_i!=NULL)
+	{
+		for (size_t i=0; i!=genome->nrChromosomes(); ++i) 
+			delete[] CHR_MAP_i[i] ;
+		
+		delete[] CHR_MAP_i ;
+		CHR_MAP_i=NULL ;
 	}
 
 #ifdef CHR_MAP_DNAARRAY
