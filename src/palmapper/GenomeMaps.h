@@ -52,6 +52,20 @@ public:
 #endif
 	}
 	
+
+	inline unsigned char CHR_MAP_cov(Chromosome const &chr, size_t index)
+	{
+#ifdef CHR_MAP_DNAARRAY
+		assert(false) ;
+		// not implemented
+		return CHR_MAP_a[chr.nr()]->get_elem(index) ;
+#else
+		assert(CHR_MAP_i!=NULL) ;
+		return CHR_MAP_i[chr.nr()][index] ;
+#endif
+	}
+	
+
 	inline void CHR_MAP_set(Chromosome const &chr, size_t index, unsigned char c)
 	{
 #ifdef CHR_MAP_DNAARRAY
@@ -66,6 +80,11 @@ public:
 		//CHR_MAP_a[chr]->set_elem(index, c) ;
 #endif // CHR_MAP_DNAARRAY
 	}
+
+	inline void CHR_MAP_set_cov(Chromosome const &chr, size_t index, unsigned int c)
+	{
+		CHR_MAP_i[chr.nr()][index]=c ;
+	}
 	
 
 	int init_reporting() ;
@@ -76,11 +95,13 @@ public:
 	int do_reporting(int force=0) ;
 	int read_reporting() ;
 	int write_reporting() ;
+	int write_cov_reporting() ;
 	int clean_reporting() ;
 	int init_with_gff(std::string &gff_fname) ;
 	
 protected:
 	unsigned char **CHR_MAP_c ;
+	unsigned int **CHR_MAP_i ;
 #ifdef CHR_MAP_DNAARRAY
 	std::vector<CHR_MAP_DNAARRAY_CLASS*> CHR_MAP_a  ;
 #endif

@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 	if (_config.SPLICED_OUT_FILE_NAME.length() > 0)
 		fclose(SP_OUT_FP);
 	if (_config.LEFTOVER_FILE_NAME.length() > 0) {
-		fprintf(LEFTOVER_FP, "#done\n");
+		//fprintf(LEFTOVER_FP, "#done\n");
 		fclose(LEFTOVER_FP);
 	}
 
@@ -181,11 +181,12 @@ int main(int argc, char *argv[])
 	{
 		genomemaps.do_reporting(1) ;
 		genomemaps.write_reporting() ;
-		//_genomemaps.clean_reporting() ;
+		//genomemaps.clean_reporting() ;
 	}
+	if (_config.REPORT_GENOME_COVERAGE)
+		genomemaps.write_cov_reporting() ;
 
-	//if (_config.VERBOSE) { printf("La Fin.\n"); }
-	fprintf(stdout, "\n#done\n") ;
+	if (_config.VERBOSE) { printf("palmapper finished\n"); }
 
 	return 0;
 }
