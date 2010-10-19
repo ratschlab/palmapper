@@ -218,13 +218,13 @@ public:
 	{
 		assert(num_edit_ops<Config::MAX_EDIT_OPS) ;
 
-		if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_)
-			NUM_EDIT_OPS_ = num_edit_ops ;
+		//if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_)
+		//	NUM_EDIT_OPS_ = num_edit_ops ;
 
 		if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
 		{
 			// keep a list of minimal edit operation (assuming that each hit is only reported once)
-			// the list is twice as long as NUM_TOP_ALIGNMENTS, as will be filtered later according to
+			// the list is 10 times as long as NUM_TOP_ALIGNMENTS, as will be filtered later according to
 			// the qpalma-alignment score (this is a heuristic, which may work well enough; alternatively, one
 			// would need to compute the qpalma score for each hit, which will be too expensive
 
@@ -239,21 +239,24 @@ public:
 					SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.insert(it, num_edit_ops);
 					inserted = true;
 
-					if (SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() > _config.OUTPUT_FILTER_NUM_TOP*2)
+					if (SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() > _config.OUTPUT_FILTER_NUM_TOP*10)
 						SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.pop_back();
 
 					break;
 				}
 			}
-			if (!inserted && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() < _config.OUTPUT_FILTER_NUM_TOP*2)
+			if (!inserted && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() < _config.OUTPUT_FILTER_NUM_TOP*10)
 			{
 				SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.push_back(num_edit_ops) ;
 				inserted = true ;
 			}
 		}
 
-		if (!all_hit_strategy && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()>0)
+		if (!all_hit_strategy && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()> _config.OUTPUT_FILTER_NUM_TOP*8)
 			NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ;
+
+		//fprintf(stdout, "update_num_edit_ops(num_edit_ops=%i, all_hit_strategy=%i, NUM_EDIT_OPS_=%i)\n", num_edit_ops, (int)all_hit_strategy, NUM_EDIT_OPS_) ;
+		
 	}
 
 	void clear() {
