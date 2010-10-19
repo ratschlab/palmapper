@@ -99,42 +99,42 @@ void printhit(Read const &read, HIT* hit) {
 	printf("/ID: %s]\n", read.id());
 }
 
-//void Hits::printhits()
-//{
-//	//printf("list:\n");
-//	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
-//	int i;
-//	int c = 0;
-//	HIT* hit;
-//	for (i = _config.INDEX_DEPTH; i != ((int)_read.length()) + 1; ++i) {
-//
-//		if (*(HIT_LISTS_OPERATOR + i) != NULL) {
-//			//printf("%i: ", i);
-//			hit = *(HIT_LISTS_OPERATOR + i);
-//			do {
-//				//if (hit->orientation == '-') {
-//				printf("[%i: %i-%i/%c/chr%i/rp%i/%imm", hit->end - hit->start
-//						+ 1, hit->start, hit->end, hit->orientation,
-//						hit->chromosome->nr() + 1, hit->readpos, hit->mismatches);
-//				if (hit->mismatches != 0) {
-//					printf(":");
-//					int j;
-//					for (j = 0; j != hit->mismatches; ++j)
-//						printf(" %i%c", hit->edit_op[j].pos,
-//								(hit->edit_op[j].mm) ? 'M' : 'G');
-//				}
-//				printf("/%s]\n", _read.id());
-//				++c;
-//				//}
-//				hit = hit->next;
-//				//if (c > 4) hit = NULL;
-//			} while (hit != NULL);
-//			//printf("\n");
-//		}
-//		c = 0;
-//	}
-//	//printf("done\n");
-//}
+void Hits::printhits()
+{
+	//printf("list:\n");
+	//printf("print hitlist with readlength %i, read %s, last[rl-2]=%c\n",((int)_read.lenght()), READ, READ[((int)_read.lenght())-2]);
+	int i;
+	int c = 0;
+	HIT* hit;
+	for (i = _config.INDEX_DEPTH; i != ((int)_read.length()) + 1; ++i) {
+
+		if (*(HIT_LISTS_OPERATOR + i) != NULL) {
+			//printf("%i: ", i);
+			hit = *(HIT_LISTS_OPERATOR + i);
+			do {
+				//if (hit->orientation == '-') {
+				printf("[%i: %i-%i/%c/chr%i/rp%i/%imm", hit->end - hit->start
+						+ 1, hit->start, hit->end, hit->orientation,
+						hit->chromosome->nr() + 1, hit->readpos, hit->mismatches);
+				if (hit->mismatches != 0) {
+					printf(":");
+					int j;
+					for (j = 0; j != hit->mismatches; ++j)
+						printf(" %i%c", hit->edit_op[j].pos,
+								(hit->edit_op[j].mm) ? 'M' : 'G');
+				}
+				printf("/%s]\n", _read.id());
+				++c;
+				//}
+				hit = hit->next;
+				//if (c > 4) hit = NULL;
+			} while (hit != NULL);
+			//printf("\n");
+		}
+		c = 0;
+	}
+	//printf("done\n");
+}
 
 
 
@@ -871,7 +871,9 @@ int Hits::browse_hits()
 						}
 						
 						// insert hit into HITS_BY_SCORE
+						//fprintf(stdout, "insert_into_scorelist\n") ;
 						int ret = insert_into_scorelist(hit, 1) ;
+						//fprintf(stdout, "ret=%i", ret) ;
 						if (ret<0)
 							return ret ;
 						
@@ -907,6 +909,7 @@ int Hits::browse_hits()
 						if (_config.NUM_GAPS != 0) 
 						{
 							// KBOUND:
+							//fprintf(stdout, "prepare_kbound_alignment\n") ;
 							int ret = prepare_kbound_alignment(hit, hit->start, hit->end, hit->readpos, *hit->chromosome, hit->orientation, hit->mismatches);
 							if (ret<0)
 								return ret ;
@@ -914,6 +917,7 @@ int Hits::browse_hits()
 						}
 						else {
 							// SIMPLE:
+							//fprintf(stdout, "align_hit_simple\n") ;
 							int ret = align_hit_simple(hit, hit->start, hit->end, hit->readpos, *hit->chromosome, hit->orientation, hit->mismatches);
 							if (ret<0)
 								return ret ;
@@ -942,7 +946,9 @@ int Hits::browse_hits()
 
 		// if only perfect reads should be reported, break earlier:
 		if ((_numEditOps == 0) && (i < (int)_read.length()))
+		{
 			return 1;
+		}
 
 		// if hitlength limit is reached, break earlier:
 		if (i == (int)(_config.HITLEN_LIMIT) - 1)
@@ -957,7 +963,9 @@ int Hits::browse_hits()
 
 				if (hit->aligned)
 				{
+					//fprintf(stdout, "insert_into_scorelist\n") ;
 					int ret = insert_into_scorelist(hit, 1);
+					//fprintf(stdout, "ret=%i\n", ret) ;
 					if (ret<0)
 						return ret ;
 				}
@@ -967,7 +975,9 @@ int Hits::browse_hits()
 		}
 
 	}
-
+	//fprintf(stdout, "normal exit\n") ;
+	//printhits() ;
+	
 	return 1;
 }
 
@@ -2132,12 +2142,15 @@ int Hits::analyze_hits(QPalma const * qpalma)
 	//vector<HIT *> found_hits ;
 	//u_int32_t num_2nd_best_hits = 0;
 	//u_int32_t num_other_hits = 0;
-	int reported_reads = 0 ;
+	//int reported_reads = 0 ;
 
 	for (i = 0; i != (int)NUM_SCORE_INTERVALS; ++i) {
 
 		if (printed && !(_config.OUTPUT_FILTER==OUTPUT_FILTER_ALL) && !(_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP))
+		{
+			//fprintf(stdout, "stopping analysis %i %i %i %i\n", printed, _config.OUTPUT_FILTER, OUTPUT_FILTER_ALL, OUTPUT_FILTER_TOP) ;
 			break; // best hit strategy
+		}
 
 		if (HITS_BY_SCORE[i].hitpointer != NULL) 
 		{
@@ -2215,7 +2228,8 @@ int Hits::analyze_hits(QPalma const * qpalma)
 				}
 			}
 
-			if (_config.REPORT_MAPPED_READS)
+			/* this is handled by TopAlignment
+			  if (_config.REPORT_MAPPED_READS)
 			{
 				hit = HITS_BY_SCORE[i].hitpointer;
 
@@ -2227,7 +2241,7 @@ int Hits::analyze_hits(QPalma const * qpalma)
 					reported_reads++ ;
 					hit = hit->same_eo_succ;
 				}
-			}
+			 }*/
 		}
 	}
 
@@ -2239,6 +2253,8 @@ int Hits::analyze_hits(QPalma const * qpalma)
 
 
 
+/*
+// now done in TopAlignment
 int Hits::report_read_alignment(HIT* hit, int nbest)
 {
 	int hitlength = hit->end - hit->start + 1;
@@ -2254,7 +2270,7 @@ int Hits::report_read_alignment(HIT* hit, int nbest)
 	// PERFECT HITS:
 	if (hit->mismatches == 0) 
 	{
-		_genomeMaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
+	_genomeMaps.report_mapped_read(*hit->chromosome, readstart, readstart+1+((int)_read.length()), ((int)_read.length()) - hit->mismatches, nbest) ;
 	}
 	// HITS WITH MISMATCHES:
 	else 
@@ -2294,3 +2310,4 @@ int Hits::report_read_alignment(HIT* hit, int nbest)
 
 	return 1;
 }
+*/
