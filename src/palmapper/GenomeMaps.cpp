@@ -3,7 +3,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <zlib.h>
-#include <limits.h>
+#include <limits>
 
 #include "palmapper.h"
 #include "dyn_prog/qpalma_dp.h"
