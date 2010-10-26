@@ -1346,13 +1346,13 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
             cr_read[((int)(curr_read->length()))]=0 ;
 			
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_READ)
-				fprintf(MY_OUT_FP, "\t%s\t%s", cr_read, qual) ;
+			  fprintf(MY_OUT_FP, "\t%s", cr_read      );
 			else
 				fprintf(MY_OUT_FP, "\t*") ;
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_QUALITY)
-				fprintf(MY_OUT_FP, "\t%s") ;
+			  fprintf(MY_OUT_FP, "\t%s",qual);
 			else
-				fprintf(MY_OUT_FP, "\t*") ;
+			  fprintf(MY_OUT_FP, "\t*") ;
         }
 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS)
