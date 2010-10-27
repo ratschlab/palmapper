@@ -1185,7 +1185,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         char cigar[500] ;
         char cig_buf[255] ;
 
-        uint32_t pos = 0;
+        uint32_t pos_in_cigar = 0;
         uint32_t idx = 0 ;
         
         // handle trimmed start as soft clips
@@ -1193,9 +1193,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         {
             snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_start) ;
             for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
-                cigar[pos + ii] = cig_buf[ii] ;
-            pos += strlen(cig_buf) ;
-            cigar[pos++] = 'S' ;
+                cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+            pos_in_cigar += strlen(cig_buf) ;
+            cigar[pos_in_cigar++] = 'S' ;
         }
 
         for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
@@ -1219,80 +1219,95 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         uint32_t last = __cigar[0] ;
         uint32_t count = 1 ;
         uint32_t ii = 0;
-        uint32_t indel_offset = 0 ;
+        uint32_t insertions = 0 ;
+        uint32_t deletions = 0 ;
         idx = 0 ;
-        uint32_t cum_size = (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
+        uint32_t exon_size = (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
 
 
         for (uint32_t i = 1; i < strlen(__cigar); i++)
         {
-            if (i == cum_size + indel_offset && idx + 2 < curr_align->exons.size())
+            // we reached end of current exon, which is not the last exon -> add intron
+            if ((i - insertions) == exon_size && idx + 2 < curr_align->exons.size())
             {
+                // finish current block
                 snprintf (cig_buf, (size_t) 255, "%d", count) ;
                 for (ii=0; ii < strlen(cig_buf); ii++)
-                    cigar[pos + ii] = cig_buf[ii] ;
-                pos += strlen(cig_buf) ;
-                cigar[pos++] = last ;
+                    cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+                pos_in_cigar += strlen(cig_buf) ;
+                cigar[pos_in_cigar++] = last ;
+
+                if (last == 'D')
+                    deletions += count;
+                if (last == 'I')
+                    insertions += count;
+
+                // add intron
                 count = 0 ;
                 last = ' ' ;
                 snprintf (cig_buf, (size_t) 255, "%d", curr_align->exons[idx + 2] - curr_align->exons[idx + 1]) ;
                 for (ii=0; ii < strlen(cig_buf); ii++)
-                    cigar[pos + ii] = cig_buf[ii] ;
-                pos += strlen(cig_buf) ;
-                cigar[pos++] = 'N' ;
+                    cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+                pos_in_cigar += strlen(cig_buf) ;
+                cigar[pos_in_cigar++] = 'N' ;
+
+                /// go to next exon
                 idx += 2 ;
-                cum_size += (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
+                exon_size += (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
                 assert(curr_align->exons[idx+1] - curr_align->exons[idx] >  0) ;
                 assert(curr_align->exons[idx+1] - curr_align->exons[idx] <= MAX_EXON_LEN) ;
             }
 
-            if (__cigar[i] != (int)last) 
+            // start new block in cigar
+            if (__cigar[i] != (char)last) 
             {
                 if (last != ' ')
                 {
                     snprintf (cig_buf, (size_t) 255, "%d", count) ;
                     for(ii=0; ii < strlen(cig_buf); ii++)
-                        cigar[pos + ii] = cig_buf[ii] ;
-                    pos += strlen(cig_buf) ;
-                    cigar[pos++] = last ;
+                        cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+                    pos_in_cigar += strlen(cig_buf) ;
+                    cigar[pos_in_cigar++] = last ;
                 }
                 if (last == 'D')
-                    indel_offset -= count;
+                    deletions += count;
                 if (last == 'I')
-                    indel_offset += count;
+                    insertions += count;
                 count = 1 ;
                 last = __cigar[i] ;
             }
             else
                 count += 1 ;
         }
+
+        // handle last block
         snprintf (cig_buf, (size_t) 255, "%d", count) ;
         for (ii=0; ii < strlen(cig_buf); ii++)
-            cigar[pos + ii] = cig_buf[ii] ;
-        pos += ii ;
-        cigar[pos++] = last ;
+            cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+        pos_in_cigar += ii ;
+        cigar[pos_in_cigar++] = last ;
         if (last == 'D')
-            indel_offset -= count ; 
-        else if (last == 'I')
-            indel_offset += count ; 
+            deletions += count ; 
+        if (last == 'I')
+            insertions += count ; 
 
         // handle trimmed reads end
 		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0)
         {
             snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_end) ;
             for (ii=0; ii < strlen(cig_buf); ii++)
-                cigar[pos + ii] = cig_buf[ii] ;
-            pos += strlen(cig_buf) ;
-            cigar[pos++] = 'S' ;
+                cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+            pos_in_cigar += strlen(cig_buf) ;
+            cigar[pos_in_cigar++] = 'S' ;
         }
         //if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
-        if (cum_size + indel_offset != curr_read->length()) 
-            fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
+        if (exon_size + insertions - deletions != curr_read->length()) 
+            fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", exon_size + insertions - deletions, curr_read->length(), curr_read->data(), curr_align->read_id) ;
             //fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + polytrim_cut_start + polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
 	    //fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s no exons %i\n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno, curr_align->exons.size()) ;
 	    //}
         //assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
-        cigar[pos] = 0 ;
+        cigar[pos_in_cigar] = 0 ;
 
 //		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
         fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
