@@ -963,7 +963,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		//verbose
 		if (strcmp(argv[i], "-v") == 0) {
 			not_defined = 0;
-			VERBOSE = 2;
+			VERBOSE = 1;
 		}
 
 		/*//scores out
