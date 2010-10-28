@@ -41,7 +41,6 @@ static const int MAX_SPLICE_MISMATCH_QUAL_TOTAL=60 ;
 static const int MAX_SPLICE_MISMATCH_QUAL_EXTEND=2 ;
 static const int MAX_SPLICE_MISMATCH_NUM_N=2 ;
 
-
 #include "fill_matrix.h"
 #include "debug_tools.h"
 
