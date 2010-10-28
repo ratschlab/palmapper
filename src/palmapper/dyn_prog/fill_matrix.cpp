@@ -36,6 +36,11 @@
 
 int number_fill_matrix;
 
+static const int MAX_SPLICE_MISMATCH_QUAL_SINGLE=30 ;
+static const int MAX_SPLICE_MISMATCH_QUAL_TOTAL=60 ;
+static const int MAX_SPLICE_MISMATCH_QUAL_EXTEND=2 ;
+static const int MAX_SPLICE_MISMATCH_NUM_N=2 ;
+
 
 #include "fill_matrix.h"
 #include "debug_tools.h"
@@ -170,21 +175,65 @@ void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
   }
 }
 
-int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices){
+
+int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices, int i, int j, int prev_shift, char* read, int read_len, char* dna, int dna_len, double* read_scores){
 
   double prevValue;
   int num;
   int matrix_number=0;
 
-  for (int z=0;z<nr_paths;z++){
-    prevValue = ((Prev_score*)seed->matrices[z] +matrix_position)->value ; 	    
-    num = ((Prev_score*)seed->matrices[z] +matrix_position)->num_matches; 	    
-    if (isnotminusinf(prevValue) && num>=min_matches){
-      //fprintf(stdout,"Possible matrix: %i with value %f\n",z,prevValue);
-      matrices[matrix_number]=z;
-      matrix_number++;
-    }
-  }
+  for (int z=0;z<nr_paths;z++)
+    {
+      int diff_i = min_matches ;
+
+      prevValue = ((Prev_score*)seed->matrices[z] +matrix_position)->value ; 	    
+      num = ((Prev_score*)seed->matrices[z] +matrix_position)->num_matches;
+
+      bool conserved_seq=true ;
+      int num_N=0 ;
+      int num_mismatch_score=0 ;
+      int num_mismatch_extend=0 ;
+      for (int mn=1; mn<diff_i; mn++)
+	{
+	  if (i<0 || j<0 || i>=read_len || j>=dna_len)
+	    {
+	      conserved_seq=false ;
+	      break ;
+	    }
+	    if (read[i]!=dna[j])
+	      {
+		if (check_char(read[i])!=5 && check_char(dna[j])!=5 && read_scores[i]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
+		  {
+		    conserved_seq=false ;
+		    break ;
+		  }
+		else
+		  {
+		    diff_i++ ;
+		    if (check_char(read[i])!=5 && check_char(dna[j])!=5)
+		      num_N++ ;
+		    else
+		      {
+			num_mismatch_score+=read_scores[i] ;
+			num_mismatch_extend++ ;
+		      }
+		    if (num_N>MAX_SPLICE_MISMATCH_NUM_N || num_mismatch_score>MAX_SPLICE_MISMATCH_QUAL_TOTAL || num_mismatch_extend>MAX_SPLICE_MISMATCH_QUAL_EXTEND) 
+		      {
+			conserved_seq=false;
+			break;  
+		      }
+		  }
+	      }
+	    i+=prev_shift ;
+	    j+=prev_shift ;
+	    } 
+	  if (isnotminusinf(prevValue) && conserved_seq)
+	    {
+	      //fprintf(stdout,"Possible matrix: %i with value %f\n",z,prevValue);
+	      matrices[matrix_number]=z;
+	      matrix_number++;
+	    }
+	}
   return matrix_number;
 }
 
@@ -291,8 +340,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
   ((Prev_score*)matrices[0]+ max_gap)->prev_i = seed_read+prev_shift;
   ((Prev_score*)matrices[0]+ max_gap)->prev_j = seed_dna+prev_shift;
   ((Prev_score*)matrices[0]+ max_gap)->prev_matrix_no = 0;
-  ((Prev_score*)matrices[0]+ max_gap)->num_matches = (read[seed_read]==dna[seed_dna]?1:0);
-  ((Prev_score*)matrices[0]+ max_gap)->num_mismatches = (read[seed_read]==dna[seed_dna]?0:1);
+  ((Prev_score*)matrices[0]+ max_gap)->num_matches = ((read[seed_read]==dna[seed_dna] || check_char(read[seed_read])==5 || check_char(dna[seed_dna])==5) ? 1:0);
+  ((Prev_score*)matrices[0]+ max_gap)->num_mismatches = 1-((Prev_score*)matrices[0]+ max_gap)->num_matches ;
   ((Prev_score*)matrices[0]+ max_gap)->num_gaps =0;
   
   //Other matrices: score at -INF
@@ -389,7 +438,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	if (main_site_scores[j]>-ALMOST_INFINITY && main_site_scores[j]<ALMOST_INFINITY){	
 	  if ((max_number_introns>0) && (matrix_position-row_len>=0)){
 
-	    //Compute minimun number of matches needed with relaxing the constraint close to the first seed position
+	    //Compute minimum number of matches needed with relaxing the constraint close to the first seed position
 	    int diff_i;
 	    if (first_seed){
 	      diff_i=prev_shift*(seed_read-i);
@@ -401,7 +450,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 
 	    //Number of paths that has at least diff_i consecutive matches that lead to the previous position in the diagonal
 	    int number;
-	    number=check_min_matches(current_seed,nr_paths_par,matrix_position-row_len, diff_i,possible_matrices);
+	    number=check_min_matches(current_seed,nr_paths_par,matrix_position-row_len, diff_i,possible_matrices, i, j, prev_shift, read, read_len, dna, dna_len, read_scores);
 	    if (number>0){
 	      splice_pos* sp= new splice_pos();
 	      sp->site=j; //position of the splice site
@@ -466,12 +515,12 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	      ((Prev_score*)actMatrix + matrix_position)->prev_i = i+prev_shift; 
 	      ((Prev_score*)actMatrix + matrix_position)->prev_j = j+prev_shift; 
 	      ((Prev_score*)actMatrix + matrix_position)->prev_matrix_no = z;
-	      if (read[i]==dna[j]){
+	      if (read[i]==dna[j] || check_char(read[i])==5 || check_char(dna[j])==5) {
 		((Prev_score*)actMatrix + matrix_position)->num_matches = ((Prev_score*)actMatrix +matrix_prev_position)->num_matches+1; 
 		((Prev_score*)actMatrix + matrix_position)->num_mismatches = prevMism;
 	      }
 	      else{
-		((Prev_score*)actMatrix + matrix_position)->num_matches =0; 
+		((Prev_score*)actMatrix + matrix_position)->num_matches = 0 ;
 		((Prev_score*)actMatrix + matrix_position)->num_mismatches = prevMism+1;
 	      }	      
 	      ((Prev_score*)actMatrix + matrix_position)->num_gaps = prevGaps;
@@ -577,34 +626,63 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 
 		//Compute minimum number of matches needed with relaxing the constraint at the ends of the read
 		int diff_i;
-		if(right_side){
+		if(right_side)
+		  {
 		    diff_i=read_len-1-posi;
-		  if (posi==read_len-1 || diff_i>min_match)
-		    diff_i=min_match;
-		}
-		else{
-		  diff_i=posi;
-		  if (posi==0 || posi>min_match)
-		    diff_i=min_match;
-		}
+		    if (posi==read_len-1 || diff_i>min_match)
+		      diff_i=min_match;
+		  }
+		else
+		  {
+		    diff_i=posi;
+		    if (posi==0 || posi>min_match)
+		      diff_i=min_match;
+		  }
 		
 		//Check at least diff_i consecutive matches after this complementary splice site
 		bool conserved_seq=true;	      
+		int conserved_seq_mismatches=0 ;
 		int ii=posi;
-		for(int nm=1; nm<=diff_i;nm++){
-		  ii=ii-prev_shift; 
-		  jj=jj-prev_shift; // One position after 'G' of 'AG' or before 'G' of 'GT/C'
-		  if ( (right_side && (ii>=read_len || jj>=dna_len)) || (!right_side && (ii<0 || jj<0))){
-		    conserved_seq=false;
-		    break;		   
-		  }
-		  else{
-		    if(read[ii]!=dna[jj]){
-		      conserved_seq=false;
-		      break;
+		int num_N=0 ;
+		int num_mismatch_score=0 ;
+		int num_mismatch_extend=0 ;
+		for(int nm=1; nm<=diff_i;nm++)
+		  {
+		    ii=ii-prev_shift; 
+		    jj=jj-prev_shift; // One position after 'G' of 'AG' or before 'G' of 'GT/C'
+		    if ( (right_side && (ii>=read_len || jj>=dna_len)) || (!right_side && (ii<0 || jj<0)))
+		      {
+			conserved_seq_mismatches++ ;
+			conserved_seq=false;
+			break;		   
+		      }
+		    else{
+		      if (read[ii]!=dna[jj]) 
+			{
+			  if (check_char(read[ii])!=5 && check_char(dna[jj])!=5 && read_scores[ii]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
+			    {
+			      conserved_seq=false;
+			      break;
+			    }
+			  else
+			    {
+			      diff_i++ ;
+			      if (check_char(read[ii])!=5 && check_char(dna[jj])!=5)
+				num_N++ ;
+			      else
+				{
+				  num_mismatch_score+=read_scores[ii] ;
+				  num_mismatch_extend++ ;
+				}
+			      if (num_N>MAX_SPLICE_MISMATCH_NUM_N || num_mismatch_score>MAX_SPLICE_MISMATCH_QUAL_TOTAL || num_mismatch_extend>MAX_SPLICE_MISMATCH_QUAL_EXTEND)
+				{
+				  conserved_seq=false;
+				  break;  
+				}
+			    }
+			}
 		    }
 		  }
-		}
 
 		if (conserved_seq){
 		  
