@@ -247,7 +247,7 @@ restart:
 	{
 		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
 			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()<=_config.OUTPUT_FILTER_NUM_TOP)) &&
-			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0) ) )
+			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0 && !_config.SPLICED_HITS) ) )
 		{
 			c_map_short_read++;
 			//fprintf(stdout, "performing hits.map_short_read\n") ;
