@@ -18,6 +18,7 @@
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
 QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
+//: 	verbosity(3), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 : 	verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 {
 	genome=genome_ ;
@@ -967,7 +968,7 @@ int QPalma::capture_hits(Hits &hits, Result &result) const
 	Read const &read(hits.getRead());
   int num_alignments_reported = 0 ;
   std::vector<perform_alignment_t*> thread_data ;
-  
+
   clock_t start_time = clock();
   
   // clean up data generated for the previous read
@@ -2408,6 +2409,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (result_length<est_len_p)
 	  {
 	    alignment_valid=false;
+	    //fprintf(stdout, "result_length=%i, est_len_p=%i\n", result_length, est_len_p) ;
 	    if (verbosity>=2)
 	      fprintf(stdout, "No alignment found\n") ;
 	  }
@@ -2423,7 +2425,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		if (exon_start!=-1 && i>0)
 		  {
 		    alignment_valid = alignment_valid && ((positions[i-1]+1 == positions[i]) || (positions[i-1] == positions[i]+1)) ;
-		    if (verbosity>=3)
+		    if (verbosity>=4)
 		      fprintf(stdout, "pos[%i]=%i   pos[%i]=%i  valid=%i\n", (int)i-1, (int)positions[i-1], (int)i, (int)positions[i], alignment_valid) ;
 		  }
 		
@@ -2730,6 +2732,14 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		{
 			fprintf(stdout, "# dropped alignment with %i exons (%i, %i, %i)\n", (int)exons.size()/2, 
 					(int)alignment_mismatches, (int)alignment_gaps, (int)alignment_mismatches+alignment_gaps) ;
+			fprintf(stdout, "alignment_valid=%i\n", alignment_valid) ;
+			fprintf(stdout, "max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH=%i\n", max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) ;
+			fprintf(stdout, "alignment_mismatches(%i) <= _config.NUM_MISMATCHES(%i)=%i\n", alignment_mismatches, _config.NUM_MISMATCHES, alignment_mismatches <= _config.NUM_MISMATCHES) ;
+			fprintf(stdout, "alignment_gaps <= _config.NUM_GAPS=%i\n", alignment_gaps <= _config.NUM_GAPS) ;
+			fprintf(stdout, "alignment_mismatches(%i)+alignment_gaps(%i) <= readMappings.get_num_edit_ops()=%i\n",alignment_mismatches, alignment_gaps, alignment_mismatches+alignment_gaps <= readMappings.get_num_edit_ops()) ;
+			fprintf(stdout, "exons.size()=%i\n", (int)exons.size()) ;
+			fprintf(stdout, "((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2)=%i\n", ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2)) ;
+			fprintf(stdout, "min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH=%i\n", min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH) ;
 		}
 
 	delete[] acceptor ;
