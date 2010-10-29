@@ -576,7 +576,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	/* Also look at possible splice sites stored from this diagonal                           */
 	/******************************************************************************************/
 	if (disabled_diagonal[nj] || read[i]!=dna[j]){
-	  
+	  //if (possible_sites.size()>10)
+	  //fprintf(stdout, "possible_sites.size()=%i\n", (int)possible_sites.size()) ;
 	  /* A. Explore splice sites */
 	  for(int ss=(int)possible_sites.size()-1;ss>=0;ss--){
 	    

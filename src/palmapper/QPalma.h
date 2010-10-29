@@ -73,6 +73,7 @@ public:
 		int hit_length;
 		QPalma const * qpalma ;
 		bool joined ;
+  	        bool non_consensus_search ;
 	} ;
 
     // initialization
@@ -95,6 +96,7 @@ protected:
 	int init_alignment_parameters(std::string qpalma_file) ;
 	int compare_double(const void *a, const void *b) ;
 	
+
     // qpalma filtering
 	////////////////////
 	
@@ -106,14 +108,16 @@ public:
 protected:
 	int get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh) const;
 	
+
+ public:
 	
     // qpalma alignment
 	////////////////////
 
 public:
-	int capture_hits(Hits &hits, Result &result) const;
+	int capture_hits(Hits &hits, Result &result, bool non_consensus_search=false) const;
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
-						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length) const;
+			      Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length, bool non_consensus_search) const;
 	float score_unspliced(Read const &read, const char * read_anno) const;
 	//void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
 	
@@ -132,7 +136,7 @@ protected:
 	void print_region(region_t *region, const char * bla)  ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(Result &result, std::vector<perform_alignment_t*> &thread_data,Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length) const;
+	int perform_alignment_starter(Result &result, std::vector<perform_alignment_t*> &thread_data,Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search) const;
 	int perform_alignment_wait(int & num_reported, std::vector<perform_alignment_t*> thread_data) const;
 
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const;
@@ -282,5 +286,4 @@ protected:
 	
 	Genome * genome ;
 	GenomeMaps* genomemaps ;
-	
 } ;

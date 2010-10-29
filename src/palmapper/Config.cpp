@@ -52,7 +52,7 @@ Config::Config() {
 	QPALMA_USE_SPLICE_SITES_THRESH_DON = 0.0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_ACC = 0.0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC = 0.0 ;
-	QPALMA_MIN_NUM_MATCHES = 3 ;
+	QPALMA_MIN_NUM_MATCHES = 5 ;
 	QPALMA_PRB_OFFSET_FIX = false ;
 	
 	READ_COUNT_LIMIT = 0 ; // limits the number of reads for alignment
@@ -95,6 +95,7 @@ Config::Config() {
 	HITLEN_LIMIT = 0 ;
 
 	LEFTOVER_FILE_NAME = std::string("/dev/null") ;
+
 
 	ACC_CONSENSUS.push_back(strdup("AG")) ;
 	ACC_CONSENSUS_REV.push_back(strdup("CT")) ;
@@ -963,7 +964,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		//verbose
 		if (strcmp(argv[i], "-v") == 0) {
 			not_defined = 0;
-			VERBOSE = 1;
+			VERBOSE = 3;
 		}
 
 		/*//scores out
@@ -1574,7 +1575,7 @@ int Config::usage()
 	printf(" -SA INT                               maximum number of spliced alignments per read (10)\n");
 	printf(" -NI INT                               maximum number of introns in spliced alignments (auto)\n");
 	printf(" -CT INT                               distance to tolerate between hit and existing hit cluster (10)\n");
-	printf(" -QMM INT                              number of matches required for identifying a splice site (3)\n");
+	printf(" -QMM INT                              number of matches required for identifying a splice site (5)\n");
 	printf(" -min-spliced-segment-len INT          minimal number of nucleotides in a spliced segment (1)\n\n") ;
 
 	printf(" -report STRING                        file for map reporting\n");
