@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 		threads[i]->launch();
 	}
 	for (unsigned int i = 0; i < numThreads; ++i) {
-		threads[i]->join();
+	        threads[i]->join();
 		delete threads[i];
 	}
 	reporter.done();

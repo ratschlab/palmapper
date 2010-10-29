@@ -326,24 +326,35 @@ restart:
 
 		if (_config.SPLICED_HITS && (trigger  || FILTER_STAT))
 			{
-				num_spliced_alignments_triggered++ ;
-
-				try
-					{
-						int ret = qpalma->capture_hits(hits, result._qpalma);
-						//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
-						if (ret<0)
-							cancel=4 ;
-						if (_config.VERBOSE)
-							fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
-						if (FILTER_STAT)
-							_stats.qpalma_filter_stat(result._qpalma.qpalma_filter_reason, ret>0) ;
-					}
-				catch (std::bad_alloc&)
-					{
-						fprintf(stderr, "[map_reads] allocating memory in capture_hits failed\n") ;
-						cancel=5 ;
-					}
+			  num_spliced_alignments_triggered++ ;
+			  
+			  try
+			    {
+			      int ret = qpalma->capture_hits(hits, result._qpalma, false);
+			      //fprintf(stderr, "capture_hits ret=%i\n", ret) ;
+			      if (ret<0)
+			      	cancel=4 ;
+			      if (_config.VERBOSE)
+				fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
+			      if (FILTER_STAT)
+				_stats.qpalma_filter_stat(result._qpalma.qpalma_filter_reason, ret>0) ;
+			      if (0) 
+				{
+				  int ret2 = qpalma->capture_hits(hits, result._qpalma, true);
+				  fprintf(stderr, "capture_hits found %i non-consensus and %i consensus alignments\n", ret2, ret) ;
+				  if (ret2<0)
+				    cancel=4 ;
+				  if (_config.VERBOSE)
+				    fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
+				  if (FILTER_STAT)
+				    _stats.qpalma_filter_stat(result._qpalma.qpalma_filter_reason, ret>0) ;
+				}
+			    }
+			  catch (std::bad_alloc&)
+			    {
+			      fprintf(stderr, "[map_reads] allocating memory in capture_hits failed\n") ;
+			      cancel=5 ;
+			    }
 			}
 		if (FILTER_STAT && num_spliced_alignments_triggered>=5000)
 		{

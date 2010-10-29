@@ -390,7 +390,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 	
 }
 
-void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments)
+void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments, bool non_consensus_search)
 {
 	if (alignment == NULL || !alignment->spliced)
 		num_unspliced_alignments += num_alignments;
@@ -405,6 +405,9 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 
 	if (verbosity >= 2)
 		printf("entering alignment with score %f\n", alignment->qpalma_score);
+
+	if (non_consensus_search)
+	  alignment->qpalma_score-=10 ;
 
 	pthread_mutex_lock( &top_mutex) ;
 
@@ -454,7 +457,7 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 
 		if (compare_score(alignment, top_alignments[i]) > 0) 
 		{
-			if (verbosity >= 2)
+			if (verbosity >= 2 || non_consensus_search)
 				printf("[add_alignment_record] reference alignment scores better than current one in top_alignments\n");
 			//fprintf(stderr, "inserting %s\n", alignment->read_id);
 			top_alignments.insert(it, alignment);

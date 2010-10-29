@@ -55,7 +55,7 @@ public:
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
 	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end) ;
-	void add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments) ;
+	void add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments, bool non_consensus_search=false) ;
 
 	int print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP);
