@@ -1294,6 +1294,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         if (last == 'I')
             insertions += count ; 
 
+
         // handle trimmed reads end
 		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0)
         {
@@ -1303,6 +1304,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
             pos_in_cigar += strlen(cig_buf) ;
             cigar[pos_in_cigar++] = 'S' ;
         }
+		//cigar[pos] = 0 ;
         //if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
         if (exon_size + insertions - deletions != curr_read->length()) 
             fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", exon_size + insertions - deletions, curr_read->length(), curr_read->data(), curr_align->read_id) ;
@@ -1310,7 +1312,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 	    //fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s no exons %i\n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno, curr_align->exons.size()) ;
 	    //}
         //assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
+
         cigar[pos_in_cigar] = 0 ;
+
 
 //		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
         fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
@@ -1393,11 +1397,12 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			}
         }
         else if (_config.STRAND > -1) {
-			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
-				if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-					fprintf(MY_OUT_FP, "\tXS:A:+") ;
-				else
-					fprintf(MY_OUT_FP, "\tXS:A:-") ;
+	  if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS){
+	    if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+	      fprintf(MY_OUT_FP, "\tXS:A:+") ;
+	    else
+	      fprintf(MY_OUT_FP, "\tXS:A:-") ;
+	  }
         }
 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
