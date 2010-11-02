@@ -198,7 +198,7 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
       int pos_j=j+prev_shift;
       for (int mn=1; mn<=diff_i; mn++)
 	{
-	  //	  fprintf(stdout,"[check_min_matches] From position %i-%i with %c-%c\n",pos_i,pos_j,read[pos_i],dna[pos_j]);
+	  // fprintf(stdout,"[check_min_matches] From position %i-%i with %c-%c\n",pos_i,pos_j,read[pos_i],dna[pos_j]);
 	  if (pos_i<0 || pos_j<0 || pos_i>=read_len || pos_j>=dna_len)
 	    {
 	      //fprintf(stdout,"[check_min_matches] out of bounds\n");
@@ -216,7 +216,7 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 		else
 		  {
 		    diff_i++ ;
-		    if (check_char(read[pos_i])!=5 && check_char(dna[pos_j])!=5)
+		    if (check_char(read[pos_i])==5 || check_char(dna[pos_j])==5)
 		      num_N++ ;
 		    else
 		      {
@@ -234,8 +234,8 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 	    pos_i+=prev_shift ;
 	    pos_j+=prev_shift ;
 	}
-      if (!conserved_seq && num>=diff_i){
-	fprintf(stdout,"[check_min_matches] PROBLEM with number of matches from position %i-%i (%i)\n",i,j,diff_i);
+      if (!conserved_seq && num>=min_matches && num_N<=MAX_SPLICE_MISMATCH_NUM_N){
+	fprintf(stdout,"[check_min_matches] PROBLEM with number of matches from position %i-%i (%i for %i) with %i N\n",i,j,num,min_matches,num_N);
       }
       if (isnotminusinf(prevValue) && conserved_seq)
 	{
@@ -680,7 +680,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 			  else
 			    {
 			      diff_i++ ;
-			      if (check_char(read[ii])!=5 && check_char(dna[jj])!=5)
+			      if (check_char(read[ii])==5 || check_char(dna[jj])==5)
 				num_N++ ;
 			      else
 				{
