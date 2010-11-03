@@ -242,6 +242,9 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	best->max_intron_len = 0 ;
 	best->spliced = false ;
 
+	bool alignment_passed_filters= (num_mismatches <= _config.NUM_MISMATCHES && num_gaps <= _config.NUM_GAPS && num_mismatches+num_gaps <= _config.NUM_EDIT_OPS) ;
+	best->passed_filters=alignment_passed_filters ;
+
 	if (qpalma)
 		best->qpalma_score = qpalma->score_unspliced(read, ALIGNSEQ) ;
 	best->rtrim_cut=0 ;
@@ -400,6 +403,9 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 	if (alignment == NULL)
 		return;
 	assert(num_alignments>0);
+
+	if (!alignment->passed_filters)
+	  return ;
 
 	check_alignment(alignment) ;
 
@@ -1074,15 +1080,22 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
     uint32_t H0 = 0 ;
     uint32_t H1 = 0 ;
     uint32_t H2 = 0 ;
-	for (unsigned int j=0; j<top_alignments.size(); j++)
-	{
-        if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 0)
-            H0 += 1 ;
+    uint32_t min_edit_ops = 1000 ;
+    double max_qpalma_score = -1000 ;
+
+    for (unsigned int j=0; j<top_alignments.size(); j++)
+      {
+	if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 0)
+	  H0 += 1 ;
         if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 1)
-            H1 += 1 ;
+	  H1 += 1 ;
         if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 2)
-            H2 += 1 ;
-    }
+	  H2 += 1 ;
+        if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches < min_edit_ops)
+	  min_edit_ops = top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches ;
+        if (top_alignments[j]->qpalma_score > max_qpalma_score)
+	  max_qpalma_score = top_alignments[j]->qpalma_score ;
+      }
 
     std::ostream* MY_OUT_FP = OUT_FP ;
     Read const * curr_read;
@@ -1411,6 +1424,8 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
 			fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
 			fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
+			fprintf(MY_OUT_FP, "\tXD:f:%2.3f", max_qpalma_score-curr_align->qpalma_score) ;
+			fprintf(MY_OUT_FP, "\tXd:i:%i", curr_align->num_mismatches + curr_align->num_gaps - min_edit_ops) ;
 		}
         fprintf(MY_OUT_FP, "\n") ;
 
