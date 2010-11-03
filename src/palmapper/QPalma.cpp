@@ -2653,8 +2653,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
-	if (alignment_valid && (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= readMappings.get_num_edit_ops()))
-	    && (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH) ) // it must be spliced and not have too many mismatches
+
+	bool alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
+	  && (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH) ;
+
+	if (alignment_valid) // it must be spliced and not have too many mismatches
 	{
 		ALIGNMENT *aln = NULL;
 		try 
@@ -2701,6 +2704,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		//aln->rescued=rescued_alignment ;
 		//aln->rescue_start = rescue_start ;
 		//aln->rescue_end = rescue_end ;
+		aln->passed_filters=alignment_passed_filters ;
 
 		aln->from_gm = 3;
 
