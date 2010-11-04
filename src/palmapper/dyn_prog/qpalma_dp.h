@@ -82,9 +82,10 @@ class Alignment {
       INT id;
       char * name;
       INT use_svm;
+	  int verbosity;
 
    public:
-      Alignment(int numQPlifs ,int numq, bool use_qscores);
+      Alignment(int numQPlifs ,int numq, bool use_qscores, int _verbosity);
       ~Alignment() {
 		  cleanup() ;
       }

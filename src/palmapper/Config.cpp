@@ -8,6 +8,14 @@
 #include <palmapper/Read.h>
 #include <palmapper/Genome.h>
 
+inline int max(int a, int b)
+{
+	if (a>b)
+		return a ;
+	else
+		return b ;
+}
+
 Config::Config() {
 	NUM_THREADS = 1;//::sysconf(_SC_NPROCESSORS_ONLN);
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
@@ -39,11 +47,11 @@ Config::Config() {
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
 	REPORT_REPETITIVE_SEEDS = 0 ;
-	REPORT_MAPPED_REGIONS = 0 ;
-	REPORT_MAPPED_READS = 0 ;
-	REPORT_SPLICED_READS = 0 ;
+	REPORT_MAPPED_REGIONS = 1 ;
+	REPORT_MAPPED_READS = 1 ;
+	REPORT_SPLICED_READS = 1 ;
 	REPORT_RESET = 0 ;
-	REPORT_GENOME_COVERAGE = false ;
+	REPORT_GENOME_COVERAGE = 0 ;
 	REPORT_GENOME_COVERAGE_FILE = NULL;
 	
 	QPALMA_USE_MAP = 1 ;
@@ -57,14 +65,14 @@ Config::Config() {
 	
 	READ_COUNT_LIMIT = 0 ; // limits the number of reads for alignment
 	LOG_TRIGGERED = false;  // #A#
-	FILTER_BY_MAX_MISMATCHES = 1 ;
+	FILTER_BY_MAX_MISMATCHES = 0 ;
 	FILTER_BY_MAX_GAPS = 0 ;
-	FILTER_BY_SPLICE_SITES = 5 ;
+	FILTER_BY_SPLICE_SITES = true ;
 	FILTER_BY_SPLICE_SITES_REGION = 5 ;
-	FILTER_BY_SPLICE_SITES_EDIT_MIN = 1 ;
-	FILTER_BY_SPLICE_SITES_THRESH_ACC=0.8 ;
-	FILTER_BY_SPLICE_SITES_THRESH_DON=0.8 ;
-	FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC = 0.0;
+	FILTER_BY_SPLICE_SITES_EDIT_MIN = 0 ;
+	FILTER_BY_SPLICE_SITES_THRESH_ACC=0 ;
+	FILTER_BY_SPLICE_SITES_THRESH_DON=0 ;
+	FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC = 0.01;
 	NO_SPLICE_PREDICTIONS=0 ;
 	INDEX_PRECACHE = 0 ;
 	FLANKING = 0;
@@ -85,7 +93,7 @@ Config::Config() {
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
 	SPLICED_CLUSTER_TOLERANCE = 10 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
-	SPLICED_MIN_SEGMENT_LENGTH = 1 ;
+	SPLICED_MIN_SEGMENT_LENGTH = DEFAULT_SETTING ;
 
 	STATISTICS = 0;
 	CHROM_CONTAINER_SIZE = 15000000 ;
@@ -114,7 +122,8 @@ int Config::applyDefaults(Genome * genome)
 	if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || 
 						  SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
 		NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING || OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT ||
-		(SPLICED_HITS && SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING) || (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) ||
+		(SPLICED_HITS && (SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING || SPLICED_MIN_SEGMENT_LENGTH==DEFAULT_SETTING)) || 
+		(OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) ||
 		((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING && POLYTRIM_STRATEGY) || 
 		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY))
 	{
@@ -169,6 +178,21 @@ int Config::applyDefaults(Genome * genome)
 		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
 			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
 			fprintf(stdout, "\n") ;
+
+		if (SPLICED_HITS && SPLICED_MIN_SEGMENT_LENGTH == DEFAULT_SETTING)
+		{
+			SPLICED_MIN_SEGMENT_LENGTH=QPALMA_MIN_NUM_MATCHES ;
+			
+			if (read_length>40)
+				SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 6) ;
+			if (read_length>=75)
+				SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 8) ;
+			if (read_length>=100)
+				SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 10) ;
+			
+			fprintf(stdout, "* Automatically determined minimal segment length in spliced alignments based on read length (%int)\n", 
+					SPLICED_MIN_SEGMENT_LENGTH) ;
+		}
 	}
 
 	if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT)
@@ -558,10 +582,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//report output file
-		if (strcmp(argv[i], "-report-genome-coverage") == 0) {
+		if (strcmp(argv[i], "-report-coverage-wig") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report-genome-coverage\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option -report-coverage-wig\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			REPORT_GENOME_COVERAGE_FILE=strdup(argv[i]) ;
+			REPORT_MAPPED_READS = 1 ;
+			REPORT_SPLICED_READS = 1 ;
+			REPORT_GENOME_COVERAGE = 2 ;
+		}
+		//report output file
+		if (strcmp(argv[i], "-report-coverage-map") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -report-coverage-map\n") ;
 				usage();
 				exit(1);
 			}
@@ -578,11 +616,20 @@ int Config::parseCommandLine(int argc, char *argv[])
 			REPORT_REPETITIVE_SEEDS = 1 ;
 			//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
 		}
+		if (strcmp(argv[i], "-no-report-rep-seed") == 0) {
+			not_defined = 0;
+			REPORT_REPETITIVE_SEEDS = 0 ;
+			//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
+		}
 
 		//report mapped regions
 		if (strcmp(argv[i], "-report-map-region") == 0) {
 			not_defined = 0;
 			REPORT_MAPPED_REGIONS  = 1 ;
+		}
+		if (strcmp(argv[i], "-no-report-map-region") == 0) {
+			not_defined = 0;
+			REPORT_MAPPED_REGIONS  = 0 ;
 		}
 
 		//report mapped regions
@@ -590,11 +637,19 @@ int Config::parseCommandLine(int argc, char *argv[])
 			not_defined = 0;
 			REPORT_MAPPED_READS = 1 ;
 		}
+		if (strcmp(argv[i], "-no-report-map-read") == 0) {
+			not_defined = 0;
+			REPORT_MAPPED_READS = 0 ;
+		}
 
 		//report mapped regions
 		if (strcmp(argv[i], "-report-spliced-read") == 0) {
 			not_defined = 0;
 			REPORT_SPLICED_READS = 1 ;
+		}
+		if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
+			not_defined = 0;
+			REPORT_SPLICED_READS = 0 ;
 		}
 
 		//report splice sites - confidence threshold
@@ -1558,7 +1613,8 @@ int Config::usage()
 
 	printf("spliced hits definitions: (-S required)\n");
 	printf(" -qpalma STRING                        file name with qpalma parameters (essential)\n");
-	printf(" -qpalma-use-map-max-len INT           limit the map extension up- and downstream to the given length (10.000)\n\n");
+	printf(" -qpalma-use-map-max-len INT           limit the map extension up- and downstream to the given length (10.000)\n");
+	printf(" -qpalma-prb-offset-fix                automatically fix the quality offset, if necessary \n\n");
 
 	printf(" -acc STRING                           path name to acceptor splice site predictions (essential)\n");
 	printf(" -don STRING                           path name to donor splice site predictions (essential)\n");
@@ -1571,12 +1627,12 @@ int Config::usage()
 	printf(" -C INT                                min combined length (auto)\n");
 	printf(" -L INT                                min length of long hit (auto)\n");
 	printf(" -K INT                                min length of short hit (auto)\n");
-	printf(" -I INT                                longest intron length  (auto)\n");
 	printf(" -SA INT                               maximum number of spliced alignments per read (10)\n");
 	printf(" -NI INT                               maximum number of introns in spliced alignments (auto)\n");
 	printf(" -CT INT                               distance to tolerate between hit and existing hit cluster (10)\n");
 	printf(" -QMM INT                              number of matches required for identifying a splice site (5)\n");
-	printf(" -min-spliced-segment-len INT          minimal number of nucleotides in a spliced segment (1)\n\n") ;
+	printf(" -I INT                                longest intron length  (auto)\n");
+	printf(" -EL INT                               minimal number of nucleotides in a spliced segment (auto)\n\n") ;
 
 	printf(" -report STRING                        file for map reporting\n");
 	printf(" -report-ro STRING                     file for map reporting (read only)\n");
@@ -1587,6 +1643,8 @@ int Config::usage()
 	printf(" -report-splice-sites FLOAT            report splice sites with confidence not less that threshold\n");
 	printf(" -report-splice-sites-top-perc FLOAT   report splice sites with confidence in top percentile (between 0 and 1)\n");
 	printf(" -report-gff-init STRING               initialize map with exons from GFF file\n");
+	printf(" -report-coverage-map STRING           report genome coverage in map format\n");
+	printf(" -report-coverage-wig STRING           report genome coverage in wiggle format\n");
 	//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
 
 	return 0;

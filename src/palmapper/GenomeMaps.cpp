@@ -161,7 +161,7 @@ int GenomeMaps::init_reporting()
 	try
 	{
 		CHR_MAP_c = new unsigned char*[genome->nrChromosomes()] ;
-		if (_config.REPORT_GENOME_COVERAGE)
+		if (_config.REPORT_GENOME_COVERAGE>0)
 			CHR_MAP_i = new unsigned int*[genome->nrChromosomes()] ;
 			
 	}
@@ -193,7 +193,7 @@ int GenomeMaps::init_reporting()
 		try 
 		{
 			CHR_MAP_c[i] = new unsigned char[chr.length()+1] ;
-			if (_config.REPORT_GENOME_COVERAGE)
+			if (_config.REPORT_GENOME_COVERAGE>0)
 				CHR_MAP_i[i] = new unsigned int[chr.length()+1] ;
 		}
 		catch (std::bad_alloc&) 
@@ -202,7 +202,7 @@ int GenomeMaps::init_reporting()
 			exit(1);
 		}
 		memset(CHR_MAP_c[i], 0, chr.length()*sizeof(unsigned char)) ;
-		if (_config.REPORT_GENOME_COVERAGE)
+		if (_config.REPORT_GENOME_COVERAGE>0)
 			memset(CHR_MAP_i[i], 0, chr.length()*sizeof(unsigned int)) ;
 #endif
 	}
@@ -367,7 +367,7 @@ int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, in
 #endif
 	}
 	
-	if (_config.REPORT_GENOME_COVERAGE)
+	if (_config.REPORT_GENOME_COVERAGE>0)
 		for (int i=start; i<end; i++)
 		{
 			if (CHR_MAP_cov(chr,i)<std::numeric_limits<unsigned int>::max())
@@ -451,7 +451,7 @@ int GenomeMaps::report_spliced_read(Chromosome const &chr, std::vector<int> & ex
 #endif
 #endif
 		}
-		if (_config.REPORT_GENOME_COVERAGE)
+		if (_config.REPORT_GENOME_COVERAGE>0)
 			for (int i=start; i<end; i++)
 			{
 				if (CHR_MAP_cov(chr,i)<std::numeric_limits<unsigned int>::max())
@@ -646,29 +646,57 @@ int GenomeMaps::write_reporting()
 
 int GenomeMaps::write_cov_reporting()
 {
-	const char *fname = _config.REPORT_GENOME_COVERAGE_FILE ;//(char*) malloc(strlen(_config.REPORT_FILE)+10) ;
-	//sprintf(fname, "%s.cov.gz", _config.REPORT_FILE) ;
+	const char *fname = _config.REPORT_GENOME_COVERAGE_FILE ;
 	
 	if (fname==NULL || strlen(fname)==0)
 		return -1 ;
 	
-	gzFile fd = gzopen(fname, "wb6") ;
-	if (!fd)
-		return -1 ;
-	fprintf(stdout, "writing coverage map to %s:\n", fname) ;
-	for (size_t i=0; i<genome->nrChromosomes(); i++)
+	if (_config.REPORT_GENOME_COVERAGE==1) // binary
 	{
-		Chromosome const &chr = genome->chromosome(i);
-		int ret = gzwrite(fd, CHR_MAP_i[i], chr.length()*sizeof(unsigned int)) ;
-		assert((size_t)ret==chr.length()*sizeof(unsigned int)) ;
-		int num_covered = 0 ;
-		for (size_t p=0; p<chr.length(); p++)
-			if (CHR_MAP_i[i][p]>0)
-				num_covered++ ;
-		if (_config.VERBOSE>0)
-			fprintf(stdout, "  chr\t%s\thas \t%i\t/\t%i\t(%2.1f%%) covered positions\n", chr.desc(), num_covered, chr.length(), 100.0*num_covered/chr.length()) ;
+		gzFile fd = gzopen(fname, "wb6") ;
+		if (!fd)
+			return -1 ;
+		fprintf(stdout, "writing coverage map in binary format to %s:\n", fname) ;
+		for (size_t i=0; i<genome->nrChromosomes(); i++)
+		{
+			Chromosome const &chr = genome->chromosome(i);
+			int ret = gzwrite(fd, CHR_MAP_i[i], chr.length()*sizeof(unsigned int)) ;
+			assert((size_t)ret==chr.length()*sizeof(unsigned int)) ;
+			int num_covered = 0 ;
+			for (size_t p=0; p<chr.length(); p++)
+				if (CHR_MAP_i[i][p]>0)
+					num_covered++ ;
+			if (_config.VERBOSE>0)
+				fprintf(stdout, "  chr\t%s\thas \t%i\t/\t%i\t(%2.1f%%) covered positions\n", chr.desc(), num_covered, chr.length(), 100.0*num_covered/chr.length()) ;
+		}
+		gzclose(fd) ;
 	}
-	gzclose(fd) ;
+
+	if (_config.REPORT_GENOME_COVERAGE==2) // wiggle
+	{
+		FILE *fd = fopen(fname, "w+") ;
+		if (!fd)
+			return -1 ;
+		fprintf(stdout, "writing coverage map in wiggle format to %s:\n", fname) ;
+		fprintf(fd, "track type=wiggle_0 name=read_coverage description=read_coverage\n") ;
+		for (size_t i=0; i<genome->nrChromosomes(); i++)
+		{
+			Chromosome const &chr = genome->chromosome(i);
+			fprintf(fd, "variableStep chrom=%s\n", chr.desc()) ;
+			int num_covered = 0 ;
+			for (unsigned int j=0; j<chr.length(); j++)
+			{
+				if (CHR_MAP_i[i][j]>0)
+				{
+					fprintf(fd, "%i %i\n", j, CHR_MAP_i[i][j]) ;
+					num_covered++ ;
+				}
+			}
+			if (_config.VERBOSE>0)
+				fprintf(stdout, "  chr\t%s\thas \t%i\t/\t%i\t(%2.1f%%) covered positions\n", chr.desc(), num_covered, chr.length(), 100.0*num_covered/chr.length()) ;
+		}
+		fclose(fd) ;
+	}
 
 	if (_config.VERBOSE>0)
 		fprintf(stdout, "done.\n") ;

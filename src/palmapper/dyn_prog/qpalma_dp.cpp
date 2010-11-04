@@ -10,7 +10,7 @@ using namespace std;
 /*[splice_align, est_align, weightMatch, alignmentscores, dnaest] = ...
   myalign([nr_paths], dna, est, {h}, matchmatrix, donor, acceptor, remove_duplicate_scores, ...
   min_match) */
-Alignment::Alignment(int numQPlifs, int numq, bool use_qscores) {
+Alignment::Alignment(int numQPlifs, int numq, bool use_qscores, int _verbosity) {
       len = 0;
       limits = 0;
       penalties = 0;
@@ -23,6 +23,7 @@ Alignment::Alignment(int numQPlifs, int numq, bool use_qscores) {
       use_svm = 0;
 	  DNA_ARRAY = NULL ;
 	  EST_ARRAY = NULL ;
+	  verbosity=_verbosity ;
 
       // set ptrs to zero first
       splice_align         = 0;
@@ -120,7 +121,7 @@ void Alignment::myalign_fast(int nr_paths_p, char* dna, int dna_len_p, char* est
   int* max_score_positions = new int[nr_paths*2];
 
   fast_fill_matrix(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, 
-		   donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match);
+				   donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity);
 
 
   /***************************************************************************/ 

@@ -2021,7 +2021,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int num_qual_support = 0;
 	if (alignment_parameters->num_qualityPlifs > 0)
 		num_qual_support = alignment_parameters->qualityPlifs[0].len;
-	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true);
+	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true, verbosity);
 
 	/* initialize acceptor and donor tables */
 	int d_len = dna.length() ;
@@ -2776,7 +2776,7 @@ float QPalma::score_unspliced(Read const &read, const char * read_anno) const
 	int num_qual_support = 0;
 	if (alignment_parameters->num_qualityPlifs > 0)
 		num_qual_support = alignment_parameters->qualityPlifs[0].len;
-	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true);
+	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true, verbosity);
 
 	double* prb = NULL ;
 	try
