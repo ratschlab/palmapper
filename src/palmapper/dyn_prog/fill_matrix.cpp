@@ -175,8 +175,8 @@ void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
 }
 
 
-int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices, int i, int j, int prev_shift, char* read, int read_len, char* dna, int dna_len, double* read_scores){
-
+int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices, int i, int j, int prev_shift, char* read, int read_len, char* dna, int dna_len, double* read_scores, int verbosity)
+{
   double prevValue;
   int num;
   int matrix_number=0;
@@ -234,15 +234,17 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 	    pos_i+=prev_shift ;
 	    pos_j+=prev_shift ;
 	}
-      if (!conserved_seq && num>=min_matches && num_N<=MAX_SPLICE_MISMATCH_NUM_N){
-	fprintf(stdout,"[check_min_matches] PROBLEM with number of matches from position %i-%i (%i for %i) with %i N\n",i,j,num,min_matches,num_N);
+      if (!conserved_seq && num>=min_matches && num_N<=MAX_SPLICE_MISMATCH_NUM_N)
+	  {
+		  if (verbosity>0)
+			  fprintf(stdout,"[check_min_matches] PROBLEM with number of matches from position %i-%i (%i for %i) with %i N\n",i,j,num,min_matches,num_N);
       }
       if (isnotminusinf(prevValue) && conserved_seq)
-	{
-	  //fprintf(stdout,"Possible matrix: %i with value %f\n",z,prevValue);
-	  matrices[matrix_number]=z;
-	  matrix_number++;
-	}
+	  {
+		  //fprintf(stdout,"Possible matrix: %i with value %f\n",z,prevValue);
+		  matrices[matrix_number]=z;
+		  matrix_number++;
+	  }
     }
   return matrix_number;
 }
@@ -266,7 +268,8 @@ void print_restricted_matrix(Prev_score* matrices[],int nr_paths, int matrix_len
 void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 				    double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites, 
 				    int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,
-				    int max_gap, int max_mism, int max_edit_op, int min_match){
+									int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity)
+{
 
   //  fprintf(stdout,"Fill %s side of the matrix from position %i-%i (%i,%i,%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,max_gap,max_mism,max_edit_op);
   
@@ -460,7 +463,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 
 	    //Number of paths that has at least diff_i consecutive matches that lead to the previous position in the diagonal
 	    int number;
-	    number=check_min_matches(current_seed,nr_paths_par,matrix_position-row_len, diff_i,possible_matrices, i, j, prev_shift, read, read_len, dna, dna_len, read_scores);
+	    number=check_min_matches(current_seed,nr_paths_par,matrix_position-row_len, diff_i,possible_matrices, i, j, prev_shift, read, read_len, dna, dna_len, read_scores, verbosity);
 	    if (number>0){
 	      splice_pos* sp= new splice_pos();
 	      sp->site=j; //position of the splice site
@@ -713,7 +716,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 		    fast_fill_side_unspliced_first(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
 						    main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
 						    comp_sites[comp_ss]-prev_shift, best_match_scores, right_side,false,
-						    max_number_introns-1,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match);
+										   max_number_introns-1,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity);
 		  }
 
 		  //Keep best scores
@@ -923,7 +926,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 		      double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 		       std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
-		       int max_gap, int max_mism, int max_edit_op, int min_match){
+					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity)
+{
   
   const int MMATRIX_LEN = 6; // length of matchmatrix
   
@@ -957,12 +961,12 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 
   std::vector<int> comp_sites;
   fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_right,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, donor,acceptor,comp_sites,seed_i, 
-				 seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match);
+								 seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity);
   //  fprintf(stdout,"%i right sides of the matrix filled...\n",seed_matrix_right.size());
   
   comp_sites.clear();
   fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_left,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, acceptor,donor,comp_sites,seed_i, 
-			  seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match);
+								 seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity);
   comp_sites.clear();
   //  fprintf(stdout,"%i left sides of the matrix filled...\n",seed_matrix_left.size());
 
