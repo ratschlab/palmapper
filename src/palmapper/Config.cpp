@@ -60,7 +60,7 @@ Config::Config() {
 	QPALMA_USE_SPLICE_SITES_THRESH_DON = 0.0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_ACC = 0.0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC = 0.0 ;
-	QPALMA_MIN_NUM_MATCHES = 5 ;
+	QPALMA_MIN_NUM_MATCHES = DEFAULT_SETTING ;
 	QPALMA_PRB_OFFSET_FIX = false ;
 	
 	READ_COUNT_LIMIT = 0 ; // limits the number of reads for alignment
@@ -182,6 +182,14 @@ int Config::applyDefaults(Genome * genome)
 			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
 			fprintf(stdout, "\n") ;
 
+		if (SPLICED_HITS && QPALMA_MIN_NUM_MATCHES == DEFAULT_SETTING)
+		{
+			QPALMA_MIN_NUM_MATCHES=5 ;
+			if (non_consensus_search)
+				QPALMA_MIN_NUM_MATCHES+=2 ;
+			fprintf(stdout, "* Automatically determined minimal match length near splice sites (%int)\n", QPALMA_MIN_NUM_MATCHES) ;
+		}
+		
 		if (SPLICED_HITS && SPLICED_MIN_SEGMENT_LENGTH == DEFAULT_SETTING)
 		{
 			SPLICED_MIN_SEGMENT_LENGTH=QPALMA_MIN_NUM_MATCHES ;
