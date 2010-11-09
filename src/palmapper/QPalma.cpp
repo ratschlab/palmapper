@@ -2228,20 +2228,25 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				is_ss = true ;
 				break ;
 			}
-	    if (is_ss || non_consensus_search) 
+	    if (non_consensus_search && !is_ss) 
 		{
-			// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
-			if (_config.NO_SPLICE_PREDICTIONS && is_ss)
-				donor[i] = 0.0 ;
-			if (non_consensus_search && !is_ss) 
+			if (dna[i]!='N' && dna[i-1]!='N')
 				donor[i] = NON_CONSENSUS_SCORE ;
-			match += (donor[i] > -ALMOST_INFINITY);
+			match += 1 ;//(donor[i] > -ALMOST_INFINITY);
 		} 
-	    else 
-		{
-			match += (donor[i] <= -ALMOST_INFINITY);
-			donor[i] = -ALMOST_INFINITY;
-		}
+		else
+			if (is_ss) 
+			{
+				// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
+				if (_config.NO_SPLICE_PREDICTIONS)
+					donor[i] = 0.0 ;
+				match += (donor[i] > -ALMOST_INFINITY);
+			} 
+			else 
+			{
+				match += (donor[i] <= -ALMOST_INFINITY)  || dna[i]=='N' || dna[i-1]=='N' ;
+				donor[i] = -ALMOST_INFINITY;
+			}
 	}
 	
 	if (match < num * 0.9)
@@ -2261,26 +2266,32 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				  is_ss = true ;
 				  break ;
 			  }
-	      if (is_ss || non_consensus_search)
+
+	      if (non_consensus_search && !is_ss)
 		  {
-			  if (_config.NO_SPLICE_PREDICTIONS && is_ss)
-				  acceptor[i] = 0.0 ;
-			  if (non_consensus_search && !is_ss)
+			  if (dna[i]!='N' && dna[i-1]!='N')
 				  acceptor[i] = NON_CONSENSUS_SCORE ;
-			  match += (acceptor[i] > -ALMOST_INFINITY);
+			  match += 1;
 		  } 
-	      else 
-		  {
-			  //if (acceptor[i]>-ALMOST_INFINITY)
-			  //	fprintf(stdout, "acc over %i\n", i) ;
-			  match += (acceptor[i] <= -ALMOST_INFINITY);
-			  acceptor[i] = -ALMOST_INFINITY;
-		  }
+		  else
+			  if (is_ss)
+			  {
+				  if (_config.NO_SPLICE_PREDICTIONS)
+					  acceptor[i] = 0.0 ;
+				  match += (acceptor[i] > -ALMOST_INFINITY);
+			  } 
+			  else 
+			  {
+				  if (acceptor[i]>-ALMOST_INFINITY && dna[i]!='N' && dna[i-1]!='N')
+					  fprintf(stdout, "acc over %i %f  %c%c\n", i, acceptor[i], dna[i-1], dna[i]) ;
+				  match += (acceptor[i] <= -ALMOST_INFINITY) || dna[i]=='N' || dna[i-1]=='N' ;
+				  acceptor[i] = -ALMOST_INFINITY;
+			  }
 	  }
 
 	  if (match<num*0.9)
-		  fprintf(stderr, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n", 
-				  match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end) ;
+		  fprintf(stderr, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i, %i)\n", 
+				  match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end, non_consensus_search) ;
 
 	  /* apply donor and acceptor plifs */
 	  for (int i = 0; i < d_len; i++)
@@ -2666,7 +2677,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 		strcpy(aln->read_id, read.id());
 
-		aln = readMappings.topAlignments().add_alignment_record(read, aln, 1) ;
+		aln = readMappings.topAlignments().add_alignment_record(aln, 1) ;
 		num_reported++ ;
 		
 		if (verbosity >= 2) 

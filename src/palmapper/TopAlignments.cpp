@@ -40,7 +40,7 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	algn_hit->from_gm = 2;
 
 	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-	add_alignment_record(read, algn_hit, 1) ;
+	add_alignment_record(algn_hit, 1) ;
 	return 1 ;
 
 	//unsigned int printed = print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
@@ -398,23 +398,55 @@ void TopAlignments::eval_non_consensus_alignment(alignment_t* non_consensus_alig
 { 
 	// look at the top two alignments and drop one (the non consensus or consensus alignment)
 	assert(top_alignments.size()>=2) ;
-	
-	if (non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps >= consensus_alignment->num_mismatches+consensus_alignment->num_gaps - _config.non_consensus_search_gap)
+
+	bool non_consensus_alignment_found=false ;
+	for (uint8_t i = 0; i < top_alignments.size(); i++)
 	{
-		for (uint8_t i = 0; i < top_alignments.size(); i++)
+		if (top_alignments[i]==non_consensus_alignment)
 		{
-			if (top_alignments[i]==non_consensus_alignment)
-			{
-				// delete item
-			}
+			// delete item
+			top_alignments[i]=NULL ; // make sure it's not freed
+			top_alignments.erase(top_alignments.begin()+i) ;
+			non_consensus_alignment_found=true ;
+			break ;
 		}
 	}
+	assert(non_consensus_alignment_found) ;
 	
+	bool consensus_alignment_found=false ;
+	for (uint8_t i = 0; i < top_alignments.size(); i++)
+	{
+		if (top_alignments[i]==consensus_alignment)
+		{
+			// delete item
+			top_alignments[i]=NULL ; // make sure it's not freed
+			top_alignments.erase(top_alignments.begin()+i) ;
+			consensus_alignment_found=true ;
+			break ;
+		}
+	}
+	assert(consensus_alignment_found) ;
+	num_spliced_alignments-=2 ;
 	
+	if ((int)(non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps) >= (int)(consensus_alignment->num_mismatches+consensus_alignment->num_gaps) - (int)_config.non_consensus_search_gap)
+	{
+		fprintf(stdout, "consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
+		add_alignment_record(consensus_alignment, 1) ;
+	} 
+	else
+	{
+		fprintf(stdout, "non-consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
+		if (non_consensus_alignment->qpalma_score<consensus_alignment->qpalma_score)
+		{
+			consensus_alignment->qpalma_score = non_consensus_alignment->qpalma_score - _config.non_consensus_search_discount ;
+		}
+		add_alignment_record(non_consensus_alignment, 1) ;
+		add_alignment_record(consensus_alignment, 1) ;
+	}
 }
 
 
-alignment_t * TopAlignments::add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments)
+alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments)
 {
 	if (alignment == NULL || !alignment->spliced)
 		num_unspliced_alignments += num_alignments;
@@ -438,8 +470,8 @@ alignment_t * TopAlignments::add_alignment_record(Read const &read, alignment_t 
 
 	pthread_mutex_lock( &top_mutex) ;
 
-	if ((int)read.length()>MAX_EXON_LEN)
-		MAX_EXON_LEN = read.length() ;
+	//if ((int)read.length()>MAX_EXON_LEN)
+	//	MAX_EXON_LEN = read.length() ;
 
 	// seems duplicated (its already done in end_top_alignment_record)
 	//if (_config.REPORT_SPLICED_READS)
