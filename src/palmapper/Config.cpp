@@ -110,8 +110,9 @@ Config::Config() {
 	DON_CONSENSUS.push_back(strdup("GC")) ;
 	DON_CONSENSUS_REV.push_back(strdup("AC")) ;
 	DON_CONSENSUS_REV.push_back(strdup("GC")) ;
+
 	non_consensus_search = false ;
-	non_consensus_search_gap=2 ;
+	non_consensus_search_gap=3 ;
 	non_consensus_search_discount=1 ;
 	
     STRAND = -1 ;

@@ -1416,7 +1416,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				if (curr_align->non_consensus)
 				{
 					assert(curr_align->intron_consensus.size()>0);
-					fprintf(stdout, "\tXC:Z:%s", curr_align->intron_consensus[0].c_str()) ;
 					fprintf(MY_OUT_FP, "\tXC:Z:%s", curr_align->intron_consensus[0].c_str()) ;
 					for (unsigned int qq=1; qq<curr_align->intron_consensus.size(); qq++)
 						fprintf(MY_OUT_FP, "\t~~~~%s", curr_align->intron_consensus[qq].c_str()) ;
