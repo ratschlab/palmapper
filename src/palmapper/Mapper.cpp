@@ -338,17 +338,6 @@ restart:
 						fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
 					if (FILTER_STAT)
 						_stats.qpalma_filter_stat(result._qpalma.qpalma_filter_reason, ret>0) ;
-					/*if (1) 
-					{
-						int ret2 = qpalma->capture_hits(hits, result._qpalma, true);
-						fprintf(stderr, "capture_hits found %i non-consensus and %i consensus alignments\n", ret2, ret) ;
-						if (ret2<0)
-							cancel=4 ;
-						if (_config.VERBOSE)
-							fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
-						if (FILTER_STAT)
-							_stats.qpalma_filter_stat(result._qpalma.qpalma_filter_reason, ret>0) ;
-							}*/
 			    }
 			  catch (std::bad_alloc&)
 			    {
@@ -366,7 +355,9 @@ restart:
 
 	if (!cancel)
 	{
-		if (hits._topAlignments.size()>0) {
+		//fprintf(stdout, "topAligment.size()=%i\n", hits._topAlignments.size()) ;
+		if (hits._topAlignments.size()>0) 
+		{
 			_stats.READS_MAPPED++ ;
 			result._rtrim_cut = rtrim_cut;
 			result._polytrim_cut_start = polytrim_cut_start_curr;
@@ -374,10 +365,9 @@ restart:
 			result._state = ReadMapped;
 			return;
 		}
-			read_mapped = 1 ;
+		read_mapped = 1 ;
 		//if (_config.VERBOSE && read_mapped)
 		//	printf("unspliced or spliced alignment found\n");
-
 
 		{
 			if (_config.RTRIM_STRATEGY && (read.length() > _config.RTRIM_STRATEGY_MIN_LEN))

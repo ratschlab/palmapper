@@ -1145,7 +1145,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 		    end=chromosome.length();
 		  int midpoint = (end+start)/2 ;
 		  
-		  if (_config.QPALMA_USE_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)// && !non_consensus_search)
+		  if (_config.QPALMA_USE_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 		    {
 		      std::vector<int> positions;
 		      int num_acc, num_don ;
@@ -1575,9 +1575,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 		    bool isunspliced ;
 		    {
 				int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
-								    current_positions, chr, '+', ori, hit_read_position,
-								    corres_long_regions[0]->start, hit_len, non_consensus_search);
-				/*, num_alignments_reported*/
+													current_positions, chr, '+', ori, hit_read_position,
+													corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported);
 				if (ret < 0)
 				{
 					result.delete_regions();
@@ -1587,15 +1586,14 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 				isunspliced = ret;
 		    }
 		    
-		    if (!isunspliced) {
+		    //if (!isunspliced) 
+			{
 				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 				//      corres_long_regions[0]->end, hit_len);					  
 				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-				int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
-								    read_quality[1 - ori], current_seq,
-								    current_regions, current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
-								    corres_long_regions[0]->end-1, hit_len, non_consensus_search);//end nucleotide in dna not included
-				/* , num_alignments_reported */
+				int ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
+													current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
+													corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported);//end nucleotide in dna not included
 				if (ret < 0)
 				{
 					result.delete_regions();
@@ -1674,9 +1672,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 	    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 	    {
 			int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori],
-							    current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
-							    corres_long_regions[0]->start, hit_len, non_consensus_search); 
-			/*, num_alignments_reported */
+												current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
+												corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported); 
 			if (ret < 0)
 			{
 				result.delete_regions();
@@ -1686,15 +1683,15 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 			
 			isunspliced = ret;
 	    }
-	    if (!isunspliced) {
+	    //if (!isunspliced) 
+		{
 			//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 			//      corres_long_regions[0]->end, hit_len);					  
 			//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 			int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
-							    read_quality[1 - ori], current_seq,
-							    current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
-							    corres_long_regions[0]->end-1, hit_len, non_consensus_search);//end nucleotide in dna not included
-			/* , num_alignments_reported */
+												read_quality[1 - ori], current_seq,
+												current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
+												corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported);//end nucleotide in dna not included
 			if (ret < 0)
 			{
 				result.delete_regions();
@@ -1734,7 +1731,7 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 		assert(data->qpalma!=NULL) ;
 		data->ret = data->qpalma->perform_alignment(*data->result, *data->readMappings, data->read_string, data->read_quality, data->dna,
 													data->current_regions, data->positions, *data->contig_idx,
-													data->strand, data->ori, data->num_reported,data->hit_read,
+													data->strand, data->ori, data->hit_read,
 													data->hit_dna,data->hit_length, data->non_consensus_search, data->aln) ;
 	}
 	catch (std::bad_alloc&)
@@ -1749,53 +1746,108 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 
 // TODO: dd remove relicts from multithreading
 int QPalma::perform_alignment_starter(Result &result, 
-				      Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, 
-				      int hit_length, bool non_consensus_search) const
+									  Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, 
+									  Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, 
+									  int hit_length, bool non_consensus_search, int& num_alignments_reported) const
 {
 	struct perform_alignment_t* data = NULL ;
 	try
 	{
-		data = new struct perform_alignment_t ;
-		
-		data->result = &result;
-		data->readMappings = &readMappings;
-		data->read_string=read_string ;
-		data->read_quality=read_quality ;
-		data->dna = dna ;
-		data->current_regions=current_regions ;
-		data->positions=positions ;
-		data->contig_idx=&contig_idx;
-		data->strand =strand ;
-		data->ori = ori ;
-		data->num_reported = 0 ;
-		data->ret = -1000 ;
-		data->hit_read = hit_read_position;
-		data->hit_dna = hit_dna_position;
-		data->hit_length = hit_length;
-		data->qpalma = this ;
-		data->joined=false ;
-		data->aln=NULL ;
 
 		ALIGNMENT* non_consensus_alignment = NULL ;
 		ALIGNMENT* consensus_alignment = NULL ;
 		
 		if (non_consensus_search)
 		{
+			data = new struct perform_alignment_t ;
+
+			data->result = &result;
+			data->readMappings = &readMappings;
+			data->read_string=read_string ;
+			data->read_quality=read_quality ;
+			data->dna = dna ;
+			data->current_regions=current_regions ;
+			data->positions=positions ;
+			data->contig_idx=&contig_idx;
+			data->strand =strand ;
+			data->ori = ori ;
+			data->ret = -1000 ;
+			data->hit_read = hit_read_position;
+			data->hit_dna = hit_dna_position;
+			data->hit_length = hit_length;
+			data->qpalma = this ;
+			data->joined=false ;
+			data->aln=NULL ;
+
 			data->non_consensus_search=true ;
 			perform_alignment_wrapper(data);
 			non_consensus_alignment=data->aln ;
 			data->aln=NULL ;
+			delete data ;
 		}
-		data->non_consensus_search=false ;
-		perform_alignment_wrapper(data);
-		consensus_alignment=data->aln ;
+		{
+			data = new struct perform_alignment_t ;
+			
+			data->result = &result;
+			data->readMappings = &readMappings;
+			data->read_string=read_string ;
+			data->read_quality=read_quality ;
+			data->dna = dna ;
+			data->current_regions=current_regions ;
+			data->positions=positions ;
+			data->contig_idx=&contig_idx;
+			data->strand =strand ;
+			data->ori = ori ;
+			data->ret = -1000 ;
+			data->hit_read = hit_read_position;
+			data->hit_dna = hit_dna_position;
+			data->hit_length = hit_length;
+			data->qpalma = this ;
+			data->joined=false ;
+			data->aln=NULL ;
+			
+			data->non_consensus_search=false ;
+			perform_alignment_wrapper(data);
+			consensus_alignment=data->aln ;
+			data->aln=NULL ;
+			data->joined = true;
+			delete data ;
+		}
 		
 		if (non_consensus_alignment && consensus_alignment)
-			readMappings.topAlignments().eval_non_consensus_alignment(non_consensus_alignment, consensus_alignment) ;
-		
-		data->joined = true;
-
-		delete data ;
+		{
+			if ((int)(non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps) >= (int)(consensus_alignment->num_mismatches+consensus_alignment->num_gaps) - (int)_config.non_consensus_search_gap)
+			{
+				//fprintf(stdout, "consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
+				readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
+			} 
+			else
+			{
+				fprintf(stdout, "non-consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
+				if (non_consensus_alignment->qpalma_score<consensus_alignment->qpalma_score)
+				{
+					consensus_alignment->qpalma_score = non_consensus_alignment->qpalma_score - _config.non_consensus_search_discount ;
+				}
+				readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
+				readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
+				num_alignments_reported+=2 ;
+			}
+			
+			//readMappings.topAlignments().eval_non_consensus_alignment(non_consensus_alignment, consensus_alignment) ;
+		}
+		else
+		{
+			if (non_consensus_alignment)
+			{
+				num_alignments_reported++ ;
+				readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
+			}
+			if (consensus_alignment)
+			{
+				num_alignments_reported++ ;
+				readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
+			}
+		}
 		
 		return 0 ; // in the meaning of perform_alignment this corresponds to a spliced alignment
 	}
@@ -1884,7 +1936,8 @@ int QPalma::perform_alignment_starter(Result &result,
 //}
 
 
-int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, Chromosome const &contig_idx, char strand, int ori, int & num_reported, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln) const
+int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, 
+							  Chromosome const &contig_idx, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln) const
 // ori = read orientation
 // strand = dna strand/orientation
 
@@ -2213,7 +2266,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		fprintf(stdout, "# dna: %s\n", dna.c_str());
 	if (verbosity >= 3)
 		fprintf(stdout, "# read: %s\n", read_string.c_str());
-
+	
 	const float NON_CONSENSUS_SCORE = -123456;
 
 	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
@@ -2628,27 +2681,27 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 
 		for (unsigned int ne=0; ne<(exons.size()/2)-1; ne++)
-		  {
+		{
 		    int istart=exons[ne*2+1] ;
 		    int istop =exons[(ne+1)*2] ;
 		    char buf[1000] ;
 		    if ((ori==0 && strand=='+') || (ori==1 && strand=='+'))
-		      {
-			sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istart, istop-1, 
-				contig_idx[istart-2], contig_idx[istart-1], contig_idx[istart], contig_idx[istart+1],  contig_idx[istart+2], contig_idx[istart+3], 
-				contig_idx[istop-4], contig_idx[istop-3], contig_idx[istop-2], contig_idx[istop-1], contig_idx[istop], contig_idx[istop+1]) ;
-			//fprintf(stdout, "intron+: %s\n", buf) ;
-		      }
+			{
+				sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istart, istop-1, 
+						contig_idx[istart-2], contig_idx[istart-1], contig_idx[istart], contig_idx[istart+1],  contig_idx[istart+2], contig_idx[istart+3], 
+						contig_idx[istop-4], contig_idx[istop-3], contig_idx[istop-2], contig_idx[istop-1], contig_idx[istop], contig_idx[istop+1]) ;
+				//fprintf(stdout, "intron+: %s\n", buf) ;
+			}
 		    else
-		      {
-			sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istop-1, istart, 
-				complement(contig_idx[istop+1]), complement(contig_idx[istop]), complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istop-3]), complement(contig_idx[istop-4]), 
-				complement(contig_idx[istart+3]), complement(contig_idx[istart+2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0]), complement(contig_idx[istart-1]), complement(contig_idx[istart-2])) ;
-			//fprintf(stdout, "intron-: %s\n", buf) ;
-		      }
+			{
+				sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istop-1, istart, 
+						complement(contig_idx[istop+1]), complement(contig_idx[istop]), complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istop-3]), complement(contig_idx[istop-4]), 
+						complement(contig_idx[istart+3]), complement(contig_idx[istart+2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0]), complement(contig_idx[istart-1]), complement(contig_idx[istart-2])) ;
+				//fprintf(stdout, "intron-: %s\n", buf) ;
+			}
 		    aln->intron_consensus.push_back(strdup(buf)) ;
-		  }
-
+		}
+		
 		aln->qpalma_score = alignscore;
 		aln->num_matches = alignment_matches;
 		aln->num_gaps = alignment_gaps;
@@ -2676,9 +2729,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			isunspliced = true;
 
 		strcpy(aln->read_id, read.id());
-
-		aln = readMappings.topAlignments().add_alignment_record(aln, 1) ;
-		num_reported++ ;
 		
 		if (verbosity >= 2) 
 		{

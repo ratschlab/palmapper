@@ -74,8 +74,6 @@ public:
 		return top_alignments[idx] ;
 	}
 	
-	void eval_non_consensus_alignment(alignment_t* non_consensus_alignment, alignment_t* consensus_alignment) ; // look at the top two alignments and drop one (the non consensus or consensus alignment)
-	
 
 protected:
 
@@ -89,7 +87,7 @@ protected:
 	int MAX_EXON_LEN ;
 	char *ALIGNSEQ;
 
-	pthread_mutex_t top_mutex;
+	//pthread_mutex_t top_mutex;
 
 	GenomeMaps* genomemaps ;
 } ;

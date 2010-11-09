@@ -18,8 +18,8 @@ TopAlignments::TopAlignments(GenomeMaps* genomemaps_)
   : top_alignments(), num_spliced_alignments(0),
 		num_unspliced_alignments(0), verbosity(0)
 {
-	int ret = pthread_mutex_init(&top_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
-	assert(ret==0) ;
+	//int ret = pthread_mutex_init(&top_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
+	//assert(ret==0) ;
 
 	ALIGNSEQ = (char *) malloc((_config.MAX_READ_LENGTH + 3 * Config::MAX_EDIT_OPS)
 			* sizeof(char));
@@ -315,7 +315,7 @@ bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2)
 
 void TopAlignments::clean_top_alignment_record() 
 {
-	pthread_mutex_lock( &top_mutex) ;
+	//pthread_mutex_lock( &top_mutex) ;
 	
 	// Cleaning up and starting over.
 	for (uint32_t i = 0; i < top_alignments.size(); i++) 
@@ -327,7 +327,7 @@ void TopAlignments::clean_top_alignment_record()
 	num_spliced_alignments = 0;
 	num_unspliced_alignments = 0;
 
-	pthread_mutex_unlock( &top_mutex) ;
+	//pthread_mutex_unlock( &top_mutex) ;
 }
 
 void TopAlignments::start_top_alignment_record() 
@@ -358,7 +358,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 
 	// Process collected hits and write extracted information
 
-	pthread_mutex_lock( &top_mutex) ;
+	//pthread_mutex_lock( &top_mutex) ;
 
 	for (unsigned int i=0; i<top_alignments.size(); i++)
 	{
@@ -387,64 +387,12 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 
 	print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
 	
-	pthread_mutex_unlock( &top_mutex) ;
+	//pthread_mutex_unlock( &top_mutex) ;
 
 	clean_top_alignment_record();
 	//exit(1) ;
 	
 }
-
-void TopAlignments::eval_non_consensus_alignment(alignment_t* non_consensus_alignment, alignment_t* consensus_alignment)
-{ 
-	// look at the top two alignments and drop one (the non consensus or consensus alignment)
-	assert(top_alignments.size()>=2) ;
-
-	bool non_consensus_alignment_found=false ;
-	for (uint8_t i = 0; i < top_alignments.size(); i++)
-	{
-		if (top_alignments[i]==non_consensus_alignment)
-		{
-			// delete item
-			top_alignments[i]=NULL ; // make sure it's not freed
-			top_alignments.erase(top_alignments.begin()+i) ;
-			non_consensus_alignment_found=true ;
-			break ;
-		}
-	}
-	assert(non_consensus_alignment_found) ;
-	
-	bool consensus_alignment_found=false ;
-	for (uint8_t i = 0; i < top_alignments.size(); i++)
-	{
-		if (top_alignments[i]==consensus_alignment)
-		{
-			// delete item
-			top_alignments[i]=NULL ; // make sure it's not freed
-			top_alignments.erase(top_alignments.begin()+i) ;
-			consensus_alignment_found=true ;
-			break ;
-		}
-	}
-	assert(consensus_alignment_found) ;
-	num_spliced_alignments-=2 ;
-	
-	if ((int)(non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps) >= (int)(consensus_alignment->num_mismatches+consensus_alignment->num_gaps) - (int)_config.non_consensus_search_gap)
-	{
-		fprintf(stdout, "consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
-		add_alignment_record(consensus_alignment, 1) ;
-	} 
-	else
-	{
-		fprintf(stdout, "non-consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
-		if (non_consensus_alignment->qpalma_score<consensus_alignment->qpalma_score)
-		{
-			consensus_alignment->qpalma_score = non_consensus_alignment->qpalma_score - _config.non_consensus_search_discount ;
-		}
-		add_alignment_record(non_consensus_alignment, 1) ;
-		add_alignment_record(consensus_alignment, 1) ;
-	}
-}
-
 
 alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments)
 {
@@ -468,7 +416,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	if (verbosity >= 2)
 		printf("entering alignment with score %f\n", alignment->qpalma_score);
 
-	pthread_mutex_lock( &top_mutex) ;
+	//pthread_mutex_lock( &top_mutex) ;
 
 	//if ((int)read.length()>MAX_EXON_LEN)
 	//	MAX_EXON_LEN = read.length() ;
@@ -489,7 +437,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	{
 		top_alignments.push_back(alignment);
 		//fprintf(stderr, "inserting beginning %s\n", alignment->read_id);
-		pthread_mutex_unlock( &top_mutex) ;
+		//pthread_mutex_unlock( &top_mutex) ;
 		return alignment ;
 	}
 
@@ -506,7 +454,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	{
 		if (alignment_is_equal(alignment,top_alignments[i])) // already present
 		{
-			pthread_mutex_unlock( &top_mutex) ;
+			//pthread_mutex_unlock( &top_mutex) ;
 			//fprintf(stderr, "stopped inserting %s\n", alignment->read_id);
 			if (alignment!=top_alignments[i])
 				delete alignment ;
@@ -544,7 +492,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 		return NULL ;
 	}
 
-	pthread_mutex_unlock( &top_mutex) ;
+	//pthread_mutex_unlock( &top_mutex) ;
 
 	return alignment ;
 }
@@ -1465,6 +1413,14 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
 				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
 				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
+				if (curr_align->non_consensus)
+				{
+					assert(curr_align->intron_consensus.size()>0);
+					fprintf(stdout, "\tXC:Z:%s", curr_align->intron_consensus[0].c_str()) ;
+					fprintf(MY_OUT_FP, "\tXC:Z:%s", curr_align->intron_consensus[0].c_str()) ;
+					for (unsigned int qq=1; qq<curr_align->intron_consensus.size(); qq++)
+						fprintf(MY_OUT_FP, "\t~~~~%s", curr_align->intron_consensus[qq].c_str()) ;
+				}
 			}
         }
         else if (_config.STRAND > -1) {
