@@ -1823,7 +1823,7 @@ int QPalma::perform_alignment_starter(Result &result,
 			} 
 			else
 			{
-				fprintf(stdout, "non-consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
+				//fprintf(stdout, "non-consensus alignment preferred (%i,%i): %s\n", non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps, consensus_alignment->num_mismatches+consensus_alignment->num_gaps, non_consensus_alignment->read_id) ;
 				if (non_consensus_alignment->qpalma_score<consensus_alignment->qpalma_score)
 				{
 					consensus_alignment->qpalma_score = non_consensus_alignment->qpalma_score - _config.non_consensus_search_discount ;
