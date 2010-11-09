@@ -46,6 +46,7 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	//unsigned int printed = print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
 }
 
+
 int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p)
 {
 	int alignment_length = read.length() ;
@@ -393,7 +394,27 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 	
 }
 
-void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments, bool non_consensus_search)
+void TopAlignments::eval_non_consensus_alignment(alignment_t* non_consensus_alignment, alignment_t* consensus_alignment)
+{ 
+	// look at the top two alignments and drop one (the non consensus or consensus alignment)
+	assert(top_alignments.size()>=2) ;
+	
+	if (non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps >= consensus_alignment->num_mismatches+consensus_alignment->num_gaps - _config.non_consensus_search_gap)
+	{
+		for (uint8_t i = 0; i < top_alignments.size(); i++)
+		{
+			if (top_alignments[i]==non_consensus_alignment)
+			{
+				// delete item
+			}
+		}
+	}
+	
+	
+}
+
+
+alignment_t * TopAlignments::add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments)
 {
 	if (alignment == NULL || !alignment->spliced)
 		num_unspliced_alignments += num_alignments;
@@ -401,19 +422,19 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 		num_spliced_alignments += num_alignments;
 
 	if (alignment == NULL)
-		return;
+		return NULL;
 	assert(num_alignments>0);
 
 	if (!alignment->passed_filters)
-	  return ;
+	{
+		delete alignment;
+		return NULL ;
+	}
 
 	check_alignment(alignment) ;
 
 	if (verbosity >= 2)
 		printf("entering alignment with score %f\n", alignment->qpalma_score);
-
-	if (non_consensus_search)
-	  alignment->qpalma_score-=10 ;
 
 	pthread_mutex_lock( &top_mutex) ;
 
@@ -437,7 +458,7 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 		top_alignments.push_back(alignment);
 		//fprintf(stderr, "inserting beginning %s\n", alignment->read_id);
 		pthread_mutex_unlock( &top_mutex) ;
-		return;
+		return alignment ;
 	}
 
 	std::vector<alignment_t *>::iterator it = top_alignments.begin();
@@ -455,7 +476,9 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 		{
 			pthread_mutex_unlock( &top_mutex) ;
 			//fprintf(stderr, "stopped inserting %s\n", alignment->read_id);
-			return ;
+			if (alignment!=top_alignments[i])
+				delete alignment ;
+			return NULL ;
 		}
 		
 		if (verbosity >= 2)
@@ -463,7 +486,7 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 
 		if (compare_score(alignment, top_alignments[i]) > 0) 
 		{
-			if (verbosity >= 2 || non_consensus_search)
+			if (verbosity >= 2)
 				printf("[add_alignment_record] reference alignment scores better than current one in top_alignments\n");
 			//fprintf(stderr, "inserting %s\n", alignment->read_id);
 			top_alignments.insert(it, alignment);
@@ -484,11 +507,14 @@ void TopAlignments::add_alignment_record(Read const &read, alignment_t *alignmen
 	}
 
 	if (!inserted)
+	{
 		delete alignment;
+		return NULL ;
+	}
 
 	pthread_mutex_unlock( &top_mutex) ;
 
-
+	return alignment ;
 }
 
 int TopAlignments::print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
