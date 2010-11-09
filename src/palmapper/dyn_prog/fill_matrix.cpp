@@ -266,12 +266,12 @@ void print_restricted_matrix(Prev_score* matrices[],int nr_paths, int matrix_len
 
 
 void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
-				    double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites, 
-				    int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,
+									double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites, 
+									int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,
 									int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity)
 {
 
-  //  fprintf(stdout,"Fill %s side of the matrix from position %i-%i (%i,%i,%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,max_gap,max_mism,max_edit_op);
+    //fprintf(stdout,"START: Fill %s side of the matrix from position %i-%i (%i,%i,%i,num_intron=%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,max_gap,max_mism,max_edit_op, max_number_introns);
   
   /***************************************************/
   /*Initialization */
@@ -714,8 +714,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 		    //Number of this seedElem in the vector seedMatrix (because of recursive calls that add new seedElem)
 		    seed_already_filled=seed_matrix.size();
 		    fast_fill_side_unspliced_first(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
-						    main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
-						    comp_sites[comp_ss]-prev_shift, best_match_scores, right_side,false,
+										   main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
+										   comp_sites[comp_ss]-prev_shift, best_match_scores, right_side,false,
 										   max_number_introns-1,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity);
 		  }
 
@@ -917,6 +917,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
   possible_sites.clear();
   delete[] possible_matrices;  
   delete[] disabled_diagonal;
+
+  //fprintf(stdout,"END: Fill %s side of the matrix from position %i-%i (%i,%i,%i,num_intron=%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,max_gap,max_mism,max_edit_op, max_number_introns);
 
   //  fprintf(stdout,"Fill a %s side of the matrix from position %i-%i...END\n",right_side?"right":"left",seed_read, seed_dna);
 }

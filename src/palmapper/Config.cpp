@@ -104,14 +104,15 @@ Config::Config() {
 
 	LEFTOVER_FILE_NAME = std::string("/dev/null") ;
 
-
 	ACC_CONSENSUS.push_back(strdup("AG")) ;
 	ACC_CONSENSUS_REV.push_back(strdup("CT")) ;
 	DON_CONSENSUS.push_back(strdup("GT")) ;
 	DON_CONSENSUS.push_back(strdup("GC")) ;
 	DON_CONSENSUS_REV.push_back(strdup("AC")) ;
 	DON_CONSENSUS_REV.push_back(strdup("GC")) ;
-
+	non_consensus_search = false ;
+	non_consensus_search_gap=2 ;
+	
     STRAND = -1 ;
 };
 

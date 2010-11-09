@@ -35,6 +35,7 @@ typedef struct alignment_t {
   HIT* hit ;
   int num ;
   std::vector<std::string> intron_consensus ;
+	bool non_consensus ;
 
 } ALIGNMENT;
 
@@ -56,7 +57,7 @@ public:
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
 	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end) ;
-	void add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments, bool non_consensus_search=false) ;
+	alignment_t* add_alignment_record(Read const &read, alignment_t *alignment, int num_alignments) ;
 
 	int print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP);
@@ -73,6 +74,9 @@ public:
 		return top_alignments[idx] ;
 	}
 	
+	void eval_non_consensus_alignment(alignment_t* non_consensus_alignment, alignment_t* consensus_alignment) ; // look at the top two alignments and drop one (the non consensus or consensus alignment)
+	
+
 protected:
 
 	int32_t compare_score(alignment_t *a1, alignment_t *a2) ;

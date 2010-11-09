@@ -152,6 +152,8 @@ public:
 	std::string DON_FILES;
 	int NO_SPLICE_PREDICTIONS;
 	std::vector<const char*> ACC_CONSENSUS, DON_CONSENSUS, ACC_CONSENSUS_REV, DON_CONSENSUS_REV ;
+	bool non_consensus_search ;
+	int non_consensus_search_gap ;	
 
 	int INDEX_PRECACHE;
 	unsigned int FLANKING;
