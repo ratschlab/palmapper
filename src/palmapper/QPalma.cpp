@@ -2001,7 +2001,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	assert(cum_length[num_intervals]==dna.length());
 
-	if (!_config.NO_SPLICE_PREDICTIONS)// && !non_consensus_search)
+	if (!_config.NO_SPLICE_PREDICTIONS)
 	{
 	  /* query acceptor and donor scores */
 	  IntervalQuery iq;
@@ -2214,39 +2214,43 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (verbosity >= 3)
 		fprintf(stdout, "# read: %s\n", read_string.c_str());
 
+	const float NON_CONSENSUS_SCORE = -123456;
+
 	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
 
 	int match = 0, num = 0;
 	for (int i = 2; i < d_len - 2; i++, num++)
-	  {
+	{
 	    bool is_ss = false ;
 	    for (unsigned int j=0; j<_config.DON_CONSENSUS.size(); j++)
-	      if (dna[i] == _config.DON_CONSENSUS[j][0] && dna[i+1] == _config.DON_CONSENSUS[j][1])
-		{
-		  is_ss = true ;
-		  break ;
-		}
+			if (dna[i] == _config.DON_CONSENSUS[j][0] && dna[i+1] == _config.DON_CONSENSUS[j][1])
+			{
+				is_ss = true ;
+				break ;
+			}
 	    if (is_ss || non_consensus_search) 
-	      {
-			  // if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
-			  if (_config.NO_SPLICE_PREDICTIONS || (non_consensus_search)) //&& i>100 && i<d_len-100)) // fill in donor 
-				  donor[i] = 0.0 ;
-			  match += (donor[i] > -ALMOST_INFINITY);
-	      } 
+		{
+			// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
+			if (_config.NO_SPLICE_PREDICTIONS && is_ss)
+				donor[i] = 0.0 ;
+			if (non_consensus_search && !is_ss) 
+				donor[i] = NON_CONSENSUS_SCORE ;
+			match += (donor[i] > -ALMOST_INFINITY);
+		} 
 	    else 
 		{
 			match += (donor[i] <= -ALMOST_INFINITY);
 			donor[i] = -ALMOST_INFINITY;
 		}
-	  }
-	  
-	  if (match < num * 0.9)
+	}
+	
+	if (match < num * 0.9)
 	    fprintf(stderr,
-		    "Warning: donor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n",
-		    match, num, strand, ori == 0 ? '+' : '-', contig_idx.desc(),
-		    current_regions[0]->start, current_regions[current_regions.size() - 1]->end);
-	  //assert(match>=num*0.9) ; // otherwise positions will are shifted somehow
-	  
+				"Warning: donor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n",
+				match, num, strand, ori == 0 ? '+' : '-', contig_idx.desc(),
+				current_regions[0]->start, current_regions[current_regions.size() - 1]->end);
+	//assert(match>=num*0.9) ; // otherwise positions will are shifted somehow
+	
 	  match = 0; num = 0;
 	  for (int i = 2; i < a_len - 2; i++, num++)
 	  {
@@ -2257,13 +2261,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				  is_ss = true ;
 				  break ;
 			  }
-	      if (is_ss || (non_consensus_search && i%1==0))
+	      if (is_ss || non_consensus_search)
 		  {
-			//if (!(acceptor[i]>-ALMOST_INFINITY))
-			//fprintf(stdout, "acc miss %i\n", i) ;
-			// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'AG')
-			  if (_config.NO_SPLICE_PREDICTIONS || (non_consensus_search))// && i>100 && i<a_len-100)) // fill in acceptor
-			  acceptor[i] = 0.0 ;
+			  if (_config.NO_SPLICE_PREDICTIONS && is_ss)
+				  acceptor[i] = 0.0 ;
+			  if (non_consensus_search && !is_ss)
+				  acceptor[i] = NON_CONSENSUS_SCORE ;
 			  match += (acceptor[i] > -ALMOST_INFINITY);
 		  } 
 	      else 
@@ -2276,18 +2279,26 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	  }
 
 	  if (match<num*0.9)
-	    fprintf(stderr, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n", 
-		    match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end) ;
+		  fprintf(stderr, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n", 
+				  match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end) ;
 
-	/* apply donor and acceptor plifs */
-	for (int i = 0; i < d_len; i++)
-	  if (donor[i] > -ALMOST_INFINITY){
-	    donor[i] = lookup_penalty(&alignment_parameters->d, 0, &donor[i]);
-	    //fprintf(stdout, "donor %i: %f\n",i,donor[i] );
-	  }
-	for (int i = 0; i < a_len; i++)
-	  if (acceptor[i] > -ALMOST_INFINITY)
-	    acceptor[i] = lookup_penalty(&alignment_parameters->a, 0, &acceptor[i]);
+	  /* apply donor and acceptor plifs */
+	  for (int i = 0; i < d_len; i++)
+		  if (donor[i] > -ALMOST_INFINITY)
+		  {
+			  if (donor[i]==NON_CONSENSUS_SCORE)
+				  donor[i]=0.0 ;
+			  else
+				  donor[i] = lookup_penalty(&alignment_parameters->d, 0, &donor[i]);
+		  }
+	  for (int i = 0; i < a_len; i++)
+		  if (acceptor[i] > -ALMOST_INFINITY)
+		  {
+			  if (acceptor[i]==NON_CONSENSUS_SCORE)
+				  acceptor[i]=0.0 ;
+			  else
+				  acceptor[i] = lookup_penalty(&alignment_parameters->a, 0, &acceptor[i]);
+		  }
 
 	bool remove_duplicate_scores = false;
 //	bool print_matrix = false;
