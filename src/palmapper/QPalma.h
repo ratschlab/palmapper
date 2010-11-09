@@ -66,7 +66,6 @@ public:
 		Chromosome const *contig_idx ;
 		char strand ;
 		int ori ;
-		int num_reported ;
 		int ret ;
 		int hit_read;
 		int hit_dna;
@@ -118,7 +117,7 @@ protected:
 public:
 	int capture_hits(Hits &hits, Result &result, bool non_consensus_search=false) const;
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
-						  Chromosome const &contig_id, char strand, int ori, int & num_reported,int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln) const;
+						  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln) const;
 	float score_unspliced(Read const &read, const char * read_anno) const;
 	//void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
 	
@@ -137,7 +136,7 @@ protected:
 	void print_region(region_t *region, const char * bla)  ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search) const;
+	int perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported) const;
 
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const;
 //	int rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
