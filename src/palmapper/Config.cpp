@@ -112,6 +112,7 @@ Config::Config() {
 	DON_CONSENSUS_REV.push_back(strdup("GC")) ;
 	non_consensus_search = false ;
 	non_consensus_search_gap=2 ;
+	non_consensus_search_discount=1 ;
 	
     STRAND = -1 ;
 };
@@ -1039,6 +1040,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-S") == 0) {
 			not_defined = 0;
 			SPLICED_HITS = 1;
+		}
+
+		//non-consensus-search
+		if (strcmp(argv[i], "-non-consensus-search") == 0) {
+			not_defined = 0;
+			non_consensus_search = 1;
 		}
 
 		// extend the seed-length if too many seed-matches were found
