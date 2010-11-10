@@ -1487,171 +1487,171 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
   for (int ori = 0; ori < 2; ori++)
     for (size_t chrN = 0; chrN < regions[ori].size(); chrN++) 
       {
-    Chromosome const &chr = genome->chromosome(chrN);
-	std::vector<region_t *> current_regions;
-	current_regions.clear();
-	std::vector<int> current_positions;
-	current_positions.clear();
-	if (regions[ori][chrN].size() == 0)
-	  continue;
-	int start_region = -1;
-	for (size_t nregion = 0; nregion < regions[ori][chrN].size(); nregion++)
-	  if (!regions[ori][chrN][nregion]->erased) 
-	    {
-	      start_region = nregion;
-	      break;
-	    }
-	if (start_region == -1)
-	  continue;
-			
-	std::string str;
-	{
-	  int ret = get_string_from_region(chr, regions[ori][chrN][start_region], str);
-	  if (ret < 0)
-	    {
-		  result.delete_regions();
-	      delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-	      return ret;
-	    }
-	}
-
-	current_regions.push_back(regions[ori][chrN][start_region]);
-	std::string current_seq = str;
-
-	assert(regions[ori][chrN][start_region]->end >= regions[ori][chrN][start_region]->start) ;
-	for (int p = 0; p < regions[ori][chrN][start_region]->end - regions[ori][chrN][start_region]->start; p++) 
-	  {
-	    current_positions.push_back(regions[ori][chrN][start_region]->start + p);
-	  }
-
-	// initialize read_map
-	for (size_t i = 0; i < read.length(); i++)
-	  read_map[i] = regions[ori][chrN][start_region]->read_map[i];
-
-	for (size_t nregion = start_region + 1; nregion < regions[ori][chrN].size(); nregion++) 
-	  {
-	    if (regions[ori][chrN][nregion]->erased)
-	      continue;
-	    {
-	      int ret = get_string_from_region(chr, regions[ori][chrN][nregion], str);
-	      if (ret < 0)
-		{
-	    	  result.delete_regions();
-		  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-		  return ret;
-		}
-	    }
-
-	    if (regions[ori][chrN][nregion]->start - regions[ori][chrN][nregion - 1]->end > _config.SPLICED_LONGEST_INTRON_LENGTH) 
-	      {
-		// Regions are too far apart to contain parts of one spliced
-		// hit. Start a new sequence which will be treated in a
-		// separate alignment.
-
-		int num_read_map = 0;
-		for (size_t i = 0; i < read.length(); i++)
-		  if (read_map[i])
-		    num_read_map++;
-
-		if (verbosity >= 2)
-		  fprintf(stdout, "# region list covering %i bases\n",
-			  num_read_map);
-		if (num_read_map >= _config.SPLICED_HIT_MIN_LENGTH_COMB)// && current_regions.size()>=2)
-		  {
-
-		    //Recover long regions (starting points in sequences) for current regions to align
-		    std::vector<region_t*> corres_long_regions;
-		    corres_long_regions.clear();
-		    recover_long_regions(read, corres_long_regions, long_regions[ori][chrN], current_regions);
-		    assert(corres_long_regions.size()>0); // at least one long region as support of alignment
-		    assert(corres_long_regions[0]->read_map!=NULL);
-
-		    //Take the first long region  to start alignment
-		    int hit_read_position = get_first_read_map(read, corres_long_regions[0]->read_map);
-		    int hit_len= corres_long_regions[0]->end-corres_long_regions[0]->start;
-		    if(ori==1){
-		      hit_read_position = read.length()-hit_len-hit_read_position+1;
-		    }
-		    assert (hit_read_position>=0 && hit_len >0);
-		    // fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
-		    //    corres_long_regions[0]->start, hit_len);					  
-		    // fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-		    bool isunspliced ;
-		    {
-				int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
-													current_positions, chr, '+', ori, hit_read_position,
-													corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported);
-				if (ret < 0)
-				{
-					result.delete_regions();
-					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-					return ret;
-				}
-				isunspliced = ret;
-		    }
-		    
-		    //if (!isunspliced) 
-			{
-				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
-				//      corres_long_regions[0]->end, hit_len);					  
-				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-				int ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
-													current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
-													corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported);//end nucleotide in dna not included
-				if (ret < 0)
-				{
-					result.delete_regions();
-					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-					return ret;
-				}							
-		    }
+		  Chromosome const &chr = genome->chromosome(chrN);
+		  std::vector<region_t *> current_regions;
+		  current_regions.clear();
+		  std::vector<int> current_positions;
+		  current_positions.clear();
+		  if (regions[ori][chrN].size() == 0)
+			  continue;
+		  int start_region = -1;
+		  for (size_t nregion = 0; nregion < regions[ori][chrN].size(); nregion++)
+			  if (!regions[ori][chrN][nregion]->erased) 
+			  {
+				  start_region = nregion;
+				  break;
+			  }
+		  if (start_region == -1)
+			  continue;
 		  
-		  } else {
-		    if (verbosity >= 2)
-		      fprintf(stdout,	"# dropped region list covering only %i bases\n", num_read_map);
+		  std::string str;
+		  {
+			  int ret = get_string_from_region(chr, regions[ori][chrN][start_region], str);
+			  if (ret < 0)
+			  {
+				  result.delete_regions();
+				  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+				  return ret;
+			  }
 		  }
-		
-		current_seq = str;
-		current_regions.clear();
-		current_positions.clear();
-					
-
-		for (size_t i = 0; i < read.length(); i++)
-		  read_map[i] = regions[ori][chrN][nregion]->read_map[i];
-					
-	      } else {
-		// Regions are close enough that they may contain parts of one
-		// spliced hit. They need thus be part of the same alignment
-		// run. String this region onto the current sequence.
-					
-		current_seq.append(str);
-					
-		// merge read_maps
-		for (size_t i = 0; i < read.length(); i++)
-		  read_map[i] = read_map[i] || regions[ori][chrN][nregion]->read_map[i];
-	      }
-	    current_regions.push_back(regions[ori][chrN][nregion]);
-				
-	    for (int p = 0; p < regions[ori][chrN][nregion]->end - regions[ori][chrN][nregion]->start; p++) 
-	      {
-		current_positions.push_back(regions[ori][chrN][nregion]->start + p);
-	      }
-
-	    /*fprintf(stdout, "read_map: ") ;
-	      for (int i=0; i<_read.lenght(); i++)
-	      if (read_map[i])
-	      fprintf(stdout, "1") ;
-	      else
-	      fprintf(stdout, "0") ;
-	      fprintf(stdout, "\n") ;*/
-	  }
-	
-	int num_read_map = 0;
-	for (size_t i = 0; i < read.length(); i++)
-	  if (read_map[i])
-	    num_read_map++;
-			
-	if (verbosity >= 2)
+		  
+		  current_regions.push_back(regions[ori][chrN][start_region]);
+		  std::string current_seq = str;
+		  
+		  assert(regions[ori][chrN][start_region]->end >= regions[ori][chrN][start_region]->start) ;
+		  for (int p = 0; p < regions[ori][chrN][start_region]->end - regions[ori][chrN][start_region]->start; p++) 
+		  {
+			  current_positions.push_back(regions[ori][chrN][start_region]->start + p);
+		  }
+		  
+		  // initialize read_map
+		  for (size_t i = 0; i < read.length(); i++)
+			  read_map[i] = regions[ori][chrN][start_region]->read_map[i];
+		  
+		  for (size_t nregion = start_region + 1; nregion < regions[ori][chrN].size(); nregion++) 
+		  {
+			  if (regions[ori][chrN][nregion]->erased)
+				  continue;
+			  {
+				  int ret = get_string_from_region(chr, regions[ori][chrN][nregion], str);
+				  if (ret < 0)
+				  {
+					  result.delete_regions();
+					  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+					  return ret;
+				  }
+			  }
+			  
+			  if (regions[ori][chrN][nregion]->start - regions[ori][chrN][nregion - 1]->end > _config.SPLICED_LONGEST_INTRON_LENGTH) 
+			  {
+				  // Regions are too far apart to contain parts of one spliced
+				  // hit. Start a new sequence which will be treated in a
+				  // separate alignment.
+				  
+				  int num_read_map = 0;
+				  for (size_t i = 0; i < read.length(); i++)
+					  if (read_map[i])
+						  num_read_map++;
+				  
+				  if (verbosity >= 2)
+					  fprintf(stdout, "# region list covering %i bases\n",
+							  num_read_map);
+				  if (num_read_map >= _config.SPLICED_HIT_MIN_LENGTH_COMB)// && current_regions.size()>=2)
+				  {
+					  
+					  //Recover long regions (starting points in sequences) for current regions to align
+					  std::vector<region_t*> corres_long_regions;
+					  corres_long_regions.clear();
+					  recover_long_regions(read, corres_long_regions, long_regions[ori][chrN], current_regions);
+					  assert(corres_long_regions.size()>0); // at least one long region as support of alignment
+					  assert(corres_long_regions[0]->read_map!=NULL);
+					  
+					  //Take the first long region  to start alignment
+					  int hit_read_position = get_first_read_map(read, corres_long_regions[0]->read_map);
+					  int hit_len= corres_long_regions[0]->end-corres_long_regions[0]->start;
+					  if(ori==1){
+						  hit_read_position = read.length()-hit_len-hit_read_position+1;
+					  }
+					  assert (hit_read_position>=0 && hit_len >0);
+					  //fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
+					  //    corres_long_regions[0]->start, hit_len);					  
+					  //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+					  bool isunspliced ;
+					  {
+						  int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
+															  current_positions, chr, '+', ori, hit_read_position,
+															  corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported);
+						  if (ret < 0)
+						  {
+							  result.delete_regions();
+							  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+							  return ret;
+						  }
+						  isunspliced = ret;
+					  }
+					  
+					  //if (!isunspliced) 
+					  {
+						  //fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
+						  //      corres_long_regions[0]->end, hit_len);					  
+						  //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+						  int ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
+															  current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
+															  corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported);//end nucleotide in dna not included
+						  if (ret < 0)
+						  {
+							  result.delete_regions();
+							  delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+							  return ret;
+						  }							
+					  }
+					  
+				  } else {
+					  if (verbosity >= 2)
+						  fprintf(stdout,	"# dropped region list covering only %i bases\n", num_read_map);
+				  }
+				  
+				  current_seq = str;
+				  current_regions.clear();
+				  current_positions.clear();
+				  
+				  
+				  for (size_t i = 0; i < read.length(); i++)
+					  read_map[i] = regions[ori][chrN][nregion]->read_map[i];
+				  
+			  } else {
+				  // Regions are close enough that they may contain parts of one
+				  // spliced hit. They need thus be part of the same alignment
+				  // run. String this region onto the current sequence.
+				  
+				  current_seq.append(str);
+				  
+				  // merge read_maps
+				  for (size_t i = 0; i < read.length(); i++)
+					  read_map[i] = read_map[i] || regions[ori][chrN][nregion]->read_map[i];
+			  }
+			  current_regions.push_back(regions[ori][chrN][nregion]);
+			  
+			  for (int p = 0; p < regions[ori][chrN][nregion]->end - regions[ori][chrN][nregion]->start; p++) 
+			  {
+				  current_positions.push_back(regions[ori][chrN][nregion]->start + p);
+			  }
+			  
+			  /*fprintf(stdout, "read_map: ") ;
+				for (int i=0; i<_read.lenght(); i++)
+				if (read_map[i])
+				fprintf(stdout, "1") ;
+				else
+				fprintf(stdout, "0") ;
+				fprintf(stdout, "\n") ;*/
+		  }
+		  
+		  int num_read_map = 0;
+		  for (size_t i = 0; i < read.length(); i++)
+			  if (read_map[i])
+				  num_read_map++;
+		  
+		  if (verbosity >= 2)
 	  fprintf(stdout, "# region list covering %i bases\n", num_read_map);
 	if (num_read_map >= _config.SPLICED_HIT_MIN_LENGTH_COMB)// && current_regions.size()>=2)
 	  {
