@@ -970,6 +970,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 
   clock_t start_time = clock();
   
+
   // clean up data generated for the previous read
 
   result.cleanup();
@@ -1004,6 +1005,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 	    fprintf(stdout, "# ignoring long hits from now on\n");
 	}
 	
+
 	if (!consider_as_long_hit) {
 	  // first check whether it is close enough to a long enough hit
 	  bool found = false;
@@ -1041,7 +1043,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 // 	    fprintf(stdout,"\n");
 // 	    fprintf(stdout,"%s\n",READ);
 // 	  }
-	}
+ 	}
 	//if (regions[ori_map(hit->orientation)][hit->chromosome].empty() && consider_as_long_hit)
 	{
 	  // Create first region for this hit
@@ -1145,7 +1147,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 		    end=chromosome.length();
 		  int midpoint = (end+start)/2 ;
 		  
+
 		  if (_config.QPALMA_USE_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
+
 		    {
 		      std::vector<int> positions;
 		      int num_acc, num_don ;
@@ -1569,9 +1573,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 		      hit_read_position = read.length()-hit_len-hit_read_position+1;
 		    }
 		    assert (hit_read_position>=0 && hit_len >0);
-		    //fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
+		    // fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
 		    //    corres_long_regions[0]->start, hit_len);					  
-		    //fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+		    // fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 		    bool isunspliced ;
 		    {
 				int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
@@ -1685,9 +1689,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 	    }
 	    //if (!isunspliced) 
 		{
-			//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
+			// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),
 			//      corres_long_regions[0]->end, hit_len);					  
-			//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+			// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 			int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
 												read_quality[1 - ori], current_seq,
 												current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
@@ -1757,6 +1761,7 @@ int QPalma::perform_alignment_starter(Result &result,
 		ALIGNMENT* non_consensus_alignment = NULL ;
 		ALIGNMENT* consensus_alignment = NULL ;
 		
+		fprintf(stdout,"Lauching alignments...\n");
 		if (non_consensus_search)
 		{
 			data = new struct perform_alignment_t ;
@@ -1778,13 +1783,14 @@ int QPalma::perform_alignment_starter(Result &result,
 			data->qpalma = this ;
 			data->joined=false ;
 			data->aln=NULL ;
-
 			data->non_consensus_search=true ;
 			perform_alignment_wrapper(data);
 			non_consensus_alignment=data->aln ;
-			data->aln=NULL ;
+			data->aln=NULL;
+
 			delete data ;
 		}
+
 		{
 			data = new struct perform_alignment_t ;
 			
@@ -1805,7 +1811,6 @@ int QPalma::perform_alignment_starter(Result &result,
 			data->qpalma = this ;
 			data->joined=false ;
 			data->aln=NULL ;
-			
 			data->non_consensus_search=false ;
 			perform_alignment_wrapper(data);
 			consensus_alignment=data->aln ;
@@ -1813,6 +1818,7 @@ int QPalma::perform_alignment_starter(Result &result,
 			data->joined = true;
 			delete data ;
 		}
+
 		
 		if (non_consensus_alignment && consensus_alignment)
 		{
@@ -1848,7 +1854,7 @@ int QPalma::perform_alignment_starter(Result &result,
 				readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
 			}
 		}
-		
+		fprintf(stdout,"Lauching alignments...END\n");
 		return 0 ; // in the meaning of perform_alignment this corresponds to a spliced alignment
 	}
 	catch (std::bad_alloc&)
@@ -2054,6 +2060,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	assert(cum_length[num_intervals]==dna.length());
 
+
 	if (!_config.NO_SPLICE_PREDICTIONS)
 	{
 	  /* query acceptor and donor scores */
@@ -2062,6 +2069,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	  const int num_scores = 1;
 	  const char *score_names[num_scores] = { "Conf_cum" };
 	  
+
 	    // acc
 	    sprintf(basename, _config.ACC_FILES.c_str(), contig_idx.nr()+1, strand) ;
 	    
@@ -2108,14 +2116,14 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	    if (don_size < 0) {
 	      /* cleanup */
 	      delete[] acceptor;
-	    delete[] donor;
-	    delete[] est;
-	    delete[] prb;
-	    delete[] acc_pos;
-	    delete[] acc_index;
-	    delete[] acc_score;
-	    return -1;
-	  }
+	      delete[] donor;
+	      delete[] est;
+	      delete[] prb;
+	      delete[] acc_pos;
+	      delete[] acc_index;
+	      delete[] acc_score;
+	      return -1;
+	    }
 	  
 	  int* don_pos = NULL ;
 	  int* don_index = NULL ;
@@ -2213,8 +2221,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	      }
 
 	      //fprintf(stdout,"(%i %i %i %i) ",acc_pos[i],current_regions[j]->start,current_regions[j]->end,j);
-	      if (acc_pos[i]>=current_regions[j]->start && acc_pos[i]<current_regions[j]->end)
+	      if (acc_pos[i]>=current_regions[j]->start && acc_pos[i]<current_regions[j]->end){
 		acceptor[a_len-1-(acc_pos[i] - current_regions[j]->start + cum_length[j]) ] = acc_score[i] ;
+	      }
 	    }
 	  //	  fprintf(stdout,"\n");
 	    j=0;
@@ -2283,8 +2292,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			}
 	    if (non_consensus_search && !is_ss) 
 		{
-			if (dna[i]!='N' && dna[i-1]!='N')
-				donor[i] = NON_CONSENSUS_SCORE ;
+
+		if (dna[i]!='N' && dna[i+1]!='N')
+			donor[i] = NON_CONSENSUS_SCORE ;
 			match += 1 ;//(donor[i] > -ALMOST_INFINITY);
 		} 
 		else
@@ -2297,7 +2307,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			} 
 			else 
 			{
-				match += (donor[i] <= -ALMOST_INFINITY)  || dna[i]=='N' || dna[i-1]=='N' ;
+				match += (donor[i] <= -ALMOST_INFINITY)  || dna[i]=='N' || dna[i+1]=='N' ;
 				donor[i] = -ALMOST_INFINITY;
 			}
 	}
@@ -2309,6 +2319,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				current_regions[0]->start, current_regions[current_regions.size() - 1]->end);
 	//assert(match>=num*0.9) ; // otherwise positions will are shifted somehow
 	
+
 	  match = 0; num = 0;
 	  for (int i = 2; i < a_len - 2; i++, num++)
 	  {
@@ -2335,16 +2346,18 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			  } 
 			  else 
 			  {
-				  if (acceptor[i]>-ALMOST_INFINITY && dna[i]!='N' && dna[i-1]!='N')
-					  fprintf(stdout, "acc over %i %f  %c%c\n", i, acceptor[i], dna[i-1], dna[i]) ;
-				  match += (acceptor[i] <= -ALMOST_INFINITY) || dna[i]=='N' || dna[i-1]=='N' ;
+			    if (acceptor[i]>-ALMOST_INFINITY && dna[i]!='N' && dna[i-1]!='N')
+			       fprintf(stdout, "acc over %i %f  %c%c\n", i, acceptor[i], dna[i-1], dna[i]) ;
+	      match += (acceptor[i] <= -ALMOST_INFINITY) || dna[i]=='N' || dna[i-1]=='N' ;
 				  acceptor[i] = -ALMOST_INFINITY;
 			  }
 	  }
 
 	  if (match<num*0.9)
+
 		  fprintf(stderr, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i, %i)\n", 
 				  match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end, non_consensus_search) ;
+
 
 	  /* apply donor and acceptor plifs */
 	  for (int i = 0; i < d_len; i++)
@@ -2730,11 +2743,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 		strcpy(aln->read_id, read.id());
 		
-		if (verbosity >= 2) 
+		if (verbosity >= 2)
 		{
 			fprintf(stdout,
-					"# alignment with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i): %s\n",
-					(int) exons.size() / 2, read.id(), alignscore,
+					"# alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i): %s\n",
+				non_consensus_search,(int) exons.size() / 2, read.id(), alignscore,
 					alignment_matches, alignment_gaps, read_anno.c_str());
 			for (size_t i = 0; i < exons.size(); i += 2)
 				fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, exons[i], exons[i+ 1]);
