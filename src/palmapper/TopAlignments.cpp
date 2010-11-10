@@ -287,6 +287,27 @@ int32_t TopAlignments::compare_score(alignment_t *a1, alignment_t *a2) {
 		return 0;
 }
 
+
+int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2) 
+{
+	if (a1->num_matches!=a2->num_matches)
+		return 0 ;
+	if (a1->strand==a2->strand && a1->orientation==a2->orientation)
+		return 0 ;
+	if (a1->chromosome!=a2->chromosome)
+		return 0 ;
+	if (a1->exons!=a2->exons)
+		return 0 ;
+
+	if (a1->non_consensus && !a2->non_consensus)
+		return 1 ;
+	if (!a1->non_consensus && a2->non_consensus)
+		return -1 ;
+	if (a1->strand=='+') // ???
+		return -1 ;
+	
+	return 1 ;
+}
 bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2) 
 {
 	if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-6)
@@ -309,8 +330,7 @@ bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2)
 		return false ;
 	}
 
-	return true ;
-	
+	return true ;	
 }
 
 void TopAlignments::clean_top_alignment_record() 
@@ -452,15 +472,33 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	
 	for (uint8_t i = 0; i < top_alignments.size(); i++, it++)
 	{
+		int is_opposite=alignment_is_opposite(alignment,top_alignments[i])  ;
+		if (is_opposite!=0) 
+		{
+			if (is_opposite==-1)
+			{
+				delete top_alignments[i] ;
+				top_alignments[i]=NULL ;
+				top_alignments.erase(top_alignments.begin()+i) ;
+				break ;
+			}
+			if (is_opposite==1)
+			{
+				delete alignment;
+				return NULL ;
+			}
+		}
+	}
+
+	for (uint8_t i = 0; i < top_alignments.size(); i++, it++)
+	{
 		if (alignment_is_equal(alignment,top_alignments[i])) // already present
 		{
-			//pthread_mutex_unlock( &top_mutex) ;
-			//fprintf(stderr, "stopped inserting %s\n", alignment->read_id);
 			if (alignment!=top_alignments[i])
 				delete alignment ;
 			return NULL ;
 		}
-		
+
 		if (verbosity >= 2)
 			printf("[add_alignment_record] looking at next alignment %d\n", i);
 
@@ -1409,7 +1447,18 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         {
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
 			{
-				fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
+				if (!curr_align->non_consensus)
+					fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
+				else
+				{
+					if (_config.STRAND > -1) {
+						if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+							fprintf(MY_OUT_FP, "\tXS:A:+") ;
+						else
+							fprintf(MY_OUT_FP, "\tXS:A:-") ;
+					}
+					
+				}
 				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
 				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
 				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
@@ -1423,12 +1472,13 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			}
         }
         else if (_config.STRAND > -1) {
-	  if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS){
-	    if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-	      fprintf(MY_OUT_FP, "\tXS:A:+") ;
-	    else
-	      fprintf(MY_OUT_FP, "\tXS:A:-") ;
-	  }
+
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS){
+				if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+					fprintf(MY_OUT_FP, "\tXS:A:+") ;
+				else
+					fprintf(MY_OUT_FP, "\tXS:A:-") ;
+			}
         }
 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
