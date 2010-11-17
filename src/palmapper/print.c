@@ -129,9 +129,13 @@ void print_leftovers(Read const &read, const char * tag, std::ostream *LEFTOVER_
 			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.data(), read.quality(0));
 		else if (read.format() == 1)
 			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", read.id(), tag, read.data());
-		else
-			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", read.id(), tag, read.data(),
-					read.pe_flag(), read.quality(0), read.quality(1), read.quality(2));
+		else {
+			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d", read.id(), tag, read.data(), read.pe_flag());
+			if (strlen(read.quality(0)) > 0) fprintf(LEFTOVER_FP, "\t%s", read.quality(0));
+			if (strlen(read.quality(1)) > 0) fprintf(LEFTOVER_FP, "\t%s", read.quality(1));
+			if (strlen(read.quality(2)) > 0) fprintf(LEFTOVER_FP, "\t%s", read.quality(2));
+			fprintf(LEFTOVER_FP, "\n");
+		}
 	}
 	else
 	{
@@ -139,9 +143,13 @@ void print_leftovers(Read const &read, const char * tag, std::ostream *LEFTOVER_
 			fprintf(LEFTOVER_FP, "@%s%s\n%s\n+\n%s\n", read.id(), tag, read.get_orig()->data(), read.get_orig()->quality(0));
 		else if (read.format() == 1)
 			fprintf(LEFTOVER_FP, ">%s%s\n%s\n", read.id(), tag, read.get_orig()->data());
-		else
-			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d\t%s\t%s\t%s\n", read.id(), tag, read.get_orig()->data(),
-					read.pe_flag(), read.get_orig()->quality(0), read.get_orig()->quality(1), read.get_orig()->quality(2));
+		else {
+			fprintf(LEFTOVER_FP, "%s%s\t%s\t%d", read.id(), tag, read.get_orig()->data(), read.pe_flag());
+			if (strlen(read.get_orig()->quality(0)) > 0) fprintf(LEFTOVER_FP, "\t%s", read.get_orig()->quality(0));
+			if (strlen(read.get_orig()->quality(1)) > 0) fprintf(LEFTOVER_FP, "\t%s", read.get_orig()->quality(1));
+			if (strlen(read.get_orig()->quality(2)) > 0) fprintf(LEFTOVER_FP, "\t%s", read.get_orig()->quality(2));
+			fprintf(LEFTOVER_FP, "\n");
+		}
 	}
 }
 

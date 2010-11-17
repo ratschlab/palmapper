@@ -83,6 +83,8 @@ QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
 QPalma::Result::Result(Read const &read, QPalma const &qpalma)
 	:	_qpalma(qpalma), _read(read)
 {
+	if (&qpalma == NULL)
+		return;
 	qpalma_filter_reason = -1 ;
 	for (int ori=0; ori<2; ori++)
 		for (uint32_t i = 0; i < qpalma.genome->nrChromosomes(); i++)

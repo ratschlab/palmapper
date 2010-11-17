@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-//#define MAX_READ_LENGTH 1000
-//#define MAX_READ_ID_LENGTH 100
 #define MAX_INDEX_DEPTH 15
 #define VERSION "0.4"
 
@@ -38,6 +36,11 @@ enum OutputFilterEnum
 	OUTPUT_FILTER_RANDOM=3
 }  ;
 
+enum Personality {
+	Palmapper,
+	GenomeMapper,
+};
+
 const int DEFAULT_SETTING=123456789 ;
 
 class Genome;
@@ -66,14 +69,19 @@ public:
 	static int const MAX_READ_ID_LENGTH = 1000;
 	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
 
+	Personality _personality;
 	unsigned int NUM_THREADS;
 	OutputFilterEnum OUTPUT_FILTER ;
 	unsigned int OUTPUT_FILTER_NUM_TOP ;
 	int OUTPUT_FILTER_NUM_LIMIT ;
 	
 	char ALL_HIT_STRATEGY;
+	char BEST_HIT_STRATEGY;
 	char SUMMARY_HIT_STRATEGY;
 
+	char BSSEQ;
+
+	unsigned int FIXTRIM_STRATEGY_LEN;
 	unsigned int RTRIM_STRATEGY;
 	unsigned int RTRIM_STRATEGY_MIN_LEN;
 	unsigned int RTRIM_STRATEGY_STEP;
@@ -96,6 +104,9 @@ public:
 	unsigned int INDEX_DEPTH;
 	unsigned int INDEX_DEPTH_EXTRA;
 	std::string READ_ID_PREFIX ;
+	unsigned int FIRST_READ_NR;
+	unsigned int LAST_READ_NR;
+
 
 	unsigned int INDEX_DEPTH_EXTRA_THRESHOLD;
 	unsigned int SEED_HIT_CANCEL_THRESHOLD;
@@ -110,6 +121,8 @@ public:
 	std::string GENOME_FILE_NAME;
 	std::string LEFTOVER_FILE_NAME;
 	std::string TRIGGERED_LOG_FILE;  // #A#
+	std::string READ1_FILE_NAME;
+	std::string READ2_FILE_NAME;
 	OutputFormatEnum OUTPUT_FORMAT;
 	unsigned int OUTPUT_FORMAT_FLAGS;
 
@@ -184,6 +197,7 @@ public:
 
 	static void VersionHeader() ;
 	static int usage();
+	static Personality getPersonality();
 private:
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;

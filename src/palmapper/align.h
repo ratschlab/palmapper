@@ -8,6 +8,8 @@
 #define LEFT 'L'
 #define UP 'U'
 
+extern Config _config;
+
 extern double WORST_SCORE;
 extern double WORST_MM_SCORE;
 
@@ -16,4 +18,4 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 
 
 //align.c
-int check_mm(Read const &read, Chromosome const &chr, int genome_pos, int readpos, int ori);
+int check_mm(Read const &read, Chromosome const &chr, int genome_pos, int readpos, int ori, char conversion);

@@ -169,6 +169,12 @@ int Read::read_short_read()
 
 		READ_LENGTH = strlen(READ);
 
+		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
+			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
+			READ_QUALITY[0][_config.FIXTRIM_STRATEGY_LEN] = '\0';
+			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
+		}
+
 		// O T H E R
 		READ_PE_FLAG = 0;
 		READ_FORMAT = 0;
@@ -215,6 +221,11 @@ int Read::read_short_read()
 		}
 
 		READ_LENGTH = strlen(READ);
+
+		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
+			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
+			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
+		}
 
 		READ_PE_FLAG = 0;
 		strcpy(READ_QUALITY[0], READ) ;
@@ -266,46 +277,28 @@ int Read::read_short_read()
 		}
 		READ_PE_FLAG = atoi(tmp);
 
-		char const *rq0 = strtok('\0', "\t");
-		if (READ_QUALITY[0] == NULL) {
-			fprintf(stderr, "ERROR: Read Quality 1 is empty, line %lu!\n", _queryFile.line_nr());
-			exit(0);
+		// optional read qualities:
+		for (int i = 0; i < _maxNrQualities; ++i) {
+			char const *qual = strtok('\0', "\t\n");
+			if (qual == NULL)
+				break;
+			//TODO Jörg removed the length test: intentionally?
+			if (::strlen(qual) !=  READ_LENGTH)
+				fprintf(stderr, "WARNING: quality length != read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", READ_ID, _queryFile.line_nr());
+			::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
 		}
-		strcpy(READ_QUALITY[0], rq0);
 
-		//fprintf(stderr, "hack!!!\n") ;
-		//for (int i=0; i<strlen(READ_QUALITY[0]); i++)
-		//	READ_QUALITY[0][i]='h' ;
-
-		/*if (strlen(READ_QUALITY[0]) != READ_LENGTH) {
-			fprintf(stderr, "ERROR: Read quality 1 hasn't length of read, line %lu!\n", linenr);
-			exit(0);
-		}*/
-
-		char const *rq1 = strtok(NULL, "\t");
-		if (rq1 == NULL) {
-			fprintf(stderr, "ERROR: Read Quality 2 is empty, line %lu!\n", _queryFile.line_nr());
-			exit(0);
+		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
+			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
+			READ_QUALITY[0][_config.FIXTRIM_STRATEGY_LEN] = '\0';
+			READ_QUALITY[1][_config.FIXTRIM_STRATEGY_LEN] = '\0';
+			READ_QUALITY[2][_config.FIXTRIM_STRATEGY_LEN] = '\0';
+			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
 		}
-		strcpy(READ_QUALITY[1], rq1);
-		/*if (strlen(READ_QUALITY[1]) != READ_LENGTH) {
-			fprintf(stderr, "ERROR: Read quality 2 hasn't length of read, line %lu!\n", linenr);
-			exit(0);
-		}*/
-
-		char const *rq2 = strtok(NULL, "\n");
-		if (READ_QUALITY[2] == NULL) {
-			fprintf(stderr, "ERROR: Read Quality 3 is empty, line %lu!\n", _queryFile.line_nr());
-			exit(0);
-		}
-		strcpy(READ_QUALITY[2], rq2);
-		/*if (strlen(READ_QUALITY[2]) != READ_LENGTH) {
-			fprintf(stderr, "ERROR: Read quality 3 hasn't length of read, line %lu!\n", linenr);
-			exit(0);
-		}*/
 
 		READ_FORMAT = 2;
 	}
+
 	return 0;
 }
 

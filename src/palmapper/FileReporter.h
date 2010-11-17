@@ -18,7 +18,7 @@ public:
 		if (_out != stdout)
 			fprintf(_out, "\n") ;
 		//fprintf(_out, "#done\n") ;
-		if (_sp_out !=stdout && _sp_out!=_out)
+		if (_sp_out != NULL && _sp_out != stdout && _sp_out!=_out)
 			fprintf(_sp_out, "\n") ;
 		//fprintf(_sp_out, "#done\n") ;
 	}

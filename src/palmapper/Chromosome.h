@@ -113,4 +113,8 @@ template <int bits> void ChromosomeBase<bits>::data(char *ascii, uint32_t len) {
 	}
 }
 
+#ifndef GM
 typedef ChromosomeBase<2> Chromosome;
+#else
+typedef ChromosomeBase<4> Chromosome;
+#endif

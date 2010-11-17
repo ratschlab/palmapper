@@ -13,7 +13,7 @@
 #define CONTAINER_SIZE 100000
 #define SCORE_INTERVAL 1
 
-extern Config _config ;
+extern Config _config;
 
 extern char *get_seq(Read const &read, unsigned int n);
 
@@ -28,11 +28,12 @@ struct HIT {
 	unsigned int end;
 	Chromosome const *chromosome;
 	char orientation;
-	unsigned char mismatches;	// including gaps!
+	unsigned char mismatches;
 	unsigned char gaps;
 	signed char start_offset;
 	signed char end_offset;
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
+	char conversion;	// only for BSSEQ mode
 	char aligned;
 	HIT *same_eo_succ;	// the list of HITS_BY_SCORE - only forward pointer for now
 	HIT *next;
@@ -160,16 +161,19 @@ typedef struct hits_by_score_structure {
 	int num;
 } HITS_BY_SCORE_STRUCT;
 
-class QPalma ;
+
 class Genome ;
-class GenomeMaps ;
 class TopAlignments ;
+class QPalma ;
+class GenomeMaps ;
 
 
 class Hits {
 	friend class Mapper;
 public:
+
 	Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &hits, Read const &read);
+
 	~Hits();
 	Read const &getRead() const {
 		return _read;
@@ -179,7 +183,7 @@ public:
 	int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches) ;
 	int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches) ;
 	int size_hit(HIT *hit, unsigned int oldlength);
-	int seed2genome(unsigned int num, unsigned int readpos) ;
+	int seed2genome(unsigned int num, unsigned int readpos, char conversion);
 	void printgenome() ;
 //	int alloc_genome_memory() ;
 	int duplicate(HIT* hit) ;
@@ -193,10 +197,10 @@ public:
 	int init_from_meta_index() ;
 	int init_hit_lists()  ;
 
-	int analyze_hits(QPalma const * qpalma);
 	int report_read_alignment(HIT* hit, int nbest)  ;
 
 	HIT **HIT_LISTS_OPERATOR;
+	int analyze_hits(QPalma const * qpalma);
 	unsigned int HITS_IN_SCORE_LIST;
 	void dealloc_mapping_entries() {_mappings.clear();}
 	void dealloc_hits() {_hits.clear();}
@@ -204,6 +208,7 @@ public:
 	TopAlignments &topAlignments() {
 		return _topAlignments;
 	}
+	int map_reads(Genome &genome, TopAlignments* topalignments) ;
 
 	int get_num_edit_ops() const {
 		return _numEditOps;
@@ -216,7 +221,7 @@ public:
 
 	inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_)
 	{
-		assert(num_edit_ops<Config::MAX_EDIT_OPS) ;
+		assert(num_edit_ops<=Config::MAX_EDIT_OPS) ;
 
 		//if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_)
 		//	NUM_EDIT_OPS_ = num_edit_ops ;
@@ -256,6 +261,8 @@ public:
 			NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ;
 
 		//fprintf(stdout, "update_num_edit_ops(num_edit_ops=%i, all_hit_strategy=%i, NUM_EDIT_OPS_=%i)\n", num_edit_ops, (int)all_hit_strategy, NUM_EDIT_OPS_) ;
+
+	//void make_slots(Read read, std::string slotseq, int conversion);
 		
 	}
 
@@ -273,7 +280,11 @@ private:
 	int alloc_hit_lists_operator() ;
 	char* get_seq(unsigned int n);
 	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand);
-	unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos);
+	unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos, char conversion);
+	int features_conversion(HIT* hit) ;
+	int map_fast_bsseq(Read& read, int run, int nr_runs, char conversion);
+	void generate_all_possible_seeds(Read & read, int num, int seedpos, unsigned int iter, int fwd_slot, int rev_slot, char conversion);
+
 	Genome const &_genome;
 	GenomeMaps &_genomeMaps;
 	HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
@@ -293,4 +304,8 @@ private:
 
 	char HAS_SLOT;
 	unsigned int SLOTS[2];
+	std::vector<unsigned int> SLOTS_CV1_FWD;
+	std::vector<unsigned int> SLOTS_CV1_REV;
+	std::vector<unsigned int> SLOTS_CV2_FWD;
+	std::vector<unsigned int> SLOTS_CV2_REV;
 };
