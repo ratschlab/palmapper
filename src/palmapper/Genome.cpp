@@ -82,7 +82,7 @@ int Genome::alloc_index_memory()
 		INDEX_SIZE = _config.INDEX_SIZE_12 ;
 	
 	if (_config.VERBOSE>0)
-		fprintf(stdout, "_config.INDEX_DEPTH=%i, INDEX_SIZE=%ld, sizeof(INDEX_ENTRY)=%ld, index size=%ld\n",  (int)_config.INDEX_DEPTH, (long int)INDEX_SIZE, sizeof(INDEX_ENTRY), sizeof(INDEX_ENTRY)*INDEX_SIZE) ;
+		fprintf(stdout, "_config.INDEX_DEPTH=%i, INDEX_SIZE=%ld, sizeof(INDEX_ENTRY)=%ld, index size=%ld\n",  (int)_config.INDEX_DEPTH, (long int)INDEX_SIZE, (long int)sizeof(INDEX_ENTRY), (long int)sizeof(INDEX_ENTRY)*INDEX_SIZE) ;
 
 	if ( (INDEX = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY)) ) == NULL) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (2)\n");
@@ -302,7 +302,7 @@ int Genome::read_meta_index_header(FILE *META_INDEX_FP)
         }
 
 	// print block table (debugging)
-	/*printf("-------------------------------------------\n");
+/*	printf("-------------------------------------------\n");
 	int i;
 	for (i=0; i!=blocks; ++i) {
 		printf("| block %5d | pos %9d | chr %5d |\n", i, BLOCK_TABLE[i].pos, BLOCK_TABLE[i].chr+1);
@@ -430,7 +430,6 @@ void Genome::mmap_indices()
 		}
         fprintf(stdout, "\n") ;
     }
-
 	return;
 }
 

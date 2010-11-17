@@ -41,6 +41,12 @@ public:
 		return READ_PE_FLAG;
 	}
 
+	int pe_type() const {
+		if (READ_PE_FLAG < 3) return READ_PE_FLAG;
+		else if ((READ_PE_FLAG - 3) % 6 < 3) return 1;
+		else return 2;
+	}
+
 	char format() const {
 		return READ_FORMAT;
 	}
@@ -254,7 +260,8 @@ private:
 
 	unsigned int READ_LENGTH;
 
-	char READ_QUALITY[3][Config::MAX_READ_LENGTH + 1];
+	static int const _maxNrQualities = 3;
+	char READ_QUALITY[_maxNrQualities][Config::MAX_READ_LENGTH + 1];
 	char READ[Config::MAX_READ_LENGTH + 1];
 	char READ_FORMAT;	// 0: fq, 1: fa, 2: flat
 	char READ_ID[Config::MAX_READ_ID_LENGTH];

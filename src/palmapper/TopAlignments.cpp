@@ -14,9 +14,11 @@
 #include <palmapper/TopAlignments.h>
 #include <palmapper/Util.h>
 
-TopAlignments::TopAlignments(GenomeMaps* genomemaps_) 
-	: top_alignments(), num_spliced_alignments(0),
-	  num_unspliced_alignments(0), verbosity(0)
+TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
+	top_alignments(),
+	num_spliced_alignments(0),
+	num_unspliced_alignments(0),
+	verbosity(0)
 {
 	//int ret = pthread_mutex_init(&top_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
 	//assert(ret==0) ;
@@ -35,15 +37,13 @@ TopAlignments::TopAlignments(GenomeMaps* genomemaps_)
 u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma const *qpalma)
 {
 	alignment_t *algn_hit = gen_alignment_from_hit(read, hit, qpalma) ;
+	algn_hit->from_gm = 2;
 	algn_hit->hit = hit ;
 	algn_hit->num = num ;
-	algn_hit->from_gm = 2;
 	
 	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
 	add_alignment_record(algn_hit, 1) ;
 	return 1 ;
-	
-	//unsigned int printed = print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
 }
 
 
@@ -61,6 +61,8 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	int num_mismatches = 0 ;
 	int num_matches = read.length() ;
 
+	char readbase;
+
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart;
 	
@@ -72,25 +74,51 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	}
 
 
+	// #########################################
+	// ###### PERFECT ALIGNMENTS: #############
+
 	if (hit->mismatches == 0) {
 
-		if (hit->orientation == '+')
-			strcpy(ALIGNSEQ, read.data());
-		else
-		{
-			for (size_t i=0; i<read.length(); i++)
-				ALIGNSEQ[i] = hit->chromosome->operator [](readstart+i) ;
-			//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + readstart, ((int)_read.lenght()));
+		if (_config.BSSEQ) {
+			count_char = 0;
+
+			for (size_t i=0; i < read.length(); i++) {
+				readbase = (hit->orientation == '+'? read.data()[i] : get_compl_base(read.data()[read.length()-i-1]));
+//printf("[%lu %c] ",readstart+i,hit->chromosome->operator [](readstart+i));
+				if ((*hit->chromosome)[readstart+i] != readbase) {
+					sprintf(ALIGNSEQ + count_char, "{%c%c}", (*hit->chromosome)[readstart+i], readbase);
+					count_char += 4;
+				}
+				else {
+					ALIGNSEQ[count_char] = (*hit->chromosome)[readstart+i];
+					count_char++;
+				}
+			}
+			ALIGNSEQ[count_char] = '\0';
 		}
-		ALIGNSEQ[((int)read.length())] = '\0';
+		else {
+			if (hit->orientation == '+')
+				strcpy(ALIGNSEQ, read.data());
+			else
+			{
+				for (size_t i=0; i < read.length(); i++)
+					ALIGNSEQ[i] = (*hit->chromosome)[readstart+i] ;
+				//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + readstart, ((int)_read.lenght()));
+			}
+			ALIGNSEQ[((int) read.length())] = '\0';
+		}
 		
 		return alignment_length ;
 		
 	}
+	// #########################################
+	// #########################################
 
-	//fprintf(stderr, "mismatches=%i\n", hit->mismatches) ;
-	
-	
+
+
+	// #########################################
+	// ###### ALIGNMENTS WITH MISMATCHES: ######
+
 	for (int i=0; i<hit->mismatches; i++)
 		assert(hit->edit_op[i].pos>=-((int) read.length()) && hit->edit_op[i].pos<=((int)read.length())) ;
 	
@@ -116,25 +144,61 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 		if (j == 0) 
 		{
 			if (hit->edit_op[0].pos - 1>=0)
-			{ // don't know what to do here ... hit->edit_op[0].pos - 1 can be negative
-				for (size_t i=0; (int)i<hit->edit_op[0].pos - 1; i++)
-					ALIGNSEQ[i] = (*hit->chromosome)[readstart+i] ;
-				//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + (readstart), hit->edit_op[0].pos - 1);
-				count_char += hit->edit_op[0].pos - 1;
+			{	// from start to first mismatch:
+				for (size_t i=0; (int)i<hit->edit_op[0].pos - 1; i++) {
+					if (_config.BSSEQ) {
+						readbase = (hit->orientation == '+'? read.data()[i] : get_compl_base(read.data()[read.length()-i-1]));
+						if ((*hit->chromosome)[readstart+i] != readbase) {
+							sprintf(ALIGNSEQ + count_char, "{%c%c}", (*hit->chromosome)[readstart+i], readbase);
+							count_char += 4;
+						}
+						else {
+							ALIGNSEQ[count_char] = readbase;
+							count_char++;
+						}
+					} else {
+						ALIGNSEQ[count_char] = (*hit->chromosome)[readstart+i] ;
+						count_char++;
+					}
+				}
+					//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + (readstart), hit->edit_op[0].pos - 1);
+				//count_char += hit->edit_op[0].pos - 1;
 			}
 		} 
 		else if (hit->edit_op[j].pos - hit->edit_op[j - 1].pos != 0) 
-		{
-			for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++)
-				ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
-			//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
-			//hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read); // -1???
-			count_char += hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read;
+		{	// from mismatch to mismatch
+			if (_config.BSSEQ) {
+				for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++) {
+					readbase = (hit->orientation == '+'?
+						read.data()[i + hit->edit_op[j-1].pos - gap_in_read] :
+						get_compl_base(read.data()[read.length() - hit->edit_op[j-1].pos - i - 1 + gap_in_read]));
+
+					if ((*hit->chromosome)[readstart+i+hit->edit_op[j-1].pos+gap_offset-gap_in_read] != readbase) {
+						sprintf(ALIGNSEQ + count_char,
+							"{%c%c}",
+							(*hit->chromosome)[readstart+i+hit->edit_op[j-1].pos+gap_offset-gap_in_read],
+							readbase);
+						count_char += 4;
+					}
+					else {
+						ALIGNSEQ[count_char] = readbase;
+						count_char++;
+					}
+				}
+			} else {
+				for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++) {
+					ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
+					count_char++;
+				}
+			}
+				//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
+				//hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read); // -1???
+			//count_char += hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read;
 		} // else: edit_op[j-1] must have been a gap!
 
 		gap_in_read = 0;
 
-		if (hit->edit_op[j].mm) 
+		if (hit->edit_op[j].mm)
 		{
 			num_matches-- ;
 			
@@ -150,25 +214,35 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				if ( (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset]!='N' && get_compl_base(read.data()[((int)read.length()) - hit->edit_op[j].pos])!='N' )
 					num_mismatches++ ;
 			}
-		} 
-		else if (gap_in_chr) 
+		}
+		else if (gap_in_chr)
 		{
 			num_gaps++ ;
 			num_matches-- ;
 			alignment_length-- ;
 			
-			if (hit->orientation == '+')
+			if (_config.BSSEQ && (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset] == (hit->orientation == '+'? read.data()[hit->edit_op[j].pos - 1] : get_compl_base(read.data()[read.length() - hit->edit_op[j].pos])))
 			{
-				sprintf(ALIGNSEQ + count_char, "[-%c]", read.data()[hit->edit_op[j].pos - 1]);
+				// convert [-C]{CT} to C[-T] and [-G]{GA} to G[-A]:
+				sprintf(ALIGNSEQ + count_char, "%c[-%c]", (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset], (hit->orientation == '+' ? read.data()[hit->edit_op[j].pos] : get_compl_base(read.data()[read.length() - hit->edit_op[j].pos - 1])));
+				count_char++;
+				hit->edit_op[j].pos++;
 			}
 			else
 			{
-				sprintf(ALIGNSEQ + count_char, "[-%c]", get_compl_base(read.data()[((int)read.length()) - hit->edit_op[j].pos]));
+				if (hit->orientation == '+')
+				{
+					sprintf(ALIGNSEQ + count_char, "[-%c]", read.data()[hit->edit_op[j].pos - 1]);
+				}
+				else
+				{
+					sprintf(ALIGNSEQ + count_char, "[-%c]", get_compl_base(read.data()[read.length() - hit->edit_op[j].pos]));
+				}
 			}
 			
 			gap_offset--;
 			gap_in_chr = 0;
-		} else 
+		} else
 		{
 			num_gaps++ ;
 			alignment_length++ ;
@@ -185,16 +259,41 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	// from last mismatch to end of read:
 
 	if (((int)read.length()) - hit->edit_op[j - 1].pos + gap_in_read >= 0)
-    { // again some strange case ... don't know what else to do
-		for (size_t i=0; (int)i<((int)read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++)
-			ALIGNSEQ[count_char+i] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
-		//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
-		//((int)_read.lenght())	- hit->edit_op[j - 1].pos + gap_in_read);
-		count_char += ((int)read.length()) - hit->edit_op[j - 1].pos + gap_in_read;
+	{
+		if (_config.BSSEQ) {
+			for (size_t i=0; (int)i < ((int) read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++) {
+				readbase = (hit->orientation == '+'?
+					read.data()[i + hit->edit_op[j-1].pos - gap_in_read] :
+					get_compl_base(read.data()[read.length() - hit->edit_op[j-1].pos - i - 1 + gap_in_read]));
+
+				if ((*hit->chromosome)[readstart+i+hit->edit_op[j-1].pos+gap_offset-gap_in_read] != readbase) {
+					sprintf(ALIGNSEQ + count_char,
+						"{%c%c}",
+						(*hit->chromosome)[readstart+i+hit->edit_op[j-1].pos+gap_offset-gap_in_read],
+						readbase);
+					count_char += 4;
+				}
+				else {
+					ALIGNSEQ[count_char] = readbase;
+					count_char++;
+				}
+			}
+		} else {
+			for (size_t i=0; (int)i < ((int) read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++) {
+				ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
+				count_char++;
+			}
+		}
+			//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
+			//((int)_read.lenght())	- hit->edit_op[j - 1].pos + gap_in_read);
+		//count_char += ((int)_read.length()) - hit->edit_op[j - 1].pos + gap_in_read;
     }
 	//fprintf(stderr, "count_char=%i num_mismatches=%i num_matches=%i\n", count_char, num_mismatches, num_matches) ;
 	
 	ALIGNSEQ[count_char] = '\0';
+	// #########################################
+	// #########################################
+
 	
 	if (num_gaps_p)
 		*num_gaps_p = num_gaps ;
@@ -232,23 +331,27 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	best->num_matches = num_matches ;
 	best->num_mismatches = num_mismatches ;
 	best->num_gaps = num_gaps ;
-	strcpy(best->read_anno, ALIGNSEQ) ;
-	best->exons.push_back(readstart) ;
-	best->exons.push_back(readend) ;
 	best->chromosome = best_hit->chromosome ;
 	best->orientation = best_hit->orientation ;
 	best->strand='+' ;
 	strcpy(best->read_id, read.id()) ;
-	best->min_exon_len = read.length() ;
-	best->max_intron_len = 0 ;
-	best->spliced = false ;
-	best->non_consensus = false ;
+	best->exons.push_back(readstart) ;
+	best->exons.push_back(readend) ;
+	strcpy(best->read_anno, ALIGNSEQ) ;
 
-	bool alignment_passed_filters= (num_mismatches <= _config.NUM_MISMATCHES && num_gaps <= _config.NUM_GAPS && num_mismatches+num_gaps <= _config.NUM_EDIT_OPS) ;
-	best->passed_filters=alignment_passed_filters ;
+	if (_config._personality == Palmapper) {
+		best->max_intron_len = 0 ;
+		best->spliced = false ;
+		best->non_consensus = false ;
 
-	if (qpalma)
-		best->qpalma_score = qpalma->score_unspliced(read, ALIGNSEQ) ;
+		bool alignment_passed_filters= (num_mismatches <= _config.NUM_MISMATCHES && num_gaps <= _config.NUM_GAPS && num_mismatches+num_gaps <= _config.NUM_EDIT_OPS) ;
+		best->passed_filters=alignment_passed_filters ;
+
+		if (qpalma)
+			best->qpalma_score = qpalma->score_unspliced(read, ALIGNSEQ) ;
+	} else {
+		best->qpalma_score = (best_hit->mismatches * _config.MM_SCORE) + (best_hit->gaps * _config.GAP_SCORE) + ((hitlength-best_hit->mismatches-best_hit->gaps) * _config.M_SCORE);
+	}
 	best->rtrim_cut=0 ;
 	best->polytrim_cut_start=0 ;
 	best->polytrim_cut_end=0 ;
@@ -268,6 +371,10 @@ int32_t TopAlignments::compare_score(alignment_t *a1, alignment_t *a2) {
 	assert(a2->qpalma_score!=1000) ;
 
 	if (fabs(a1->qpalma_score-a2->qpalma_score)<1e-6)
+
+//#else //TODO joerg is it really important to use integer abs here when using personality genomemapper?
+//	if (abs(a1->qpalma_score-a2->qpalma_score)<1e-6)
+//#endif
     {
 		// scores are numerically identical, use start position as sorting criterion
 		if (a1->exons[0] > a2->exons[0])
@@ -358,7 +465,6 @@ void TopAlignments::start_top_alignment_record()
 	clean_top_alignment_record() ;
 }
 
-
 void TopAlignments::check_alignment(struct alignment_t * alignment)
 {
 	if (alignment->exons.size()>4)
@@ -388,17 +494,18 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		top_alignments[i]->rtrim_cut=rtrim_cut ;
 		top_alignments[i]->polytrim_cut_start=polytrim_cut_start ;
 		top_alignments[i]->polytrim_cut_end=polytrim_cut_end ;
-		check_alignment(top_alignments[i]) ;
-    }
+		if (_config._personality == Palmapper)
+			check_alignment(top_alignments[i]) ;
+	}
 
-	if (_config.REPORT_SPLICED_READS)
+	if (_config._personality == Palmapper && _config.REPORT_SPLICED_READS)
     {
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 			if (top_alignments[i]->exons.size()>2)
 				genomemaps->report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
 												top_alignments[i]->num_matches, i) ;
     }
-	if (_config.REPORT_MAPPED_READS)
+	if (_config._personality == Palmapper && _config.REPORT_MAPPED_READS)
     {
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
@@ -420,10 +527,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 
 alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments)
 {
-
-
-
-	if (alignment == NULL || !alignment->spliced)
+	if (_config._personality != Palmapper || alignment == NULL || !alignment->spliced)
 		num_unspliced_alignments += num_alignments;
 	else
 		num_spliced_alignments += num_alignments;
@@ -432,13 +536,14 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 		return NULL;
 	assert(num_alignments>0);
 
-	if (!alignment->passed_filters)
-    {
-		delete alignment;
-		return NULL ;
-    }
-
-	check_alignment(alignment) ;
+	if (_config._personality == Palmapper) {
+		if (!alignment->passed_filters)
+		{
+			delete alignment;
+			return NULL ;
+		}
+		check_alignment(alignment) ;
+	}
 
 
 	if (verbosity >= 2)
@@ -446,7 +551,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 
 	//pthread_mutex_lock( &top_mutex) ;
 
-	//if ((int)read.length()>MAX_EXON_LEN)
+	//if (_config._personality == Palmapper && (int)read.length()>MAX_EXON_LEN)
 	//	MAX_EXON_LEN = read.length() ;
 
 	// seems duplicated (its already done in end_top_alignment_record)
@@ -586,6 +691,14 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	
 
 	std::vector<alignment_t *>::iterator it = top_alignments.begin();
+
+	if (verbosity >= 2)
+
+		printf(	"[add_alignment_record] About to go through list of top hits (%ld entries)\n",
+				(long int)top_alignments.size());
+
+	//fprintf(stderr, "trying to insert %s\n", alignment->read_id);
+	
 	for (uint8_t i = 0; i < top_alignments.size(); i++, it++)
     {
 		if (alignment_is_equal(alignment,top_alignments[i])) // already present
@@ -633,11 +746,10 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 
 int TopAlignments::print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
-	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_BEDX)
+	if (_config._personality == Palmapper && _config.OUTPUT_FORMAT==OUTPUT_FORMAT_BEDX)
     {
 		return print_top_alignment_records_bedx(read, OUT_FP, SP_OUT_FP) ;
     }
-
 	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || _config.OUTPUT_FORMAT==OUTPUT_FORMAT_BED)
     {
 		return print_top_alignment_records_shorebed(read, OUT_FP) ;
@@ -647,12 +759,12 @@ int TopAlignments::print_top_alignment_records(Read const &read, std::ostream *O
     {
 		return print_top_alignment_records_sam(read, OUT_FP) ;
     }
+
 	
-	fprintf(stderr, "ERROR: unknow output format\n") ;
+	fprintf(stderr, "ERROR: unknown output format\n") ;
 	exit(1) ;
 	return 0 ;
 }
-
 
 int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
@@ -880,6 +992,7 @@ int TopAlignments::print_top_alignment_records_shorebed(Read const &read, std::o
 	return printed ;
 }
 
+//TODO: merge jörg: check why those shore functions are renamed
 int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_FP, alignment_t* align, unsigned int num)
 {
 	HIT* hit=align->hit;
@@ -913,8 +1026,7 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 											+ (hit->mismatches - hit->gaps) * _config.MM_SCORE
 											- (((int)read.length()) - hit->mismatches) * _config.M_SCORE));
 	else
-		fprintf(OUT_FP, "\t%d", ((int)read.length()) - hit->mismatches);
-	// lt - changed this to report num matches instead of num mismatches
+		fprintf(OUT_FP, "\t%d", hit->mismatches);
 
 	fprintf(OUT_FP, "\t%d\t%d\t%d",
 			num, 			// Number of hits
@@ -941,7 +1053,6 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 		{
 			for (size_t i=0; i<(size_t)flen; i++)
 				FLANK_SEQ[i]= (*hit->chromosome)[fstart + i];
-			//strncpy(FLANK_SEQ, CHR_SEQ[hit->chromosome] + fstart, flen);
 		}
 		FLANK_SEQ[flen] = '\0';
 		fprintf(OUT_FP, "\t%d\t%s",
@@ -953,8 +1064,6 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 		fprintf(OUT_FP, "\t%d", hit->chromosome->length());
 	
 	}
-	//if (_config.PRINT_SEQ == 2)
-	//	fprintf(OUT_FP, "\t%s", CHR_SEQ[hit->chromosome]);
 
 	fprintf(OUT_FP, "\n");
 
@@ -1268,24 +1377,21 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			
 			pthread_mutex_lock( &_stats.alignment_num_mutex) ;
 			
-			if (curr_align->spliced)
-			{
-				assert(_config.SPLICED_HITS) ;
-				//MY_OUT_FP = SP_OUT_FP ;
-				_stats.alignment_num_spliced_best++ ;
+            if (_config._personality == Palmapper && curr_align->spliced)
+            {
+                assert(_config.SPLICED_HITS) ;
+                _stats.alignment_num_spliced_best++ ;
+            } else
+                _stats.alignment_num_unspliced_best++ ;
+			
+			if (_config._personality == Palmapper) {
+				for (int i=1; i<(int)top_alignments.size(); i++)
+					if (top_alignments[i]->spliced)
+						_stats.alignment_num_spliced_suboptimal+=1 ;
+					else
+						_stats.alignment_num_unspliced_suboptimal+= 1 ;
+				_stats.print_alignment_stats() ;
 			}
-			else
-				_stats.alignment_num_unspliced_best++ ;
-			
-			for (int i=1; i<(int)top_alignments.size(); i++)
-				if (top_alignments[i]->spliced)
-					_stats.alignment_num_spliced_suboptimal+=1 ;
-				else
-					_stats.alignment_num_unspliced_suboptimal+= 1 ;
-			
-			
-			_stats.print_alignment_stats() ;
-
 			pthread_mutex_unlock( &_stats.alignment_num_mutex ) ;
 		}
 
@@ -1566,16 +1672,15 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 						fprintf(MY_OUT_FP, "\t~~~~%s", curr_align->intron_consensus[qq].c_str()) ;
 				}
 			}
-		}
-		else if (_config.STRAND > -1) {
-
-			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS){
+        }
+        else if (_config.STRAND > -1) {
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS) {
 				if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
 					fprintf(MY_OUT_FP, "\tXS:A:+") ;
 				else
 					fprintf(MY_OUT_FP, "\tXS:A:-") ;
 			}
-		}
+        }
 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
 		{
@@ -1592,5 +1697,4 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 	return top_alignments.size() ;
 }
-
 

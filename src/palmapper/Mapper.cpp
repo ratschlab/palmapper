@@ -1,5 +1,6 @@
 #include <palmapper/Mapper.h>
 #include <palmapper/align.h>
+#include <palmapper/palmapper.h>
 #include <palmapper/print.h>
 
 void Mapper::map_reads_timing(int count_reads, float this_read)

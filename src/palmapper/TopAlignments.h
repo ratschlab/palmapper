@@ -1,9 +1,9 @@
 #pragma once
 
-#include <sstream>
-#include "palmapper.h"
-#include "GenomeMaps.h"
 #include <pthread.h>
+#include <sstream>
+#include <palmapper/Config.h>
+#include <palmapper/GenomeMaps.h>
 
 class Mapper ;
 class GenomeMaps ;
@@ -39,8 +39,8 @@ typedef struct alignment_t {
 
 } ALIGNMENT;
 
-class TopAlignments
-{
+class TopAlignments {
+
 public:
     TopAlignments(GenomeMaps* genomemaps_) ;
 	~TopAlignments()
@@ -52,6 +52,8 @@ public:
 	u_int8_t report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma const * qpalma)  ;
 	int construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
 	alignment_t *gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma const *qpalma) ;
+	int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
+	
 
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
@@ -64,6 +66,7 @@ public:
 	int print_top_alignment_records_shorebed(Read const &read, std::ostream *OUT_FP) ;
 	int print_alignment_shorebed(Read const &read, std::ostream *OUT_FP, alignment_t* align, unsigned int num)  ;
 	int print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP) ;
+	int print_top_alignment_records_bedx() ;
 
 	size_t size()
 	{

@@ -16,11 +16,20 @@ inline int max(int a, int b)
 		return b ;
 }
 
+// We need to access the name of the program before reaching main()
+extern char const *__progname;
+Personality Config::getPersonality() {
+	return ::strcmp("genomemapper", __progname) == 0 ? GenomeMapper : Palmapper;
+}
+
 Config::Config() {
+	_personality = getPersonality();
 	NUM_THREADS = 1;//::sysconf(_SC_NPROCESSORS_ONLN);
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
+
+	FIXTRIM_STRATEGY_LEN = 10000000;
 	RTRIM_STRATEGY=0 ;
 	RTRIM_STRATEGY_MIN_LEN = 25 ;
 	RTRIM_STRATEGY_STEP = DEFAULT_SETTING ;
@@ -44,6 +53,10 @@ Config::Config() {
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
 	OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	OUTPUT_FORMAT_FLAGS = OUTPUT_FORMAT_FLAGS_DEFAULT ;
+
+	FIRST_READ_NR = 0;
+	LAST_READ_NR = 10000000;
+
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
 	REPORT_REPETITIVE_SEEDS = 0 ;
@@ -98,11 +111,17 @@ Config::Config() {
 	STATISTICS = 0;
 	CHROM_CONTAINER_SIZE = 15000000 ;
 
+	BEST_HIT_STRATEGY = 0 ;
 	ALL_HIT_STRATEGY = 0 ;
 	SUMMARY_HIT_STRATEGY= 0 ;
 	HITLEN_LIMIT = 0 ;
 
+	BSSEQ = 0;
+
+	QUERY_FILE_NAME = std::string("");
 	LEFTOVER_FILE_NAME = std::string("/dev/null") ;
+	READ1_FILE_NAME = std::string("") ;
+	READ2_FILE_NAME = std::string("") ;
 
 	ACC_CONSENSUS.push_back(strdup("AG")) ;
 	ACC_CONSENSUS_REV.push_back(strdup("CT")) ;
@@ -134,111 +153,124 @@ int Config::applyDefaults(Genome * genome)
 		any_default=true ;
 	}
 
-	{
+	if (_personality == Palmapper)  {
 		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAME);
+		{
 
-		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
-			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
-			fprintf(stdout, "* Automatically determining alignment parameters based on read length (%int):", read_length) ;
-		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
-		{
-			SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
-			fprintf(stdout, " -K %i", SPLICED_HIT_MIN_LENGTH_SHORT) ;
-		}
-		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
-		{
-			SPLICED_HIT_MIN_LENGTH_LONG = (read_length/4<20) ? 20 : read_length/4 ;
-			fprintf(stdout, " -L %i", SPLICED_HIT_MIN_LENGTH_LONG) ;
-		}
-		if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING)
-		{
-			SPLICED_HIT_MIN_LENGTH_COMB = (read_length/2<30) ? 30 : read_length/2 ;
-			if (SPLICED_HIT_MIN_LENGTH_COMB<SPLICED_HIT_MIN_LENGTH_LONG)
-				SPLICED_HIT_MIN_LENGTH_COMB=SPLICED_HIT_MIN_LENGTH_LONG ;
-			fprintf(stdout, " -C %i", SPLICED_HIT_MIN_LENGTH_COMB) ;
-		}
-		if (SPLICED_HITS && SPLICED_MAX_INTRONS == DEFAULT_SETTING)
-		{
-			SPLICED_MAX_INTRONS = (read_length>50) ? (read_length>=100 ? 3 : 2) : 1 ;
-			if (read_length>200) SPLICED_MAX_INTRONS = 6 ;
-			fprintf(stdout, " -NI %i", SPLICED_MAX_INTRONS) ;
-		}
-		if (NUM_EDIT_OPS == DEFAULT_SETTING)
-		{
-			NUM_EDIT_OPS = read_length*0.08 ;
-			fprintf(stdout, " -E %i", NUM_EDIT_OPS) ;
-		}
-		if (NUM_MISMATCHES == DEFAULT_SETTING)
-		{
-			NUM_MISMATCHES = read_length*0.08 ;
-			fprintf(stdout, " -M %i", NUM_MISMATCHES) ;
-		}
-		if (NUM_GAPS == DEFAULT_SETTING)
-		{
-			NUM_GAPS = read_length*0.03 ;
-			fprintf(stdout, " -G %i", NUM_GAPS) ;
-		}
-		if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
-			NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
-			fprintf(stdout, "\n") ;
+			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
+				NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
+				fprintf(stdout, "* Automatically determining alignment parameters based on read length (%int):", read_length) ;
+			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
+			{
+				SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
+				fprintf(stdout, " -K %i", SPLICED_HIT_MIN_LENGTH_SHORT) ;
+			}
+			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
+			{
+				SPLICED_HIT_MIN_LENGTH_LONG = (read_length/4<20) ? 20 : read_length/4 ;
+				fprintf(stdout, " -L %i", SPLICED_HIT_MIN_LENGTH_LONG) ;
+			}
+			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING)
+			{
+				SPLICED_HIT_MIN_LENGTH_COMB = (read_length/2<30) ? 30 : read_length/2 ;
+				if (SPLICED_HIT_MIN_LENGTH_COMB<SPLICED_HIT_MIN_LENGTH_LONG)
+					SPLICED_HIT_MIN_LENGTH_COMB=SPLICED_HIT_MIN_LENGTH_LONG ;
+				fprintf(stdout, " -C %i", SPLICED_HIT_MIN_LENGTH_COMB) ;
+			}
+			if (SPLICED_HITS && SPLICED_MAX_INTRONS == DEFAULT_SETTING)
+			{
+				SPLICED_MAX_INTRONS = (read_length>50) ? (read_length>=100 ? 3 : 2) : 1 ;
+				if (read_length>200) SPLICED_MAX_INTRONS = 6 ;
+				fprintf(stdout, " -NI %i", SPLICED_MAX_INTRONS) ;
+			}
+			if (NUM_EDIT_OPS == DEFAULT_SETTING)
+			{
+				NUM_EDIT_OPS = read_length*0.08 ;
+				fprintf(stdout, " -E %i", NUM_EDIT_OPS) ;
+			}
+			if (NUM_MISMATCHES == DEFAULT_SETTING)
+			{
+				NUM_MISMATCHES = read_length*0.08 ;
+				fprintf(stdout, " -M %i", NUM_MISMATCHES) ;
+			}
+			if (NUM_GAPS == DEFAULT_SETTING)
+			{
+				NUM_GAPS = read_length*0.03 ;
+				fprintf(stdout, " -G %i", NUM_GAPS) ;
+			}
+			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
+				NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
+				fprintf(stdout, "\n") ;
 
-		if (SPLICED_HITS && QPALMA_MIN_NUM_MATCHES == DEFAULT_SETTING)
-		{
-			QPALMA_MIN_NUM_MATCHES=5 ;
-			if (non_consensus_search)
-				QPALMA_MIN_NUM_MATCHES+=2 ;
-			fprintf(stdout, "* Automatically determined minimal match length near splice sites (%int)\n", QPALMA_MIN_NUM_MATCHES) ;
+			if (SPLICED_HITS && QPALMA_MIN_NUM_MATCHES == DEFAULT_SETTING)
+			{
+				QPALMA_MIN_NUM_MATCHES=5 ;
+				if (non_consensus_search)
+					QPALMA_MIN_NUM_MATCHES+=2 ;
+				fprintf(stdout, "* Automatically determined minimal match length near splice sites (%int)\n", QPALMA_MIN_NUM_MATCHES) ;
+			}
+
+			if (SPLICED_HITS && SPLICED_MIN_SEGMENT_LENGTH == DEFAULT_SETTING)
+			{
+				SPLICED_MIN_SEGMENT_LENGTH=QPALMA_MIN_NUM_MATCHES ;
+
+				if (read_length>40)
+					SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 6) ;
+				if (read_length>=75)
+					SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 8) ;
+				if (read_length>=100)
+					SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 10) ;
+
+				fprintf(stdout, "* Automatically determined minimal segment length in spliced alignments based on read length (%int)\n",
+						SPLICED_MIN_SEGMENT_LENGTH) ;
+			}
 		}
-		
-		if (SPLICED_HITS && SPLICED_MIN_SEGMENT_LENGTH == DEFAULT_SETTING)
+
+		if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT)
 		{
-			SPLICED_MIN_SEGMENT_LENGTH=QPALMA_MIN_NUM_MATCHES ;
-			
-			if (read_length>40)
-				SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 6) ;
-			if (read_length>=75)
-				SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 8) ;
-			if (read_length>=100)
-				SPLICED_MIN_SEGMENT_LENGTH = max(QPALMA_MIN_NUM_MATCHES, 10) ;
-			
-			fprintf(stdout, "* Automatically determined minimal segment length in spliced alignments based on read length (%int)\n", 
-					SPLICED_MIN_SEGMENT_LENGTH) ;
+			OUTPUT_FILTER = OUTPUT_FILTER_TOP ;
+			OUTPUT_FILTER_NUM_TOP = 5 ;
+			fprintf(stdout, "* Reporting the best %i alignments per read\n", OUTPUT_FILTER_NUM_TOP) ;
 		}
-	}
 
-	if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT)
-	{
-		OUTPUT_FILTER = OUTPUT_FILTER_TOP ;
-		OUTPUT_FILTER_NUM_TOP = 5 ;
-		fprintf(stdout, "* Reporting the best %i alignments per read\n", OUTPUT_FILTER_NUM_TOP) ;
-	}
-
-	if (SPLICED_HITS && SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING)
-	{
-		unsigned long int genome_size = 0 ;
-		for (unsigned int i=0; i<genome->nrChromosomes(); i++)
-			genome_size+=genome->chromosome(i).length() ;
-
-		if (genome_size<900000000)
-			SPLICED_LONGEST_INTRON_LENGTH = 10000 ;
-		else if (genome_size<500000000)
-			SPLICED_LONGEST_INTRON_LENGTH = 50000 ;
-		else
-			SPLICED_LONGEST_INTRON_LENGTH = 200000 ;
-		fprintf(stdout, "* Automatically determined maximal intron size based on genome size (%ikb)\n", SPLICED_LONGEST_INTRON_LENGTH/1000) ;
-	}
-
-	// determine default output format
-	if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) {
-		if (SPLICED_HITS)
+		if (SPLICED_HITS && SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING)
 		{
-			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
-			fprintf(stdout, "* Selecting SAM output format\n") ;
+			unsigned long int genome_size = 0 ;
+			for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+				genome_size+=genome->chromosome(i).length() ;
+
+			if (genome_size<900000000)
+				SPLICED_LONGEST_INTRON_LENGTH = 10000 ;
+			else if (genome_size<500000000)
+				SPLICED_LONGEST_INTRON_LENGTH = 50000 ;
+			else
+				SPLICED_LONGEST_INTRON_LENGTH = 200000 ;
+			fprintf(stdout, "* Automatically determined maximal intron size based on genome size (%ikb)\n", SPLICED_LONGEST_INTRON_LENGTH/1000) ;
 		}
-		else
-		{
-			OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
-			fprintf(stdout, "* Selecting SAM output format\n") ;
+
+		// determine default output format
+		if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) {
+			if (SPLICED_HITS)
+			{
+				OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
+				fprintf(stdout, "* Selecting SAM output format\n") ;
+			}
+			else
+			{
+				OUTPUT_FORMAT=OUTPUT_FORMAT_SAM ;
+				fprintf(stdout, "* Selecting SAM output format\n") ;
+			}
+		}
+	} else {
+
+		if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE;
+
+		if (NUM_EDIT_OPS == DEFAULT_SETTING) NUM_EDIT_OPS = 3;
+		if (NUM_MISMATCHES == DEFAULT_SETTING) NUM_MISMATCHES = 3;
+		if (NUM_GAPS == DEFAULT_SETTING) NUM_GAPS = 1;
+
+		if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT) {
+			BEST_HIT_STRATEGY = 1;
 		}
 	}
 
@@ -268,22 +300,30 @@ int Config::applyDefaults(Genome * genome)
 
 int Config::checkConfig()
 {
-	if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
-	{
-		fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
-		exit(1);
-	}
+	if (_personality == Palmapper) {
+		if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
+		{
+			fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
+			exit(1);
+		}
 
-	if (SPLICED_HITS && !(NO_SPLICE_PREDICTIONS || (ACC_FILES.length()>0 && DON_FILES.length()>0)))
-	{
-		fprintf(stderr, "ERROR: for spliced alignments either -acc and -don or -no-ss-pred need to be given as argument\n");
-		exit(1);
-	}
+		if (SPLICED_HITS && !(NO_SPLICE_PREDICTIONS || (ACC_FILES.length()>0 && DON_FILES.length()>0)))
+		{
+			fprintf(stderr, "ERROR: for spliced alignments either -acc and -don or -no-ss-pred need to be given as argument\n");
+			exit(1);
+		}
 
-	if (NO_SPLICE_PREDICTIONS && (ACC_FILES.length()>0 || DON_FILES.length()>0))
-	{
-		fprintf(stderr, "ERROR: the options -acc/-don and -no-ss-pred have to be used exclusively\n");
-		exit(1);
+		if (NO_SPLICE_PREDICTIONS && (ACC_FILES.length()>0 || DON_FILES.length()>0))
+		{
+			fprintf(stderr, "ERROR: the options -acc/-don and -no-ss-pred have to be used exclusively\n");
+			exit(1);
+		}
+
+		if (SPLICED_HITS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
+		{
+			fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM) %i\n", (int)OUTPUT_FORMAT) ;
+			exit(1) ;
+		}
 	}
 
 	if (RTRIM_STRATEGY && POLYTRIM_STRATEGY)
@@ -292,11 +332,10 @@ int Config::checkConfig()
 		exit(1) ;
 	}
 
-	if (SPLICED_HITS && (OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || OUTPUT_FORMAT==OUTPUT_FORMAT_BED))
-	{
-		fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM) %i\n", (int)OUTPUT_FORMAT) ;
-		exit(1) ;
-	}
+/*	if ((READ1_FILE_NAME.length() > 0) + (READ2_FILE_NAME.length() > 0) == 1) {
+		fprintf(stderr, "ERROR: If paired end information is available, please specify -q1 AND -q2\n");
+		exit(1);
+	}*/
 
 /*	if (OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
 	{
@@ -361,7 +400,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 	char has_index = 0;
 	char has_query = 0;
 	char has_genome = 0;
-	char output[5];
 
 	for (i = 1; i < argc; i++) {
 		not_defined = 1;
@@ -389,8 +427,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 			INDEX_FWD_FILE_NAME.assign(argv[i]);
 			INDEX_FWD_FILE_NAME += ".mfd";
 
-			INDEX_REV_FILE_NAME.assign(argv[i]);
-			INDEX_REV_FILE_NAME += ".mrc";
+			//INDEX_REV_FILE_NAME.assign(argv[i]);
+			//INDEX_REV_FILE_NAME += ".mrc";
 
 		}
 
@@ -438,13 +476,13 @@ int Config::parseCommandLine(int argc, char *argv[])
 
 		 */
 
-		 //meta index file
-		if(strcmp(argv[i],"-threads")==0)
-		{
+		 //nr threads
+		char const *threadOpt = _personality == Palmapper ? "-threads" : "-t";
+		if(strcmp(argv[i],threadOpt)==0) {
 			not_defined = 0;
 			if(i+1 > argc - 1) 
-			{ 
-				fprintf(stderr, "ERROR: Argument missing for option -threads\n") ;
+			{
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", threadOpt) ;
 				usage(); 
 				exit(1); 
 			}
@@ -480,6 +518,23 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			i++;
 			OUT_FILE_NAME.assign(argv[i]);
+		}
+
+		//fix read trimming
+		if (strcmp(argv[i], "-fixtrim") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -fixtrim\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			FIXTRIM_STRATEGY_LEN = atoi(argv[i]) ;
+			if (FIXTRIM_STRATEGY_LEN<INDEX_DEPTH)
+			{
+				fprintf(stderr,	"ERROR: minimal fixtrim alignment length too short\n");
+				exit(1) ;
+			}
 		}
 
 		//partial alignments for rtrim
@@ -566,408 +621,410 @@ int Config::parseCommandLine(int argc, char *argv[])
 			ADAPTERTRIM_STRATEGY_LOG = std::string(argv[i]) ;
 		}
 
-		//report output file
-		if (strcmp(argv[i], "-report") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report\n") ;
-				usage();
-				exit(1);
+		if (_personality == Palmapper) {
+			//report output file
+			if (strcmp(argv[i], "-report") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_FILE=strdup(argv[i]) ;
+				REPORT_FILE_READONLY = 0 ;
 			}
-			i++;
-			REPORT_FILE=strdup(argv[i]) ;
-			REPORT_FILE_READONLY = 0 ;
-		}
 
-		//report output file
-		if (strcmp(argv[i], "-report-ro") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report-ro\n") ;
-				usage();
-				exit(1);
+			//report output file
+			if (strcmp(argv[i], "-report-ro") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-ro\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_FILE=strdup(argv[i]) ;
+				REPORT_FILE_READONLY = 1 ;
 			}
-			i++;
-			REPORT_FILE=strdup(argv[i]) ;
-			REPORT_FILE_READONLY = 1 ;
-		}
 
-		//report output file
-		if (strcmp(argv[i], "-report-coverage-wig") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report-coverage-wig\n") ;
-				usage();
-				exit(1);
+			//report output file
+			if (strcmp(argv[i], "-report-coverage-wig") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-coverage-wig\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_GENOME_COVERAGE_FILE=strdup(argv[i]) ;
+				REPORT_MAPPED_READS = 1 ;
+				REPORT_SPLICED_READS = 1 ;
+				REPORT_GENOME_COVERAGE = 2 ;
 			}
-			i++;
-			REPORT_GENOME_COVERAGE_FILE=strdup(argv[i]) ;
-			REPORT_MAPPED_READS = 1 ;
-			REPORT_SPLICED_READS = 1 ;
-			REPORT_GENOME_COVERAGE = 2 ;
-		}
-		//report output file
-		if (strcmp(argv[i], "-report-coverage-map") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report-coverage-map\n") ;
-				usage();
-				exit(1);
+			//report output file
+			if (strcmp(argv[i], "-report-coverage-map") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-coverage-map\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_GENOME_COVERAGE_FILE=strdup(argv[i]) ;
+				REPORT_MAPPED_READS = 1 ;
+				REPORT_SPLICED_READS = 1 ;
+				REPORT_GENOME_COVERAGE = 1 ;
 			}
-			i++;
-			REPORT_GENOME_COVERAGE_FILE=strdup(argv[i]) ;
-			REPORT_MAPPED_READS = 1 ;
-			REPORT_SPLICED_READS = 1 ;
-			REPORT_GENOME_COVERAGE = 1 ;
-		}
 
-		//report repetitive seeds
-		if (strcmp(argv[i], "-report-rep-seed") == 0) {
-			not_defined = 0;
-			REPORT_REPETITIVE_SEEDS = 1 ;
-			//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-		}
-		if (strcmp(argv[i], "-no-report-rep-seed") == 0) {
-			not_defined = 0;
-			REPORT_REPETITIVE_SEEDS = 0 ;
-			//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-		}
-
-		//report mapped regions
-		if (strcmp(argv[i], "-report-map-region") == 0) {
-			not_defined = 0;
-			REPORT_MAPPED_REGIONS  = 1 ;
-		}
-		if (strcmp(argv[i], "-no-report-map-region") == 0) {
-			not_defined = 0;
-			REPORT_MAPPED_REGIONS  = 0 ;
-		}
-
-		//report mapped regions
-		if (strcmp(argv[i], "-report-map-read") == 0) {
-			not_defined = 0;
-			REPORT_MAPPED_READS = 1 ;
-		}
-		if (strcmp(argv[i], "-no-report-map-read") == 0) {
-			not_defined = 0;
-			REPORT_MAPPED_READS = 0 ;
-		}
-
-		//report mapped regions
-		if (strcmp(argv[i], "-report-spliced-read") == 0) {
-			not_defined = 0;
-			REPORT_SPLICED_READS = 1 ;
-		}
-		if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
-			not_defined = 0;
-			REPORT_SPLICED_READS = 0 ;
-		}
-
-		//report splice sites - confidence threshold
-		if (strcmp(argv[i], "-report-splice-sites") == 0) {
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report-splice-sites\n") ;
-				usage();
-				exit(1);
+			//report repetitive seeds
+			if (strcmp(argv[i], "-report-rep-seed") == 0) {
+				not_defined = 0;
+				REPORT_REPETITIVE_SEEDS = 1 ;
+				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
 			}
-			i++;
-			QPALMA_USE_SPLICE_SITES_THRESH_ACC = atof(argv[i]);
-			QPALMA_USE_SPLICE_SITES_THRESH_DON = atof(argv[i]);
-			QPALMA_USE_SPLICE_SITES= 1 ;
-			not_defined = 0;
-			//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
-			//assert(REPORT_SPLICE_SITES_THRESH_TOP_PERC==0.0) ;
-		}
+			if (strcmp(argv[i], "-no-report-rep-seed") == 0) {
+				not_defined = 0;
+				REPORT_REPETITIVE_SEEDS = 0 ;
+				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
+			}
 
-		//report splice sites - percentile threshold
-		if (strcmp(argv[i], "-report-splice-sites-top-perc") == 0) {
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report-splice-sites-top-perc\n") ;
-				usage();
-				exit(1);
+			//report mapped regions
+			if (strcmp(argv[i], "-report-map-region") == 0) {
+				not_defined = 0;
+				REPORT_MAPPED_REGIONS  = 1 ;
 			}
-			i++;
-			QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC = atof(argv[i]);
-			assert(QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC>=0 && QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC<=1.0) ;
-			QPALMA_USE_SPLICE_SITES= 1 ;
-			not_defined = 0;
-			//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
-			//assert(REPORT_SPLICE_SITES_THRESH==0.0) ;
-		}
+			if (strcmp(argv[i], "-no-report-map-region") == 0) {
+				not_defined = 0;
+				REPORT_MAPPED_REGIONS  = 0 ;
+			}
 
-		// filter by splice sites - percentile threshold
-		if (strcmp(argv[i], "-filter-splice-sites-top-perc") == 0) {
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -filter-splice-sites-top-perc\n") ;
-				usage();
-				exit(1);
+			//report mapped regions
+			if (strcmp(argv[i], "-report-map-read") == 0) {
+				not_defined = 0;
+				REPORT_MAPPED_READS = 1 ;
 			}
-			i++;
-			FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC = atof(argv[i]);
-			assert(FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC>=0 && FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC<=1.0) ;
-			not_defined = 0;
-			FILTER_BY_SPLICE_SITES_THRESH_ACC = 0.0 ;
-			FILTER_BY_SPLICE_SITES_THRESH_DON = 0.0 ;
-		}
+			if (strcmp(argv[i], "-no-report-map-read") == 0) {
+				not_defined = 0;
+				REPORT_MAPPED_READS = 0 ;
+			}
 
-		// filter by mismatches
-		if (strcmp(argv[i], "-filter-max-mismatches") == 0) {
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -filter-max-mismatches\n") ;
-				usage();
-				exit(1);
+			//report mapped regions
+			if (strcmp(argv[i], "-report-spliced-read") == 0) {
+				not_defined = 0;
+				REPORT_SPLICED_READS = 1 ;
 			}
-			i++;
-			FILTER_BY_MAX_MISMATCHES = atoi(argv[i]);
-			assert(FILTER_BY_MAX_MISMATCHES>=0) ;
-			not_defined = 0;
-		}
+			if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
+				not_defined = 0;
+				REPORT_SPLICED_READS = 0 ;
+			}
 
-		// splice-site based filter: require at least this many edits
-		if (strcmp(argv[i], "-filter-splice-min-edit") == 0) {
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -filter-splice-min-edit\n") ;
-				usage();
-				exit(1);
+			//report splice sites - confidence threshold
+			if (strcmp(argv[i], "-report-splice-sites") == 0) {
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-splice-sites\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				QPALMA_USE_SPLICE_SITES_THRESH_ACC = atof(argv[i]);
+				QPALMA_USE_SPLICE_SITES_THRESH_DON = atof(argv[i]);
+				QPALMA_USE_SPLICE_SITES= 1 ;
+				not_defined = 0;
+				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
+				//assert(REPORT_SPLICE_SITES_THRESH_TOP_PERC==0.0) ;
 			}
-			i++;
-			FILTER_BY_SPLICE_SITES_EDIT_MIN = atoi(argv[i]);
-			assert(FILTER_BY_SPLICE_SITES_EDIT_MIN>=0) ;
-			not_defined = 0;
-		}
 
-		// splice-site based filter: consider a region of this length around the read; -1 switches off the splice site-based filter
-		if (strcmp(argv[i], "-filter-splice-region") == 0)
-		{
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -filter-splice-region\n") ;
-				usage();
-				exit(1);
+			//report splice sites - percentile threshold
+			if (strcmp(argv[i], "-report-splice-sites-top-perc") == 0) {
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-splice-sites-top-perc\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC = atof(argv[i]);
+				assert(QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC>=0 && QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC<=1.0) ;
+				QPALMA_USE_SPLICE_SITES= 1 ;
+				not_defined = 0;
+				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
+				//assert(REPORT_SPLICE_SITES_THRESH==0.0) ;
 			}
-			i++;
-			FILTER_BY_SPLICE_SITES_REGION = atoi(argv[i]);
-			if (FILTER_BY_SPLICE_SITES_REGION==-1)
-				FILTER_BY_SPLICE_SITES = 0 ;
 
-			assert(FILTER_BY_SPLICE_SITES_REGION>=-1) ;
-			not_defined = 0;
-		}
+			// filter by splice sites - percentile threshold
+			if (strcmp(argv[i], "-filter-splice-sites-top-perc") == 0) {
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-splice-sites-top-perc\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC = atof(argv[i]);
+				assert(FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC>=0 && FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC<=1.0) ;
+				not_defined = 0;
+				FILTER_BY_SPLICE_SITES_THRESH_ACC = 0.0 ;
+				FILTER_BY_SPLICE_SITES_THRESH_DON = 0.0 ;
+			}
 
-		// filter by mismatches
-		if (strcmp(argv[i], "-filter-max-gaps") == 0) {
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -filter-max-gaps\n") ;
-				usage();
-				exit(1);
+			// filter by mismatches
+			if (strcmp(argv[i], "-filter-max-mismatches") == 0) {
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-max-mismatches\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_BY_MAX_MISMATCHES = atoi(argv[i]);
+				assert(FILTER_BY_MAX_MISMATCHES>=0) ;
+				not_defined = 0;
 			}
-			i++;
-			FILTER_BY_MAX_GAPS = atoi(argv[i]);
-			assert(FILTER_BY_MAX_GAPS>=0) ;
-			not_defined = 0;
-		}
 
-		// reset the report (i.e. don't load it from file, even when available)
-		if (strcmp(argv[i], "-report-reset") == 0) {
-			not_defined = 0;
-			REPORT_RESET = 1 ;
-		}
+			// splice-site based filter: require at least this many edits
+			if (strcmp(argv[i], "-filter-splice-min-edit") == 0) {
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-splice-min-edit\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_BY_SPLICE_SITES_EDIT_MIN = atoi(argv[i]);
+				assert(FILTER_BY_SPLICE_SITES_EDIT_MIN>=0) ;
+				not_defined = 0;
+			}
 
-		// use regions around mapped reads for qpalma alignment
-		/*if (strcmp(argv[i], "-qpalma-use-map") == 0) {
-			not_defined = 0;
-			QPALMA_USE_MAP = 1 ;
-			}*/
+			// splice-site based filter: consider a region of this length around the read; -1 switches off the splice site-based filter
+			if (strcmp(argv[i], "-filter-splice-region") == 0)
+			{
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-splice-region\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_BY_SPLICE_SITES_REGION = atoi(argv[i]);
+				if (FILTER_BY_SPLICE_SITES_REGION==-1)
+					FILTER_BY_SPLICE_SITES = 0 ;
 
-		// use regions around mapped reads for qpalma alignment
-		if (strcmp(argv[i], "-qpalma-use-map-max-len") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -qpalma-use-map-max-len\n") ;
-				usage();
-				exit(1);
+				assert(FILTER_BY_SPLICE_SITES_REGION>=-1) ;
+				not_defined = 0;
 			}
-			i++;
-			QPALMA_USE_MAP_MAX_SIZE = atoi(argv[i]);
-		}
 
-		//spliced output file
-		if (strcmp(argv[i], "-report-gff-init") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -report-gff-init\n") ;
-				usage();
-				exit(1);
+			// filter by mismatches
+			if (strcmp(argv[i], "-filter-max-gaps") == 0) {
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-max-gaps\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_BY_MAX_GAPS = atoi(argv[i]);
+				assert(FILTER_BY_MAX_GAPS>=0) ;
+				not_defined = 0;
 			}
-			i++;
-			REPORT_GFF_FILE_NAME.assign(argv[i]);
-		}
 
-		//spliced output file
-		if (strcmp(argv[i], "-H") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -H\n") ;
-				usage();
-				exit(1);
+			// reset the report (i.e. don't load it from file, even when available)
+			if (strcmp(argv[i], "-report-reset") == 0) {
+				not_defined = 0;
+				REPORT_RESET = 1 ;
 			}
-			i++;
-			SPLICED_OUT_FILE_NAME.assign(argv[i]);
-		}
 
-		if (strcmp(argv[i], "-read-id-prefix") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -read-id-prefix\n") ;
-				usage();
-				exit(1);
-			}
-			i++;
-			READ_ID_PREFIX.assign(argv[i]);
-		}
+			// use regions around mapped reads for qpalma alignment
+			/*if (strcmp(argv[i], "-qpalma-use-map") == 0) {
+				not_defined = 0;
+				QPALMA_USE_MAP = 1 ;
+				}*/
 
-		//spliced hits min combined length
-		if (strcmp(argv[i], "-C") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -C\n") ;
-				usage();
-				exit(1);
+			// use regions around mapped reads for qpalma alignment
+			if (strcmp(argv[i], "-qpalma-use-map-max-len") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -qpalma-use-map-max-len\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				QPALMA_USE_MAP_MAX_SIZE = atoi(argv[i]);
 			}
-			i++;
-			SPLICED_HIT_MIN_LENGTH_COMB = atoi(argv[i]);
-		}
 
-		//spliced hits min length
-		if (strcmp(argv[i], "-K") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -K\n") ;
-				usage();
-				exit(1);
+			//spliced output file
+			if (strcmp(argv[i], "-report-gff-init") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-gff-init\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_GFF_FILE_NAME.assign(argv[i]);
 			}
-			i++;
-			SPLICED_HIT_MIN_LENGTH_SHORT = atoi(argv[i]);
-		}
 
-		//spliced hits min length of longer hit
-		if (strcmp(argv[i], "-L") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -L\n") ;
-				usage();
-				exit(1);
+			//spliced output file
+			if (strcmp(argv[i], "-H") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -H\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				SPLICED_OUT_FILE_NAME.assign(argv[i]);
 			}
-			i++;
-			SPLICED_HIT_MIN_LENGTH_LONG = atoi(argv[i]);
-		}
 
-		// longest intron length
-		if (strcmp(argv[i], "-I") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -I\n") ;
-				usage();
-				exit(1);
+			if (strcmp(argv[i], "-read-id-prefix") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -read-id-prefix\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				READ_ID_PREFIX.assign(argv[i]);
 			}
-			i++;
-			SPLICED_LONGEST_INTRON_LENGTH = atoi(argv[i]);
-		}
 
-		// maximal number of spliced alignments to be performed per read
-		if (strcmp(argv[i], "-SA") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -SA\n") ;
-				usage();
-				exit(1);
+			//spliced hits min combined length
+			if (strcmp(argv[i], "-C") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -C\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				SPLICED_HIT_MIN_LENGTH_COMB = atoi(argv[i]);
 			}
-			i++;
-			int tmp = atoi(argv[i]);
-			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -SA too small\n") ;
-				usage();
-				exit(1);
-			}
-			SPLICED_MAX_NUM_ALIGNMENTS = tmp;
-		}
 
-		// maximal number of introns in spliced alignments
-		if (strcmp(argv[i], "-NI") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -NI\n") ;
-				usage();
-				exit(1);
+			//spliced hits min length
+			if (strcmp(argv[i], "-K") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -K\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				SPLICED_HIT_MIN_LENGTH_SHORT = atoi(argv[i]);
 			}
-			i++;
-			int tmp = atoi(argv[i]);
-			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -NI too small\n") ;
-				usage();
-				exit(1);
-			}
-			SPLICED_MAX_INTRONS = tmp;
-		}
 
-		// How many matches are necessary for identifying a possible splice site in QPALMA recursive alignment algorithm?
-		if (strcmp(argv[i], "-QMM") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -QMM\n") ;
-				usage();
-				exit(1);
+			//spliced hits min length of longer hit
+			if (strcmp(argv[i], "-L") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -L\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				SPLICED_HIT_MIN_LENGTH_LONG = atoi(argv[i]);
 			}
-			i++;
-			int tmp = atoi(argv[i]);
-			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -QMM too small\n") ;
-				usage();
-				exit(1);
-			}
-			QPALMA_MIN_NUM_MATCHES = tmp;
-		}
 
-		// how much distance to tolerate between a hit and an existing
-		// hit cluster
-		if (strcmp(argv[i], "-CT") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -CT\n") ;
-				usage();
-				exit(1);
+			// longest intron length
+			if (strcmp(argv[i], "-I") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -I\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				SPLICED_LONGEST_INTRON_LENGTH = atoi(argv[i]);
 			}
-			i++;
-			int tmp = atoi(argv[i]);
-			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -CT too small\n") ;
-				usage();
-				exit(1);
-			}
-			SPLICED_CLUSTER_TOLERANCE = tmp;
-		}
 
-		// limit the number of reads for alignment
-		if (strcmp(argv[i], "-rlim") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -rlim\n") ;
-				usage();
-				exit(1);
+			// maximal number of spliced alignments to be performed per read
+			if (strcmp(argv[i], "-SA") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -SA\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -SA too small\n") ;
+					usage();
+					exit(1);
+				}
+				SPLICED_MAX_NUM_ALIGNMENTS = tmp;
 			}
-			i++;
-			int tmp = atoi(argv[i]);
-			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -rlim too small\n") ;
-				usage();
-				exit(1);
-			}
-			READ_COUNT_LIMIT = tmp;
-		}
 
-		// limit the number of reads for alignment
-		if (strcmp(argv[i], "-index-precache") == 0) {
-			not_defined = 0;
-			INDEX_PRECACHE = 1;
+			// maximal number of introns in spliced alignments
+			if (strcmp(argv[i], "-NI") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -NI\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -NI too small\n") ;
+					usage();
+					exit(1);
+				}
+				SPLICED_MAX_INTRONS = tmp;
+			}
+
+			// How many matches are necessary for identifying a possible splice site in QPALMA recursive alignment algorithm?
+			if (strcmp(argv[i], "-QMM") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -QMM\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -QMM too small\n") ;
+					usage();
+					exit(1);
+				}
+				QPALMA_MIN_NUM_MATCHES = tmp;
+			}
+
+			// how much distance to tolerate between a hit and an existing
+			// hit cluster
+			if (strcmp(argv[i], "-CT") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -CT\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -CT too small\n") ;
+					usage();
+					exit(1);
+				}
+				SPLICED_CLUSTER_TOLERANCE = tmp;
+			}
+
+			// limit the number of reads for alignment
+			if (strcmp(argv[i], "-rlim") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -rlim\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -rlim too small\n") ;
+					usage();
+					exit(1);
+				}
+				READ_COUNT_LIMIT = tmp;
+			}
+
+			// limit the number of reads for alignment
+			if (strcmp(argv[i], "-index-precache") == 0) {
+				not_defined = 0;
+				INDEX_PRECACHE = 1;
+			}
 		}
 
 		//output format
@@ -978,20 +1035,21 @@ int Config::parseCommandLine(int argc, char *argv[])
 				usage();
 				exit(1);
 			}
-			i++;
-			//printf("argv .%s.\n", argv[i]);
-			strcpy(output, argv[i]);
+			char const *output = argv[++i];
 			if (strcmp(output, "shore") == 0 || strcmp(output, "SHORE") == 0) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE ;
-			} else if (strcmp(output, "bed") == 0 || strcmp(output, "BED") == 0) {
+			}
+			else if (_personality == Palmapper && (strcmp(output, "bed") == 0 || strcmp(output, "BED") == 0)) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_BED;
-			} else if (strcmp(output, "bedx") == 0 || strcmp(output, "BEDX") == 0) {
+			}
+			else if (_personality == Palmapper && (strcmp(output, "bedx") == 0 || strcmp(output, "BEDX") == 0)) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_BEDX;
-			} else if (strcmp(output, "sam") == 0 || strcmp(output, "SAM") == 0) {
+			}
+			else if (strcmp(output, "sam") == 0 || strcmp(output, "SAM") == 0) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_SAM;
-			} else {
-				fprintf(stderr,
-						"ERROR: Output file format must either be \"shore\" or \"bed\"\n");
+			}
+			else {
+				fprintf(stderr,	"ERROR: Output file format %s not supported\n", output);
 				exit(1);
 			}
 		}
@@ -1033,11 +1091,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 			VERBOSE = 3;
 		}
 
-		/*//scores out
+		//scores out
 		if (strcmp(argv[i], "-e") == 0) {
 			not_defined = 0;
 			SCORES_OUT = 0;
-			}*/
+		}
 
 		// do not align using reverse index
 		if (strcmp(argv[i], "-r") == 0) {
@@ -1045,8 +1103,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 			MAP_REVERSE = 0;
 		}
 
-		//spliced hits analysis
-		if (strcmp(argv[i], "-S") == 0) {
+
+		if (_personality == Palmapper && strcmp(argv[i], "-S") == 0) {
 			not_defined = 0;
 			SPLICED_HITS = 1;
 		}
@@ -1058,17 +1116,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		// extend the seed-length if too many seed-matches were found
-		if (strcmp(argv[i], "-index-extend") == 0) {
+		char const *indexExtentOpt = _personality == Palmapper ? "-index-extend" : "-x";
+		if (strcmp(argv[i], indexExtentOpt) == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -index-extend\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", indexExtentOpt) ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -index-extend too small\n") ;
+				fprintf(stderr, "ERROR: Argument for option %s too small\n", indexExtentOpt) ;
 				usage();
 				exit(1);
 			}
@@ -1076,17 +1135,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		// extend the seed-length if too many seed-matches were found
-		if (strcmp(argv[i], "-index-extend-threshold") == 0) {
+		char const *indexExtendThresholdOpt = _personality == Palmapper ? "-index-extend-threshold" : "-y";
+		if (strcmp(argv[i], indexExtendThresholdOpt) == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -index-extend-threshold\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", indexExtendThresholdOpt) ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -index-extend-threshold too small\n") ;
+				fprintf(stderr, "ERROR: Argument for option %s too small\n", indexExtendThresholdOpt) ;
 				usage();
 				exit(1);
 			}
@@ -1094,18 +1154,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		// cancel seed processing if more seed matches exist than a threshold
-		if (strcmp(argv[i], "-seed-hit-cancel-threshold") == 0)
-		{
+		char const *seedHitCancelThresholdOpt = _personality == Palmapper ? "-seed-hit-cancel-threshold" : "-s";
+		if (strcmp(argv[i], seedHitCancelThresholdOpt) == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -seed-hit-cancel-threshold\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", seedHitCancelThresholdOpt) ;
 				usage();
 				exit(1);
 			}
 			i++;
 			int tmp = atoi(argv[i]);
 			if (tmp < 0) {
-				fprintf(stderr, "ERROR: Argument for option -seed-hit-cancel-threshold too small\n") ;
+				fprintf(stderr, "ERROR: Argument for option %s too small\n", seedHitCancelThresholdOpt) ;
 				usage();
 				exit(1);
 			}
@@ -1125,7 +1185,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 			ALL_HIT_STRATEGY = 1 ;
 		}
 
-		if (strcmp(argv[i], "-z") == 0) {
+		char const *outputFilteToprOpt = _personality == Palmapper ? "-z" : "-n";
+		if (strcmp(argv[i], outputFilteToprOpt) == 0) {
 			not_defined = 0;
 			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
 			{
@@ -1133,7 +1194,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1) ;
 			}
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -z\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", outputFilteToprOpt) ;
 				usage();
 				exit(1);
 			}
@@ -1152,7 +1213,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//max nr of alignments per read
-		if (strcmp(argv[i], "-ar") == 0) {
+		/*if (strcmp(argv[i], "-ar") == 0) {
 			not_defined = 0;
 			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
 			{
@@ -1178,10 +1239,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 			}
 			OUTPUT_FILTER = OUTPUT_FILTER_LIMIT ;
-		}
+		}*/
 
 		//max nr of alignments per read, randomly chosen!
-		if (strcmp(argv[i], "-n") == 0) {
+		char const *outputFilterNumLimitOpt = _personality == Palmapper ? "-n" : "-b";
+		if (strcmp(argv[i], outputFilterNumLimitOpt) == 0) {
 			not_defined = 0;
 			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
 			{
@@ -1189,16 +1251,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1) ;
 			}
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -n\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", outputFilterNumLimitOpt) ;
 				usage();
 				exit(1);
 			}
 			i++;
-			if (OUTPUT_FILTER_NUM_LIMIT != 0) {
-				fprintf(stderr,
-						"ERROR: options -a and -ar exclude themselves!\n");
-				exit(1);
-			}
 			if ((OUTPUT_FILTER_NUM_LIMIT = atoi(argv[i])) == 0) {
 				if (argv[i][0] != '0') {
 					fprintf(stderr,
@@ -1206,8 +1263,9 @@ int Config::parseCommandLine(int argc, char *argv[])
 					exit(1);
 				}
 			}
-			OUTPUT_FILTER_NUM_LIMIT = -OUTPUT_FILTER_NUM_LIMIT ;
-			OUTPUT_FILTER = OUTPUT_FILTER_RANDOM ;
+			//OUTPUT_FILTER_NUM_LIMIT = -OUTPUT_FILTER_NUM_LIMIT ;
+			OUTPUT_FILTER = OUTPUT_FILTER_LIMIT ;
+			BEST_HIT_STRATEGY = 1 ;
 		}
 
 		//max number of allowed edit operations
@@ -1344,9 +1402,9 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1);
 			}
 			i++;
-			if ((HITLEN_LIMIT = atoi(argv[i])) == 0) {
+			if ((HITLEN_LIMIT = atoi(argv[i])) == 0 || HITLEN_LIMIT < 0) {
 				fprintf(stderr,
-						"ERROR: Hitlength limit must be an integer value unequal to 0!\n");
+						"ERROR: Hitlength limit must be a positive integer value unequal to 0!\n");
 				exit(1);
 			}
 		}
@@ -1384,6 +1442,46 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		//last read to be mapped
+		if (strcmp(argv[i], "-to") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -to\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			
+			if ((LAST_READ_NR = atoi(argv[i])) == 0 || LAST_READ_NR < 0) {
+				fprintf(stderr, "ERROR: last read number (-to argument) must be a positive integer value!\n");
+				exit(1);
+			}
+			if (LAST_READ_NR < FIRST_READ_NR) {
+				fprintf(stderr, "ERROR: last read number must be greater than first read number (-to and -from options)\n");
+				exit(1);
+			}
+		}
+
+		//first read to be mapped
+		if (strcmp(argv[i], "-from") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -from\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			
+			if ((FIRST_READ_NR = atoi(argv[i])) == 0 || FIRST_READ_NR < 0) {
+				fprintf(stderr, "ERROR: first read number (-from argument) must be a positive integer value!\n");
+				exit(1);
+			}
+			if (LAST_READ_NR < FIRST_READ_NR) {
+				fprintf(stderr, "ERROR: last read number must be greater than first read number (-to and -from options)\n");
+				exit(1);
+			}
+		}
+
 		//nr of unallowed chars in reads
 		/*if(strcmp(argv[i],"-n")==0){
 		 not_defined = 0;
@@ -1414,7 +1512,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//statistics
-		if (strcmp(argv[i], "-s") == 0) {
+		if (strcmp(argv[i], "-stat") == 0) {
 			not_defined = 0;
 			STATISTICS = 1;
 		}
@@ -1452,110 +1550,144 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
-		//print out gene, too (for every hit) used for WMD2
-		if (strcmp(argv[i], "-qpalma") == 0) {
+		//bisulfite mode
+		if (strcmp(argv[i], "-B") == 0) {
+			not_defined = 0;
+			BSSEQ = 1;
+		}
+
+		//read1 file
+		if (strcmp(argv[i], "-q1") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr,
-						"-qpalma needs an argument\n");
-				exit(1);
-			}
-			i++;
-			QPALMA_FILE.assign(argv[i]);
-		}
-
-		if (strcmp(argv[i], "-acc") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr,
-						"-acc needs an argument\n");
-				exit(1);
-			}
-			i++;
-			ACC_FILES.assign(argv[i]);
-		}
-
-		if (strcmp(argv[i], "-don") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr,
-						"-don needs an argument\n");
-				exit(1);
-			}
-			i++;
-			DON_FILES.assign(argv[i]);
-		}
-
-		if (strcmp(argv[i], "-no-ss-pred") == 0) {
-			not_defined = 0;
-			NO_SPLICE_PREDICTIONS = 1 ;
-		}
-
-		if (strcmp(argv[i], "-qpalma-prb-offset-fix") == 0) {
-			not_defined = 0;
-			QPALMA_PRB_OFFSET_FIX = 1 ;
-		}
-
-		if (strcmp(argv[i], "-acc-consensus") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "-acc-consensus needs an argument\n");
-				exit(1);
-			}
-			i++;
-			std::string consensus_list = argv[i] ;
-			ACC_CONSENSUS.clear() ;
-			split_string(consensus_list, ACC_CONSENSUS, ',') ;
-			postprocess_consensus_list(ACC_CONSENSUS) ;
-		}
-
-		if (strcmp(argv[i], "-don-consensus") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "-don-consensus needs an argument\n");
-				exit(1);
-			}
-			i++;
-			std::string consensus_list = argv[i] ;
-			DON_CONSENSUS.clear() ;
-			split_string(consensus_list, DON_CONSENSUS, ',') ;
-			postprocess_consensus_list(DON_CONSENSUS) ;
-		}
-
-        // qpalma-triggered reads file                     //  #A#
-		if (strcmp(argv[i], "-log-triggered-reads") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -log-triggered-reads\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option -q1\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
-            LOG_TRIGGERED = 1;
-			TRIGGERED_LOG_FILE.assign(argv[i]);
-		}                                                   // #A#
+			READ1_FILE_NAME.assign(argv[i]);
+			has_query = 1;
+		}
 
-		//report output file
-		if (strcmp(argv[i], "-stranded") == 0) {
+		//read2 file
+		if (strcmp(argv[i], "-q2") == 0) {
 			not_defined = 0;
-			if (i + 1 > argc - 1 || (strcmp(argv[i + 1], "left") != 0 && strcmp(argv[i + 1], "right") != 0 && strcmp(argv[i + 1], "plus") != 0 && strcmp(argv[i + 1], "minus") != 0)) {
-				fprintf(stderr, "ERROR: Argument missing for option -stranded\nMust be [ left | right | plus | minus ]") ;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -q2\n") ;
 				usage();
 				exit(1);
 			}
 			i++;
-			if ((strcmp(argv[i], "left") == 0 || strcmp(argv[i], "plus") == 0)) {
-                STRAND = 1 ; // plus
-            }
-            else {
-                STRAND = 0 ; // minus
-            }
+			READ2_FILE_NAME.assign(argv[i]);
+			has_query = 1;
 		}
 
-		if (not_defined == 1) {
-			fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
-			usage();
-			exit(1);
+		if (_personality == Palmapper) {
+			//print out gene, too (for every hit) used for WMD2
+			if (strcmp(argv[i], "-qpalma") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr,
+							"-qpalma needs an argument\n");
+					exit(1);
+				}
+				i++;
+				QPALMA_FILE.assign(argv[i]);
+			}
+
+			if (strcmp(argv[i], "-acc") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr,
+							"-acc needs an argument\n");
+					exit(1);
+				}
+				i++;
+				ACC_FILES.assign(argv[i]);
+			}
+
+			if (strcmp(argv[i], "-don") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr,
+							"-don needs an argument\n");
+					exit(1);
+				}
+				i++;
+				DON_FILES.assign(argv[i]);
+			}
+
+			if (strcmp(argv[i], "-no-ss-pred") == 0) {
+				not_defined = 0;
+				NO_SPLICE_PREDICTIONS = 1 ;
+			}
+
+			if (strcmp(argv[i], "-qpalma-prb-offset-fix") == 0) {
+				not_defined = 0;
+				QPALMA_PRB_OFFSET_FIX = 1 ;
+			}
+
+			if (strcmp(argv[i], "-acc-consensus") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "-acc-consensus needs an argument\n");
+					exit(1);
+				}
+				i++;
+				std::string consensus_list = argv[i] ;
+				ACC_CONSENSUS.clear() ;
+				split_string(consensus_list, ACC_CONSENSUS, ',') ;
+				postprocess_consensus_list(ACC_CONSENSUS) ;
+			}
+
+			if (strcmp(argv[i], "-don-consensus") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "-don-consensus needs an argument\n");
+					exit(1);
+				}
+				i++;
+				std::string consensus_list = argv[i] ;
+				DON_CONSENSUS.clear() ;
+				split_string(consensus_list, DON_CONSENSUS, ',') ;
+				postprocess_consensus_list(DON_CONSENSUS) ;
+			}
+
+			// qpalma-triggered reads file                     //  #A#
+			if (strcmp(argv[i], "-log-triggered-reads") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -log-triggered-reads\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				LOG_TRIGGERED = 1;
+				TRIGGERED_LOG_FILE.assign(argv[i]);
+			}                                                   // #A#
+
+			//report output file
+			if (strcmp(argv[i], "-stranded") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1 || (strcmp(argv[i + 1], "left") != 0 && strcmp(argv[i + 1], "right") != 0 && strcmp(argv[i + 1], "plus") != 0 && strcmp(argv[i + 1], "minus") != 0)) {
+					fprintf(stderr, "ERROR: Argument missing for option -stranded\nMust be [ left | right | plus | minus ]") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				if ((strcmp(argv[i], "left") == 0 || strcmp(argv[i], "plus") == 0)) {
+					STRAND = 1 ; // plus
+				}
+				else {
+					STRAND = 0 ; // minus
+				}
+			}
+
+			if (not_defined == 1) {
+				fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
+				usage();
+				exit(1);
+			}
 		}
 	}
 
@@ -1569,100 +1701,170 @@ int Config::parseCommandLine(int argc, char *argv[])
 	return 0;
 }
 
-void Config::VersionHeader()
-{
-	printf("\nPALMapper version %s   (PALMapper is a fusion of GenomeMapper & QPALMA)\n", VERSION);
-	printf("written by Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Fabio De Bona, Stephan Ossowski, and others\n");
-	printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
+void Config::VersionHeader() {
+	if (getPersonality() == Palmapper) {
+		printf("\nPALMapper version %s   (PALMapper is a fusion of GenomeMapper & QPALMA)\n", VERSION);
+		printf("written by Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Fabio De Bona, Stephan Ossowski, and others\n");
+		printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
+	} else {
+		printf("\nGenomeMapper version %s\n", VERSION);
+		printf("written by Korbinian Schneeberger, Joerg Hagmann, Stephan Ossowski, Felix Ott, Gunnar Raetsch and others\n");
+		printf("Max Planck Institute for Developmental Biology, Tuebingen, Germany, 2008-2010\n\n");
+	}
 }
 
-int Config::usage() 
-{
+int Config::usage() {
 	//VersionHeader() ;
 
-	printf("USAGE: palmapper [options]\n");
-	printf("\n");
-	printf("mandatory:\n");
-	printf(" -i STRING      reference sequence (fasta file and prefix to index files)\n");
-	printf(" -q STRING      query filename (fasta, fastq, SHORE flat file)\n");
-	printf("\n\n");
-	printf("optional:\n");
-	printf(" -S             report spliced alignments (detailed options below)\n\n");
-	printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")\n");
-	printf(" -o STRING      output filename (stdout)\n");
-	printf(" -H STRING      output filename for spliced hits (stdout)\n");
-	printf(" -u STRING      unmapped reads filename\n\n");
+	if (getPersonality() == Palmapper) {
+		printf("USAGE: palmapper [options]\n");
 
-	printf(" -a             report all alignments (best alignments only)\n");
-	printf(" -ar INT        report a limited number of alignments (best alignments only)\n");
-	printf(" -z INT         report a number of top alignments\n\n");
+		printf("\n");
+		printf("mandatory:\n");
+		printf(" -i STRING      reference sequence (fasta file and prefix to index files)\n");
+		printf(" -q STRING      query filename (fasta, fastq, or SHORE flat file)\n");
+		printf("\n\n");
+		printf("optional:\n");
+		printf(" -S             report spliced alignments (detailed options below)\n\n");
+		printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")\n");
+		printf(" -o STRING      output filename [stdout]\n");
+		printf(" -H STRING      output filename for spliced hits [stdout]\n");
+		printf(" -u STRING      output filename for unmapped reads [no output]\n\n");
 
-	printf(" -r             disable reverse alignment\n");
-	printf(" -h             perform alignment of flanking regions of hits\n");
-	printf(" -d             align gaps most right (most left) (ignored for spliced alignments)\n");
-	printf(" -w             allow more gaps for best hit (ignored for spliced alignments)\n");
-	//printf(" -e         report edit operations (alignment scores)\n");
-	printf(" -l INT         seed length (index size)\n");
-	printf(" -n INT         max number of best alignments (all)\n");
-	printf(" -c INT         seed container size (15.000.000)\n\n");
+		printf(" -a             report all alignments [best alignments only]\n");
+		printf(" -ar INT        report a limited number of alignments [best alignments only]\n");
+		printf(" -z INT         report a number of top alignments\n\n");
 
-	printf(" -threads INT                       maximal number of threads (4) \n");
-	printf(" -seed-hit-cancel-threshold INT     number of hits of a seed that lead to its ignoration\n");
-	printf(" -index-extend-threshold INT        number of hits of a seed that lead to an seed-length extension\n");
-	printf(" -index-extend INT                  length of seed-length extension\n");
-	printf(" -index-precache                    linearly read index file to fill caches\n\n");
-    printf(" -stranded STRING                   strand specific experiment [ left | right | plus | minus ]\n");
+		printf(" -r             disable alignment on reverse strand [enabled]\n");
+		printf(" -h             perform alignment of flanking regions of hits first [whole read alignment]\n");
+		printf(" -d             align gaps most right (ignored for spliced alignments) [most left]\n");
+		printf(" -w             allow more gaps for best hit (ignored for spliced alignments) [retain gap limit]\n");
+		//printf(" -e         report edit operations (alignment scores)\n");
+		printf(" -l INT         seed length [index size]\n");
+		printf(" -n INT         max number of best alignments [all best alignments]\n");
+		printf(" -c INT         seed container size [15.000.000]\n\n");
 
-	printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n");
-	printf(" -rtrim-step INT                    rtrim step size (INT)\n");
-	printf(" -polytrim INT                      trims polyA or polyT ends until a hit is found or the minimal length is reached (INT)\n");
-	printf(" -adaptertrim INT                   trims away known adapter sequences, read is dropped, when shorter than parameter (INT)\n\n");
+		printf(" -threads INT                       maximal number of threads [4] \n");
+		printf(" -seed-hit-cancel-threshold INT     number of hits of a seed that lead to its ignoration\n");
+		printf(" -index-extend-threshold INT        number of hits of a seed that lead to an seed-length extension\n");
+		printf(" -index-extend INT                  length of seed-length extension\n");
+		printf(" -index-precache                    linearly read index file to fill caches\n\n");
+		printf(" -stranded STRING                   strand specific experiment [ left | right | plus | minus ]\n");
 
-	printf(" -rlim INT      limit the number of reads for alignment\n\n");
+		printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n");
+		printf(" -rtrim-step INT                    rtrim step size (INT)\n");
+		printf(" -polytrim INT                      trims polyA or polyT ends until a hit is found or the minimal length is reached (INT)\n");
+		printf(" -adaptertrim INT                   trims away known adapter sequences, read is dropped, when shorter than parameter (INT)\n\n");
 
-	printf(" -M INT         max number of mismatches (3)\n");
-	printf(" -G INT         max number of gaps (1)\n");
-	printf(" -E INT         max edit operations(3)\n");
-	printf(" -m DOUBLE      mismatch penalty (4)\n");
-	printf(" -g DOUBLE      gap penalty (5)\n");
+		printf(" -rlim INT      limit the number of reads for alignment\n\n");
+		printf(" -to INT        map only the first <to> reads from query file\n");
+		printf(" -from INT      skip the first <from> reads from query file\n");
 
-	printf(" -v             verbose (silent)\n\n");
+		printf(" -M INT         max number of mismatches [3]\n");
+		printf(" -G INT         max number of gaps [1]\n");
+		printf(" -E INT         max edit operations [3]\n");
+		printf(" -m DOUBLE      mismatch penalty [4]\n");
+		printf(" -g DOUBLE      gap penalty [5]\n");
 
-	printf("spliced hits definitions: (-S required)\n");
-	printf(" -qpalma STRING                        file name with qpalma parameters (essential)\n");
-	printf(" -qpalma-use-map-max-len INT           limit the map extension up- and downstream to the given length (10.000)\n");
-	printf(" -qpalma-prb-offset-fix                automatically fix the quality offset, if necessary \n\n");
+		printf(" -v             verbose [silent]\n\n");
 
-	printf(" -acc STRING                           path name to acceptor splice site predictions (essential)\n");
-	printf(" -don STRING                           path name to donor splice site predictions (essential)\n");
-	printf(" -no-ss-pred                           indicates that no splice site predictions should be used\n\n");
+		printf("spliced hits definitions: (-S required)\n");
+		printf(" -qpalma STRING                        file name with qpalma parameters (essential)\n");
+		printf(" -qpalma-use-map-max-len INT           limit the map extension up- and downstream to the given length (10.000)\n");
+		printf(" -qpalma-prb-offset-fix                automatically fix the quality offset, if necessary \n\n");
 
-	printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1)\n");
-	printf(" -filter-max-mismatches INT            trigger spliced alignment, if unspliced alignment has at least this many mismatches\n");
-	printf(" -filter-max-gaps INT                  trigger spliced alignment, if unspliced alignment has at least this many mismatches\n\n");
+		printf(" -acc STRING                           path name to acceptor splice site predictions (essential)\n");
+		printf(" -don STRING                           path name to donor splice site predictions (essential)\n");
+		printf(" -no-ss-pred                           indicates that no splice site predictions should be used\n\n");
 
-	printf(" -C INT                                min combined length (auto)\n");
-	printf(" -L INT                                min length of long hit (auto)\n");
-	printf(" -K INT                                min length of short hit (auto)\n");
-	printf(" -SA INT                               maximum number of spliced alignments per read (10)\n");
-	printf(" -NI INT                               maximum number of introns in spliced alignments (auto)\n");
-	printf(" -CT INT                               distance to tolerate between hit and existing hit cluster (10)\n");
-	printf(" -QMM INT                              number of matches required for identifying a splice site (5)\n");
-	printf(" -I INT                                longest intron length  (auto)\n");
-	printf(" -EL INT                               minimal number of nucleotides in a spliced segment (auto)\n\n") ;
+		printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1)\n");
+		printf(" -filter-max-mismatches INT            trigger spliced alignment, if unspliced alignment has at least this many mismatches\n");
+		printf(" -filter-max-gaps INT                  trigger spliced alignment, if unspliced alignment has at least this many mismatches\n\n");
 
-	printf(" -report STRING                        file for map reporting\n");
-	printf(" -report-ro STRING                     file for map reporting (read only)\n");
-	printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
-	printf(" -report-map-region                    switch on reporting of mapped regions\n");
-	printf(" -report-map-read                      switch on reporting of mapped reads\n");
-	printf(" -report-spliced-read                  switch on reporting of spliced reads\n");
-	printf(" -report-splice-sites FLOAT            report splice sites with confidence not less that threshold\n");
-	printf(" -report-splice-sites-top-perc FLOAT   report splice sites with confidence in top percentile (between 0 and 1)\n");
-	printf(" -report-gff-init STRING               initialize map with exons from GFF file\n");
-	printf(" -report-coverage-map STRING           report genome coverage in map format\n");
-	printf(" -report-coverage-wig STRING           report genome coverage in wiggle format\n");
-	//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
+		printf(" -C INT                                min combined length (auto)\n");
+		printf(" -L INT                                min length of long hit (auto)\n");
+		printf(" -K INT                                min length of short hit (auto)\n");
+		printf(" -SA INT                               maximum number of spliced alignments per read (10)\n");
+		printf(" -NI INT                               maximum number of introns in spliced alignments (auto)\n");
+		printf(" -CT INT                               distance to tolerate between hit and existing hit cluster (10)\n");
+		printf(" -QMM INT                              number of matches required for identifying a splice site (5)\n");
+		printf(" -I INT                                longest intron length  (auto)\n");
+		printf(" -EL INT                               minimal number of nucleotides in a spliced segment (auto)\n\n") ;
+
+		printf(" -report STRING                        file for map reporting\n");
+		printf(" -report-ro STRING                     file for map reporting (read only)\n");
+		printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
+		printf(" -report-map-region                    switch on reporting of mapped regions\n");
+		printf(" -report-map-read                      switch on reporting of mapped reads\n");
+		printf(" -report-spliced-read                  switch on reporting of spliced reads\n");
+		printf(" -report-splice-sites FLOAT            report splice sites with confidence not less that threshold\n");
+		printf(" -report-splice-sites-top-perc FLOAT   report splice sites with confidence in top percentile (between 0 and 1)\n");
+		printf(" -report-gff-init STRING               initialize map with exons from GFF file\n");
+		printf(" -report-coverage-map STRING           report genome coverage in map format\n");
+		printf(" -report-coverage-wig STRING           report genome coverage in wiggle format\n");
+		//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
+	} else {
+
+		printf("USAGE: genomemapper [options] -i <reference> -q <reads>\n");
+
+		printf("\n");
+		printf("*Mandatory arguments*\n\n");
+		printf("    -i STRING        reference sequence (fasta file and prefix to index files)\n");
+		printf("    -q STRING        query filename (fasta, fastq, or SHORE flat file)\n");
+		printf("\n");
+
+		printf("*Optional arguments*\n\n");
+		printf("  Output:\n");
+		printf("    -f STRING        output format (\"shore\" or \"sam\") [shore]\n");
+		printf("    -o STRING        output filename [stdout]\n");
+		printf("    -u STRING        output filename for unmapped reads [no output]\n");
+
+		printf("\n  Mapping strategies (max. one selectable):\n");
+		printf("    -a               all-hit-strategy: report all valid alignments\n");
+		//printf("    -ar INT          report a limited number of alignments [best alignments only]\n");
+		printf("    -n INT           n-best-hit-strategy: report the best n alignments\n");
+		printf("    -b INT           best-hit-strategy with limit: report b number of alignments\n                     with top score\n");
+		printf("    [default:        best-hit-strategy: report all alignments with top score]\n");
+
+		printf("\n  Alignment settings:\n");
+		printf("    -M INT           max number of mismatches [3]\n");
+		printf("    -G INT           max number of gaps [1]\n");
+		printf("    -E INT           max edit operations [3]\n\n");
+		printf("    -m DOUBLE        mismatch penalty [4.0]\n");
+		printf("    -g DOUBLE        gap penalty [5.0]\n\n");
+		printf("    -d               align gaps most right [most left]\n");
+		printf("    -e               report edit operations instead of alignment scores\n");
+
+		printf("\n  Heuristic speedup:\n");
+		printf("    -s INT           seed hit cancel threshold: number of hits of a seed that\n                     lead to its ignoration\n");
+		printf("    -y INT           seed extend threshold: number of hits of a seed that lead\n                     to a seed-length extension\n");
+		printf("    -x INT           seed extend: length of seed-length extension\n");
+		printf("    -h               perform alignment of flanking regions of hits first\n                     [whole read alignment]\n");
+		printf("    -l INT           seed length: do not align hits shorter than <l> [index depth]\n");
+
+		printf("\n  Read trimming:\n");
+		printf("    -fixtrim INT     shortens the read to fixed length\n");
+		printf("    -rtrim INT       shortens the read until a hit is found or the minimal length\n                     is reached\n");
+		printf("    -rtrim-step INT  trimming step size in bp for -rtrim\n");
+		printf("    -polytrim INT    trims polyA or polyT ends until a hit is found or the minimal\n                     length is reached\n");
+		printf("    -adaptertrim INT trims away known adapter sequences; read is dropped when\n                     shorter than parameter\n");
+
+		printf("\n  Read subsets:\n");
+		printf("    -to INT          map only the first <to> reads from query file\n");
+		printf("    -from INT        skip the first <from> reads from query file\n");
+
+		printf("\n  Mapping of bisulfite-treated reads:\n");
+		printf("    -B               activates bisulfite mapping mode. There are two modi:\n                     - 2conversion-mode for paired end reads (either -q1 and -q2\n                       or -q and SHORE format)\n                     - 4conversion-mode for single reads (-q)\n");
+		printf("    -q1              filename of paired end reads 1 for 2conversion mode\n");
+		printf("    -q2              filename of paired end reads 2 for 2conversion mode\n");
+
+		printf("\n  Other options:\n");
+		printf("    -r               align only on forward strand of reference [both]\n");
+		printf("    -t INT           maximal number of threads [4] \n");
+		//printf("    -w               allow more gaps for best hit [retain gap limit]\n");
+		printf("    -c INT           seed container size (value will be added to 15Mio) [15.000.000]\n\n");
+		printf("    -v               verbose [silent]\n\n");
+	}
 
 	return 0;
 }

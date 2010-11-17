@@ -27,10 +27,11 @@ public:
 
 int main(int argc, char *argv[]) 
 {
+
 	_config.VersionHeader() ;
 
 	init_shogun() ;
-	
+
 	// timing //////////////
 	time_t timer, timer_mid, timer2;
   	timer=time(NULL);
@@ -40,12 +41,11 @@ int main(int argc, char *argv[])
 	// initialize variables
 	_config.parseCommandLine(argc, argv);
 	
-	FILE *OUT_FP = init_output_file(_config);
-	FILE *SP_OUT_FP = init_spliced_output_file(_config, OUT_FP);
+	FILE *OUT_FP = Util::openFile(_config.OUT_FILE_NAME, "w");
+	FILE *SP_OUT_FP = _config.SPLICED_HITS && _config.SPLICED_OUT_FILE_NAME.length() > 0 ? Util::openFile(_config.SPLICED_OUT_FILE_NAME, "w") : OUT_FP;
     FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
 
 	Genome genome;
-	GenomeMaps genomemaps(genome) ;
 
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
@@ -58,8 +58,6 @@ int main(int argc, char *argv[])
 			queryFile.next_read(__read) ;
 		queryFile.reset_read_count() ;
 	}
-
-	QPalma qpalma(&genome, &genomemaps, 0);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
 
 	// initialize GenomeMaps
@@ -74,8 +72,12 @@ int main(int argc, char *argv[])
 //		}
 //	}
 
+	GenomeMaps *genomemaps = NULL;
+	QPalma *qpalma = NULL;
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{
+		genomemaps = new GenomeMaps(genome);
+		qpalma = new QPalma(&genome, genomemaps, 0);
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "Using splice sites with confidence in top %1.2f%% percentile for read filtering\n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC) ;
 		else
@@ -83,13 +85,13 @@ int main(int argc, char *argv[])
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_ACC = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		qpalma->map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> acceptor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_ACC) ;
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_DON = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		qpalma->map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> donor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_DON) ;
 	}
@@ -103,13 +105,13 @@ int main(int argc, char *argv[])
 		
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma.map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		qpalma->map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
-			fprintf(stdout, "-> acceptor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC) ;
+			fprintf(stdout, "-> acceptor splice sites build_indexwith confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC) ;
 			
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_DON = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma.map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		qpalma->map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> donor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_DON) ;
 	}
@@ -128,7 +130,7 @@ int main(int argc, char *argv[])
 	MapperThread *threads[numThreads];
 	std::string threadIds(".+-:=!$'");
 	for (unsigned int i = 0; i < numThreads; ++i) {
-		threads[i] = new MapperThread(genome, genomemaps, queryFile, qpalma, reporter);
+		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter);
 		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
 		printf("Starting thread %d\n", i);
 		threads[i]->launch();
@@ -177,16 +179,20 @@ int main(int argc, char *argv[])
   	if (_config.STATISTICS) printf("Total time needed: %dh %dm %ds\n", hours, minutes, seconds);
   	////////////////////////
 
-	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL)
+	if (genomemaps != NULL && (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL))
 	{
-		genomemaps.do_reporting(1) ;
-		genomemaps.write_reporting() ;
+		genomemaps->do_reporting(1) ;
+		genomemaps->write_reporting() ;
 		//genomemaps.clean_reporting() ;
 	}
 	if (_config.REPORT_GENOME_COVERAGE)
-		genomemaps.write_cov_reporting() ;
+		genomemaps->write_cov_reporting() ;
+	if (qpalma != NULL)
+		delete qpalma;
+	if (genomemaps != NULL)
+		delete genomemaps;
 
-	if (_config.VERBOSE) { printf("palmapper finished\n"); }
+	if (_config.VERBOSE) { printf("Mapping finished\n"); }
 
 	return 0;
 }
