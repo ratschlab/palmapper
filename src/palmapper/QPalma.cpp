@@ -2499,6 +2499,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int alignment_matches = 0;
 	int alignment_gaps = 0;
 	int alignment_mismatches = 0 ;
+	int alignment_qual_mismatches = 0 ;
 	std::string read_anno = std::string("");
 
 	bool rescued_alignment=false;
@@ -2590,6 +2591,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	    
 	    //std::string read_anno = std::string("");
 	    char map[8] = "-ACGTN*";
+		int read_pos=0 ;
 	    for (int i = 0; i < result_length; i++) 
 		{
 			assert(dna_align[i]>=0 && dna_align[i]<=6);
@@ -2601,7 +2603,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			if (est_align[i]!=0 && est_align[i]!=6 && dna_align[i]!=0)
 			{
 				if (est_align[i]==dna_align[i])
+				{
 					read_anno.push_back(map[est_align[i]]) ;
+					if (map[est_align[i]]!='N')
+						assert(map[est_align[i]]==read_string[read_pos]) ;
+					read_pos++ ;
+				}
 				else
 				{
 					read_anno.push_back('[') ;
@@ -2616,7 +2623,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 					}
 					read_anno.push_back(']');
 					if (map[dna_align[i]]!='N' && map[est_align[i]]!='N')
+					{
 						alignment_mismatches++ ;
+						alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
+						assert(map[est_align[i]]==read_string[read_pos]) ;
+					}
+					read_pos++ ;
 				}
 				alignment_matches += (est_align[i]==dna_align[i]) ;
 			}
@@ -2654,8 +2666,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				}
 				read_anno.push_back(']');
 				alignment_gaps++;
+				alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
+				if (map[est_align[i]]!='N')
+					assert(map[est_align[i]]==read_string[read_pos]) ;
+				read_pos++ ;
 			}
 	    }
+		assert(read_pos==(int)read.length()) ;
 	    dna_align_str[result_length] = 0;
 	    est_align_str[result_length] = 0;
 	    
@@ -2793,6 +2810,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->num_matches = alignment_matches;
 		aln->num_gaps = alignment_gaps;
         aln->num_mismatches = alignment_mismatches ;
+        aln->qual_mismatches = alignment_qual_mismatches ;
 		strcpy(aln->read_anno, read_anno.c_str());
 		aln->exons = exons;
 		aln->chromosome = &contig_idx;
@@ -2895,12 +2913,14 @@ float QPalma::score_unspliced(Read const &read, const char * read_anno) const
 				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 65) ;
 				_config.QPALMA_PRB_OFFSET_FIX=false ;
 				alignment_parameters->quality_offset=65 ;
+				read.set_quality_offset(65) ;
 			}
 			if (alignment_parameters->quality_offset==65 && prb[i]<-10)
 			{
 				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 33) ;
 				_config.QPALMA_PRB_OFFSET_FIX=false ;
 				alignment_parameters->quality_offset=33 ;
+				read.set_quality_offset(33) ;
 			}
 			prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
 		}

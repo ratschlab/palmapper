@@ -105,6 +105,14 @@ public:
 	//void qpalma_filter_stat(Result &result, bool spliced) const;
 	//void qpalma_filter_stat_report() const;
 
+	int get_qpalma_quality_offset() 
+	{
+		if (!alignment_parameters)
+			return 33 ;
+		return alignment_parameters->quality_offset ;
+	}
+	
+	
 protected:
 	int get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh) const;
 	
