@@ -2666,7 +2666,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				}
 				read_anno.push_back(']');
 				alignment_gaps++;
-				alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
+				if (map[est_align[i]]!='N')
+					alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
 				if (map[est_align[i]]!='N')
 					assert(map[est_align[i]]==read_string[read_pos]) ;
 				read_pos++ ;
