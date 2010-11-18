@@ -18,8 +18,10 @@
 
 using namespace std;
 
+int Read::PRB_QUALITY_OFFSET=33 ;
+
 Read::Read(QueryFile &queryFile)
-:	_queryFile(queryFile)
+	:	_queryFile(queryFile)
 {
 	READ_QUALITY[0][0] = READ_QUALITY[1][0] = READ_QUALITY[2][0] = '\0';
 	READ_LENGTH = 0;
@@ -29,7 +31,7 @@ Read::Read(QueryFile &queryFile)
 }
 
 Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
-:	_queryFile(src._queryFile)
+	:	_queryFile(src._queryFile)
 {
 	copyFrom(src, cutStart, cutEnd);
 	READ_FORMAT = src.READ_FORMAT ;

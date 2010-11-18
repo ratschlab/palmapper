@@ -14,6 +14,7 @@ typedef struct alignment_t {
   double qpalma_score;
   uint32_t num_matches;
   uint32_t num_mismatches;
+  uint32_t qual_mismatches;
   uint32_t num_gaps;
   char read_anno[4*Config::MAX_READ_LENGTH] ;
   std::vector<int> exons;
@@ -50,7 +51,7 @@ public:
 	}
 
 	u_int8_t report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma const * qpalma)  ;
-	int construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
+	int construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *qual_mismatches_p, int *num_matches_p);
 	alignment_t *gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma const *qpalma) ;
 	int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
 	

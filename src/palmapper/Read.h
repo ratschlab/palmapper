@@ -249,6 +249,9 @@ public:
 		return _nr;
 	}
 
+	static int get_quality_offset() { return PRB_QUALITY_OFFSET ; } ; 
+	static void set_quality_offset(int offset) { PRB_QUALITY_OFFSET=offset ; } ;
+	
 private:
 	/**
 	 * Copies data from another read - possibly truncated. This method is private,
@@ -271,4 +274,6 @@ private:
 	QueryFile &_queryFile;
 
 	Read const * orig_read ;
+
+	static int PRB_QUALITY_OFFSET ;
 };

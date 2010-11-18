@@ -117,6 +117,10 @@ int main(int argc, char *argv[])
 			fprintf(stdout, "-> donor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_DON) ;
 	}
 
+	// slightly hacky ... 
+	if (qpalma)
+		Read::set_quality_offset(qpalma->get_qpalma_quality_offset()) ;
+	
 //	if (_config.REPORT_GFF_FILE_NAME.size()>0)
 //		genomemaps.init_with_gff(_config.REPORT_GFF_FILE_NAME) ;
 	
