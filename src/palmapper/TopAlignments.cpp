@@ -649,10 +649,10 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				   top_alignments[i]->chromosome==alignment->chromosome)
 				{ 
 					
-					int startalign1=alignment->exons[alignment->exons[0]];
-					int endalign1=alignment->exons[alignment->exons[alignment->exons.size()-1]];
-					int startalign2=top_alignments[i]->exons[top_alignments[i]->exons[0]];
-					int endalign2=top_alignments[i]->exons[top_alignments[i]->exons[top_alignments[i]->exons.size()-1]];
+					int startalign1=alignment->exons[0];
+					int endalign1=alignment->exons[alignment->exons.size()-1];
+					int startalign2=top_alignments[i]->exons[0];
+					int endalign2=top_alignments[i]->exons[top_alignments[i]->exons.size()-1];
 
 					//Continue if they don't overlap
 					if (endalign1<startalign2 || startalign1 > endalign2)
