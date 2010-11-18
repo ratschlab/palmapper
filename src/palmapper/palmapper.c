@@ -74,9 +74,10 @@ int main(int argc, char *argv[])
 
 	GenomeMaps *genomemaps = NULL;
 	QPalma *qpalma = NULL;
+	genomemaps = new GenomeMaps(genome);
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{
-		genomemaps = new GenomeMaps(genome);
+		//genomemaps = new GenomeMaps(genome);
 		qpalma = new QPalma(&genome, genomemaps, 0);
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "Using splice sites with confidence in top %1.2f%% percentile for read filtering\n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC) ;
@@ -134,6 +135,7 @@ int main(int argc, char *argv[])
 		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
 		printf("Starting thread %d\n", i);
 		threads[i]->launch();
+		//threads[i]->run();
 	}
 	for (unsigned int i = 0; i < numThreads; ++i) {
 	        threads[i]->join();
