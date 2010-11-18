@@ -32,19 +32,23 @@ struct position_score{
   int path_number; //In case of next_seed not NULL
   int path_number_matrices; 
   double partial_score;
-  //  int gaps;
-  //int mism;
+  int num_mm;
+  int num_gaps;
+  int num_introns;
 };
 typedef struct position_score PosScore;
 
 //Structure for an alignment from a seed
 struct seed_element{
-  int read_pos;
-  int dna_pos;
-  int max_gaps;
-  struct prev_score** matrices;
-  double* best_scores;
-  PosScore** best_score_pos;
+	int read_pos;
+	int dna_pos;
+	int max_gaps;
+	int max_mm;
+	int max_introns;
+	struct prev_score** matrices;
+	double* best_scores;
+	double best_prev_score;
+	PosScore** best_score_pos;
 };
 typedef struct seed_element SeedElem;
 
