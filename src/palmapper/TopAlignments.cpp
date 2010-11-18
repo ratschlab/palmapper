@@ -91,9 +91,11 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				else
 					sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[readstart+i], readbase);
 				count_char += 4;
-				if ( readbase!='N' && (*hit->chromosome)[readstart +i]!='N' )							
+				if (readbase!='N' && (*hit->chromosome)[readstart+i]!='N')
+				{
 					num_mismatches += 1 ;
-				qual_mismatches += readqual ;
+					qual_mismatches += readqual ;
+				}
 				num_matches-- ;
 			}
 			else {
