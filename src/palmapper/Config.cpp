@@ -156,10 +156,13 @@ int Config::applyDefaults(Genome * genome)
 	if (_personality == Palmapper)  {
 		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAME);
 		{
-
+			bool line_started=false ;
 			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
 				NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
+			{
+				line_started=true ;
 				fprintf(stdout, "* Automatically determining alignment parameters based on read length (%int):", read_length) ;
+			}
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
 			{
 				SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
@@ -198,8 +201,7 @@ int Config::applyDefaults(Genome * genome)
 				NUM_GAPS = read_length*0.03 ;
 				fprintf(stdout, " -G %i", NUM_GAPS) ;
 			}
-			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
-				NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING)
+			if (line_started)
 				fprintf(stdout, "\n") ;
 
 			if (SPLICED_HITS && QPALMA_MIN_NUM_MATCHES == DEFAULT_SETTING)
@@ -240,7 +242,7 @@ int Config::applyDefaults(Genome * genome)
 				genome_size+=genome->chromosome(i).length() ;
 
 			if (genome_size<900000000)
-				SPLICED_LONGEST_INTRON_LENGTH = 10000 ;
+				SPLICED_LONGEST_INTRON_LENGTH = 20000 ;
 			else if (genome_size<500000000)
 				SPLICED_LONGEST_INTRON_LENGTH = 50000 ;
 			else
