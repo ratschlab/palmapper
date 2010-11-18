@@ -64,7 +64,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 
 	int hitlength = hit->end - hit->start + 1;
 	unsigned int readstart;
-	
+
 	if (hit->orientation == '+') {
 		readstart = hit->start - hit->readpos + hit->start_offset; // start pos of read in genome	0-initialized
 	} else {
@@ -91,7 +91,8 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				else
 					sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[readstart+i], readbase);
 				count_char += 4;
-				num_mismatches += 1 ;
+				if ( readbase!='N' && (*hit->chromosome)[readstart +i]!='N' )							
+					num_mismatches += 1 ;
 				qual_mismatches += readqual ;
 				num_matches-- ;
 			}
@@ -107,11 +108,20 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				strcpy(ALIGNSEQ, read.data());
 			else
 			{
-				for (size_t i=0; i < read.length(); i++)
-					ALIGNSEQ[i] = (*hit->chromosome)[readstart+i] ;
-				//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + readstart, ((int)_read.lenght()));
+				for (size_t i=0; i<read.length(); i++){
+					if (get_compl_base(read.data()[((int)read.length())-1 - i])!=hit->chromosome->operator [](readstart+i)){
+						num_matches--;					
+						//Forgotten mismatch
+						//fprintf(stdout,"Forgotten mismatch at position %i in read\n",(int)i);					
+						if ( read.data()[((int)read.length())-1 - i]!='N' && (*hit->chromosome)[readstart +i]!='N' )					
+							num_mismatches++;
+					}
+					
+					ALIGNSEQ[i] = hit->chromosome->operator [](readstart+i) ;
+					//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + readstart, ((int)_read.lenght()));
+				}
+				ALIGNSEQ[((int)read.length())] = '\0';
 			}
-			ALIGNSEQ[((int) read.length())] = '\0';
 			*/
 
 		if (num_mismatches_p)
@@ -121,6 +131,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 		if (num_matches_p)
 			*num_matches_p = num_matches ;
 		
+		
 		return alignment_length ;
 		
 	}
@@ -128,9 +139,19 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	// #########################################
 
 
+	//fprintf(stderr, "mismatches=%i\n", hit->mismatches) ;
+	
+	// fprintf(stdout, "CHR SEQ: ");
+	// for (int i=0; i<80;i++)
+	// 	fprintf(stdout, "%c",hit->chromosome->operator [](readstart+i));
+	// fprintf(stdout, "\n");
+
+
+
 
 	// #########################################
 	// ###### ALIGNMENTS WITH MISMATCHES: ######
+
 
 	for (int i=0; i<hit->mismatches; i++)
 		assert(hit->edit_op[i].pos>=-((int) read.length()) && hit->edit_op[i].pos<=((int)read.length())) ;
@@ -171,8 +192,35 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 							count_char++;
 						}
 					} else {
-						ALIGNSEQ[count_char] = (*hit->chromosome)[readstart+i] ;
-						count_char++;
+
+					if (hit->orientation=='+'){
+						if(read.data()[i]!=hit->chromosome->operator [](readstart+i)){
+							//Forgotten mismatch
+							num_matches--;
+							//fprintf(stdout,"Forgotten mismatch (begin) at position %i (%c,%c) in read\n",(int)i,read.data()[i],(*hit->chromosome)[readstart+i]);					
+							if ( read.data()[i]!='N' && (*hit->chromosome)[readstart +i]!='N' )					
+								num_mismatches++;
+							sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[readstart + i], read.data()[i]);
+							count_char+=3;							
+						}
+						else
+							ALIGNSEQ[count_char] = (*hit->chromosome)[readstart+i] ;
+					}
+					else{
+						if(get_compl_base(read.data()[((int)read.length())-1 - i])!=hit->chromosome->operator [](readstart+i)){
+							//Forgotten mismatch
+							num_matches--;
+							//fprintf(stdout,"Forgotten mismatch (begin) at position %i (%c,%c) in read\n",(int)(((int)read.length()) - i-1),get_compl_base(read.data()[((int)read.length()) - i-1]),(*hit->chromosome)[readstart+i]);	   
+							if (get_compl_base(read.data()[((int)read.length())-1 - i])!='N' && (*hit->chromosome)[readstart +i]!='N' )					
+								num_mismatches++;
+							sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[readstart + i], get_compl_base(read.data()[((int)read.length()) - i-1]));
+							count_char+=3;							
+						}
+						else
+							ALIGNSEQ[count_char] = (*hit->chromosome)[readstart+i] ;
+						
+					}
+					count_char++;		
 					}
 				}
 					//strncpy(ALIGNSEQ, CHR_SEQ[hit->chromosome] + (readstart), hit->edit_op[0].pos - 1);
@@ -180,6 +228,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 			}
 		} 
 		else if (hit->edit_op[j].pos - hit->edit_op[j - 1].pos != 0) 
+
 		{	// from mismatch to mismatch
 			if (_config.BSSEQ) {
 				for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++) {
@@ -200,14 +249,48 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 					}
 				}
 			} else {
-				for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++) {
-					ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
-					count_char++;
+			for (size_t i=0; (int)i<hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read; i++){
+
+				if (hit->orientation=='+'){
+					if (read.data()[ hit->edit_op[j - 1].pos + i -gap_in_read]!=hit->chromosome->operator []((readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i)){
+					//Forgotten mismatch
+					num_matches--;
+					//fprintf(stdout,"Forgotten mismatch (between 2 edit op) at position %i in read (+)\n",(int)(hit->edit_op[j - 1].pos +i));					
+					if ( read.data()[hit->edit_op[j - 1].pos +i -gap_in_read]!='N' && (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i]!='N' )					
+						num_mismatches++;	
+					sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i], read.data()[hit->edit_op[j - 1].pos +i -gap_in_read]);
+					count_char+=3;					
+					}				   
+					else
+						ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i- gap_in_read] ;						
 				}
+				else{
+					if (get_compl_base(read.data()[ ((int)read.length()) -1 - hit->edit_op[j - 1].pos - i + gap_in_read])!=hit->chromosome->operator []((readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i)){
+					//Forgotten mismatch
+					num_matches--;
+					//fprintf(stdout,"Forgotten mismatch (between 2 edit op) at position %i in read (-)\n",(int)(((int)read.length()) -1 - hit->edit_op[j - 1].pos -i + gap_in_read));					
+					if ( read.data()[((int)read.length()) -1 - hit->edit_op[j - 1].pos - i + gap_in_read]!='N' && (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i]!='N' )					
+						num_mismatches++;	
+					sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i], get_compl_base(read.data()[ ((int)read.length()) -1 - hit->edit_op[j - 1].pos - i + gap_in_read]));
+					count_char+=3;
+					}
+					else
+						ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;						
+				}
+				
+				
+				count_char++;
+				
+				//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
+				//hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read); // -1???
+			}
+
+			
 			}
 				//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
 				//hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read); // -1???
 			//count_char += hit->edit_op[j].pos - hit->edit_op[j - 1].pos - 1 + gap_in_read;
+
 		} // else: edit_op[j-1] must have been a gap!
 
 		gap_in_read = 0;
@@ -288,6 +371,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	// from last mismatch to end of read:
 
 	if (((int)read.length()) - hit->edit_op[j - 1].pos + gap_in_read >= 0)
+
 	{
 		if (_config.BSSEQ) {
 			for (size_t i=0; (int)i < ((int) read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++) {
@@ -309,16 +393,49 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				}
 			}
 		} else {
-			for (size_t i=0; (int)i < ((int) read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++) {
-				ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
-				count_char++;
+		for (size_t i=0; (int)i<((int)read.length())  - hit->edit_op[j - 1].pos + gap_in_read; i++){			
+			//TODO indices
+			if (hit->orientation=='+'){
+				if(read.data()[hit->edit_op[j-1].pos + i - gap_in_read]!=hit->chromosome->operator []((readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i)){
+					//Forgotten mismatch
+					num_matches--;
+					//fprintf(stdout,"Forgotten mismatch (end) at position %i in read (+)\n",(int)(hit->edit_op[j-1].pos + i- gap_in_read));					
+					if ( read.data()[hit->edit_op[j-1].pos + i - gap_in_read]!='N' && (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i]!='N' )					
+						num_mismatches++;	
+					sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i],read.data()[hit->edit_op[j-1].pos + i- gap_in_read] );
+					count_char+=3;
+				}
+				else
+					ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
+				
 			}
+			else{				
+				if(get_compl_base(read.data()[((int)read.length()) -1 - hit->edit_op[j-1].pos - i + gap_in_read])!=hit->chromosome->operator []((readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i)){
+					//Forgotten mismatch
+					num_matches--;
+					//fprintf(stdout,"Forgotten mismatch (end) at position %i in read (-)\n",(int)(((int)read.length()) -1 - hit->edit_op[j-1].pos - i + gap_in_read));					
+					if ( read.data()[((int)read.length()) -1 - hit->edit_op[j-1].pos - i + gap_in_read]!='N' && (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i]!='N' )					
+						num_mismatches++;	
+					sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i],get_compl_base(read.data()[((int)read.length()) -1 - hit->edit_op[j-1].pos - i + gap_in_read] ));
+					count_char+=3;
+				}
+				else
+					ALIGNSEQ[count_char] = (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i] ;
+				
+			}
+
+			count_char++;
+			
+		}		
+
+
 		}
 			//strncpy(ALIGNSEQ + count_char, CHR_SEQ[hit->chromosome] + (readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read), 
 			//((int)_read.lenght())	- hit->edit_op[j - 1].pos + gap_in_read);
 		//count_char += ((int)_read.length()) - hit->edit_op[j - 1].pos + gap_in_read;
+
     }
-	//fprintf(stderr, "count_char=%i num_mismatches=%i num_matches=%i\n", count_char, num_mismatches, num_matches) ;
+	//fprintf(stdout, "start=%i hit_len=%i count_char=%i hit_mm=%i num_mismatches=%i num_matches=%i\n", hit->start, hitlength, count_char, hit->mismatches, num_mismatches, num_matches) ;
 	
 	ALIGNSEQ[count_char] = '\0';
 	// #########################################
@@ -334,6 +451,8 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	if (num_matches_p)
 		*num_matches_p = num_matches ;
 	
+
+	//fprintf(stdout,"%s\n",ALIGNSEQ);
 	return alignment_length ;
 
 }
@@ -357,7 +476,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 		readend = readstart + alignment_length ;
     }
 
-
+	
 	alignment_t *best = new alignment_t ;
 	best->qpalma_score = 1000 ;
 	best->num_matches = num_matches ;
@@ -599,7 +718,20 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	// Special case: list of top hits is still empty. Kick-start it with the
 	// current hit.
 
-	
+//	fprintf(stdout,"#alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i mismatches=%i gaps=%i strand=%c orientation=%c spliced=%i): %s\n",
+//			alignment->non_consensus,
+//			(int) alignment->exons.size() / 2, 
+//			alignment->read_id, 
+//			alignment->qpalma_score,
+//			alignment->num_matches, 
+//			alignment->num_mismatches, 
+//			alignment->num_gaps, 
+//			alignment->strand, 
+//			alignment->orientation, 
+//			alignment->spliced, 
+//			alignment->read_anno);
+//	for (size_t j = 0; j < alignment->exons.size(); j += 2)
+//		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, alignment->exons[j], alignment->exons[j+ 1]);
 
 	if (top_alignments.empty())
     {
@@ -623,8 +755,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 			for (uint8_t i = 0; i < top_alignments.size(); i++)
 			{
 			
-				//Consensus and non consensus alignments exist on opposite strand
-				if(top_alignments[i]->spliced && top_alignments[i]->strand!=alignment->strand && top_alignments[i]->orientation==alignment->orientation && alignment->non_consensus!=top_alignments[i]->non_consensus)
+				//Consensus and non consensus alignments exist on opposite strand on the same chromosome
+				if(top_alignments[i]->spliced && top_alignments[i]->strand!=alignment->strand && top_alignments[i]->orientation==alignment->orientation && alignment->non_consensus!=top_alignments[i]->non_consensus && top_alignments[i]->chromosome==alignment->chromosome)
 				{ 
 					//Alignment to add is a non consensus one
 					if (alignment->non_consensus){
