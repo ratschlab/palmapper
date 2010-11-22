@@ -5,10 +5,9 @@
 #include <string>
 
 #include <palmapper/Config.h>
+#include <palmapper/QueryFile.h>
 #include <palmapper/Statistics.h>
 #include <palmapper/Util.h>
-
-class QueryFile;
 
 class Read {
 	friend class QueryFile;
@@ -50,6 +49,8 @@ public:
 	char format() const {
 		return READ_FORMAT;
 	}
+
+	void printOn(std::ostream &out) const;
 
 	void cutOffLast() {
 		--READ_LENGTH;
@@ -272,8 +273,14 @@ private:
 	int _nr;
 	
 	QueryFile &_queryFile;
+	QueryFile::Location _location;
 
 	Read const * orig_read ;
 
 	static int PRB_QUALITY_OFFSET ;
 };
+
+inline std::ostream &operator<<(std::ostream &out, Read const &read) {
+	read.printOn(out);
+	return out;
+}

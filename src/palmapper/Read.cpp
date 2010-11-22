@@ -20,8 +20,9 @@ using namespace std;
 
 int Read::PRB_QUALITY_OFFSET=33 ;
 
+static std::string undefinedString = std::string("<no file>");
 Read::Read(QueryFile &queryFile)
-	:	_queryFile(queryFile)
+	:	_queryFile(queryFile), _location(QueryFile::Location(undefinedString, -1))
 {
 	READ_QUALITY[0][0] = READ_QUALITY[1][0] = READ_QUALITY[2][0] = '\0';
 	READ_LENGTH = 0;
@@ -31,7 +32,7 @@ Read::Read(QueryFile &queryFile)
 }
 
 Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
-	:	_queryFile(src._queryFile)
+	:	_queryFile(src._queryFile), _location(src._location)
 {
 	copyFrom(src, cutStart, cutEnd);
 	READ_FORMAT = src.READ_FORMAT ;
@@ -87,9 +88,11 @@ int Read::read_short_read()
 
 	linelen = strlen(line);
 	if (linelen < 3) {
-		cerr << "ERROR: Unknown read input format! Do all the reads have an identifier?\n";
+		cerr << "ERROR: at " << _queryFile.getLocation() << " Unknown read input format! Do all the reads have an identifier?\n";
 		exit(0);
 	}
+
+	_location = _queryFile.getLocation();
 
 	if (line[0] == '@') {
 		/////// FastQ input ///////
@@ -110,7 +113,7 @@ int Read::read_short_read()
 
 		do {
 			if (!_queryFile.next_line(line, sizeof(line))) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence and quality!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
+				cerr << "ERROR: Read " << *this << " is not complete in input query file '%s'! Missing read sequence and quality!\n";
 				exit(0);
 			}
 		} while (strcspn(line, " \t\n") == 0);
@@ -123,7 +126,7 @@ int Read::read_short_read()
 			return -1;
 		}
 		else if (strlen(READ) == 0) {
-			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
+			cerr << "ERROR: Cannot find read sequence of read " << *this;
 			exit(0);
 		}
 		if (strcspn(READ, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
@@ -138,7 +141,7 @@ int Read::read_short_read()
 
 		do {
 			if (!_queryFile.next_line(line, sizeof(line))) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
+				cerr << "ERROR: Read " << *this << " is not complete'! Missing quality!\n";
 				exit(0);
 			}
 		} while (strcspn(line, " \t\n") == 0);
@@ -151,7 +154,7 @@ int Read::read_short_read()
 
 		do {
 			if (!_queryFile.next_line(line, sizeof(line))) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing quality!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
+				cerr << "ERROR: Read " << *this << " is not complete'! Missing quality!\n";
 				exit(0);
 			}
 		} while (strcspn(line, " \t\n") == 0);
@@ -160,7 +163,7 @@ int Read::read_short_read()
 		if (strlen(line) > 0)
 			strncpy(READ_QUALITY[0], line, strcspn(line, " \t\n"));
 		else {
-			fprintf(stderr, "ERROR: Cannot find read quality of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
+			cerr <<  "ERROR: Cannot find read quality of read " << *this << "'!\n";
 			exit(0);
 		}
 
@@ -190,7 +193,7 @@ int Read::read_short_read()
 
 		do {
 			if (!_queryFile.next_line(line, sizeof(line))) {
-				fprintf(stderr, "ERROR: Read '%s' in line %lu is not complete in input query file '%s'! Missing read sequence!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
+				cerr << "ERROR: Read " << *this << " is not complete'! Missing read sequence!\n";
 				exit(0);
 			}
 		} while (strcspn(line, " \t\n") == 0);
@@ -202,7 +205,7 @@ int Read::read_short_read()
 			return -1;
 		}
 		else if (strlen(READ) == 0) {
-			fprintf(stderr, "ERROR: Cannot find read sequence of read '%s' in line %lu in input query file '%s'!\n", READ_ID, _queryFile.line_nr(), _config.QUERY_FILE_NAME.c_str());
+			cerr << "ERROR: Cannot find read sequence of read " << *this << "'!\n";
 			exit(0);
 		}
 		for (int i=0; i<(int)strlen(READ); i++)
@@ -302,6 +305,10 @@ int Read::read_short_read()
 	}
 
 	return 0;
+}
+
+void Read::printOn(std::ostream &out) const {
+	out << READ_ID << " in " << _location;
 }
 
 void Read::printOn(FILE *file) const {

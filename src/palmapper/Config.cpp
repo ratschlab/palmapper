@@ -118,7 +118,6 @@ Config::Config() {
 
 	BSSEQ = 0;
 
-	QUERY_FILE_NAME = std::string("");
 	LEFTOVER_FILE_NAME = std::string("/dev/null") ;
 	READ1_FILE_NAME = std::string("") ;
 	READ2_FILE_NAME = std::string("") ;
@@ -154,7 +153,7 @@ int Config::applyDefaults(Genome * genome)
 	}
 
 	if (_personality == Palmapper)  {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAME);
+		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES);
 		{
 			bool line_started=false ;
 			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
@@ -400,7 +399,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 	int i;
 	char not_defined;
 	char has_index = 0;
-	char has_query = 0;
 	char has_genome = 0;
 
 	for (i = 1; i < argc; i++) {
@@ -506,8 +504,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1);
 			}
 			i++;
-			QUERY_FILE_NAME.assign(argv[i]);
-			has_query = 1;
+			QUERY_FILE_NAMES.push_back(std::string(argv[i]));
 		}
 
 		//output file
@@ -1558,30 +1555,16 @@ int Config::parseCommandLine(int argc, char *argv[])
 			BSSEQ = 1;
 		}
 
-		//read1 file
-		if (strcmp(argv[i], "-q1") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -q1\n") ;
-				usage();
-				exit(1);
-			}
-			i++;
-			READ1_FILE_NAME.assign(argv[i]);
-			has_query = 1;
-		}
-
 		//read2 file
-		if (strcmp(argv[i], "-q2") == 0) {
+		if (strcmp(argv[i], "-q1") == 0 || strcmp(argv[i], "-q2") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -q2\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", argv[i]);
 				usage();
 				exit(1);
 			}
 			i++;
-			READ2_FILE_NAME.assign(argv[i]);
-			has_query = 1;
+			QUERY_FILE_NAMES.push_back(std::string(argv[i]));
 		}
 
 		if (_personality == Palmapper) {
@@ -1693,7 +1676,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 	}
 
-	if (has_index == 0 || has_query == 0 || has_genome == 0) {
+	if (has_index == 0 || QUERY_FILE_NAMES.size() == 0 || has_genome == 0) {
 		usage();
 		exit(1);
 	}
