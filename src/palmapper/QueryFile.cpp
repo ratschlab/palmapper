@@ -5,12 +5,11 @@
 
 using namespace std;
 
-QueryFile::QueryFile(std::string filename) {
-	_filename = filename;
-	_file = Util::openFile(filename, "r");
-	_lineNr = 0;
-	_maxReadLen = 0;
+QueryFile::QueryFile(std::vector<std::string> const &filenames) : _filenames(filenames) {
+	_currentFile = -1;
 	_readCount = 0;
+	_file = NULL;
+	open_next_file();
 }
 
 QueryFile::~QueryFile() {
@@ -35,10 +34,12 @@ Read *QueryFile::next_read() {
 
 bool QueryFile::next_read(Read &read) {
 	Mutex::Locker locker(_mutex);
-	if (read.read_short_read() > 0) {
-		if (_readCount == 0)
-			cerr << "\n!!! WARNING: Input read file '" << _filename << "' contains no usable read!\n\n";
-		return false;
+	while (read.read_short_read() > 0) {
+		if (!open_next_file()) {
+			if (_readCount == 0)
+				cerr << "\n!!! WARNING: None of the given file(s) contain any usable read!\n\n";
+			return false;
+		}
 	}
 	read._nr = _readCount++;
 	if (read.length() > _maxReadLen)
@@ -46,8 +47,19 @@ bool QueryFile::next_read(Read &read) {
 	return true;
 }
 
-int QueryFile::determine_read_length(std::string const &filename) {
-	QueryFile file(filename);
+bool QueryFile::open_next_file() {
+	if (++_currentFile >= _filenames.size())
+		return false;
+	if (_file != NULL)
+		::fclose(_file);
+	_file = Util::openFile(_filenames[_currentFile], "r");
+	_lineNr = 0;
+	_maxReadLen = 0;
+	return true;
+}
+
+int QueryFile::determine_read_length(std::vector<std::string> const &filenames) {
+	QueryFile file(filenames);
 	int const sample_size = 10000;
 	int sum_read_length = 0;
 	int nr_read = 0;
@@ -59,4 +71,11 @@ int QueryFile::determine_read_length(std::string const &filename) {
 		sum_read_length += r.length();
 	}
 	return sum_read_length / nr_read;
+}
+
+void QueryFile::Location::printOn(std::ostream &out) const {
+	out << *_filename;
+	out << '(';
+	out << _lineNr;
+	out << ')';
 }

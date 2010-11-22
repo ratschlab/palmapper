@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
 
-	QueryFile queryFile(_config.QUERY_FILE_NAME);
+	QueryFile queryFile(_config.QUERY_FILE_NAMES);
 	if (0) {
 		fprintf(stdout, "skipping 63000 reads\n") ;
 		Read __read(queryFile) ;

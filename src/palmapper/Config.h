@@ -115,7 +115,7 @@ public:
 	std::string INDEX_FWD_FILE_NAME;
 	std::string INDEX_REV_FILE_NAME;
 	std::string META_INDEX_FILE_NAME;
-	std::string QUERY_FILE_NAME;
+	std::vector<std::string> QUERY_FILE_NAMES;
 	std::string OUT_FILE_NAME;
 	std::string SPLICED_OUT_FILE_NAME;
 	std::string GENOME_FILE_NAME;
