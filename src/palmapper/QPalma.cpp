@@ -2462,7 +2462,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		hit_dna_converted=(int)dna.length()-1-hit_dna_converted;
 
 	assert (hit_dna_converted >= 0);
-	alignment.myalign_fast(nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
+	alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
 						   est_len_p, prb, alignment_parameters->h,
 						   alignment_parameters->matchmatrix,
 						   alignment_parameters->matchmatrix_dim[0]
@@ -2761,8 +2761,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 					read_anno.c_str());
 
 		if (verbosity >= 1)
-			fprintf(stdout, "# alignment with %i exons (%i, %i, %i)\n", (int)exons.size()/2, 
-					(int)alignment_mismatches, (int)alignment_gaps, (int)alignment_mismatches+alignment_gaps) ;
+			fprintf(stdout, "# alignment with %i exons (%i, %i, %i, %i)\n", (int)exons.size()/2, 
+					(int)alignment_mismatches, (int)alignment_gaps, (int)alignment_mismatches+alignment_gaps, (int)alignment_qual_mismatches) ;
 	  
 	}
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
