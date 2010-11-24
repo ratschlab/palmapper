@@ -94,7 +94,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				if (readbase!='N' && (*hit->chromosome)[readstart+i]!='N')
 				{
 					num_mismatches += 1 ;
-					qual_mismatches += readqual ;
+					qual_mismatches += readqual - read.get_quality_offset() ;
 				}
 				num_matches-- ;
 			}
@@ -175,7 +175,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 						count_char+=4;
 						if (readbase!='N' && (*hit->chromosome)[readstart +i]!='N'){
 							num_mismatches ++;
-							qual_mismatches += readqual ;
+							qual_mismatches += readqual - read.get_quality_offset() ;
 						}
 						
 					}
@@ -202,7 +202,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 					count_char += 4;
 					if ( readbase!='N' && (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i]!='N' )	{						
 						num_mismatches++;	
-						qual_mismatches += readqual;
+						qual_mismatches += readqual - read.get_quality_offset() ;
 					}
 					
 					
@@ -308,7 +308,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				num_matches--;
 				if ( readbase!='N' && (*hit->chromosome)[(readstart + hit->edit_op[j - 1].pos + gap_offset - gap_in_read)+i]!='N' ){
 					num_mismatches++;
-					qual_mismatches += readqual;					
+					qual_mismatches += readqual - read.get_quality_offset() ;					
 				}
 				
 			}
