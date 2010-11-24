@@ -9,7 +9,7 @@
 #include "fill_matrix.h"
 #include "debug_tools.h"
 #include "stdint.h"
-
+#include <palmapper/Genome.h>
 
 bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left, const std::vector<SeedElem*>& seed_matrix_right, int z, int est_len, int dna_len, int* result_length_ptr, 
 			char* est, char* dna, double* prb, int* s_align, int* e_align, int* mparam, double* alignmentscores, int* max_score_positions, 
@@ -91,8 +91,7 @@ class Alignment {
       }
 
       void cleanup() ;
-      void myalign_fast(int nr_paths_p, char* dna, int dna_len_p, char* est,
-			 int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
+      void myalign_fast(char strand, Chromosome const &chr,  std::vector<int> &positions, int nr_paths_p, char* dna, int dna_len_p, char* est, int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 			 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 			 bool remove_duplicate_scores, int hit_read, int hit_dna, int hit_len, int max_number_introns, 
 			 int max_gap, int max_mism, int max_edit_op, int min_match );
