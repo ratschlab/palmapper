@@ -387,9 +387,9 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 		if (qpalma)
 			best->qpalma_score = qpalma->score_unspliced(read, ALIGNSEQ) ;
 		else
-			best->qpalma_score = (best_hit->mismatches * _config.MM_SCORE) + (best_hit->gaps * _config.GAP_SCORE) + ((hitlength-best_hit->mismatches-best_hit->gaps) * _config.M_SCORE);
+			best->qpalma_score = - ((best_hit->mismatches * _config.MM_SCORE) + (best_hit->gaps * _config.GAP_SCORE) + ((hitlength-best_hit->mismatches-best_hit->gaps) * _config.M_SCORE));
 	} else {
-		best->qpalma_score = (best_hit->mismatches * _config.MM_SCORE) + (best_hit->gaps * _config.GAP_SCORE) + ((hitlength-best_hit->mismatches-best_hit->gaps) * _config.M_SCORE);
+		best->qpalma_score = - ((best_hit->mismatches * _config.MM_SCORE) + (best_hit->gaps * _config.GAP_SCORE) + ((hitlength-best_hit->mismatches-best_hit->gaps) * _config.M_SCORE));
 	}
 	best->rtrim_cut=0 ;
 	best->polytrim_cut_start=0 ;
