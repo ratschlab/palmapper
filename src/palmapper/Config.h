@@ -164,6 +164,8 @@ public:
 	std::string ACC_FILES;
 	std::string DON_FILES;
 	int NO_SPLICE_PREDICTIONS;
+	bool NO_QPALMA;
+	
 	std::vector<const char*> ACC_CONSENSUS, DON_CONSENSUS, ACC_CONSENSUS_REV, DON_CONSENSUS_REV ;
 	bool non_consensus_search ;
 	int non_consensus_search_gap ;

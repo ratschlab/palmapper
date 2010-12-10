@@ -265,7 +265,7 @@ void print_restricted_matrix(Prev_score* matrices[],int nr_paths, int matrix_len
 
 
 
-void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,	int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity)
+void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,	int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity, mode currentMode)
 {
 
 //fprintf(stdout,"START: Fill %s side of the matrix from position %i-%i (%i,%i,%i,num_intron=%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,max_gap,max_mism,max_edit_op, max_number_introns);
@@ -303,7 +303,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	// Possible splice sites for starting a new alignment
 	std::vector<splice_pos *> possible_sites;
   
-	assert((int)functions->limits[functions->len-1]==2);
+	if (currentMode==USE_QUALITY_SCORES)
+		assert((int)functions->limits[functions->len-1]==2);
   
 	//width of the band according to the number of gaps
 	int row_len=max_gap*2+1;
@@ -341,12 +342,14 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	dnaChar=check_char(dna[seed_dna]) ;
 	readChar = check_char(read[seed_read]) ;
   
-#if D_USE_QUALITY_SCORES 
-	baseScore = read_scores[seed_read];
-	((Prev_score*)matrices[0]+ max_gap)->value = getScore(qualityScores,mlen,dnaChar,readChar,baseScore);
-#else
-	((Prev_score*)matrices[0]+ max_gap)->value = (matchmatrix[mlen* dnaChar +readChar]);
-#endif
+	if (currentMode == USE_QUALITY_SCORES){
+		baseScore = read_scores[seed_read];
+		((Prev_score*)matrices[0]+ max_gap)->value = getScore(qualityScores,mlen,dnaChar,readChar,baseScore);
+	}
+	else{
+		((Prev_score*)matrices[0]+ max_gap)->value = (matchmatrix[mlen* dnaChar +readChar]);
+	}
+	
 	((Prev_score*)matrices[0]+ max_gap)->prev_i = seed_read+prev_shift;
 	((Prev_score*)matrices[0]+ max_gap)->prev_j = seed_dna+prev_shift;
 	((Prev_score*)matrices[0]+ max_gap)->prev_matrix_no = 0;
@@ -495,10 +498,9 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 				readChar = check_char(read[i]);
 				assert(dnaChar!=-1 && readChar!=-1);
 
-#if D_USE_QUALITY_SCORES 
-				baseScore = read_scores[i];
-#endif
-
+				if (currentMode == USE_QUALITY_SCORES)
+					baseScore = read_scores[i];
+				
 				// Best score of what it leaves to align
 				if (ni<i_len-1){
 					if(right_side)
@@ -522,11 +524,12 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 					prevMism=((Prev_score*)actMatrix +matrix_prev_position)->num_mismatches;
 	
 					if (isnotminusinf(prevValue)){
-#if D_USE_QUALITY_SCORES 
-						tempValue = prevValue + getScore(qualityScores,mlen,dnaChar,readChar,baseScore);
-#else
-						tempValue = prevValue +(matchmatrix[mlen* dnaChar +readChar]);
-#endif
+
+						if (currentMode == USE_QUALITY_SCORES)
+							tempValue = prevValue + getScore(qualityScores,mlen,dnaChar,readChar,baseScore);
+						else
+							tempValue = prevValue +(matchmatrix[mlen* dnaChar +readChar]);
+
 						//Fill if tempValue is greater of equal to an existing spliced alignment
 						//If mismatch, does not have to rise above the number of allowed mismatches and edit operations 
 						if (isnotminusinf(tempValue) && (read[i]==dna[j] || (prevMism+1<=max_mism && prevMism+prevGaps+1<=max_edit_op)) && tempValue+putativeValue>globalValue){
@@ -775,7 +778,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											fast_fill_side_unspliced_first(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
 																		   main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
 																		   comp_sites[comp_ss]-prev_shift, best_match_scores, right_side,false,
-																		   max_number_introns-1,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity);
+																		   max_number_introns-1,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode);
 										}
 
 										//Keep best scores
@@ -834,9 +837,9 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						dnaChar = check_char(dna[j+prev_shift]);
 						readChar = check_char(read[i]);
 						assert(dnaChar!=-1 && readChar!=-1);
-#if D_USE_QUALITY_SCORES 
-						baseScore = read_scores[i];
-#endif
+
+						if (currentMode == USE_QUALITY_SCORES)
+							baseScore = read_scores[i];
 	    
 						// Best score of what it leaves to align
 						if (ni<i_len-1){
@@ -864,11 +867,11 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 							//Gap possible according to the number of gaps and mismatches at matrix_prev_position
 							if (prevGaps<max_gap && prevGaps+prevMism<max_edit_op){
 
-#if D_USE_QUALITY_SCORES 
-								tempValue = prevValue + getScore(qualityScores,mlen,0,readChar,baseScore);
-#else
-								tempValue = prevValue +(matchmatrix[readChar]); /* score(READ,gap) */
-#endif	
+								if (currentMode == USE_QUALITY_SCORES)
+									tempValue = prevValue + getScore(qualityScores,mlen,0,readChar,baseScore);
+								else
+									tempValue = prevValue +(matchmatrix[readChar]); /* score(READ,gap) */
+
 								if (isnotminusinf(tempValue)&& tempValue> ((Prev_score*)matrices[nr_paths_par-1] +matrix_position-1)->value && tempValue+putativeValue>globalValue){
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-1)->value = tempValue;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-1)->prev_i = i+prev_shift; /* predecessor */
@@ -910,9 +913,9 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						readChar = check_char(read[i+prev_shift]);
 						assert(dnaChar!=-1 && readChar!=-1);
 
-#if D_USE_QUALITY_SCORES 
-						baseScore = read_scores[i+prev_shift];
-#endif
+						if (currentMode == USE_QUALITY_SCORES)
+							baseScore = read_scores[i+prev_shift];
+
 	    
 						// Best score of what it leaves to align
 						if (ni<i_len){
@@ -938,11 +941,11 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 							//Gap possible according to the number of gaps and mismatches at matrix_prev_position
 							if (prevGaps<max_gap && prevGaps+prevMism<max_edit_op){
 	    
-#if D_USE_QUALITY_SCORES 
-								tempValue = prevValue + matchmatrix[dnaChar];
-#else
-								tempValue = prevValue + matchmatrix[mlen*dnaChar];   /* score(gap,DNA) */
-#endif
+								if (currentMode == USE_QUALITY_SCORES)
+									tempValue = prevValue + matchmatrix[dnaChar];
+								else
+									tempValue = prevValue + matchmatrix[mlen*dnaChar];   /* score(gap,DNA) */
+
 								if (isnotminusinf(tempValue)&& tempValue> ((Prev_score*)matrices[nr_paths_par-1] +matrix_position-row_len+1)->value && tempValue+putativeValue>globalValue){
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->value = tempValue;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->prev_i = i+prev_shift; /* predecessor */
@@ -998,7 +1001,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 					  double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
-					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity)
+					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode)
 {
   
 	const int MMATRIX_LEN = 6; // length of matchmatrix
@@ -1016,8 +1019,13 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	double *read_scores = prb;
   
 	for(int i=read_len-1; i >=0;i--){
-    
-		double score=getScore(qualityScores,MMATRIX_LEN,check_char(read[i]),check_char(read[i]),read_scores[i]);
+		
+		double score;
+		
+		if (currentMode == USE_QUALITY_SCORES)
+			score=getScore(qualityScores,MMATRIX_LEN,check_char(read[i]),check_char(read[i]),read_scores[i]);
+		else
+			score=matchmatrix[MMATRIX_LEN*check_char(read[i])+check_char(read[i])];
 		//fprintf(stdout,"match score at position %i: %f\n",i,score);
 		temp_best+=score;
 		best_match_scores[i]=temp_best;
@@ -1033,12 +1041,12 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 
 	std::vector<int> comp_sites;
 	fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_right,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, donor,acceptor,comp_sites,seed_i, 
-								   seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity);
+								   seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode);
 //	fprintf(stdout,"%i right sides of the matrix filled...\n",seed_matrix_right.size());
   
 	comp_sites.clear();
 	fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_left,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, acceptor,donor,comp_sites,seed_i, 
-								   seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity);
+								   seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode);
 	comp_sites.clear();
 //	fprintf(stdout,"%i left sides of the matrix filled...\n",seed_matrix_left.size());
 

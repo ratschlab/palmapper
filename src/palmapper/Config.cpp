@@ -130,8 +130,10 @@ Config::Config() {
 	DON_CONSENSUS_REV.push_back(strdup("GC")) ;
 
 	non_consensus_search = false ;
-	non_consensus_search_gap=3 ;
+	non_consensus_search_gap=1 ;
 	non_consensus_search_discount=1 ;
+
+	NO_QPALMA = false;
 	
     STRAND = -1 ;
 };
@@ -1578,6 +1580,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				i++;
 				QPALMA_FILE.assign(argv[i]);
+			}
+
+			if (strcmp(argv[i], "-no-qpalma") == 0) {
+				not_defined = 0;
+				NO_QPALMA = true;
+				
 			}
 
 			if (strcmp(argv[i], "-acc") == 0) {
