@@ -27,7 +27,7 @@ QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
 	
 	if (_config.SPLICED_HITS)
 	{
-		if (_config.QPALMA_FILE.length()>0)
+		if (_config.QPALMA_FILE.length()>0 || _config.NO_QPALMA)
 		{
 			int ret=init_alignment_parameters(_config.QPALMA_FILE) ;
 			if (ret!=0)
@@ -38,8 +38,8 @@ QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
 		}
 		else
 		{
-			fprintf(stderr, "alignment parameter file not provided (use -qpalma option)\n") ;
-			exit(-1) ;
+				fprintf(stderr, "alignment parameter file not provided (use -qpalma option)\n") ;
+				exit(-1) ;
 		}
 		
 		if (_config.ACC_FILES.length()>0)
@@ -457,74 +457,133 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 							   struct penalty_struct *&qualityPlifs, int &num_qualityPlifs,
 							   double*&matchmatrix, int dims[2], int &quality_offset) 
 {
-	num_qualityPlifs = 30;
-	qualityPlifs = (struct penalty_struct*) malloc(
-		sizeof(struct penalty_struct) * num_qualityPlifs);
-	
-	if (qualityPlifs == NULL) {
-		fprintf(stderr, "[init_spliced_align] Could not allocate memory\n");
-		return -1;
+
+	if (_config.NO_QPALMA){
+		
+		//No scoring function for intron length (h), acceptor sites (a), donor sites (d), edit operations
+		init_penalty_struct(h);
+		init_penalty_struct(a);
+		init_penalty_struct(d);
+		qualityPlifs=NULL;
+		num_qualityPlifs=0;
+
+		// No quality-based score
+		quality_offset=33; //Sanger Fastq format
+		
+		//Fill matchmatrix from mismatch, gap and match penalties
+		//   - A C G T N
+		// - x x x x x x
+		// A x x x x x x
+		// C x x x x x x
+		// G x x x x x x
+		// T x x x x x x
+		// N x x x x x x
+		dims[0]=6;
+		dims[1]=6;
+		
+		matchmatrix = (double*) malloc(sizeof(double) * dims[0]*dims[1]);
+
+		if (matchmatrix == NULL) {
+			fprintf(stderr,
+					"[init_spliced_align] Could not allocate memory\n");
+			return -1;
+		}
+		
+		
+		for (int i=0;i<dims[0];i++){ //DNA
+			for (int j=0;j<dims[1];j++){ //Read
+
+				if (i==0){ // Gap on DNA
+					matchmatrix[i*dims[0]+j] = -_config.GAP_SCORE;
+					continue;
+				}
+				if (j == 0){ //Gap on Read
+					matchmatrix[i*dims[0]+j] = -_config.GAP_SCORE;
+					continue;
+				}
+				
+				if (i==j){ //Match
+					matchmatrix[i*dims[0]+j] = -_config.M_SCORE;
+					continue;
+				}
+				
+				//Mismatch
+				matchmatrix[i*dims[0]+j] = -_config.MM_SCORE;
+				
+			}
+		}
 	}
-	char *matrix_name = NULL;
-	
-	FILE * fd = Util::openFile(fname, "r");
-	Util::skip_comment_lines(fd) ;
-	int ret = read_plif(fd, h);
-	if (ret < 0)
-		return ret;
-
-	assert(strcmp(h.name, "h")==0);
-	h.max_len = _config.SPLICED_LONGEST_INTRON_LENGTH ;
-	for (int i = 0; i < h.len; i++)
-		if (h.limits[i] > 2)
-			h.limits[i] = 2;
-
-	Util::skip_comment_lines(fd) ;
-	ret = read_plif(fd, d);
-	if (ret < 0)
-		return ret;
-	assert(strcmp(d.name, "d")==0);
-	d.use_svm = 1;
-
-	Util::skip_comment_lines(fd) ;
-	ret = read_plif(fd, a);
-	assert(strcmp(a.name, "a")==0);
-	if (ret < 0)
-		return ret;
-	a.use_svm = 1;
-	for (int i = 0; i < num_qualityPlifs; i++)
+	else
 	{
-	    Util::skip_comment_lines(fd) ;
-	    read_plif(fd, qualityPlifs[i]);
-	}
-
-	Util::skip_comment_lines(fd) ;
-	ret = read_matrix(fd, matchmatrix, matrix_name, dims);
-	if (ret < 0)
-	{
-		fprintf(stderr, "init_spliced_align: reading mmatrix failed\n") ;
-		return ret;
-	}
-	assert(strcmp(matrix_name, "mmatrix")==0);
-	free(matrix_name);
-	matrix_name=NULL ;
+		num_qualityPlifs = 30;
+		qualityPlifs = (struct penalty_struct*) malloc(
+			sizeof(struct penalty_struct) * num_qualityPlifs);
 	
-	double *quality_offset_matrix ;
-	int quality_offset_dims[2] ;
-	Util::skip_comment_lines(fd) ;
-	ret = read_matrix(fd, quality_offset_matrix, matrix_name, quality_offset_dims);
-	if (ret < 0)
-	{
-		fprintf(stderr, "init_spliced_align: reading quality_offset failed\n") ;
-		return ret;
-	}
-	assert(strcmp(matrix_name, "prb_offset")==0);
-	free(matrix_name);
-	assert(quality_offset_dims[0]==1) ;
-	assert(quality_offset_dims[1]==1) ;
-	quality_offset=(int)quality_offset_matrix[0] ;
-	free(quality_offset_matrix) ;
+		if (qualityPlifs == NULL) {
+			fprintf(stderr, "[init_spliced_align] Could not allocate memory\n");
+			return -1;
+		}
+		char *matrix_name = NULL;
+	
+		FILE * fd = Util::openFile(fname, "r");
+		Util::skip_comment_lines(fd) ;
+		int ret = read_plif(fd, h);
+		if (ret < 0)
+			return ret;
 
+		assert(strcmp(h.name, "h")==0);
+		h.max_len = _config.SPLICED_LONGEST_INTRON_LENGTH ;
+		for (int i = 0; i < h.len; i++)
+			if (h.limits[i] > 2)
+				h.limits[i] = 2;
+
+		Util::skip_comment_lines(fd) ;
+		ret = read_plif(fd, d);
+		if (ret < 0)
+			return ret;
+		assert(strcmp(d.name, "d")==0);
+		d.use_svm = 1;
+
+		Util::skip_comment_lines(fd) ;
+		ret = read_plif(fd, a);
+		assert(strcmp(a.name, "a")==0);
+		if (ret < 0)
+			return ret;
+		a.use_svm = 1;
+		for (int i = 0; i < num_qualityPlifs; i++)
+		{
+			Util::skip_comment_lines(fd) ;
+			read_plif(fd, qualityPlifs[i]);
+		}
+
+		Util::skip_comment_lines(fd) ;
+		ret = read_matrix(fd, matchmatrix, matrix_name, dims);
+		if (ret < 0)
+		{
+			fprintf(stderr, "init_spliced_align: reading mmatrix failed\n") ;
+			return ret;
+		}
+		assert(strcmp(matrix_name, "mmatrix")==0);
+		free(matrix_name);
+		matrix_name=NULL ;
+	
+		double *quality_offset_matrix ;
+		int quality_offset_dims[2] ;
+		Util::skip_comment_lines(fd) ;
+		ret = read_matrix(fd, quality_offset_matrix, matrix_name, quality_offset_dims);
+		if (ret < 0)
+		{
+			fprintf(stderr, "init_spliced_align: reading quality_offset failed\n") ;
+			return ret;
+		}
+		assert(strcmp(matrix_name, "prb_offset")==0);
+		free(matrix_name);
+		assert(quality_offset_dims[0]==1) ;
+		assert(quality_offset_dims[1]==1) ;
+		quality_offset=(int)quality_offset_matrix[0] ;
+		free(quality_offset_matrix) ;
+	}
+	
 	return 0;
 }
 
@@ -2088,8 +2147,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int num_qual_support = 0;
 	if (alignment_parameters->num_qualityPlifs > 0)
 		num_qual_support = alignment_parameters->qualityPlifs[0].len;
-	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true, verbosity);
-
+	//Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true, verbosity);
+	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, !(_config.NO_QPALMA), verbosity);
 	/* initialize acceptor and donor tables */
 	int d_len = dna.length() ;
 	double* donor = NULL ;
@@ -2439,16 +2498,20 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		{
 			if (donor[i]==NON_CONSENSUS_SCORE)
 				donor[i]=0.0 ;
-			else
-				donor[i] = lookup_penalty(&alignment_parameters->d, 0, &donor[i]);
+			else{
+				if (not _config.NO_QPALMA)
+					donor[i] = lookup_penalty(&alignment_parameters->d, 0, &donor[i]);
+			}			
 		}
 	for (int i = 0; i < a_len; i++)
 		if (acceptor[i] > -ALMOST_INFINITY)
 		{
 			if (acceptor[i]==NON_CONSENSUS_SCORE)
 				acceptor[i]=0.0 ;
-			else
-				acceptor[i] = lookup_penalty(&alignment_parameters->a, 0, &acceptor[i]);
+			else{
+				if (not _config.NO_QPALMA)
+					acceptor[i] = lookup_penalty(&alignment_parameters->a, 0, &acceptor[i]);
+			}
 		}
 
 	bool remove_duplicate_scores = false;
@@ -2889,7 +2952,8 @@ float QPalma::score_unspliced(Read const &read, const char * read_anno) const
 	int num_qual_support = 0;
 	if (alignment_parameters->num_qualityPlifs > 0)
 		num_qual_support = alignment_parameters->qualityPlifs[0].len;
-	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true, verbosity);
+//	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true, verbosity);
+	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, !_config.NO_QPALMA, verbosity);
 
 	double* prb = NULL ;
 	try
