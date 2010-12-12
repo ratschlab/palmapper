@@ -184,7 +184,7 @@ static int sais_main(const unsigned char *T, int *SA, int fs, int n, int k, int 
  * @param n The length of the given string.
  * @return 0 if no error occurred
  */
-int is_sa(const ubyte_t *T, int *SA, int n)
+extern "C" int is_sa(const ubyte_t *T, int *SA, int n)
 {
 	if ((T == NULL) || (SA == NULL) || (n < 0)) return -1;
 	SA[0] = n;

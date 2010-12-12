@@ -240,7 +240,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 	bwa_seq_close(ks);
 }
 
-int bwa_aln(int argc, char *argv[])
+extern "C" int bwa_aln(int argc, char *argv[])
 {
 	int c, opte = -1;
 	gap_opt_t *opt;
