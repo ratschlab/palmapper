@@ -1,6 +1,6 @@
-CC=			gcc
+CC=			g++
 CXX=		g++
-CFLAGS=		-g -Wall -O2
+CFLAGS=		-g -Wall 
 CXXFLAGS=	$(CFLAGS)
 DFLAGS=		-DHAVE_PTHREAD #-D_FILE_OFFSET_BITS=64
 OBJS=		utils.o bwt.o bwtio.o bwtaln.o bwtmyaln.o bwtgap.o is.o \
@@ -32,10 +32,13 @@ lib-recur all-recur clean-recur cleanlocal-recur install-recur:
 			cd $$wdir; \
 		done;
 
-lib:
+lib:libbwa.a
 
-bwa:lib-recur $(OBJS) main.o
-		$(CC) $(CFLAGS) $(DFLAGS) $(OBJS) main.o -o $@ $(LIBS)
+libbwa.a:$(OBJS) 
+		$(AR) -cru $@ $(OBJS) 
+
+bwa:lib-recur libbwa.a main.o
+		$(CC) $(CFLAGS) $(DFLAGS) libbwa.a main.o -o $@ $(LIBS)
 
 bwt.o:bwt.h
 bwtio.o:bwt.h

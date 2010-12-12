@@ -82,8 +82,8 @@ static inline void gap_shadow(int x, int len, bwtint_t max, int last_diff_pos, b
 {
 	int i, j;
 	for (i = j = 0; i < last_diff_pos; ++i) {
-		if (w[i].w > x) w[i].w -= x;
-		else if (w[i].w == x) {
+		if ((int)w[i].w > x) w[i].w -= x;
+		else if ((int)w[i].w == x) {
 			w[i].bid = 1;
 			w[i].w = max - (++j);
 		} // else should not happen
@@ -140,7 +140,7 @@ bwt_aln1_t *bwt_match_gap(bwt_t *const bwts[2], int len, const ubyte_t *seq[2], 
 		gap_pop(stack, &e); // get the best entry
 		k = e.k; l = e.l; // SA interval
 		a = e.info>>20&1; i = e.info&0xffff; // strand, length
-		if (!(opt->mode & BWA_MODE_NONSTOP) && e.info>>21 > best_score + opt->s_mm) break; // no need to proceed
+		if (!(opt->mode & BWA_MODE_NONSTOP) && (int)(e.info>>21) > (int)(best_score + opt->s_mm)) break; // no need to proceed
 
 		m = max_diff - (e.n_mm + e.n_gapo);
 		if (opt->mode & BWA_MODE_GAPE) m -= e.n_gape;
@@ -231,7 +231,7 @@ bwt_aln1_t *bwt_match_gap(bwt_t *const bwts[2], int len, const ubyte_t *seq[2], 
 					gap_push(stack, a, i, k, l, e.n_mm, e.n_gapo, e.n_gape + 1, STATE_I, 1, opt);
 			} else if (e.state == STATE_D) { // extention of a deletion
 				if (e.n_gape < opt->max_gape) { // gap extention is allowed
-					if (e.n_gape + e.n_gapo < max_diff || occ < opt->max_del_occ) {
+					if ((int)(e.n_gape + e.n_gapo) < (int)max_diff || (int)occ < (int)opt->max_del_occ) {
 						for (j = 0; j != 4; ++j) {
 							k = bwt->L2[j] + cnt_k[j] + 1;
 							l = bwt->L2[j] + cnt_l[j];

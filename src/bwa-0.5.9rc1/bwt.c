@@ -174,7 +174,7 @@ inline void bwt_occ4(const bwt_t *bwt, bwtint_t k, bwtint_t cnt[4])
 }
 
 // an analogy to bwt_occ4() but more efficient, requiring k <= l
-inline void bwt_2occ4(const bwt_t *bwt, bwtint_t k, bwtint_t l, bwtint_t cntk[4], bwtint_t cntl[4])
+void bwt_2occ4(const bwt_t *bwt, bwtint_t k, bwtint_t l, bwtint_t cntk[4], bwtint_t cntl[4])
 {
 	bwtint_t _k, _l;
 	if (k == l) {

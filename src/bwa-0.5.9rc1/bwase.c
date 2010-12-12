@@ -57,10 +57,10 @@ void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_ma
 		 * simply output all hits, but the following samples "rest"
 		 * number of random hits. */
 		rest = n_occ > n_multi + 1? n_multi + 1 : n_occ; // find one additional for ->sa
-		s->multi = calloc(rest, sizeof(bwt_multi1_t));
+		s->multi = (bwt_multi1_t*) calloc(rest, sizeof(bwt_multi1_t));
 		for (k = 0; k < n_aln; ++k) {
 			const bwt_aln1_t *q = aln + k;
-			if (q->l - q->k + 1 <= rest) {
+			if ((int)q->l - (int)q->k + 1 <= rest) {
 				bwtint_t l;
 				for (l = q->k; l <= q->l; ++l) {
 					s->multi[z].pos = l;
@@ -91,7 +91,7 @@ void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_ma
 	}
 }
 
-void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s)
+extern "C" void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s)
 {
 	bwa_aln2seq_core(n_aln, aln, s, 1, 0);
 }
@@ -250,7 +250,7 @@ char *bwa_cal_md1(int n_cigar, bwa_cigar_t *cigar, int len, bwtint_t pos, ubyte_
 			}
 		}
 	} else { // no gaps
-		for (z = u = 0; z < (bwtint_t)len; ++z) {
+		for (z = u = 0; (bwtint_t)z < (bwtint_t)len; ++z) {
 			c = pacseq[(x+z)>>2] >> ((~(x+z)&3)<<1) & 3;
 			if (c > 3 || seq[y+z] > 3 || c != seq[y+z]) {
 				ksprintf(str, "%d", u);
@@ -274,11 +274,11 @@ void bwa_correct_trimmed(bwa_seq_t *s)
 		} else {
 			if (s->cigar == 0) {
 				s->n_cigar = 2;
-				s->cigar = calloc(s->n_cigar, sizeof(bwa_cigar_t));
+				s->cigar = (bwa_cigar_t*)calloc(s->n_cigar, sizeof(bwa_cigar_t));
 				s->cigar[0] = __cigar_create(0, s->len);
 			} else {
 				++s->n_cigar;
-				s->cigar = realloc(s->cigar, s->n_cigar * sizeof(bwa_cigar_t));
+				s->cigar = (bwa_cigar_t*)realloc(s->cigar, s->n_cigar * sizeof(bwa_cigar_t));
 			}
 			s->cigar[s->n_cigar-1] = __cigar_create(3, (s->full_len - s->len));
 		}
@@ -288,11 +288,11 @@ void bwa_correct_trimmed(bwa_seq_t *s)
 		} else {
 			if (s->cigar == 0) {
 				s->n_cigar = 2;
-				s->cigar = calloc(s->n_cigar, sizeof(bwa_cigar_t));
+				s->cigar = (bwa_cigar_t*) calloc(s->n_cigar, sizeof(bwa_cigar_t));
 				s->cigar[1] = __cigar_create(0, s->len);
 			} else {
 				++s->n_cigar;
-				s->cigar = realloc(s->cigar, s->n_cigar * sizeof(bwa_cigar_t));
+				s->cigar = (bwa_cigar_t*)realloc(s->cigar, s->n_cigar * sizeof(bwa_cigar_t));
 				memmove(s->cigar + 1, s->cigar, (s->n_cigar-1) * sizeof(bwa_cigar_t));
 			}
 			s->cigar[0] = __cigar_create(3, (s->full_len - s->len));
@@ -301,7 +301,7 @@ void bwa_correct_trimmed(bwa_seq_t *s)
 	s->len = s->full_len;
 }
 
-void bwa_refine_gapped(const bntseq_t *bns, int n_seqs, bwa_seq_t *seqs, ubyte_t *_pacseq, bntseq_t *ntbns)
+extern "C" void bwa_refine_gapped(const bntseq_t *bns, int n_seqs, bwa_seq_t *seqs, ubyte_t *_pacseq, bntseq_t *ntbns)
 {
 	ubyte_t *pacseq, *ntpac = 0;
 	int i, j;
@@ -376,7 +376,7 @@ void bwa_refine_gapped(const bntseq_t *bns, int n_seqs, bwa_seq_t *seqs, ubyte_t
 	free(ntpac);
 }
 
-int64_t pos_end(const bwa_seq_t *p)
+extern "C" int64_t pos_end(const bwa_seq_t *p)
 {
 	if (p->cigar) {
 		int j;
@@ -479,10 +479,10 @@ void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, in
 			// print tags
 			printf("\tXT:A:%c\t%s:i:%d", XT, (mode & BWA_MODE_COMPREAD)? "NM" : "CM", p->nm);
 			if (nn) printf("\tXN:i:%d", nn);
-			if (mate) printf("\tSM:i:%d\tAM:i:%d", p->seQ, am);
+			if (mate) printf("\tSM:i:%lld\tAM:i:%d", p->seQ, am);
 			if (p->type != BWA_TYPE_MATESW) { // X0 and X1 are not available for this type of alignment
-				printf("\tX0:i:%d", p->c1);
-				if (p->c1 <= max_top2) printf("\tX1:i:%d", p->c2);
+				printf("\tX0:i:%lld", p->c1);
+				if (p->c1 <= max_top2) printf("\tX1:i:%lld", p->c2);
 			}
 			printf("\tXM:i:%d\tXO:i:%d\tXG:i:%d", p->n_mm, p->n_gapo, p->n_gapo+p->n_gape);
 			if (p->md) printf("\tMD:Z:%s", p->md);
@@ -562,7 +562,7 @@ char *bwa_escape(char *s)
 	return s;
 }
 
-int bwa_set_rg(const char *s)
+extern "C" int bwa_set_rg(const char *s)
 {
 	char *p, *q, *r;
 	if (strstr(s, "@RG") != s) return -1;
@@ -575,7 +575,7 @@ int bwa_set_rg(const char *s)
 	if (p == 0) return -1;
 	p += 4;
 	for (q = p; *q && *q != '\t' && *q != '\n'; ++q);
-	bwa_rg_id = calloc(q - p + 1, 1);
+	bwa_rg_id = (char*)calloc(q - p + 1, 1);
 	for (q = p, r = bwa_rg_id; *q && *q != '\t' && *q != '\n'; ++q)
 		*r++ = *q;
 	return 0;
@@ -649,7 +649,7 @@ void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_f
 	free(aln);
 }
 
-int bwa_sai2sam_se(int argc, char *argv[])
+extern "C" int bwa_sai2sam_se(int argc, char *argv[])
 {
 	int c, n_occ = 3;
 	while ((c = getopt(argc, argv, "hn:f:r:")) >= 0) {

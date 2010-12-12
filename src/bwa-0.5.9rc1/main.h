@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+	struct gap_opt_t ;
+	
+
 	int bwa_fa2pac(int argc, char *argv[]);
 	int bwa_pac_rev(int argc, char *argv[]);
 	int bwa_pac2cspac(int argc, char *argv[]);
@@ -13,6 +16,7 @@ extern "C" {
 	int bwa_bwt2sa(int argc, char *argv[]);
 	int bwa_index(int argc, char *argv[]);
 	int bwa_aln(int argc, char *argv[]);
+	int bwa_aln_my_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt) ;
 	int bwt_bwtgen_main(int argc, char *argv[]);
 
 	int bwa_sai2sam_se(int argc, char *argv[]);

@@ -37,10 +37,10 @@ typedef struct {
 extern int g_log_n[256]; // in bwase.c
 static kh_64_t *g_hash;
 
-void bwase_initialize();
+extern "C" void bwase_initialize();
 void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi);
-void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s);
-void bwa_refine_gapped(const bntseq_t *bns, int n_seqs, bwa_seq_t *seqs, ubyte_t *_pacseq, bntseq_t *ntbns);
+extern "C" void bwa_aln2seq(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s);
+extern "C" void bwa_refine_gapped(const bntseq_t *bns, int n_seqs, bwa_seq_t *seqs, ubyte_t *_pacseq, bntseq_t *ntbns);
 int bwa_approx_mapQ(const bwa_seq_t *p, int mm);
 void bwa_print_sam1(const bntseq_t *bns, bwa_seq_t *p, const bwa_seq_t *mate, int mode, int max_top2);
 bntseq_t *bwa_open_nt(const char *prefix);
@@ -168,8 +168,8 @@ static int pairing(bwa_seq_t *p[2], pe_data_t *d, const pe_opt_t *opt, int s_mm,
 	// here v>=u. When ii is set, we check insert size with ii; otherwise with opt->max_isize
 #define __pairing_aux(u,v) do {											\
 		bwtint_t l = ((v)>>32) + p[(v)&1]->len - ((u)>>32);				\
-		if ((u) != (uint64_t)-1 && (v)>>32 > (u)>>32 && l >= max_len	\
-			&& ((ii->high && l <= ii->high_bayesian) || (ii->high == 0 && l <= opt->max_isize))) \
+		if ((uint64_t)(u) != (uint64_t)-1 && (uint64_t)((v)>>32) > (uint64_t)((u)>>32) && (uint64_t)l >= (uint64_t)max_len \
+			&& ((ii->high && (uint64_t)l <= (uint64_t)ii->high_bayesian) || (ii->high == 0 && (uint64_t)l <= (uint64_t)opt->max_isize))) \
 		{																\
 			uint64_t s = d->aln[(v)&1].a[(uint32_t)(v)>>1].score + d->aln[(u)&1].a[(uint32_t)(u)>>1].score; \
 			s *= 10;													\
@@ -199,7 +199,7 @@ static int pairing(bwa_seq_t *p[2], pe_data_t *d, const pe_opt_t *opt, int s_mm,
 	ks_introsort(uint64_t, d->arr.n, d->arr.a);
 	for (j = 0; j < 2; ++j) last_pos[j][0] = last_pos[j][1] = (uint64_t)-1;
 	if (opt->type == BWA_PET_STD) {
-		for (i = 0; i < d->arr.n; ++i) {
+		for (i = 0; i < (int)d->arr.n; ++i) {
 			uint64_t x = d->arr.a[i];
 			int strand = d->aln[x&1].a[(uint32_t)x>>1].a;
 			if (strand == 1) { // reverse strand, then check
@@ -212,7 +212,7 @@ static int pairing(bwa_seq_t *p[2], pe_data_t *d, const pe_opt_t *opt, int s_mm,
 			}
 		}
 	} else if (opt->type == BWA_PET_SOLID) {
-		for (i = 0; i < d->arr.n; ++i) {
+		for (i = 0; i < (int)d->arr.n; ++i) {
 			uint64_t x = d->arr.a[i];
 			int strand = d->aln[x&1].a[(uint32_t)x>>1].a;
 			if ((strand^x)&1) { // push
@@ -236,7 +236,7 @@ static int pairing(bwa_seq_t *p[2], pe_data_t *d, const pe_opt_t *opt, int s_mm,
 		//fprintf(stderr, "%d, %d\n", o_n, subo_n);
 		if (o_n == 1) {
 			if (subo_score == (uint64_t)-1) mapQ_p = 29; // no sub-optimal pair
-			else if ((subo_score>>32) - (o_score>>32) > s_mm * 10) mapQ_p = 23; // poor sub-optimal pair
+			else if ((subo_score>>32) - (o_score>>32) > (uint64_t) s_mm * 10) mapQ_p = 23; // poor sub-optimal pair
 			else {
 				int n = subo_n > 255? 255 : subo_n;
 				mapQ_p = ((subo_score>>32) - (o_score>>32)) / 2 - g_log_n[n];
@@ -305,7 +305,7 @@ int bwa_cal_pac_pos_pe(const char *prefix, bwt_t *const _bwt[2], int n_seqs, bwa
 			p[j]->n_multi = 0;
 			p[j]->extra_flag |= SAM_FPD | (j == 0? SAM_FR1 : SAM_FR2);
 			fread(&n_aln, 4, 1, fp_sa[j]);
-			if (n_aln > kv_max(d->aln[j]))
+			if ((uint64_t)n_aln > (uint64_t)kv_max(d->aln[j]))
 				kv_resize(bwt_aln1_t, d->aln[j], n_aln);
 			d->aln[j].n = n_aln;
 			fread(d->aln[j].a, sizeof(bwt_aln1_t), n_aln, fp_sa[j]);
@@ -343,13 +343,13 @@ int bwa_cal_pac_pos_pe(const char *prefix, bwt_t *const _bwt[2], int n_seqs, bwa
 			int j, k, n_occ[2];
 			for (j = 0; j < 2; ++j) {
 				n_occ[j] = 0;
-				for (k = 0; k < d->aln[j].n; ++k)
+				for (k = 0; k < (int)d->aln[j].n; ++k)
 					n_occ[j] += d->aln[j].a[k].l - d->aln[j].a[k].k + 1;
 			}
 			if (n_occ[0] > opt->max_occ || n_occ[1] > opt->max_occ) continue;
 			d->arr.n = 0;
 			for (j = 0; j < 2; ++j) {
-				for (k = 0; k < d->aln[j].n; ++k) {
+				for (k = 0; k <(int) d->aln[j].n; ++k) {
 					bwt_aln1_t *r = d->aln[j].a + k;
 					bwtint_t l;
 					if (r->l - r->k + 1 >= MIN_HASH_WIDTH) { // then check hash table
@@ -363,7 +363,7 @@ int bwa_cal_pac_pos_pe(const char *prefix, bwt_t *const _bwt[2], int n_seqs, bwa
 							for (l = r->k; l <= r->l; ++l)
 								z->a[l - r->k] = r->a? bwt_sa(bwt[0], l) : bwt[1]->seq_len - (bwt_sa(bwt[1], l) + p[j]->len);
 						}
-						for (l = 0; l < kh_val(g_hash, iter).n; ++l) {
+						for (l = 0; (uint64_t)l < (uint64_t)kh_val(g_hash, iter).n; ++l) {
 							x = kh_val(g_hash, iter).a[l];
 							x = x<<32 | k<<1 | j;
 							kv_push(uint64_t, d->arr, x);
@@ -428,13 +428,13 @@ bwa_cigar_t *bwa_sw_core(bwtint_t l_pac, const ubyte_t *pacseq, int len, const u
 
 	// check whether there are too many N's
 	if (reglen < SW_MIN_MATCH_LEN || (int64_t)l_pac - *beg < len) return 0;
-	for (k = 0, x = 0; k < len; ++k)
+	for (k = 0, x = 0; (uint64_t)k < (uint64_t)len; ++k)
 		if (seq[k] >= 4) ++x;
 	if ((float)x/len >= 0.25 || len - x < SW_MIN_MATCH_LEN) return 0;
 
 	// get reference subsequence
 	ref_seq = (ubyte_t*)calloc(reglen, 1);
-	for (k = *beg, l = 0; l < reglen && k < l_pac; ++k)
+	for (k = *beg, l = 0; (uint64_t)l < (uint64_t)reglen && (uint64_t)k < (uint64_t)l_pac; ++k)
 		ref_seq[l++] = pacseq[k>>2] >> ((~k&3)<<1) & 3;
 	path = (path_t*)calloc(l+len, sizeof(path_t));
 
@@ -447,7 +447,7 @@ bwa_cigar_t *bwa_sw_core(bwtint_t l_pac, const ubyte_t *pacseq, int len, const u
 	cigar = bwa_aln_path2cigar(path, path_len, n_cigar);
 
 	// check whether the alignment is good enough
-	for (k = 0, x = y = 0; k < *n_cigar; ++k) {
+	for (k = 0, x = y = 0; (uint64_t)k < (uint64_t)*n_cigar; ++k) {
 		bwa_cigar_t c = cigar[k];
 		if (__cigar_op(c) == FROM_M) x += __cigar_len(c), y += __cigar_len(c);
 		else if (__cigar_op(c) == FROM_D) x += __cigar_len(c);
@@ -483,7 +483,7 @@ bwa_cigar_t *bwa_sw_core(bwtint_t l_pac, const ubyte_t *pacseq, int len, const u
 		n_mm = n_gapo = n_gape = 0;
 		p = path + path_len - 1;
 		x = p->i? p->i - 1 : 0; y = p->j? p->j - 1 : 0;
-		for (k = 0; k < *n_cigar; ++k) {
+		for (k = 0; (uint64_t)k < (uint64_t)*n_cigar; ++k) {
 			bwa_cigar_t c = cigar[k];
 			if (__cigar_op(c) == FROM_M) {
 				for (l = 0; l < (__cigar_len(c)); ++l)
@@ -741,7 +741,7 @@ void bwa_sai2sam_pe_core(const char *prefix, char *const fn_sa[2], char *const f
 	}
 }
 
-int bwa_sai2sam_pe(int argc, char *argv[])
+extern "C" int bwa_sai2sam_pe(int argc, char *argv[])
 {
 	extern char *bwa_rg_line, *bwa_rg_id;
 	extern int bwa_set_rg(const char *s);

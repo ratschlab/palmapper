@@ -126,7 +126,7 @@ static void aln_seqs(const seqs_t *ss, const char *fn)
 	gzclose(fp);
 }
 
-int bwa_stdsw(int argc, char *argv[])
+extern "C" int bwa_stdsw(int argc, char *argv[])
 {
 	int c;
 	seqs_t *ss;

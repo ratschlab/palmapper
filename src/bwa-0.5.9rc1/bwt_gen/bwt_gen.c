@@ -1518,7 +1518,7 @@ void BWTSaveBwtCodeAndOcc(const BWT *bwt, const char *bwtFileName, const char *o
 */
 }
 
-void bwt_bwtgen(const char *fn_pac, const char *fn_bwt)
+extern "C" void bwt_bwtgen(const char *fn_pac, const char *fn_bwt)
 {
 	BWTInc *bwtInc;
 	bwtInc = BWTIncConstructFromPacked(fn_pac, 2.5, 10000000, 10000000);
@@ -1527,7 +1527,7 @@ void bwt_bwtgen(const char *fn_pac, const char *fn_bwt)
 	BWTIncFree(bwtInc);
 }
 
-int bwt_bwtgen_main(int argc, char *argv[])
+extern "C" int bwt_bwtgen_main(int argc, char *argv[])
 {
 	if (argc < 3) {
 		fprintf(stderr, "Usage: bwtgen <in.pac> <out.bwt>\n");

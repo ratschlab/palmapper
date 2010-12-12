@@ -48,7 +48,7 @@ unsigned char aln_nt16_table[256] = {
 	15,15,15,15, 15,15,15,15, 15,15,15,15, 15,15,15,15,
 	15,15,15,15, 15,15,15,15, 15,15,15,15, 15,15,15,15
 };
-char *aln_nt16_rev_table = "XAGRCMSVTWKDYHBN-";
+const char *aln_nt16_rev_table = "XAGRCMSVTWKDYHBN-";
 
 /* char -> 5 (=4+1) nucleotides */
 unsigned char aln_nt4_table[256] = {
@@ -69,7 +69,7 @@ unsigned char aln_nt4_table[256] = {
 	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
 	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
 };
-char *aln_nt4_rev_table = "AGCTN-";
+const char *aln_nt4_rev_table = "AGCTN-";
 
 /* char -> 22 (=20+1+1) amino acids */
 unsigned char aln_aa_table[256] = {
@@ -90,7 +90,7 @@ unsigned char aln_aa_table[256] = {
 	21,21,21,21, 21,21,21,21, 21,21,21,21, 21,21,21,21,
 	21,21,21,21, 21,21,21,21, 21,21,21,21, 21,21,21,21
 };
-char *aln_aa_rev_table = "ARNDCQEGHILKMFPSTWYV*X-";
+const char *aln_aa_rev_table = "ARNDCQEGHILKMFPSTWYV*X-";
                        /* 01234567890123456789012 */
 
 /* translation table. They are useless in stdaln.c, but when you realize you need it, you need not write the table again. */
@@ -100,7 +100,7 @@ unsigned char aln_trans_table_eu[66] = {
 	 5, 5, 8, 8,  1, 1, 1, 1, 14,14,14,14, 10,10,10,10,
 	20,20,18,18, 20,17, 4, 4, 15,15,15,15, 10,10,13,13, 21, 22
 };
-char *aln_trans_table_eu_char = "KKNNRRSSTTTTIMIIEEDDGGGGAAAAVVVVQQHHRRRRPPPPLLLL**YY*WCCSSSSLLFFX";
+const char *aln_trans_table_eu_char = "KKNNRRSSTTTTIMIIEEDDGGGGAAAAVVVVQQHHRRRRPPPPLLLL**YY*WCCSSSSLLFFX";
                               /* 01234567890123456789012345678901234567890123456789012345678901234 */
 int aln_sm_blosum62[] = {
 /*	 A  R  N  D  C  Q  E  G  H  I  L  K  M  F  P  S  T  W  Y  V  *  X */
@@ -881,10 +881,10 @@ int aln_extend_core(unsigned char *seq1, int len1, unsigned char *seq2, int len2
 	if (len1 == 0 || len2 == 0) return -1;
 
 	/* allocate memory */
-	mem = _mem? _mem : calloc((len1 + 2) * (N_MATRIX_ROW + 1), 4);
+	mem =  _mem? _mem : (uint8_t*)calloc((len1 + 2) * (N_MATRIX_ROW + 1), 4);
 	_p = mem;
 	eh = (uint32_t*)_p, _p += 4 * (len1 + 2);
-	s_array = calloc(N_MATRIX_ROW, sizeof(void*));
+	s_array = (int32_t**) calloc(N_MATRIX_ROW, sizeof(void*));
 	for (i = 0; i != N_MATRIX_ROW; ++i)
 		s_array[i] = (int32_t*)_p, _p += 4 * len1;
 	/* initialization */

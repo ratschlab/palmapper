@@ -6,7 +6,7 @@
 #include "bwt.h"
 #include "bwtsw2.h"
 
-int bwa_bwtsw2(int argc, char *argv[])
+extern "C" int bwa_bwtsw2(int argc, char *argv[])
 {
 	bsw2opt_t *opt;
 	bwt_t *target[2];
