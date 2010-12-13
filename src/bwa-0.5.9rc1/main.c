@@ -42,7 +42,8 @@ int main(int argc, char *argv[])
 	else if (strcmp(argv[1], "bwt2sa") == 0) return bwa_bwt2sa(argc-1, argv+1);
 	else if (strcmp(argv[1], "index") == 0) return bwa_index(argc-1, argv+1);
 	else if (strcmp(argv[1], "aln") == 0) return bwa_aln(argc-1, argv+1);
-	else if (strcmp(argv[1], "myaln") == 0) return bwa_aln_my_core("test/test.fa", "test/read.fa", NULL) ;
+	else if (strcmp(argv[1], "myaln+") == 0) return bwa_aln_my_core("test/test.fa", "TTGATCGTGACACGCC", NULL) ;
+	else if (strcmp(argv[1], "myaln-") == 0) return bwa_aln_my_core("test/test.fa", "GGCGTGTCACGATCAA", NULL) ;
 	else if (strcmp(argv[1], "sw") == 0) return bwa_stdsw(argc-1, argv+1);
 	else if (strcmp(argv[1], "samse") == 0) return bwa_sai2sam_se(argc-1, argv+1);
 	else if (strcmp(argv[1], "sampe") == 0) return bwa_sai2sam_pe(argc-1, argv+1);

@@ -2,6 +2,8 @@
 #include <palmapper/align.h>
 #include <palmapper/palmapper.h>
 #include <palmapper/print.h>
+#include <bwa/bwtaln.h>
+#include <bwa/bwtmyaln.h>
 
 void Mapper::map_reads_timing(int count_reads, float this_read)
 {
@@ -253,7 +255,8 @@ restart:
 			c_map_short_read++;
 			//fprintf(stdout, "performing hits.map_short_read\n") ;
 			
-			int ret = hits.map_short_read(read, read.getNr());
+			//int ret = hits.map_short_read_bwt(read, read.getNr());
+			int ret = hits.map_short_read(read, read.getNr()); 
 
 			if (ret<0)
 				cancel=2 ;

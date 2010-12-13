@@ -170,7 +170,7 @@ int QPalma::check_splice_files(std::string file_template)
 			}
 			
 			if (pos_stat.st_size!=confcum_stat.st_size)
-			    fprintf(stdout, "**The two files %s and %s have different sizes (%ld, %ld).**\n**Continuing anyway.**\n\n", posname, confcumname, pos_stat.st_size, confcum_stat.st_size);
+			    fprintf(stdout, "**The two files %s and %s have different sizes (%ld, %ld).**\n**Continuing anyway.**\n\n", posname, confcumname, (long int)pos_stat.st_size, (long int)confcum_stat.st_size);
 
 			if (strand=='+')
 				strand='-' ;

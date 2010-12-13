@@ -12,6 +12,8 @@
 #include "bwtgap.h"
 #include "utils.h"
 #include "bntseq.h"
+#include "bwtmyaln.h"
+#include <assert.h>
 
 gap_opt_t *mygap_init_opt()
 {
@@ -97,7 +99,7 @@ void mybwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *s
 		}
 		bwt_cal_width(bwt[0], p->len, seq[0], w[0]);
 		bwt_cal_width(bwt[1], p->len, seq[1], w[1]);
-		fprintf(stdout, "w[0]=%i, w[1]=%i\n", w[0]->w, w[1]->w) ;
+		//fprintf(stdout, "w[0]=%i, w[1]=%i\n", w[0]->w, w[1]->w) ;
 		
 		if (opt->fnr > 0.0) local_opt.max_diff = bwa_cal_maxdiff(p->len, BWA_AVG_ERR, opt->fnr);
 		local_opt.seed_len = opt->seed_len < p->len? opt->seed_len : 0x7fffffff;
@@ -109,9 +111,6 @@ void mybwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *s
 		p->aln = bwt_match_gap(bwt, p->len, seq, w, p->len <= opt->seed_len? 0 : seed_w, &local_opt, &p->n_aln, stack);
 		// store the alignment
 		
-		//bwa_seq_t *pp = NULL ;
-		//pp->len=10 ;
-
 		free(p->name); free(p->seq); free(p->rseq); free(p->qual);
 		p->name = 0; p->seq = p->rseq = p->qual = 0;
 	}
@@ -121,10 +120,7 @@ void mybwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *s
 	gap_destroy_stack(stack);
 }
 
-bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa) ;
-// width must be filled as zero
 
-void bwa_aln2seq_core(int n_aln, const bwt_aln1_t *aln, bwa_seq_t *s, int set_main, int n_multi) ;
 void bwa_sai2sam_se_core(const char *prefix, const char *fn_sa, const char *fn_fa, int n_occ) ;
 
 int bns_coor_pac2real(const bntseq_t *bns, int64_t pac_coor, int len, int32_t *real_seq) ;
@@ -137,6 +133,7 @@ void mybwa_cal_pac_pos_core(const bwt_t *forward_bwt, const bwt_t *reverse_bwt, 
 	if (seq->type != BWA_TYPE_UNIQUE && seq->type != BWA_TYPE_REPEAT) return;
 	max_diff = fnr > 0.0? bwa_cal_maxdiff(seq->len, BWA_AVG_ERR, fnr) : max_mm;
 	if (seq->strand) { // reverse strand only
+		//fprintf(stdout, "forward used\n") ;
 		seq->pos = bwt_sa(forward_bwt, seq->sa);
 		//seq->seQ = seq->mapQ = bwa_approx_mapQ(seq, max_diff);
 	} else { // forward strand only
@@ -144,70 +141,237 @@ void mybwa_cal_pac_pos_core(const bwt_t *forward_bwt, const bwt_t *reverse_bwt, 
 		 *     will be fixed in refine_gapped_core(). This line also
 		 *     determines the way "x" is calculated in
 		 *     refine_gapped_core() when (ext < 0 && is_end == 0). */
+		//fprintf(stdout, "backward used\n") ;
 		seq->pos = reverse_bwt->seq_len - (bwt_sa(reverse_bwt, seq->sa) + seq->len);
+		//seq->pos = bwt_sa(reverse_bwt, seq->sa);
 		//seq->seQ = seq->mapQ = bwa_approx_mapQ(seq, max_diff);
 	}
 
-	fprintf(stdout, "seq->pos=%i\n", seq->pos) ;
+	//fprintf(stdout, "seq->pos=%i\n", seq->pos) ;
 }
 
 
-extern "C" void bwa_aln_my_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
+static const gap_opt_t* bwt_opt=NULL ;
+static bwt_t *bwt_bwt[2]={NULL, NULL};
+static bntseq_t *bwt_bns = NULL;
+
+extern "C" void bwa_seed2genome_init(const char *prefix, gap_opt_t *opt)
 {
+	if (!opt)
+		opt=mygap_init_opt() ;
+	opt->mode=BWA_MODE_BAM_SE ;
+	bwt_opt = opt ;
+	
+	{ // load BWT
+		char *str = (char*)calloc(strlen(prefix) + 10, 1);
+		strcpy(str, prefix); strcat(str, ".bwt");  bwt_bwt[0] = bwt_restore_bwt(str);
+		strcpy(str, prefix); strcat(str, ".sa"); bwt_restore_sa(str, bwt_bwt[0]);
+		strcpy(str, prefix); strcat(str, ".rbwt"); bwt_bwt[1] = bwt_restore_bwt(str);
+		strcpy(str, prefix); strcat(str, ".rsa"); bwt_restore_sa(str, bwt_bwt[1]);
+		free(str);
+		bwt_bns = bns_restore(prefix);
+	}
+}
+
+extern "C" void bwa_seed2genome_destroy()
+{
+	if (bwt_bwt[0])
+		bwt_destroy(bwt_bwt[0]); 
+	if (bwt_bwt[1])
+		bwt_destroy(bwt_bwt[1]);
+	if (bwt_bns)
+		bns_destroy(bwt_bns) ;
+}
+
+extern "C" bwa_seq_t * bwa_seed2genome_map(const char* read, int read_len, int strand, uint64_t *num, uint64_t *sa_k, uint64_t *sa_l)
+{
+	bwa_seq_t *p=(bwa_seq_t*)calloc(1, sizeof(bwa_seq_t)) ;
+	int n_seqs=1 ;
+	
+	int l = read_len ;
+	//fprintf(stdout, "read=%s\n", read) ;
+	
+	p->tid = -1; // no assigned to a thread
+	p->qual = NULL ;
+	p->full_len = p->clip_len = p->len = l;
+	p->seq = (ubyte_t*)calloc(p->len, 1);
+	for (int i = 0; i != p->full_len; ++i)
+	{
+		p->seq[i] = nst_nt4_table[(int)read[i]];
+		//fprintf(stdout, "seq[%i]=%i\n", i, p->seq[i]) ;
+	}
+	
+	p->rseq = (ubyte_t*)calloc(p->full_len, 1);
+	memcpy(p->rseq, p->seq, p->len);
+	seq_reverse(p->len, p->seq, 0); // *IMPORTANT*: will be reversed back in bwa_refine_gapped()
+	seq_reverse(p->len, p->rseq, bwt_opt->mode & BWA_MODE_COMPREAD);
+	p->name = strdup("seq") ;
+	p->cigar=NULL ;
+	
+	mybwa_cal_sa_reg_gap(0, bwt_bwt, n_seqs, p, bwt_opt);
+	//fprintf(stdout, "n_aln=%i\n", p->n_aln) ;
+	
+	if (p->n_aln>0)
+	{
+		assert(p->n_aln<=2) ;
+		if (p->aln[0].a==strand)
+		{
+			*sa_k=p->aln[0].k ;
+			*sa_l=p->aln[0].l ;
+			*num=*sa_l-*sa_k+1 ;
+		} else
+			if (p->n_aln>=2 && p->aln[1].a==strand)
+			{
+				*sa_k=p->aln[1].k ;
+				*sa_l=p->aln[1].l ;
+				*num=*sa_l-*sa_k+1 ;
+			}
+			else
+			{
+				*sa_k=1 ;
+				*sa_l=0 ;
+				*num=0 ;
+			}
+		//fprintf(stdout, "k=%lld, l=%lld\n", *sa_k, *sa_l) ;
+	}
+	else
+	{
+		*sa_k=1 ;
+		*sa_l=0 ;
+		*num=0 ;
+	}
+
+	/*p->sa = *sa_k ;
+	p->c1 = 1 ;
+	p->type=BWA_TYPE_UNIQUE ;
+	
+	mybwa_cal_pac_pos_core(bwt_bwt[0], bwt_bwt[1], p, 0, 0); 
+				
+	int len = pos_end(p) - p->pos; 
+	int seq_id=0 ;
+	
+	bns_coor_pac2real(bwt_bns, p->pos, len, &seq_id) ;
+	int pos = (int)(p->pos - bwt_bns->anns[seq_id].offset) ;
+	fprintf(stdout, "seq_id=%i, pos=%i, n_aln=%i, multi=%i\n", seq_id, pos, p->n_aln, p->n_multi) ;
+	*/
+	
+	return p ;
+}
+
+extern "C" void bwa_seed2genome_pos(uint64_t sa_pos, uint64_t *contig_id, uint64_t *contig_pos, bwa_seq_t *seq)
+{
+	bwa_seq_t *p=seq ;
+
+	p->sa = sa_pos ;
+	p->c1 = 1 ;
+	p->type=BWA_TYPE_UNIQUE ;
+	p->cigar=NULL ;
+	p->strand=0 ;
+	
+	mybwa_cal_pac_pos_core(bwt_bwt[0], bwt_bwt[1], p, 0, 0); 
+				
+	uint64_t len = pos_end(p) - p->pos; 
+	int seq_id=-1 ;
+	
+	bns_coor_pac2real(bwt_bns, p->pos, len, &seq_id) ;
+	uint64_t pos = (int)(p->pos - bwt_bns->anns[seq_id].offset) ;
+	
+	if (sa_pos==461542)
+	{
+		fprintf(stdout, "seq_id=%i, pos=%lld, n_aln=%i, multi=%i, strand=%i\n", seq_id, pos, p->n_aln, p->n_multi, p->strand) ;
+
+		p->sa = 461542;//461970 ;
+		p->c1 = 1 ;
+		p->type=BWA_TYPE_UNIQUE ;
+		p->cigar=NULL ;
+		p->strand=1 ;
+		
+		mybwa_cal_pac_pos_core(bwt_bwt[0], bwt_bwt[1], p, 0, 0); 
+		
+		uint64_t len = pos_end(p) - p->pos; 
+		int seq_id=-1 ;
+		
+		bns_coor_pac2real(bwt_bns, p->pos, len, &seq_id) ;
+		uint64_t pos = (int)(p->pos - bwt_bns->anns[seq_id].offset) ;
+
+		fprintf(stdout, "+++ seq_id=%i, pos=%lld, n_aln=%i, multi=%i, strand=%i\n", seq_id, pos, p->n_aln, p->n_multi, p->strand) ;
+		//fprintf(stdout, "bwt->seq_len=%lld", (long long int)bwt_bwt[0]->seq_len) ;
+		//fprintf(stdout, "reverse_bwt->seq_len=%lld", (long long int)bwt_bwt[1]->seq_len) ;
+		
+		bwa_seq_t *a=NULL ;
+		//fprintf(stdout, "error%lld", (long long int)a->sa) ;
+	}
+
+	*contig_id=seq_id ;
+	*contig_pos=pos ;
+}
+
+extern "C" void bwa_seed2genome_cleanup_seq(bwa_seq_t *seq)
+{
+	bwa_free_read_seq(1, seq) ;
+}
+
+extern "C" void bwa_aln_my_core(const char *prefix, const char *read, gap_opt_t *opt)
+{
+	bwa_seed2genome_init(prefix, opt) ;
+
+	uint64_t k=0, l=0, num=0 ;
+	
+	bwa_seq_t *seq = bwa_seed2genome_map(read, strlen(read), 0, &num, &k, &l) ;
+	fprintf(stdout, "k=%lld, l=%lld\n", k, l) ;
+	
+	for (int i=0; i<num; i++)
+	{
+		uint64_t contig_pos, contig_id ;
+		bwa_seed2genome_pos(k+i, &contig_id, &contig_pos, seq) ;
+	}
+	bwa_seed2genome_cleanup_seq(seq) ;
+	
+	bwa_seed2genome_destroy() ;
+	
+
+	/*// initialization
 	int i, n_seqs, tot_seqs = 0;
 	bwa_seq_t *seqs;
 	bwa_seqio_t *ks;
-	clock_t t;
-	bwt_t *bwt[2];
-	gap_opt_t *_opt=mygap_init_opt() ;
-	bntseq_t *bns = 0;
-	
-	if (!opt)
-		opt=_opt ;
-	_opt->mode=BWA_MODE_BAM_SE ;
-
-	// initialization
-	ks = bwa_open_reads(opt->mode, fn_fa);
-
-	{ // load BWT
-		char *str = (char*)calloc(strlen(prefix) + 10, 1);
-		strcpy(str, prefix); strcat(str, ".bwt");  bwt[0] = bwt_restore_bwt(str);
-		strcpy(str, prefix); strcat(str, ".sa"); bwt_restore_sa(str, bwt[0]);
-		strcpy(str, prefix); strcat(str, ".rbwt"); bwt[1] = bwt_restore_bwt(str);
-		strcpy(str, prefix); strcat(str, ".rsa"); bwt_restore_sa(str, bwt[1]);
-		free(str);
-		bns = bns_restore(prefix);
-	}
+	ks = bwa_open_reads(bwt_opt->mode, fn_fa);
 
 	// core loop
-	fwrite(opt, sizeof(gap_opt_t), 1, stdout);
-	while ((seqs = bwa_read_seq(ks, 0x40000, &n_seqs, opt->mode & BWA_MODE_COMPREAD, opt->trim_qual)) != 0) {
+	//fwrite(opt, sizeof(gap_opt_t), 1, stdout);
+	while ((seqs = bwa_read_seq(ks, 0x40000, &n_seqs, bwt_opt->mode & BWA_MODE_COMPREAD, bwt_opt->trim_qual)) != 0) {
 		tot_seqs += n_seqs;
-		t = clock();
 
-		mybwa_cal_sa_reg_gap(0, bwt, n_seqs, seqs, opt);
+		mybwa_cal_sa_reg_gap(0, bwt_bwt, n_seqs, seqs, bwt_opt);
 
 		for (i = 0; i < n_seqs; ++i) {
 			bwa_seq_t *p = seqs + i;
-			bwa_aln2seq_core(p->n_aln, p->aln, p, 0, 3) ;
-			mybwa_cal_pac_pos_core(bwt[0], bwt[1], &seqs[i], 0, 0); 
+			//bwa_aln2seq_core(p->n_aln, p->aln, p, 0, max_seed_num) ;
+			//fprintf(stdout, "l=%i k=%i\n", p->aln->k, p->aln->l) ;
 			
-			//bwa_seq_t *pp = NULL ;
-
-			int len = pos_end(p) - p->pos; // j is the length of the reference in the alignment
-			int seq_id=0 ;
-
-			bns_coor_pac2real(bns, p->pos, len, &seq_id) ;
-			int pos = (int)(p->pos - bns->anns[seq_id].offset) ;
-			
-			fprintf(stdout, "seq_id=%i, pos=%i, n_aln=%i, multi=%i\n", seq_id, pos, p->n_aln, p->n_multi) ;
+			for (uint64_t j=p->aln->k; j<= p->aln->l; j++)
+			{
+				p->sa = j ;
+				p->c1=1 ;
+				p->type=BWA_TYPE_UNIQUE ;
+				
+				mybwa_cal_pac_pos_core(bwt_bwt[0], bwt_bwt[1], &seqs[i], 0, 0); 
+				
+				int len = pos_end(p) - p->pos; // j is the length of the reference in the alignment
+				int seq_id=0 ;
+				
+				bns_coor_pac2real(bwt_bns, p->pos, len, &seq_id) ;
+				int pos = (int)(p->pos - bwt_bns->anns[seq_id].offset) ;
+				
+				fprintf(stdout, "seq_id=%i, pos=%i, n_aln=%i, multi=%i\n", seq_id, pos, p->n_aln, p->n_multi) ;
+			}
 		}
 
 		bwa_free_read_seq(n_seqs, seqs);
 	}
 
 	// destroy
-	bwt_destroy(bwt[0]); bwt_destroy(bwt[1]);
 	bwa_seq_close(ks);
+	*/
+	
 }
 

@@ -276,7 +276,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	const int mlen = 6; // length of matchmatrix
 	int readChar, dnaChar; // 0:'-', 1:'a', 2:'c', 3:'g', 4:'t', 5:'n'
   
-	double baseScore;
+	double baseScore=0;
 	double *read_scores = prb ;
 
 	double prevValue;

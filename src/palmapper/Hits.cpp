@@ -9,6 +9,8 @@
 #include "print.h"
 #include <palmapper/Genome.h>
 #include <palmapper/Mapper.h>
+#include <bwa/bwtaln.h>
+#include <bwa/bwtmyaln.h>
 
 #include <iostream>
 
@@ -78,6 +80,67 @@ unsigned int Hits::extend_seed(int direction, unsigned int seed_depth_extra, Chr
 	return e ;
 }
 
+static inline std::string reverse(std::string str)
+{
+	for (int i = 0; i < (int)str.length() / 2; i++) 
+	{
+		char c = str[i];
+		str[i] = str[str.length() - i - 1];
+		str[str.length() - i - 1] = c;
+	}
+	
+	return str;
+}
+
+static inline std::string complement(std::string str) {
+	for (int i = 0; i < (int)str.length(); i++) {
+		char c = str[i];
+		switch (c) {
+		case 'a':
+			str[i] = 't';
+			break;
+		case 'c':
+			str[i] = 'g';
+			break;
+		case 'g':
+			str[i] = 'c';
+			break;
+		case 't':
+			str[i] = 'a';
+			break;
+		case 'A':
+			str[i] = 'T';
+			break;
+		case 'C':
+			str[i] = 'G';
+			break;
+		case 'G':
+			str[i] = 'C';
+			break;
+		case 'T':
+			str[i] = 'A';
+			break;
+		case '[':
+			str[i] = ']';
+			break;
+		case ']':
+			str[i] = '[';
+			break;
+		case '-':
+			str[i] = '-';
+			break;
+		default:
+			if (c >= 'a' && c <= 'z')
+				str[i] = 'n';
+			else if (c >= 'A' && c <= 'Z')
+				str[i] = 'N';
+			else
+				assert(0);
+		}
+	}
+	
+	return str;
+}
 
 Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &mapper, Read const &read)
 :	_genome(genome), _genomeMaps(genomeMaps), _mapper(mapper), _read(read),
@@ -92,6 +155,10 @@ Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &mapper, Read co
 	alloc_hits_by_score();
 	HAS_SLOT = 0;
 	SLOTS[0] = SLOTS[1] = 0;
+	SLOT_STR[0]=NULL ;
+	SLOT_STR_POS[0]=0 ;
+	SLOT_STR[1]=NULL ;
+	SLOT_STR_POS[1]=0 ;
 	seed_covered_reporting_time = 0;
 }
 
@@ -105,6 +172,9 @@ Hits::~Hits() {
 //			hit = next;
 //		}
 //	}
+	free(SLOT_STR[0]) ;
+	free(SLOT_STR[1]) ;
+	
 	free( HITS_BY_SCORE);
 	free(HIT_LISTS_OPERATOR);
 }
@@ -192,7 +262,7 @@ struct seedlist
 	int pos ;
 } ;
 
-int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
+template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 {
 	TIME_CODE_TOTAL(_stats.hits_timing_total()) ;
 	TIME_CODE(_stats.hits_timing()) ;
@@ -219,11 +289,24 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 
 	unsigned int i;
 	unsigned int oldlength = _config.INDEX_DEPTH-1;
-
-	for (int reverse = 0; reverse <= _config.MAP_REVERSE; ++reverse) {
-
-		index_entry = *(_genome.INDEX+SLOTS[reverse]);
-		index_mmap = _genome.INDEX_FWD_MMAP;
+	bwa_seq_t * sa_seq=NULL ;
+	uint64_t sa_k, sa_l, sa_num=0 ;
+	
+	for (int reverse = 0; reverse <= _config.MAP_REVERSE; ++reverse) 
+	{
+		index_entry.num=0 ;
+		
+		if (index_type&array)
+		{
+			index_entry = *(_genome.INDEX+SLOTS[reverse]);
+			index_mmap = _genome.INDEX_FWD_MMAP;
+		}
+		if (index_type&bwt)
+		{
+			sa_seq=bwa_seed2genome_map(&SLOT_STR[reverse][SLOT_STR_POS[reverse]], _config.INDEX_DEPTH, 0, &sa_num, &sa_k, &sa_l) ;
+			if (index_type==bwt)
+				index_entry.num=sa_num ;
+		}
 		direction = reverse? 1 : -1;
 
 		if (read_num == num) 
@@ -231,20 +314,31 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 			printf("###############################################\n");
 			printf("Add seed to genomepositions from slot # %d (%s) containing %u genomepositions (%c strand)\n", SLOTS[reverse], get_seq(SLOTS[reverse]), index_entry.num, reverse? '-':'+');
 		}
+		bool debug_show=false ;
+		
+		if (debug_show || (index_type==debug && index_entry.num!=sa_num))
+		{
+			char *seed=strdup(&SLOT_STR[reverse][SLOT_STR_POS[reverse]]) ;
+			seed[_config.INDEX_DEPTH]=0 ;
+			fprintf(stdout, "index_entry.num=%i, sa_num=%lld, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
+			free(seed) ;
+			debug_show=true ;
+		}
 
-
-		if (index_entry.num) {
-
+		if (index_entry.num) 
+		{
 			STORAGE_ENTRY se_buffer[index_entry.num];
 
-
 			// make sure that every seed is only processed once
+			// what is this good for???
 			unsigned int index_entry_num=index_entry.num ;
 			int report_repetitive_seeds = _config.REPORT_REPETITIVE_SEEDS ;
-			if (_mapper.seed_covered.size()<SLOTS[reverse])
-				_mapper.seed_covered.resize(SLOTS[reverse]+1, false) ;
-			if (report_repetitive_seeds)
+			if (report_repetitive_seeds) 
 			{
+				assert(index_type&array) ; // TODO: fix for bwt
+
+				if (_mapper.seed_covered.size()<SLOTS[reverse])
+					_mapper.seed_covered.resize(SLOTS[reverse]+1, false) ;
 				if (_mapper.seed_covered[SLOTS[reverse]])
 					report_repetitive_seeds=0 ;
 				else
@@ -261,15 +355,15 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 				}
 			}
 
-			if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD && !report_repetitive_seeds) {
+			if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD && !report_repetitive_seeds) 
 				index_entry_num=0 ;
-			}
-
+			
+			if (index_type&array)
 			{
 				TIME_CODE(clock_t start_time = clock()) ;
-
+				
 //fprintf(stderr, "%s\t%d\n",get_seq(_read,SLOTS[reverse]), index_entry.num);
-			
+				
 #ifndef BinaryStream_MAP
 				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
@@ -281,10 +375,13 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 			std::vector<struct seedlist> extended_seedlist ;
 			
 			for (i=0; i<index_entry_num; i++) { // foreach seed...
+
 				TIME_CODE(clock_t start_time = clock()) ;
-				if (read_num == num) {
+				if (read_num == num) 
+				{
 					printf("############################\n");
 					printf("Now adding seed # %d/%d of read %i (%s), slot %i, ori %d\n", i+1, index_entry.num, num, _read.id(), SLOTS[reverse], reverse);
+					assert(index_type&array) ; // TODO: fix for bwt
 				}
 
 				// Every mapping gets an entry
@@ -296,29 +393,71 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 				}
 
 				mapping_entry->readpos = readpos;
-				if (read_num == num) {
-					printf("Readpos %d\n", readpos);
-				}
+				if (read_num == num) printf("Readpos %d\n", readpos);
 
-				block = 0;
-				pos = 0;
-				unsigned char* p_block = (unsigned char*) &block;
-				STORAGE_ENTRY se;
-				unsigned char* p_id;
-
-				// Get current position in the chromosome
-				se = se_buffer[index_entry.num-(i+1)];
+				unsigned int genome_pos = 0 ;
+				unsigned int genome_chr_id = 0 ;
+				
 				strand = reverse? (_config.BSSEQ? -conversion : -1) : (_config.BSSEQ? conversion : 1);
-				p_id = se.id;
-				p_block[0] = p_id[0];
-				p_block[1] = p_id[1];
-				p_block[2] = p_id[2];
-				pos = p_id[3];
 
-				unsigned int genome_pos = pos + _genome.BLOCK_TABLE[block].pos;
-				//unsigned int genome_chr = BLOCK_TABLE[block].chr;
-				Chromosome const &genome_chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
+				if (index_type&bwt)
+				{
+					uint64_t contig_id, contig_pos  ;
 
+					if (index_type!=debug)
+						assert(sa_k+i<=sa_l) ;
+					if (sa_k+i<=sa_l)
+					{
+						bwa_seed2genome_pos(sa_k+i, &contig_id, &contig_pos, sa_seq) ;
+						genome_chr_id=contig_id ;
+						genome_pos=contig_pos ;
+						
+						if (debug_show)
+							fprintf(stdout, "bwt   pos: contig=%i pos=%i\n", genome_chr_id, genome_pos) ;
+					}
+				}
+				if (index_type&array)
+				{
+					block = 0;
+					pos = 0;
+					unsigned char* p_block = (unsigned char*) &block;
+					STORAGE_ENTRY se;
+					unsigned char* p_id;
+					
+					// Get current position in the chromosome
+					se = se_buffer[index_entry.num-(i+1)];
+					p_id = se.id;
+					p_block[0] = p_id[0];
+					p_block[1] = p_id[1];
+					p_block[2] = p_id[2];
+					pos = p_id[3];
+					
+					if (index_type==debug && !debug_show)
+					{
+						if (pos + _genome.BLOCK_TABLE[block].pos != genome_pos && sa_num==1)
+						{
+							{
+								char *seed=strdup(&SLOT_STR[reverse][SLOT_STR_POS[reverse]]) ;
+								seed[_config.INDEX_DEPTH]=0 ;
+								fprintf(stdout, "index_entry.num=%i, sa_num=%lld, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
+								free(seed) ;
+								debug_show=true ;
+							}
+							debug_show=true ;
+							fprintf(stdout, "bwt   pos: contig=%i pos=%i\n", genome_chr_id, genome_pos) ;
+							//assert(false) ;
+						}
+					}
+
+					genome_pos = pos + _genome.BLOCK_TABLE[block].pos;
+					//unsigned int genome_chr = BLOCK_TABLE[block].chr;
+					genome_chr_id=_genome.BLOCK_TABLE[block].chr ;
+
+					if (debug_show)
+						fprintf(stdout, "array pos: contig=%i pos=%i\n", genome_chr_id, genome_pos) ;
+				}
+				Chromosome const &genome_chr = _genome.chromosome(genome_chr_id);
+				
 				// Check that read doesn't cross chrom borders
 				if ((!reverse && (genome_pos < readpos-1 || genome_pos+_read.length()-readpos >= genome_chr.length())) ||
 				    ( reverse && (genome_pos < _read.length()-(_config.INDEX_DEPTH+readpos-1) || genome_pos+_config.INDEX_DEPTH+readpos-2 >= genome_chr.length()))
@@ -617,6 +756,7 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 						}
 					}
 				}
+				
 				if (hit)
 				{
 					assert((int)hit->start-(int)hit->end<10000) ;
@@ -669,6 +809,9 @@ int Hits::seed2genome(unsigned int num, unsigned int readpos, char conversion)
 				hit = NULL;
 
 			} //end of for each seed on read
+			
+			if (index_type&bwt)
+				bwa_seed2genome_cleanup_seq(sa_seq) ;
 
 			if (_config._personality == Palmapper && report_repetitive_seeds)
 			{
@@ -1391,7 +1534,7 @@ int Hits::map_fast(Read & read)
 
 		} else {
 			// fill SLOTS[0] and SLOTS[1]:
-			get_slots(read, readstart) ;
+			get_slots<array>(read, readstart) ;
 
 			//fprintf(stdout, "map_fast: slot=%i HAS_SLOT=%i read_start=%i seq=%s\n", slot, HAS_SLOT, readstart, get_seq(slot)) ;
 	
@@ -1688,7 +1831,7 @@ int Hits::map_short_read(Read& read, unsigned int num)
 					for (unsigned int i=0; i!=SLOTS_CV1_FWD.size(); i++) {
 						SLOTS[0] = SLOTS_CV1_FWD[i];
 						if (_config.MAP_REVERSE) SLOTS[1] = SLOTS_CV2_REV[i];
-						seed2genome(num, readpos + 1, 1);
+						seed2genome<array>(num, readpos + 1, 1);
 					}
 					SLOTS_CV1_FWD.clear();
 					SLOTS_CV2_REV.clear();
@@ -1697,14 +1840,14 @@ int Hits::map_short_read(Read& read, unsigned int num)
 					for (unsigned int i=0; i!=SLOTS_CV2_FWD.size(); i++) {
 						SLOTS[0] = SLOTS_CV2_FWD[i];
 						if (_config.MAP_REVERSE) SLOTS[1] = SLOTS_CV1_REV[i];
-						seed2genome(num, readpos + 1, 2);
+						seed2genome<array>(num, readpos + 1, 2);
 					}
 					SLOTS_CV1_REV.clear();
 					SLOTS_CV2_FWD.clear();
 //return 1;
 				}
 				else {
-					get_slots(read, readpos);
+					get_slots<array>(read, readpos);
 					//fprintf(stdout, "map_short_read: slot=%i HAS_SLOT=%i readpos=%i seq=%s\n", slot, HAS_SLOT, readpos, get_seq(slot)) ;
 
 					if (SLOTS[0]<0)
@@ -1717,7 +1860,7 @@ int Hits::map_short_read(Read& read, unsigned int num)
 				TIME_CODE_TOTAL(clock_t seed2genome_start=clock() ;)
 
 					// Create or extend hit:
-					int ret = seed2genome(num, readpos + 1, 0);
+					int ret = seed2genome<array>(num, readpos + 1, 0);
 
 				TIME_CODE_TOTAL(_stats.hits_seed2genome += clock() - seed2genome_start ;
 								_stats.hits_seed2genome_cnt++ ;)
@@ -1746,6 +1889,83 @@ int Hits::map_short_read(Read& read, unsigned int num)
 }
 
 
+int Hits::map_short_read_bwt(Read& read, unsigned int num)
+{
+	unsigned int readpos = 0;
+	unsigned int spacer = 0;
+
+	const enum index_type_t index_type=bwt ;
+
+	++_stats.hits_seed2genome_cnt;
+
+	SLOTS[0] = 0;
+	SLOTS[1] = 0;
+	HAS_SLOT = 0;
+
+	while (spacer < read.length())
+	{
+		char * read_data = read.data() ;
+
+		read_data[spacer] = mytoupper(read_data[spacer]);
+		if (spacer < readpos + _config.INDEX_DEPTH - 1)
+		{
+			if (read_data[spacer]=='A' || read_data[spacer]=='T' || read_data[spacer]=='C' || read_data[spacer]=='G')
+			{
+				spacer++;
+			}
+			else
+			{
+				spacer++;
+				readpos = spacer;
+				HAS_SLOT = 0;
+			}
+		}
+		else {
+			if (read_data[spacer]=='A' || read_data[spacer]=='T' || read_data[spacer]=='C' || read_data[spacer]=='G')
+			{
+				get_slots<index_type>(read, readpos);
+				//fprintf(stdout, "map_short_read: slot=%i HAS_SLOT=%i readpos=%i seq=%s\n", slot, HAS_SLOT, readpos, get_seq(slot)) ;
+				
+				if (SLOTS[0]<0)
+				{
+					spacer++;
+					readpos++;
+					HAS_SLOT = 0;
+					continue ;
+				}
+				TIME_CODE_TOTAL(clock_t seed2genome_start=clock() ;);
+					
+				// Create or extend hit:
+				int ret = seed2genome<index_type>(num, readpos + 1, 0);
+				
+				TIME_CODE_TOTAL(_stats.hits_seed2genome += clock() - seed2genome_start ;
+								_stats.hits_seed2genome_cnt++ ;);
+				
+				if (ret<0)
+				{
+					fprintf(stderr, "seed2genome<0 (2)\n") ;
+					return ret ;
+				}
+				
+				
+				spacer++;
+				readpos++;
+				HAS_SLOT = 1;
+			}
+			else {
+				spacer++;
+				readpos=spacer;
+				HAS_SLOT = 0;
+			}
+		}
+	}
+	
+	HAS_SLOT = 0;
+
+	return 1;
+}
+
+
 
 /**
  *  Gets two slots in var SLOTS, the slot for fwd and rev read sequence
@@ -1753,7 +1973,7 @@ int Hits::map_short_read(Read& read, unsigned int num)
  *  \param pos Position in the current read for which to get a slot
  *  \return 1 if slot generation successful, negative value otherwise
  */
-int Hits::get_slots(Read & read, int pos)
+template<enum index_type_t index_type> int Hits::get_slots(Read & read, int pos)
 {
 	unsigned int i;
 	int c = 0;
@@ -1763,62 +1983,89 @@ int Hits::get_slots(Read & read, int pos)
 	{
 		SLOTS[0] = 0;
 		SLOTS[1] = 0;
-		for (i = 0; i < _config.INDEX_DEPTH; i++)
-		{
-			read_data[pos + i] = mytoupper(read_data[pos + i]);
 
-			switch (read_data[pos + i])
+		if (index_type&array)
+		{
+			for (i = 0; i < _config.INDEX_DEPTH; i++)
 			{
+				read_data[pos + i] = mytoupper(read_data[pos + i]);
+				
+				switch (read_data[pos + i])
+				{
+				case 'A':
+					c = 0;
+					break;
+				case 'C':
+					c = 1;
+					break;
+				case 'G':
+					c = 2;
+					break;
+				case 'T':
+					c = 3;
+					break;
+				default:
+					return -pos - i - 1 ; // subtract -1 to make sure the output is indeed negative (pos=i=0..?)
+				}
+				
+				SLOTS[0]  = SLOTS[0] + Util::POWER[i] * c;
+				if (_config.MAP_REVERSE) 
+					SLOTS[1] += Util::POWER[_config.INDEX_DEPTH - i - 1] * (c ^ 3);
+			}
+		}
+		if (index_type&bwt)
+		{
+			free(SLOT_STR[0]) ;
+			free(SLOT_STR[1]) ;
+
+			SLOT_STR[0]=strdup(read.data()) ;
+			SLOT_STR[1]=strdup(reverse(complement(read.data())).c_str()) ;
+			
+			SLOT_STR_POS[0]=pos ;
+			SLOT_STR_POS[1]=read.length()-_config.INDEX_DEPTH-pos ;
+		}
+		
+	} else {
+		
+		if (index_type&array)
+		{
+			SLOTS[0] >>= 2;
+		
+			if (_config.MAP_REVERSE) {
+				SLOTS[1] <<= 34 - _config.INDEX_DEPTH * 2;
+				SLOTS[1] = (SLOTS[1] >> (32 - _config.INDEX_DEPTH * 2)) & _genome.BINARY_CODE[4];
+			}
+			
+			read_data[pos + _config.INDEX_DEPTH - 1] = mytoupper(read_data[pos + _config.INDEX_DEPTH - 1]);
+			
+			switch (read_data[pos + _config.INDEX_DEPTH - 1]) {
 			case 'A':
-				c = 0;
+				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[0];
+				if (_config.MAP_REVERSE) SLOTS[1] |= 3;
 				break;
 			case 'C':
-				c = 1;
+				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[1];
+				if (_config.MAP_REVERSE) SLOTS[1] |= 2;
 				break;
 			case 'G':
-				c = 2;
+				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[2];
+				if (_config.MAP_REVERSE) SLOTS[1] |= 1;
 				break;
 			case 'T':
-				c = 3;
+				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[3];
 				break;
 			default:
-				return -pos - i - 1 ; // subtract -1 to make sure the output is indeed negative (pos=i=0..?)
+				return -1;
 			}
-
-			SLOTS[0]  = SLOTS[0] + Util::POWER[i] * c;
-			if (_config.MAP_REVERSE) SLOTS[1] += Util::POWER[_config.INDEX_DEPTH - i - 1] * (c ^ 3);
 		}
 
-	} else {
-
-		SLOTS[0] >>= 2;
-
-		if (_config.MAP_REVERSE) {
-			SLOTS[1] <<= 34 - _config.INDEX_DEPTH * 2;
-			SLOTS[1] = (SLOTS[1] >> (32 - _config.INDEX_DEPTH * 2)) & _genome.BINARY_CODE[4];
-		}
-
-		read_data[pos + _config.INDEX_DEPTH - 1] = mytoupper(read_data[pos + _config.INDEX_DEPTH - 1]);
-
-		switch (read_data[pos + _config.INDEX_DEPTH - 1]) {
-		case 'A':
-			SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[0];
-			if (_config.MAP_REVERSE) SLOTS[1] |= 3;
-			break;
-		case 'C':
-			SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[1];
-			if (_config.MAP_REVERSE) SLOTS[1] |= 2;
-			break;
-		case 'G':
-			SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[2];
-			if (_config.MAP_REVERSE) SLOTS[1] |= 1;
-			break;
-		case 'T':
-			SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[3];
-			break;
-		default:
-			return -1;
-		}
+		if (index_type&bwt) 
+        {
+            SLOT_STR_POS[0]++ ;
+            SLOT_STR_POS[1]-- ;
+			if (SLOT_STR_POS[0]>(int)read.length() || SLOT_STR_POS[1]<0)
+				return -1 ;
+        }
 	}
 
 	return 1;
