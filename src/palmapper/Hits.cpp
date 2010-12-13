@@ -14,6 +14,14 @@
 
 #include <iostream>
 
+template int Hits::map_short_read<bwt>(Read& read, unsigned int num) ;
+template int Hits::map_short_read<array>(Read& read, unsigned int num) ;
+template int Hits::map_short_read<debug>(Read& read, unsigned int num) ;
+
+template int Hits::map_fast<bwt>(Read & read) ;
+template int Hits::map_fast<array>(Read & read) ;
+template int Hits::map_fast<debug>(Read & read) ;
+
 void printhit(Read const &read, HIT* hit);
 
 unsigned int Hits::extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos, char conversion)
@@ -1461,12 +1469,12 @@ int Hits::dealloc_hits_by_score()
 }*/
 
 
-int Hits::map_fast(Read & read)
+template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 {
 #ifndef BinaryStream_MAP
-	STORAGE_ENTRY *index_mmap ;
+	STORAGE_ENTRY *index_mmap=NULL ;
 #else
-	CBinaryStream<STORAGE_ENTRY>* index_mmap;
+	CBinaryStream<STORAGE_ENTRY>* index_mmap=NULL;
 #endif
 	INDEX_ENTRY index_entry;
 
@@ -1496,12 +1504,14 @@ int Hits::map_fast(Read & read)
 	int mmpos[max_mms];
 	//fprintf(stdout, "nr_runs=%i\n", nr_runs) ;
 
+	bwa_seq_t * sa_seq=NULL ;
+	uint64_t sa_k, sa_l, sa_num=0 ;
 	for (run=1; run<=nr_runs; ++run) {
-
+		
 		if (nr_runs == 1) nr_runs = 0;	// a bit fishy, but nr_runs and run only have to be different, thats why this assignment is due
 		if (run == nr_runs) readstart = ((int)read.length()) - _config.INDEX_DEPTH;
-			else	    readstart = (run-1) * _config.INDEX_DEPTH;
-
+		else	    readstart = (run-1) * _config.INDEX_DEPTH;
+		
 		if (_config.BSSEQ) {
 //printf("readstart %d\n",readstart);
 			generate_all_possible_seeds(read, INT_MAX, readstart, 0, 0, 0, 0);
@@ -1509,7 +1519,7 @@ int Hits::map_fast(Read & read)
 //printf("%s\n",get_seq(_read,SLOTS_CV1_REV[0]));
 //printf("%s\n",get_seq(_read,SLOTS_CV2_FWD[0]));
 //printf("%s\n",get_seq(_read,SLOTS_CV2_REV[0]));
-
+			
 			// invoke hits for read 1:
 			for (i=0; i!=SLOTS_CV1_FWD.size(); i++) {
 				SLOTS[0] = SLOTS_CV1_FWD[i];
@@ -1520,7 +1530,7 @@ int Hits::map_fast(Read & read)
 			}
 			SLOTS_CV1_FWD.clear();
 			SLOTS_CV2_REV.clear();
-
+			
 			// invoke hits for read 2:
 			for (i=0; i!=SLOTS_CV2_FWD.size(); i++) {
 				SLOTS[0] = SLOTS_CV2_FWD[i];
@@ -1529,29 +1539,49 @@ int Hits::map_fast(Read & read)
 			}
 			SLOTS_CV1_REV.clear();
 			SLOTS_CV2_FWD.clear();
-
+			
 			continue;
-
+			
 		} else {
 			// fill SLOTS[0] and SLOTS[1]:
-			get_slots<array>(read, readstart) ;
-
+			get_slots<index_type>(read, readstart) ;
+			
 			//fprintf(stdout, "map_fast: slot=%i HAS_SLOT=%i read_start=%i seq=%s\n", slot, HAS_SLOT, readstart, get_seq(slot)) ;
-	
-	
+			
+			
 			if (SLOTS[0] >= 0)
 			{	// tests if slot has an unallowed char!
-	
-			for (int rev=0; rev <= _config.MAP_REVERSE; ++rev) {
-	
-					index_entry = _genome.INDEX[SLOTS[rev]];
-					index_mmap = _genome.INDEX_FWD_MMAP;
-	
+				
+				for (int rev=0; rev <= _config.MAP_REVERSE; ++rev) {
+					
+					if (index_type&array)
+					{
+						index_entry = _genome.INDEX[SLOTS[rev]];
+						index_mmap = _genome.INDEX_FWD_MMAP;
+					}
+					
+					if (index_type&bwt)
+					{
+						sa_seq=bwa_seed2genome_map(&SLOT_STR[rev][SLOT_STR_POS[rev]], _config.INDEX_DEPTH, 0, &sa_num, &sa_k, &sa_l) ;
+						if (index_type==bwt)
+							index_entry.num=sa_num ;
+					}
+					bool debug_show=false ;
+					
+					if (debug_show || (index_type==debug && index_entry.num!=sa_num))
+					{
+						char *seed=strdup(&SLOT_STR[rev][SLOT_STR_POS[rev]]) ;
+						seed[_config.INDEX_DEPTH]=0 ;
+						fprintf(stdout, "index_entry.num=%i, sa_num=%lld, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, rev) ;
+						free(seed) ;
+						debug_show=true ;
+					}
+
 					// for each mapping position
 					if (index_entry.num) {
-	
-					STORAGE_ENTRY se_buffer[index_entry.num];
-	
+						
+						STORAGE_ENTRY se_buffer[index_entry.num];
+						
 						int index_entry_num=index_entry.num ;
 						if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) { // && !REPORT_REPETITIVE_SEEDS)
 							index_entry_num=0 ;
@@ -1562,83 +1592,111 @@ int Hits::map_fast(Read & read)
 							if (rev) seed_already_inspected_rev[run] = true;
 							else seed_already_inspected_fwd[run] = true;
 						}
-	
-					TIME_CODE(time_t start_time = clock() ;)
+						
+						TIME_CODE(time_t start_time = clock() ;) ;
+
+						if (index_type&array)
+						{
 #ifndef BinaryStream_MAP
-						_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+							_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
-						index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+							index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
-					TIME_CODE(_stats.hits_seek += clock()-start_time ; _stats.hits_seek_cnt++; ) 				   
-	
+						}
+						
+						TIME_CODE(_stats.hits_seek += clock()-start_time ; _stats.hits_seek_cnt++; ) ;
+						
 						for (i=0; (int)i<index_entry_num; i++)
 						{
-	
-							block = 0; position = 0;
-							unsigned char* p_block = (unsigned char*) &block;
-							STORAGE_ENTRY se;
-							unsigned char* p_id;
-	
-							/*if (!rev) {*/
+							int chr_id=0 ;
+							pos=0 ;
+							if (index_type&array)
+							{
+							
+								block = 0; position = 0;
+								unsigned char* p_block = (unsigned char*) &block;
+								STORAGE_ENTRY se;
+								unsigned char* p_id;
+								
+								/*if (!rev) {*/
 								//memcpy(&block, &((index_mmap+(index_entry.offset-(i+1)))->id[0]), 3 * sizeof(char));
 								//memcpy(&position, &((index_mmap+(index_entry.offset-(i+1)))->id[3]), sizeof(unsigned char));
 								se = se_buffer[index_entry.num-(i+1)];
-							/*}
-							else {
-								//memcpy(&block, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[0]), 3 * sizeof(char));
-								//memcpy(&position, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[3]), sizeof(unsigned char));
-								se = se_buffer[i];//index_entry.offset-(index_entry.num-i)];
-							}*/
-	
-							p_id=se.id;
-							p_block[0]=p_id[0];
-							p_block[1]=p_id[1];
-							p_block[2]=p_id[2];
-							position = p_id[3];
-							pos = (unsigned int) position + _genome.BLOCK_TABLE[block].pos;	// 0-initialized
-						Chromosome const &chr = _genome.chromosome(_genome.BLOCK_TABLE[block].chr);
-	
+								/*}
+								  else {
+								  //memcpy(&block, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[0]), 3 * sizeof(char));
+								  //memcpy(&position, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[3]), sizeof(unsigned char));
+								  se = se_buffer[i];//index_entry.offset-(index_entry.num-i)];
+								  }*/
+								
+								p_id=se.id;
+								p_block[0]=p_id[0];
+								p_block[1]=p_id[1];
+								p_block[2]=p_id[2];
+								position = p_id[3];
+								
+								pos = (unsigned int) position + _genome.BLOCK_TABLE[block].pos;	// 0-initialized
+								chr_id=_genome.BLOCK_TABLE[block].chr ;
+							}
+							if (index_type&bwt)
+							{
+								uint64_t contig_id, contig_pos  ;
+								
+								if (index_type!=debug)
+									assert(sa_k+i<=sa_l) ;
+								if (sa_k+i<=sa_l)
+								{
+									bwa_seed2genome_pos(sa_k+i, &contig_id, &contig_pos, sa_seq) ;
+									chr_id=contig_id ;
+									pos=contig_pos ;
+									
+									if (debug_show)
+										fprintf(stdout, "bwt   pos: contig=%i pos=%i\n", chr_id, pos) ;
+								}
+							}
+							
+							Chromosome const &chr = _genome.chromosome(chr_id);
+							
 							//if (_config.REPORT_REPETITIVE_SEEDS)
 							//	report_repetitive_seed(chr, pos, index_entry.num)  ;
-	
-	
+							
 							if (!rev) {
 								chrstart = pos - (run!=nr_runs) * (run-1) * /*_config.*/_config.INDEX_DEPTH - (run==nr_runs) * (((int)read.length()) - /*_config.*/_config.INDEX_DEPTH);
 							}	// 0-initialized
 							else {
 								chrstart = pos + (run!=nr_runs) *   run   * /*_config.*/_config.INDEX_DEPTH + (run==nr_runs) * ((int)read.length()) - 1;
 							}
-	
+							
 							// check if read can map on position in genome:
 							if ( (!rev && chrstart < 0) ||
-									(rev && chrstart < ((int)read.length()) - 1) ) {
+								 (rev && chrstart < ((int)read.length()) - 1) ) {
 								if (/*_config.*/_config.STATISTICS) chrom_overlap++;
 							}
 							else if ( (!rev && chrstart + ((int)read.length()) > (int)chr.length()) ||
-									( rev && chrstart > (int)chr.length() - 1) ) {
+									  ( rev && chrstart > (int)chr.length() - 1) ) {
 								if (/*_config.*/_config.STATISTICS) chrom_overlap++;
 							}
 							else {
-	
+								
 								nr_mms = 0;
 								chars = 0;
 								cancel = 0;
-	
+								
 								readpos = 0;
 								chrpos = chrstart;
-	
+								
 								for (j=1; (int)j<run; ++j) {
-	
+									
 									mm = 0;
-	
+									
 									for (p=0; p!=/*_config.*/_config.INDEX_DEPTH; ++p) {
-	
+										
 										char * read_data=read.data() ;
 										read_data[readpos+p] = mytoupper(read_data[readpos+p]);
 										if ( ( rev && get_compl_base(chr[chrpos-p]) != read_data[readpos+p]) ||
-										(!rev &&                chr[chrpos+p]  != read_data[readpos+p]) ||
-										!(unique_base(read_data[readpos+p])) ) {
-	
+											 (!rev &&                chr[chrpos+p]  != read_data[readpos+p]) ||
+											 !(unique_base(read_data[readpos+p])) ) {
+											
 											if (nr_mms < max_mms) {
 												mmpos[nr_mms] = readpos + p + 1;
 												++nr_mms;
@@ -1648,34 +1706,34 @@ int Hits::map_fast(Read & read)
 												break;
 											}
 											++mm;
-	
+											
 										}
-	
+										
 										++chars;
-	
+										
 									}
-	
+									
 									if (!mm && ((rev && seed_already_inspected_rev[j]) || (!rev && seed_already_inspected_fwd[j]))) {
 										cancel = 1;
 										break;
 									}
-	
+									
 									if (cancel) break;
-	
+									
 									chrpos += /*_config.*/_config.INDEX_DEPTH * (rev? -1: 1);
 									readpos += /*_config.*/_config.INDEX_DEPTH;
-	
+									
 								}
-	
-	
+								
+								
 								chrpos  = chrpos  + (run!=nr_runs) * /*_config.*/_config.INDEX_DEPTH * (rev? -1: 1);
 								readpos = readpos + (run!=nr_runs) * /*_config.*/_config.INDEX_DEPTH;
 								while (!cancel && (int)chars != ((int)read.length()) - /*_config.*/(int)_config.INDEX_DEPTH) {
-	
+									
 									read.data()[readpos] = mytoupper(read.data()[readpos]);
 									if ( ( rev && get_compl_base(chr[chrpos]) != read.data()[readpos]) ||
-											(!rev && 				 chr[chrpos]  != read.data()[readpos]) ||
-											!(unique_base(read.data()[readpos])) )
+										 (!rev && 				 chr[chrpos]  != read.data()[readpos]) ||
+										 !(unique_base(read.data()[readpos])) )
 									{
 										if (nr_mms == max_mms) {
 											cancel = 1;
@@ -1684,14 +1742,14 @@ int Hits::map_fast(Read & read)
 										mmpos[nr_mms] = readpos + 1;
 										++nr_mms;
 									}
-	
+									
 									readpos++;
 									chrpos += rev? -1: 1;
 									chars++;
-	
+									
 								}
-	
-	
+								
+								
 								if ( !cancel && nr_mms <= max_mms ) {
 									// create hit
 									HIT* hit = new HIT();
@@ -1699,10 +1757,10 @@ int Hits::map_fast(Read & read)
 									{
 										return -1 ;
 									}
-	
+									
 									hit->chromosome = &chr;
 									hit->readpos = 1;
-	
+									
 									if (!rev) {
 										hit->orientation = '+';
 										hit->start = chrstart + 1;				// 1-initialized
@@ -1784,8 +1842,7 @@ int Hits::map_fast(Read & read)
 	return hits_reported;
 }
 
-
-int Hits::map_short_read(Read& read, unsigned int num)
+template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsigned int num)
 {
 	unsigned int readpos = 0;
 	unsigned int spacer = 0;
@@ -1817,16 +1874,18 @@ int Hits::map_short_read(Read& read, unsigned int num)
 		else {
 			if (read_data[spacer]=='A' || read_data[spacer]=='T' || read_data[spacer]=='C' || read_data[spacer]=='G')
 			{
-
 				if (_config.BSSEQ) {
+
+					assert(index_type==array) ;
+					
 					// generate seeds with all allowed combinations of conversions and store them in SLOTS_CV1 and SLOTS_CV2:
 					generate_all_possible_seeds(read, num, readpos, 0, 0, 0, 0);
-
+					
 //printf("cv1_fwd %d\n",(int)SLOTS_CV1_FWD.size());
 //printf("cv1_rev %d\n",(int)SLOTS_CV1_REV.size());
 //printf("cv2_fwd %d\n",(int)SLOTS_CV2_FWD.size());
 //printf("cv2_rev %d\n",(int)SLOTS_CV2_REV.size());
-
+					
 					// invoke hits for read 1:
 					for (unsigned int i=0; i!=SLOTS_CV1_FWD.size(); i++) {
 						SLOTS[0] = SLOTS_CV1_FWD[i];
@@ -1835,7 +1894,7 @@ int Hits::map_short_read(Read& read, unsigned int num)
 					}
 					SLOTS_CV1_FWD.clear();
 					SLOTS_CV2_REV.clear();
-
+					
 					// invoke hits for read 2:
 					for (unsigned int i=0; i!=SLOTS_CV2_FWD.size(); i++) {
 						SLOTS[0] = SLOTS_CV2_FWD[i];
@@ -1847,9 +1906,9 @@ int Hits::map_short_read(Read& read, unsigned int num)
 //return 1;
 				}
 				else {
-					get_slots<array>(read, readpos);
+					get_slots<index_type>(read, readpos);
 					//fprintf(stdout, "map_short_read: slot=%i HAS_SLOT=%i readpos=%i seq=%s\n", slot, HAS_SLOT, readpos, get_seq(slot)) ;
-
+					
 					if (SLOTS[0]<0)
 					{
 						spacer++;
@@ -1857,96 +1916,20 @@ int Hits::map_short_read(Read& read, unsigned int num)
 						HAS_SLOT = 0;
 						continue ;
 					}
-				TIME_CODE_TOTAL(clock_t seed2genome_start=clock() ;)
-
+					TIME_CODE_TOTAL(clock_t seed2genome_start=clock() ;);
+					
 					// Create or extend hit:
-					int ret = seed2genome<array>(num, readpos + 1, 0);
-
-				TIME_CODE_TOTAL(_stats.hits_seed2genome += clock() - seed2genome_start ;
-								_stats.hits_seed2genome_cnt++ ;)
+					int ret = seed2genome<index_type>(num, readpos + 1, 0);
+				
+					TIME_CODE_TOTAL(_stats.hits_seed2genome += clock() - seed2genome_start ;
+									_stats.hits_seed2genome_cnt++ ;);
+					
 					if (ret<0)
 					{
 						fprintf(stderr, "seed2genome<0 (2)\n") ;
 						return ret ;
 					}
-				}
-
-				spacer++;
-				readpos++;
-				HAS_SLOT = 1;
-			}
-			else {
-				spacer++;
-				readpos=spacer;
-				HAS_SLOT = 0;
-			}
-		}
-	}
-
-	HAS_SLOT = 0;
-
-	return 1;
-}
-
-
-int Hits::map_short_read_bwt(Read& read, unsigned int num)
-{
-	unsigned int readpos = 0;
-	unsigned int spacer = 0;
-
-	const enum index_type_t index_type=bwt ;
-
-	++_stats.hits_seed2genome_cnt;
-
-	SLOTS[0] = 0;
-	SLOTS[1] = 0;
-	HAS_SLOT = 0;
-
-	while (spacer < read.length())
-	{
-		char * read_data = read.data() ;
-
-		read_data[spacer] = mytoupper(read_data[spacer]);
-		if (spacer < readpos + _config.INDEX_DEPTH - 1)
-		{
-			if (read_data[spacer]=='A' || read_data[spacer]=='T' || read_data[spacer]=='C' || read_data[spacer]=='G')
-			{
-				spacer++;
-			}
-			else
-			{
-				spacer++;
-				readpos = spacer;
-				HAS_SLOT = 0;
-			}
-		}
-		else {
-			if (read_data[spacer]=='A' || read_data[spacer]=='T' || read_data[spacer]=='C' || read_data[spacer]=='G')
-			{
-				get_slots<index_type>(read, readpos);
-				//fprintf(stdout, "map_short_read: slot=%i HAS_SLOT=%i readpos=%i seq=%s\n", slot, HAS_SLOT, readpos, get_seq(slot)) ;
-				
-				if (SLOTS[0]<0)
-				{
-					spacer++;
-					readpos++;
-					HAS_SLOT = 0;
-					continue ;
-				}
-				TIME_CODE_TOTAL(clock_t seed2genome_start=clock() ;);
-					
-				// Create or extend hit:
-				int ret = seed2genome<index_type>(num, readpos + 1, 0);
-				
-				TIME_CODE_TOTAL(_stats.hits_seed2genome += clock() - seed2genome_start ;
-								_stats.hits_seed2genome_cnt++ ;);
-				
-				if (ret<0)
-				{
-					fprintf(stderr, "seed2genome<0 (2)\n") ;
-					return ret ;
-				}
-				
+				}				
 				
 				spacer++;
 				readpos++;

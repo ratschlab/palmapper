@@ -217,6 +217,8 @@ int Genome::build_index()
 	bwa_seed2genome_init(_config.GENOME_FILE_NAME.c_str(), NULL) ;
 	fprintf(stdout, "done.\n") ;
 
+	//_config.INDEX_DEPTH=25 ;
+
 	return(0);
 }
 
@@ -605,7 +607,7 @@ int Genome::init_constants()
 	if (_config.INDEX_DEPTH>15 || _config.INDEX_DEPTH<5)
 	  {
 	    fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
-	    exit(1) ;
+	    //exit(1) ;
 	  }
 
 	return (0);
