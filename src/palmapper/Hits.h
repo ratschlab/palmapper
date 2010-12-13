@@ -193,9 +193,8 @@ public:
 	int duplicate(HIT* hit) ;
 	int insert_into_scorelist(HIT* hit, char d) ;
 	int browse_hits() ;
-	int map_fast(Read & read);
-	int map_short_read(Read & read, unsigned int num);
-	int map_short_read_bwt(Read & read, unsigned int num);
+	template<enum index_type_t index_type> int map_fast(Read & read);
+	template<enum index_type_t index_type> int map_short_read(Read & read, unsigned int num);
 	template<enum index_type_t> int get_slots(Read & read, int pos);
 
 	void printhits() ;

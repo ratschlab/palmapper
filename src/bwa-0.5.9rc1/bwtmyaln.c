@@ -276,7 +276,7 @@ extern "C" void bwa_seed2genome_pos(uint64_t sa_pos, uint64_t *contig_id, uint64
 	bns_coor_pac2real(bwt_bns, p->pos, len, &seq_id) ;
 	uint64_t pos = (int)(p->pos - bwt_bns->anns[seq_id].offset) ;
 	
-	if (sa_pos==461542)
+	if (false && sa_pos==461542)
 	{
 		fprintf(stdout, "seq_id=%i, pos=%lld, n_aln=%i, multi=%i, strand=%i\n", seq_id, pos, p->n_aln, p->n_multi, p->strand) ;
 
