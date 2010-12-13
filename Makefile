@@ -12,7 +12,7 @@ CFLAGS = -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimpl
 #CFLAGS = -O9 -Wall -g -pg -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
-LDFLAGS = 
+LDFLAGS = -Lsrc/bwa -lbwa
 
 SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
 	$(ObjDir)/palmapper/shogun/Mathematics.o \
@@ -50,7 +50,6 @@ PM_OBJ = $(ObjDir)/palmapper/GenomeMaps.o \
 	$(ObjDir)/palmapper/Read.o \
 	$(ObjDir)/palmapper/Statistics.o \
 	$(ObjDir)/palmapper/Util.o \
-	$(ObjDir)/palmapper/bwt.o \
 	$(SHOGUN_OBJ) $(DYNPROG_OBJ) $(LANG_OBJ)
 
 PMIDX_OBJ = $(ObjDir)/pmindex/init.o \
@@ -66,7 +65,7 @@ CurrentDir := $(shell pwd)
 
 all: palmapper pmindex
 
-palmapper: $(PM_OBJ) src/palmapper/*.h 
+palmapper: src/bwa/libbwa.a $(PM_OBJ) src/palmapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(PM_OBJ) -lpthread -lz -lm
 	ln -sf palmapper genomemapper
 

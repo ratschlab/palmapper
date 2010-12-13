@@ -51,13 +51,6 @@ int main(int argc, char *argv[])
 	_config.checkConfig() ;
 
 	QueryFile queryFile(_config.QUERY_FILE_NAMES);
-	if (0) {
-		fprintf(stdout, "skipping 63000 reads\n") ;
-		Read __read(queryFile) ;
-		for (int i=0; i<63000; i++)
-			queryFile.next_read(__read) ;
-		queryFile.reset_read_count() ;
-	}
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
 
 	// initialize GenomeMaps

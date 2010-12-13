@@ -10,6 +10,9 @@
 
 #include <palmapper/palmapper.h>
 
+#include <bwa/bwtaln.h>
+#include <bwa/bwtmyaln.h>
+
 inline char get_compl_base_(char c)
 {
 	switch (c)
@@ -60,6 +63,8 @@ Genome::Genome() {
 Genome::~Genome() {
 	delete[] _chromosomes;
 	free(INDEX);
+
+	bwa_seed2genome_destroy() ;
 }
 
 int Genome::alloc_index_memory()
@@ -206,6 +211,11 @@ int Genome::build_index()
 
 	// handle index information
 	read_chr_index(CHR_INDEX_FP);
+
+
+	fprintf(stdout, "bwa_seed2genome_init ... ") ;
+	bwa_seed2genome_init(_config.GENOME_FILE_NAME.c_str(), NULL) ;
+	fprintf(stdout, "done.\n") ;
 
 	return(0);
 }

@@ -167,7 +167,11 @@ class TopAlignments ;
 class QPalma ;
 class GenomeMaps ;
 
+enum index_type_t { 
+	array=1, bwt=2, debug=3
+}  ;
 
+	
 class Hits {
 	friend class Mapper;
 public:
@@ -183,7 +187,7 @@ public:
 	int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches) ;
 	int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches) ;
 	int size_hit(HIT *hit, unsigned int oldlength);
-	int seed2genome(unsigned int num, unsigned int readpos, char conversion);
+	template<enum index_type_t> int seed2genome(unsigned int num, unsigned int readpos, char conversion);
 	void printgenome() ;
 //	int alloc_genome_memory() ;
 	int duplicate(HIT* hit) ;
@@ -191,7 +195,8 @@ public:
 	int browse_hits() ;
 	int map_fast(Read & read);
 	int map_short_read(Read & read, unsigned int num);
-	int get_slots(Read & read, int pos);
+	int map_short_read_bwt(Read & read, unsigned int num);
+	template<enum index_type_t> int get_slots(Read & read, int pos);
 
 	void printhits() ;
 	int init_from_meta_index() ;
@@ -304,6 +309,8 @@ private:
 
 	char HAS_SLOT;
 	unsigned int SLOTS[2];
+	char *SLOT_STR[2] ;
+	int SLOT_STR_POS[2] ;
 	std::vector<unsigned int> SLOTS_CV1_FWD;
 	std::vector<unsigned int> SLOTS_CV1_REV;
 	std::vector<unsigned int> SLOTS_CV2_FWD;
