@@ -66,7 +66,8 @@ CurrentDir := $(shell pwd)
 all: palmapper pmindex
 
 palmapper: src/bwa/libbwa.a $(PM_OBJ) src/palmapper/*.h 
-	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(PM_OBJ) -lpthread -lz -lm
+	#$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(PM_OBJ) -lpthread -lz -lm
+	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -o palmapper
 	ln -sf palmapper genomemapper
 
 pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c
