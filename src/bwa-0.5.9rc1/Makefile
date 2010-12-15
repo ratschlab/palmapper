@@ -10,7 +10,7 @@ OBJS=		utils.o bwt.o bwtio.o bwtaln.o bwtmyaln.o bwtgap.o is.o \
 			bwtsw2_chain.o bamlite.o
 PROG=		bwa
 INCLUDES=	
-LIBS=		-lm -lz -lpthread -Lbwt_gen -lbwtgen
+LIBS=		-lm -lz -lpthread -Lbwt_gen -lbwtgen -L . -lbwa
 SUBDIRS=	. bwt_gen
 
 .SUFFIXES:.c .o .cc
@@ -38,7 +38,7 @@ libbwa.a:$(OBJS)
 		$(AR) -cru $@ $(OBJS) 
 
 bwa:lib-recur libbwa.a main.o
-		$(CC) $(CFLAGS) $(DFLAGS) libbwa.a main.o -o $@ $(LIBS)
+		$(CC) $(CFLAGS) $(DFLAGS) main.o -o $@ $(LIBS)
 
 bwt.o:bwt.h
 bwtio.o:bwt.h
