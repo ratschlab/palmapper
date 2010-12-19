@@ -70,6 +70,7 @@ public:
 	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
 
 	Personality _personality;
+	unsigned int BWA_INDEX;
 	unsigned int NUM_THREADS;
 	OutputFilterEnum OUTPUT_FILTER ;
 	unsigned int OUTPUT_FILTER_NUM_TOP ;

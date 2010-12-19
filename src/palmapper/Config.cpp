@@ -24,6 +24,8 @@ Personality Config::getPersonality() {
 
 Config::Config() {
 	_personality = getPersonality();
+
+	BWA_INDEX=0; // Bwt	or genomemapper index
 	NUM_THREADS = 1;//::sysconf(_SC_NPROCESSORS_ONLN);
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
@@ -477,6 +479,13 @@ int Config::parseCommandLine(int argc, char *argv[])
 		 }
 
 		 */
+
+		//BWA index
+		if (strcmp(argv[i], "-bwa") == 0) {
+			not_defined = 0;
+			BWA_INDEX = 1 ;
+		}
+		
 
 		 //nr threads
 		char const *threadOpt = _personality == Palmapper ? "-threads" : "-t";
