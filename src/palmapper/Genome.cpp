@@ -13,6 +13,7 @@
 #include <bwa/bwtaln.h>
 #include <bwa/bwtmyaln.h>
 
+
 inline char get_compl_base_(char c)
 {
 	switch (c)
@@ -64,7 +65,8 @@ Genome::~Genome() {
 	delete[] _chromosomes;
 	free(INDEX);
 
-	bwa_seed2genome_destroy() ;
+	if (_config.BWA_INDEX == 1)
+		bwa_seed2genome_destroy() ;
 }
 
 int Genome::alloc_index_memory()
@@ -197,28 +199,43 @@ int Genome::load_genome()
 
 int Genome::build_index()
 {
-	FILE *META_INDEX_FP = Util::openFile(_config.META_INDEX_FILE_NAME, "r");
-	FILE *CHR_INDEX_FP = Util::openFile(_config.CHR_INDEX_FILE_NAME, "r");
-	// handle meta information
-	read_meta_index_header(META_INDEX_FP);  // updated
 
-	alloc_index_memory(); // updated
+	if (_config.BWA_INDEX==0){	
+		FILE *META_INDEX_FP = Util::openFile(_config.META_INDEX_FILE_NAME, "r");
+		FILE *CHR_INDEX_FP = Util::openFile(_config.CHR_INDEX_FILE_NAME, "r");
+		// handle meta information
+		read_meta_index_header(META_INDEX_FP);  // updated
+		alloc_index_memory(); // updated		
+		read_meta_index(META_INDEX_FP); // updated
+		
+		// mmap map files into memory
+		mmap_indices(); // updated
+		
+		// handle index information
+		read_chr_index(CHR_INDEX_FP);
 
-	read_meta_index(META_INDEX_FP); // updated
+	}
+	else{
+		_config.INDEX_DEPTH=12 ;
+		assert(_config.INDEX_DEPTH<=MAX_INDEX_DEPTH) ;
 
-	// mmap map files into memory
-	mmap_indices(); // updated
+		if (_config.VERBOSE) { printf("\tIndex depth is %d\n", _config.INDEX_DEPTH); }
 
-	// handle index information
-	read_chr_index(CHR_INDEX_FP);
+		if (_config.HITLEN_LIMIT == 0) _config.HITLEN_LIMIT = _config.INDEX_DEPTH;
+		else if (_config.HITLEN_LIMIT < _config.INDEX_DEPTH) {
+			fprintf(stderr, "\n!!! WARNING: Hitlength limit is smaller than seedlength, it will be set to seedlength!\n\n");
+			_config.HITLEN_LIMIT = _config.INDEX_DEPTH;
+		}
 
+		fprintf(stdout, "bwa_seed2genome_init ... ") ;
+		bwa_seed2genome_init(_config.GENOME_FILE_NAME.c_str(), NULL) ;
+		read_chr_bwa();
+		fprintf(stdout, "done.\n") ;
 
-	fprintf(stdout, "bwa_seed2genome_init ... ") ;
-	bwa_seed2genome_init(_config.GENOME_FILE_NAME.c_str(), NULL) ;
-	fprintf(stdout, "done.\n") ;
+	
+	}
 
-	//_config.INDEX_DEPTH=25 ;
-
+   
 	return(0);
 }
 
@@ -350,6 +367,49 @@ int Genome::read_meta_index(FILE *META_INDEX_FP)
   	return 0;
 }
 
+
+int Genome::read_chr_bwa()
+{
+	unsigned int chr_num = 0;
+	int chrlen;
+	int numchr;
+	char *chr_desc=NULL;
+	unsigned int max_len=0;
+	
+	if (_config.VERBOSE || true) { printf("Reading in index\n"); }
+
+	bwa_seed2genome_numchr(&numchr);
+	NUM_CHROMOSOMES=numchr;
+	
+	fprintf(stdout, "\tnum chromosome is %i, ", NUM_CHROMOSOMES); 
+	_chromosomes = new Chromosome[NUM_CHROMOSOMES];
+
+	while (chr_num != NUM_CHROMOSOMES) {
+
+		//chromosome
+		if (_config.VERBOSE) { printf("\tchromosome ID is %d, ", chr_num+1); }
+
+		//chromosome length
+		bwa_seed2genome_lenchr(chr_num,&chrlen);
+		_chromosomes[chr_num]._length = chrlen;
+		if (chrlen> max_len)
+			max_len=chrlen;
+		
+		//chromosome description
+		bwa_seed2genome_descchr(chr_num,chr_desc);
+		_chromosomes[chr_num].desc(chr_desc);
+		if (_config.VERBOSE) { printf("description is %s\n", _chromosomes[chr_num].desc()); }
+
+		chr_num++;
+	} // for every chromosome
+
+	if (_config.VERBOSE) { printf("Finished parsing index\n"); }
+	
+	LONGEST_CHROMOSOME=max_len;
+	
+  	return(0);
+}
+
 int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 {
 	unsigned int chr_num = 0;
@@ -370,7 +430,7 @@ int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 			printf("Early stop in index file (1).\nCorrupted file?\n");
 			exit(1);
 		}
-		if (_config.VERBOSE) { printf("\tchromosome ID is %d, ", chr+1); }
+		if ( _config.VERBOSE) { printf("\tchromosome ID is %d, ", chr+1); }
 
 		//chromosome length
 		if (fread(&chrlen, sizeof(unsigned int), 1, CHR_INDEX_FP) != 1) {
@@ -487,7 +547,8 @@ int Genome::gm_mmap(size_t length, int prot, int flags, int fd, off_t offset, vo
 	*m = mmap(NULL, length, prot, flags, fd, offset);
 
 	if (*m == MAP_FAILED) {
-		printf("ERROR: Could not map file: %s\n", path);
+	  printf("ERROR: Could not map file: %s\n", path);
+	  perror("mmap");
                 exit(1);
 	}
 
@@ -606,7 +667,7 @@ int Genome::init_constants()
 	}
 	if (_config.INDEX_DEPTH>15 || _config.INDEX_DEPTH<5)
 	  {
-	    fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
+		  fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
 	    //exit(1) ;
 	  }
 
