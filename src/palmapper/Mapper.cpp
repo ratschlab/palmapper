@@ -235,7 +235,14 @@ restart:
 	int nr_seeds = (int) (read.length() / _config.INDEX_DEPTH);
 	if (!hits.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
 	{
-		int ret	= hits.map_fast<bwt>(read);	// if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
+
+        // if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
+		int ret;
+		if (_config.BWA_INDEX == 1)
+			ret	= hits.map_fast<bwt>(read);	
+		else
+			ret	= hits.map_fast<array>(read);	
+
 		if (ret<0)
 			cancel = 1 ;
 		else
@@ -255,8 +262,11 @@ restart:
 			c_map_short_read++;
 			//fprintf(stdout, "performing hits.map_short_read\n") ;
 			
-			int ret = hits.map_short_read<bwt>(read, read.getNr());
-			//int ret = hits.map_short_read<array>(read, read.getNr()); 
+			int ret;
+			if (_config.BWA_INDEX == 1)
+				ret = hits.map_short_read<bwt>(read, read.getNr());
+			else
+				ret = hits.map_short_read<array>(read, read.getNr()); 
 
 			if (ret<0)
 				cancel=2 ;

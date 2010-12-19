@@ -383,7 +383,6 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			std::vector<struct seedlist> extended_seedlist ;
 			
 			for (i=0; i<index_entry_num; i++) { // foreach seed...
-
 				TIME_CODE(clock_t start_time = clock()) ;
 				if (read_num == num) 
 				{
@@ -451,7 +450,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 								free(seed) ;
 								debug_show=true ;
 							}
-							debug_show=true ;
+							debug_show=false ;
 							fprintf(stdout, "bwt   pos: contig=%i pos=%i\n", genome_chr_id, genome_pos) ;
 							//assert(false) ;
 						}
@@ -464,6 +463,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					if (debug_show)
 						fprintf(stdout, "array pos: contig=%i pos=%i\n", genome_chr_id, genome_pos) ;
 				}
+
+
 				Chromosome const &genome_chr = _genome.chromosome(genome_chr_id);
 				
 				// Check that read doesn't cross chrom borders
@@ -473,7 +474,6 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				{
 					continue;
 				}
-
 
 				if (_config._personality == Palmapper && report_repetitive_seeds)
 				{   // check every seed, whether it is extendable by REPORT_REPETITIVE_SEED_DEPTH_EXTRA nucleotides 
@@ -509,6 +509,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					INDEX_DEPTH = _config.INDEX_DEPTH + _config.INDEX_DEPTH_EXTRA ;
 					oldlength = INDEX_DEPTH-1;
 				}
+				
 
 				//if (i<10 && index_entry.num>10000)
 				//	printf("block %d pos %d [block].pos %d genome_pos %d genome_chr %d\n", block, pos, BLOCK_TABLE[block].pos, genome_pos, genome_chr);
@@ -522,6 +523,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				// Check if there is already a chromosome director and get this or a new one
 				if (*(GENOME+genome_pos) == NULL) 
 				{
+				
 					flag = 1;
 
 					if (read_num == num) {
@@ -536,15 +538,15 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					}
 
 					GENOME[genome_pos] = chromosome_director;
-
+				
 				}
 				else {
+				
 					if (read_num == num) {
 						printf("Found chromosome director\n");
 					}
 
 					chromosome_director = *(GENOME + genome_pos);
-
 					if (read_num == num) {
 						//TODO what should this be good for?
 //						printf("ChrEntryOp:       %p\n", (CHROMOSOME_ENTRY_OPERATOR.entries));
@@ -556,6 +558,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					}
 
 					if (chromosome_director->genome_pos != genome_pos) {
+						fprintf(stdout, "chromsome director pos %i != genome pos %i for seed %i\n", chromosome_director->genome_pos, genome_pos , i) ;
 						// it's from a former read, thus we need a new chrom_director:
 						assert(false);
 						chromosome_director = alloc_chromosome_entry(_read, genome_pos, genome_chr, strand);
@@ -570,8 +573,9 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 						if (read_num == num) {
 							printf("Overwrite chromosome director %p\n", chromosome_director);
 						}
-					}
+					}				
 				}
+				
 
 				// Parse the list of chromosome directors
 				//printf("chrom_dir %d, genome_chr %d\n", chromosome_director->chromosome, genome_chr);
@@ -1576,7 +1580,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 						free(seed) ;
 						debug_show=true ;
 					}
-
+					
 					// for each mapping position
 					if (index_entry.num) {
 						
@@ -1667,6 +1671,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 								chrstart = pos + (run!=nr_runs) *   run   * /*_config.*/_config.INDEX_DEPTH + (run==nr_runs) * ((int)read.length()) - 1;
 							}
 							
+
 							// check if read can map on position in genome:
 							if ( (!rev && chrstart < 0) ||
 								 (rev && chrstart < ((int)read.length()) - 1) ) {
@@ -1748,8 +1753,8 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 									chars++;
 									
 								}
-								
-								
+
+
 								if ( !cancel && nr_mms <= max_mms ) {
 									// create hit
 									HIT* hit = new HIT();
@@ -1786,7 +1791,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 									//if (!_config.ALL_HIT_STRATEGY && nr_mms < max_mms)
 									//	max_mms = nr_mms;
 	
-								update_num_edit_ops(nr_mms, ALL_HIT_STRATEGY, max_mms) ;
+									update_num_edit_ops(nr_mms, ALL_HIT_STRATEGY, max_mms) ;
 	
 									// perfect matching read
 									if (_config.STATISTICS) {
@@ -1808,11 +1813,11 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 									hits_reported++;
 	
 								} // end of create hit
-	
+
 							} // end of no hit-overlap with chrom border
 	
 						} // end of for each mapping pos
-	
+
 					} // end of index entry num
 	
 				} // end of forward/reverse	rev

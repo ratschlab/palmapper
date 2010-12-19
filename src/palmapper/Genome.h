@@ -74,6 +74,7 @@ private:
 	int read_meta_index_header(FILE *META_INDEX_FP);
 	int read_meta_index(FILE *META_INDEX_FP);
 	int read_chr_index(FILE *CHR_INDEX_FP);
+	int read_chr_bwa();
 	void mmap_indices();
 	int gm_mmap(size_t length, int prot, int flags, int fd, off_t offset, void *map, const char* path);
 	int mmap_full_file(const char *path, void **map, size_t * size_p);
