@@ -183,6 +183,26 @@ extern "C" void bwa_seed2genome_destroy()
 		bns_destroy(bwt_bns) ;
 }
 
+
+
+extern "C" void bwa_seed2genome_numchr(int32_t *num)
+{
+	*num=bwt_bns->n_seqs;
+	
+}
+
+extern "C" void bwa_seed2genome_descchr(int i, char*& desc)
+{
+	
+	desc=bwt_bns->anns[i].name;
+}
+
+extern "C" void bwa_seed2genome_lenchr(int i, int32_t * len)
+{
+	*len=bwt_bns->anns[i].len;
+	
+}
+
 extern "C" bwa_seq_t * bwa_seed2genome_map(const char* read, int read_len, int strand, uint64_t *num, uint64_t *sa_k, uint64_t *sa_l)
 {
 	bwa_seq_t *p=(bwa_seq_t*)calloc(1, sizeof(bwa_seq_t)) ;
