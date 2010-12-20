@@ -18,6 +18,7 @@ SpliceDonFile = $(dataDir)/C_elegans_SpliceSitePred_WS209/don_pred.bspf
 SpliceFiles = $(SpliceAccFile) # $(SpliceDonFile)
 # Since make is unable to handle tools creating multiple products, we use only one representative
 IndexFiles := $(DnaFile).cid # $(DnaFile).mfd $(DnaFile)/mrc $(DnaFile).mta
+BwaIndexFiles := $(DnaFile).bwt # $(DnaFile).mfd $(DnaFile)/mrc $(DnaFile).mta
 
 CurrentDir := $(shell pwd)
 
@@ -46,6 +47,10 @@ $(IndexFiles): $(DnaFile) # pmindex
 	mkdir -p $(dataDir)
 	bash -c "time $(binDir)/pmindex -i $(DnaFile) -v"
 
+$(BwaIndexFiles): $(DnaFile) # pmindex
+	mkdir -p $(dataDir)
+	bash -c "time $(binDir)/bwa index $(DnaFile) "
+
 $(SpliceFiles):
 	mkdir -p $(dataDir)
 	wget -c ftp://ftp.tuebingen.mpg.de/pub/fml/raetsch-lab/predictions/splice/C_elegans/C_elegans_SpliceSitePred_WS209.tar.bz2
@@ -56,6 +61,13 @@ $(SpliceFiles):
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 	mkdir -p $(dataDir)
 	bash -c "time $(MapCmd)"
+#	valgrind $(MapCmd)
+	(cd $(resultDir) ; md5sum $(notdir $(ResultFiles))) 
+	(cd $(resultDir) ; md5sum -c $(CurrentDir)/result.md5)
+
+bwamap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(dataDir)
+	bash -c "time $(MapCmd) -bwa"
 #	valgrind $(MapCmd)
 	(cd $(resultDir) ; md5sum $(notdir $(ResultFiles))) 
 	(cd $(resultDir) ; md5sum -c $(CurrentDir)/result.md5)
