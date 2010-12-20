@@ -384,11 +384,10 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			
 			for (i=0; i<index_entry_num; i++) { // foreach seed...
 				TIME_CODE(clock_t start_time = clock()) ;
-				if (read_num == num) 
+				if (read_num == num && (index_type&array)) 
 				{
 					printf("############################\n");
 					printf("Now adding seed # %d/%d of read %i (%s), slot %i, ori %d\n", i+1, index_entry.num, num, _read.id(), SLOTS[reverse], reverse);
-					assert(index_type&array) ; // TODO: fix for bwt
 				}
 
 				// Every mapping gets an entry

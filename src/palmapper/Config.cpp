@@ -1698,6 +1698,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 		exit(1);
 	}
 
+	if (BWA_INDEX && REPORT_REPETITIVE_SEEDS)
+	{
+		fprintf(stderr, "The combination of the two options -bwa and -report-rep-seed is not implemented yet\n") ;
+		exit(-1) ;
+	}
+	
 	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
 
 	return 0;
@@ -1727,6 +1733,7 @@ int Config::usage() {
 		printf(" -q STRING      query filename (fasta, fastq, or SHORE flat file)\n");
 		printf("\n\n");
 		printf("optional:\n");
+		printf(" -bwa           use burrows-wheeler index instead of k-mer index (bwa-based)\n") ;
 		printf(" -S             report spliced alignments (detailed options below)\n\n");
 		printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")\n");
 		printf(" -o STRING      output filename [stdout]\n");

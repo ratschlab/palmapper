@@ -66,14 +66,17 @@ CurrentDir := $(shell pwd)
 all: palmapper pmindex
 
 src/bwa/libbwa.a:
-	@echo Compiling libbwa
-	(cd src/bwa && make libbwa.a bwa)
+	@echo Compiling libbwa 
+	(cd src/bwa && make libbwa.a)
 
-src/bwa/bwa:
+src/bwa/bwa: src/bwa/libbwa.a
 	@echo Compiling bwa
-	(cd src/bwa && make bwa && ln -sf src/bwa/bwa)
+	(cd src/bwa && make bwa) 
 
-palmapper: src/bwa/libbwa.a src/bwa/bwa $(PM_OBJ) src/palmapper/*.h 
+bwa: src/bwa/bwa
+	ln -sf src/bwa/bwa
+
+palmapper: src/bwa/libbwa.a bwa $(PM_OBJ) src/palmapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -o palmapper
 	ln -sf palmapper genomemapper
 
