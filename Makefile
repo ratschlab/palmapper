@@ -65,8 +65,15 @@ CurrentDir := $(shell pwd)
 
 all: palmapper pmindex
 
-palmapper: src/bwa/libbwa.a $(PM_OBJ) src/palmapper/*.h 
-	#$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o palmapper $(PM_OBJ) -lpthread -lz -lm
+src/bwa/libbwa.a:
+	@echo Compiling libbwa
+	(cd src/bwa && make libbwa.a bwa)
+
+src/bwa/bwa:
+	@echo Compiling bwa
+	(cd src/bwa && make bwa && ln -sf src/bwa/bwa)
+
+palmapper: src/bwa/libbwa.a src/bwa/bwa $(PM_OBJ) src/palmapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -o palmapper
 	ln -sf palmapper genomemapper
 
@@ -75,7 +82,8 @@ pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c
 	ln -sf pmindex gmindex 
 
 clean:
-	rm -rf $(OutDir) palmapper pmindex genomemapper gmindex
+	(cd src/bwa && make clean)
+	rm -rf $(OutDir) palmapper pmindex genomemapper gmindex bwa
 
 test:
 	(cd testcase; make test)

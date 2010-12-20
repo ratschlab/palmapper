@@ -392,7 +392,7 @@ int Genome::read_chr_bwa()
 		//chromosome length
 		bwa_seed2genome_lenchr(chr_num,&chrlen);
 		_chromosomes[chr_num]._length = chrlen;
-		if (chrlen> max_len)
+		if ((int)chrlen> (int)max_len)
 			max_len=chrlen;
 		
 		//chromosome description
