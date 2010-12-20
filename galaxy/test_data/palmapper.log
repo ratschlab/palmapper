@@ -1,0 +1,492 @@
+
+PALMapper version 0.4   (PALMapper is a fusion of GenomeMapper & QPALMA)
+written by Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Fabio De Bona, Stephan Ossowski, and others
+Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010
+
+
+Setting default parameters:
+* Automatically determining alignment parameters based on read length (75nt): -K 15 -L 20 -C 37 -NI 2 -E 6 -M 6 -G 2
+* Automatically determined minimal segment length in spliced alignments based on read length (8nt)
+* Automatically determined maximal intron size based on genome size (20kb)
+
+
+Starting thread 0
+.WARNING - block sum does not match readlength: block_sum=74, readlength=75, read=AAAAACCACTGCATCTTAGAAACATCAGCTCCAGTGACGATGACCTCAAGGAACACCGACCCGTTCTCTGATCTA, read_id=HWUSI-EAS627_1:1:1:16:450/1 
+...# [capture_hits] timing: 0.0000, 2.4200, 1.6100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 2569 (375) unspliced, 360 (53) spliced alignments, 1246 unmapped (spliced 12.3%, unmapped 29.8%)
+.
+.WARNING - block sum does not match readlength: block_sum=74, readlength=75, read=CCACATTCCACAAGTTTCGAGAAAACGAACATTAATAGGTACATGACAGAAATTGTTCCAAGAACATTAAACTTC, read_id=HWUSI-EAS627_1:1:1:59:1977/1 
+WARNING - block sum does not match readlength: block_sum=74, readlength=75, read=AAATCACCTCCGGCCTCTAAATCGCGTCCAGTATTGGAGAGGCACATCATGGAACCAGCCACATTTCGTTGCTTG, read_id=HWUSI-EAS627_1:1:1:67:1378/1 
+...# [capture_hits] timing: 0.0000, 6.5900, 4.4300 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 5203 (818) unspliced, 796 (132) spliced alignments, 2564 unmapped (spliced 13.3%, unmapped 29.9%)
+.10000
+WARNING - block sum does not match readlength: block_sum=74, readlength=75, read=TGAAGCTCTCCCTTTCCAGCATTACGACGATCAACGTTAATAGTGGTAGCATGTCGAAGCAAAACTTGATCAGAG, read_id=HWUSI-EAS627_1:1:1:99:1706/1 
+..# [capture_hits] timing: 0.0000, 12.2200, 8.7000 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 7484 (1108) unspliced, 1191 (232) spliced alignments, 3640 unmapped (spliced 13.7%, unmapped 29.6%)
+..
+..# [capture_hits] timing: 0.0000, 18.3000, 13.4600 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 9538 (1389) unspliced, 1523 (319) spliced alignments, 4636 unmapped (spliced 13.8%, unmapped 29.5%)
+..
+.# [capture_hits] timing: 0.0000, 24.3400, 18.0900 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 11545 (1715) unspliced, 1892 (398) spliced alignments, 5543 unmapped (spliced 14.1%, unmapped 29.2%)
+.20000..
+.# [capture_hits] timing: 0.0000, 30.6000, 22.7000 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 13713 (2018) unspliced, 2229 (484) spliced alignments, 6550 unmapped (spliced 14.0%, unmapped 29.1%)
+..
+.# [capture_hits] timing: 0.0000, 36.8700, 27.7000 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0700 average per read: inf
+
+# 15586 (2315) unspliced, 2537 (568) spliced alignments, 7435 unmapped (spliced 14.0%, unmapped 29.1%)
+..
+.# [capture_hits] timing: 0.0000, 43.7000, 33.1600 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0400 average per read: inf
+
+# 17351 (2596) unspliced, 2811 (645) spliced alignments, 8358 unmapped (spliced 13.9%, unmapped 29.3%)
+.30000.# [capture_hits] timing: 0.0000, 50.8200, 38.9100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 18951 (2826) unspliced, 3079 (734) spliced alignments, 9245 unmapped (spliced 14.0%, unmapped 29.6%)
+
+...# [capture_hits] timing: 0.0000, 58.3300, 45.3500 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0600 average per read: inf
+
+# 20349 (3024) unspliced, 3300 (816) spliced alignments, 10124 unmapped (spliced 14.0%, unmapped 30.0%)
+
+..# [capture_hits] timing: 0.0000, 65.9800, 51.8900 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 21630 (3194) unspliced, 3534 (902) spliced alignments, 10882 unmapped (spliced 14.0%, unmapped 30.2%)
+.
+..# [capture_hits] timing: 0.0000, 73.7700, 58.6100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 22870 (3419) unspliced, 3732 (979) spliced alignments, 11660 unmapped (spliced 14.0%, unmapped 30.5%)
+
+.40000.# [capture_hits] timing: 0.0000, 81.8600, 65.5600 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 23996 (3572) unspliced, 3907 (1048) spliced alignments, 12457 unmapped (spliced 14.0%, unmapped 30.9%)
+.
+.# [capture_hits] timing: 0.0000, 89.4800, 72.1500 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0400 average per read: inf
+
+# 25195 (3735) unspliced, 4108 (1111) spliced alignments, 13342 unmapped (spliced 14.0%, unmapped 31.3%)
+.
+.# [capture_hits] timing: 0.0000, 97.6800, 79.3300 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1900 average per read: inf
+
+# 26287 (3868) unspliced, 4268 (1170) spliced alignments, 14130 unmapped (spliced 14.0%, unmapped 31.6%)
+.
+.# [capture_hits] timing: 0.0000, 105.8600, 86.4100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1500 average per read: inf
+
+# 27307 (4015) unspliced, 4423 (1203) spliced alignments, 14919 unmapped (spliced 13.9%, unmapped 32.0%)
+.
+.# [capture_hits] timing: 0.0000, 113.0400, 92.6100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 28260 (4127) unspliced, 4573 (1240) spliced alignments, 15619 unmapped (spliced 13.9%, unmapped 32.2%)
+.50000
+.# [capture_hits] timing: 0.0000, 120.8400, 99.3400 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0300 average per read: inf
+
+# 29283 (4250) unspliced, 4730 (1290) spliced alignments, 16429 unmapped (spliced 13.9%, unmapped 32.6%)
+..
+# [capture_hits] timing: 0.0000, 129.0200, 106.6300 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1500 average per read: inf
+
+# 30260 (4394) unspliced, 4909 (1327) spliced alignments, 17199 unmapped (spliced 14.0%, unmapped 32.8%)
+..# [capture_hits] timing: 0.0000, 137.4000, 114.0000 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0300 average per read: inf
+
+# 31217 (4528) unspliced, 5068 (1377) spliced alignments, 17937 unmapped (spliced 14.0%, unmapped 33.1%)
+
+.# [capture_hits] timing: 0.0000, 145.7000, 121.5200 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3800 average per read: inf
+
+# 32102 (4665) unspliced, 5216 (1412) spliced alignments, 18610 unmapped (spliced 14.0%, unmapped 33.3%)
+
+..# [capture_hits] timing: 0.0000, 154.2200, 129.2600 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 32874 (4781) unspliced, 5325 (1434) spliced alignments, 19191 unmapped (spliced 13.9%, unmapped 33.4%)
+
+..60000# [capture_hits] timing: 0.0000, 162.2800, 136.4800 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 33843 (4951) unspliced, 5483 (1472) spliced alignments, 19938 unmapped (spliced 13.9%, unmapped 33.6%)
+
+.# [capture_hits] timing: 0.0000, 170.7400, 143.7600 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1900 average per read: inf
+
+# 34774 (5078) unspliced, 5638 (1516) spliced alignments, 20659 unmapped (spliced 14.0%, unmapped 33.8%)
+.
+.# [capture_hits] timing: 0.0000, 178.9600, 150.9700 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1400 average per read: inf
+
+# 35704 (5199) unspliced, 5795 (1560) spliced alignments, 21463 unmapped (spliced 14.0%, unmapped 34.1%)
+.
+.# [capture_hits] timing: 0.0000, 187.4600, 158.7300 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 36480 (5324) unspliced, 5908 (1593) spliced alignments, 22117 unmapped (spliced 13.9%, unmapped 34.3%)
+.
+# [capture_hits] timing: 0.0000, 195.9700, 166.4100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 37226 (5419) unspliced, 6027 (1617) spliced alignments, 22794 unmapped (spliced 13.9%, unmapped 34.5%)
+.
+.# [capture_hits] timing: 0.0000, 204.5500, 174.2900 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1900 average per read: inf
+
+# 37773 (5510) unspliced, 6105 (1645) spliced alignments, 23361 unmapped (spliced 13.9%, unmapped 34.7%)
+.
+# [capture_hits] timing: 0.0000, 212.9500, 181.6000 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3900 average per read: inf
+
+# 38592 (5648) unspliced, 6241 (1667) spliced alignments, 24138 unmapped (spliced 13.9%, unmapped 35.0%)
+.70000.
+# [capture_hits] timing: 0.0000, 221.6900, 189.3900 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 39254 (5755) unspliced, 6363 (1704) spliced alignments, 24794 unmapped (spliced 13.9%, unmapped 35.2%)
+.# [capture_hits] timing: 0.0000, 230.3700, 197.2500 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 39916 (5834) unspliced, 6487 (1737) spliced alignments, 25526 unmapped (spliced 14.0%, unmapped 35.5%)
+
+..# [capture_hits] timing: 0.0000, 238.9900, 204.9900 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0500 average per read: inf
+
+# 40632 (5925) unspliced, 6576 (1776) spliced alignments, 26319 unmapped (spliced 13.9%, unmapped 35.8%)
+
+..# [capture_hits] timing: 0.0000, 247.4000, 212.5200 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1700 average per read: inf
+
+# 41337 (6026) unspliced, 6707 (1803) spliced alignments, 27118 unmapped (spliced 14.0%, unmapped 36.1%)
+
+.# [capture_hits] timing: 0.0000, 254.8600, 219.2200 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 41997 (6089) unspliced, 6814 (1836) spliced alignments, 27948 unmapped (spliced 14.0%, unmapped 36.4%)
+.
+.# [capture_hits] timing: 0.0000, 263.3600, 227.0400 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 42638 (6187) unspliced, 6910 (1874) spliced alignments, 28748 unmapped (spliced 13.9%, unmapped 36.7%)
+
+.80000# [capture_hits] timing: 0.0000, 271.9288, 234.7100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 43271 (6269) unspliced, 7001 (1913) spliced alignments, 29513 unmapped (spliced 13.9%, unmapped 37.0%)
+.
+.# [capture_hits] timing: 0.0000, 280.0663, 242.0700 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 43925 (6338) unspliced, 7091 (1937) spliced alignments, 30505 unmapped (spliced 13.9%, unmapped 37.4%)
+.
+.# [capture_hits] timing: 0.0000, 288.7226, 249.6100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 44576 (6400) unspliced, 7195 (1968) spliced alignments, 31447 unmapped (spliced 13.9%, unmapped 37.8%)
+.
+.# [capture_hits] timing: 0.0000, 297.1797, 257.2100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 45272 (6487) unspliced, 7299 (1998) spliced alignments, 32538 unmapped (spliced 13.9%, unmapped 38.2%)
+.
+.# [capture_hits] timing: 0.0000, 305.4766, 264.7100 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0400 average per read: inf
+
+# 45928 (6555) unspliced, 7382 (2016) spliced alignments, 33653 unmapped (spliced 13.8%, unmapped 38.7%)
+.
+# [capture_hits] timing: 0.0000, 313.8440, 272.2886 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0700 average per read: inf
+
+# 46548 (6630) unspliced, 7488 (2048) spliced alignments, 34710 unmapped (spliced 13.9%, unmapped 39.1%)
+.90000WARNING - block sum does not match readlength: block_sum=74, readlength=75, read=GCGGTCTCGAGCTCCTGATGCACATTCACGCATTCTTTCATATTCAGCTGGATAATTCTCAGTAACACATTTCAT, read_id=HWUSI-EAS627_1:1:1:751:707/1 
+.# [capture_hits] timing: 0.0000, 322.3006, 279.9056 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1400 average per read: inf
+
+# 47191 (6698) unspliced, 7570 (2072) spliced alignments, 35805 unmapped (spliced 13.8%, unmapped 39.5%)
+
+..# [capture_hits] timing: 0.0000, 331.1284, 287.8829 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 47800 (6765) unspliced, 7677 (2094) spliced alignments, 36872 unmapped (spliced 13.8%, unmapped 39.9%)
+
+..# [capture_hits] timing: 0.0000, 339.5861, 295.6001 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0800 average per read: inf
+
+# 48392 (6835) unspliced, 7763 (2116) spliced alignments, 37934 unmapped (spliced 13.8%, unmapped 40.3%)
+
+..# [capture_hits] timing: 0.0000, 348.1032, 303.2368 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 49041 (6901) unspliced, 7846 (2148) spliced alignments, 39010 unmapped (spliced 13.8%, unmapped 40.7%)
+
+.# [capture_hits] timing: 0.0000, 356.9609, 311.4047 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 49570 (6956) unspliced, 7941 (2170) spliced alignments, 39919 unmapped (spliced 13.8%, unmapped 41.0%)
+.
+.100000# [capture_hits] timing: 0.0000, 365.7181, 319.2222 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 50240 (7037) unspliced, 8021 (2195) spliced alignments, 41033 unmapped (spliced 13.8%, unmapped 41.3%)
+.
+.# [capture_hits] timing: 0.0000, 373.7948, 326.4389 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 50875 (7132) unspliced, 8124 (2209) spliced alignments, 42180 unmapped (spliced 13.8%, unmapped 41.7%)
+.
+.# [capture_hits] timing: 0.0000, 381.9225, 333.6859 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 51495 (7193) unspliced, 8212 (2243) spliced alignments, 43240 unmapped (spliced 13.8%, unmapped 42.0%)
+.
+.# [capture_hits] timing: 0.0000, 390.2701, 341.3222 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 52145 (7311) unspliced, 8314 (2275) spliced alignments, 44438 unmapped (spliced 13.8%, unmapped 42.4%)
+.
+# [capture_hits] timing: 0.0000, 398.4081, 348.9504 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1300 average per read: inf
+
+# 52595 (7367) unspliced, 8369 (2294) spliced alignments, 45217 unmapped (spliced 13.7%, unmapped 42.6%)
+..
+# [capture_hits] timing: 0.0000, 407.1350, 356.7466 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0700 average per read: inf
+
+# 53212 (7444) unspliced, 8491 (2320) spliced alignments, 46308 unmapped (spliced 13.8%, unmapped 42.9%)
+.110000.# [capture_hits] timing: 0.0000, 415.4619, 364.2132 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1100 average per read: inf
+
+# 53866 (7534) unspliced, 8597 (2344) spliced alignments, 47523 unmapped (spliced 13.8%, unmapped 43.2%)
+
+.# [capture_hits] timing: 0.0000, 424.2794, 372.2702 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3000 average per read: inf
+
+# 54460 (7624) unspliced, 8674 (2378) spliced alignments, 48561 unmapped (spliced 13.7%, unmapped 43.5%)
+.
+..# [capture_hits] timing: 0.0000, 432.8464, 379.8673 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 55109 (7684) unspliced, 8787 (2397) spliced alignments, 49901 unmapped (spliced 13.8%, unmapped 43.9%)
+
+.# [capture_hits] timing: 0.0000, 440.1940, 386.5345 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 55668 (7746) unspliced, 8856 (2410) spliced alignments, 51037 unmapped (spliced 13.7%, unmapped 44.2%)
+.
+..# [capture_hits] timing: 0.0000, 447.8710, 393.3705 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 56379 (7828) unspliced, 8956 (2443) spliced alignments, 52655 unmapped (spliced 13.7%, unmapped 44.6%)
+.120000
+.# [capture_hits] timing: 0.0000, 456.6178, 401.3269 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3000 average per read: inf
+
+# 56935 (7901) unspliced, 9018 (2463) spliced alignments, 53898 unmapped (spliced 13.7%, unmapped 45.0%)
+.
+.# [capture_hits] timing: 0.0000, 465.0947, 408.9133 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3100 average per read: inf
+
+# 57544 (7961) unspliced, 9114 (2490) spliced alignments, 55406 unmapped (spliced 13.7%, unmapped 45.4%)
+.
+.# [capture_hits] timing: 0.0000, 473.9019, 416.7903 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0400 average per read: inf
+
+# 58096 (8036) unspliced, 9203 (2502) spliced alignments, 56751 unmapped (spliced 13.7%, unmapped 45.7%)
+.
+.# [capture_hits] timing: 0.0000, 481.9793, 423.9872 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0300 average per read: inf
+
+# 58602 (8106) unspliced, 9283 (2523) spliced alignments, 58121 unmapped (spliced 13.7%, unmapped 46.1%)
+..
+# [capture_hits] timing: 0.0000, 489.9664, 431.0334 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 59154 (8175) unspliced, 9379 (2545) spliced alignments, 59980 unmapped (spliced 13.7%, unmapped 46.7%)
+.130000..
+# [capture_hits] timing: 0.0000, 498.1330, 438.3395 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.2900 average per read: inf
+
+# 59769 (8236) unspliced, 9463 (2570) spliced alignments, 61884 unmapped (spliced 13.7%, unmapped 47.2%)
+...# [capture_hits] timing: 0.0000, 505.9407, 445.2070 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 60305 (8292) unspliced, 9541 (2590) spliced alignments, 63828 unmapped (spliced 13.7%, unmapped 47.7%)
+
+...# [capture_hits] timing: 0.0000, 513.7167, 451.9932 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0400 average per read: inf
+
+# 60961 (8331) unspliced, 9638 (2617) spliced alignments, 66102 unmapped (spliced 13.7%, unmapped 48.4%)
+
+..140000# [capture_hits] timing: 0.0000, 522.0432, 459.3797 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3900 average per read: inf
+
+# 61575 (8404) unspliced, 9718 (2639) spliced alignments, 68021 unmapped (spliced 13.6%, unmapped 48.8%)
+.
+..# [capture_hits] timing: 0.0000, 529.7903, 466.1960 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 62149 (8449) unspliced, 9809 (2666) spliced alignments, 69916 unmapped (spliced 13.6%, unmapped 49.3%)
+.
+.# [capture_hits] timing: 0.0000, 538.2073, 473.7723 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0800 average per read: inf
+
+# 62738 (8504) unspliced, 9885 (2694) spliced alignments, 71587 unmapped (spliced 13.6%, unmapped 49.6%)
+.
+..# [capture_hits] timing: 0.0000, 546.6620, 481.2682 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1800 average per read: inf
+
+# 63348 (8554) unspliced, 9972 (2721) spliced alignments, 73420 unmapped (spliced 13.6%, unmapped 50.0%)
+.
+.150000# [capture_hits] timing: 0.0000, 554.9367, 488.6740 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 63978 (8605) unspliced, 10057 (2743) spliced alignments, 75307 unmapped (spliced 13.6%, unmapped 50.4%)
+..
+.# [capture_hits] timing: 0.0000, 563.8615, 496.7002 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3000 average per read: inf
+
+# 64520 (8669) unspliced, 10149 (2771) spliced alignments, 76814 unmapped (spliced 13.6%, unmapped 50.7%)
+.
+# [capture_hits] timing: 0.0000, 572.3174, 504.3175 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 65055 (8721) unspliced, 10221 (2790) spliced alignments, 78160 unmapped (spliced 13.6%, unmapped 50.9%)
+..
+.# [capture_hits] timing: 0.0000, 580.5513, 511.5130 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 65702 (8789) unspliced, 10316 (2816) spliced alignments, 79671 unmapped (spliced 13.6%, unmapped 51.2%)
+..
+# [capture_hits] timing: 0.0000, 589.2257, 519.2289 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 66287 (8839) unspliced, 10404 (2840) spliced alignments, 81145 unmapped (spliced 13.6%, unmapped 51.4%)
+.160000.# [capture_hits] timing: 0.0000, 597.1899, 526.2244 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.5900 average per read: inf
+
+# 66918 (8888) unspliced, 10513 (2861) spliced alignments, 82630 unmapped (spliced 13.6%, unmapped 51.6%)
+
+.# [capture_hits] timing: 0.0000, 606.5385, 535.2433 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 67104 (8900) unspliced, 10543 (2866) spliced alignments, 83135 unmapped (spliced 13.6%, unmapped 51.7%)
+.
+# [capture_hits] timing: 0.0000, 615.1745, 543.1591 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 67562 (8957) unspliced, 10605 (2879) spliced alignments, 84211 unmapped (spliced 13.6%, unmapped 51.9%)
+...
+# [capture_hits] timing: 0.0000, 623.4987, 550.4637 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 68207 (9032) unspliced, 10710 (2904) spliced alignments, 85659 unmapped (spliced 13.6%, unmapped 52.0%)
+.# [capture_hits] timing: 0.0000, 632.2053, 558.4399 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0500 average per read: inf
+
+# 68661 (9085) unspliced, 10796 (2922) spliced alignments, 86671 unmapped (spliced 13.6%, unmapped 52.2%)
+
+..# [capture_hits] timing: 0.0000, 641.0810, 566.6151 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1500 average per read: inf
+
+# 69180 (9144) unspliced, 10890 (2937) spliced alignments, 87825 unmapped (spliced 13.6%, unmapped 52.3%)
+.170000
+.# [capture_hits] timing: 0.0000, 649.5866, 574.2504 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0300 average per read: inf
+
+# 69761 (9234) unspliced, 10983 (2951) spliced alignments, 89018 unmapped (spliced 13.6%, unmapped 52.4%)
+.
+.# [capture_hits] timing: 0.0000, 658.0322, 581.8859 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 70309 (9302) unspliced, 11067 (2978) spliced alignments, 90228 unmapped (spliced 13.6%, unmapped 52.6%)
+.
+.# [capture_hits] timing: 0.0000, 667.3067, 590.2502 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.7600 average per read: inf
+
+# 70905 (9371) unspliced, 11162 (2992) spliced alignments, 91496 unmapped (spliced 13.6%, unmapped 52.7%)
+.
+.# [capture_hits] timing: 0.0000, 675.8119, 597.8852 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.2100 average per read: inf
+
+# 71486 (9441) unspliced, 11248 (3015) spliced alignments, 92905 unmapped (spliced 13.6%, unmapped 52.9%)
+.
+.# [capture_hits] timing: 0.0000, 684.0075, 605.0400 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.4300 average per read: inf
+
+# 72085 (9502) unspliced, 11340 (3040) spliced alignments, 94355 unmapped (spliced 13.6%, unmapped 53.1%)
+.180000.
+# [capture_hits] timing: 0.0000, 692.2821, 612.2843 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 72722 (9560) unspliced, 11446 (3081) spliced alignments, 95958 unmapped (spliced 13.6%, unmapped 53.3%)
+..
+# [capture_hits] timing: 0.0000, 701.1373, 620.0797 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.5400 average per read: inf
+
+# 73277 (9646) unspliced, 11530 (3118) spliced alignments, 97385 unmapped (spliced 13.6%, unmapped 53.5%)
+...
+# [capture_hits] timing: 0.0000, 709.2723, 627.2541 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 73915 (9723) unspliced, 11624 (3145) spliced alignments, 99112 unmapped (spliced 13.6%, unmapped 53.7%)
+..
+# [capture_hits] timing: 0.0000, 717.7577, 634.6487 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 74489 (9775) unspliced, 11704 (3167) spliced alignments, 100773 unmapped (spliced 13.6%, unmapped 53.9%)
+..190000# [capture_hits] timing: 0.0000, 726.1636, 642.2849 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1200 average per read: inf
+
+# 74970 (9824) unspliced, 11770 (3189) spliced alignments, 102166 unmapped (spliced 13.6%, unmapped 54.1%)
+
+...# [capture_hits] timing: 0.0000, 734.5084, 649.7097 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0300 average per read: inf
+
+# 75589 (9883) unspliced, 11855 (3219) spliced alignments, 103877 unmapped (spliced 13.6%, unmapped 54.3%)
+
+..# [capture_hits] timing: 0.0000, 742.8031, 657.1143 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 76142 (9930) unspliced, 11940 (3248) spliced alignments, 105525 unmapped (spliced 13.6%, unmapped 54.5%)
+
+..# [capture_hits] timing: 0.0000, 750.9688, 664.4496 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 76684 (9984) unspliced, 12005 (3271) spliced alignments, 107217 unmapped (spliced 13.5%, unmapped 54.7%)
+.
+WARNING - block sum does not match readlength: block_sum=74, readlength=75, read=GAAAACACTGTCATTTAGATGAAGTTGTGACGTCTCTCATAAAAGAGAACAACTTAACAAAAGCTACTCGAATTT, read_id=HWUSI-EAS627_1:1:1:1645:1275/1 
+.# [capture_hits] timing: 0.0000, 759.5850, 672.4055 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 77106 (10033) unspliced, 12046 (3288) spliced alignments, 108588 unmapped (spliced 13.5%, unmapped 54.9%)
+.200000
+.# [capture_hits] timing: 0.0000, 768.2603, 680.2805 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.5000 average per read: inf
+
+# 77611 (10090) unspliced, 12126 (3312) spliced alignments, 110252 unmapped (spliced 13.5%, unmapped 55.1%)
+..
+.# [capture_hits] timing: 0.0000, 776.2767, 687.5058 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0400 average per read: inf
+
+# 78096 (10130) unspliced, 12183 (3325) spliced alignments, 112043 unmapped (spliced 13.5%, unmapped 55.4%)
+.
+.# [capture_hits] timing: 0.0000, 784.8320, 695.2303 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 78581 (10174) unspliced, 12250 (3340) spliced alignments, 113900 unmapped (spliced 13.5%, unmapped 55.6%)
+..
+.# [capture_hits] timing: 0.0000, 792.6677, 702.0555 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 79071 (10218) unspliced, 12330 (3359) spliced alignments, 115974 unmapped (spliced 13.5%, unmapped 55.9%)
+.210000.
+# [capture_hits] timing: 0.0000, 801.2334, 709.7404 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 1.0300 average per read: inf
+
+# 79559 (10258) unspliced, 12386 (3371) spliced alignments, 117984 unmapped (spliced 13.5%, unmapped 56.2%)
+...
+# [capture_hits] timing: 0.0000, 809.4490, 717.0557 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0500 average per read: inf
+
+# 80062 (10311) unspliced, 12463 (3387) spliced alignments, 120241 unmapped (spliced 13.5%, unmapped 56.5%)
+...# [capture_hits] timing: 0.0000, 816.9843, 723.4810 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1900 average per read: inf
+
+# 80688 (10397) unspliced, 12567 (3421) spliced alignments, 121924 unmapped (spliced 13.5%, unmapped 56.7%)
+
+..# [capture_hits] timing: 0.0000, 824.4189, 729.3071 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.8200 average per read: inf
+
+# 81792 (10614) unspliced, 12793 (3477) spliced alignments, 122253 unmapped (spliced 13.5%, unmapped 56.4%)
+
+.220000# [capture_hits] timing: 0.0000, 832.3150, 736.1240 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.2200 average per read: inf
+
+# 82666 (10766) unspliced, 12984 (3513) spliced alignments, 122491 unmapped (spliced 13.6%, unmapped 56.2%)
+
+..# [capture_hits] timing: 0.0000, 839.9807, 742.1711 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 83729 (11029) unspliced, 13202 (3558) spliced alignments, 122722 unmapped (spliced 13.6%, unmapped 55.9%)
+
+.# [capture_hits] timing: 0.0000, 847.6373, 748.7483 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.7500 average per read: inf
+
+# 84709 (11193) unspliced, 13371 (3589) spliced alignments, 122969 unmapped (spliced 13.6%, unmapped 55.6%)
+.
+.# [capture_hits] timing: 0.0000, 855.0214, 754.2944 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0200 average per read: inf
+
+# 85975 (11386) unspliced, 13596 (3641) spliced alignments, 123278 unmapped (spliced 13.7%, unmapped 55.3%)
+.
+# [capture_hits] timing: 0.0000, 862.5381, 760.3520 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.1999 average per read: inf
+
+# 86861 (11561) unspliced, 13785 (3667) spliced alignments, 123493 unmapped (spliced 13.7%, unmapped 55.1%)
+.
+.# [capture_hits] timing: 0.0000, 869.1823, 764.7784 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0300 average per read: inf
+
+# 88086 (11800) unspliced, 14068 (3726) spliced alignments, 123795 unmapped (spliced 13.8%, unmapped 54.8%)
+.
+# [capture_hits] timing: 0.0000, 876.8892, 771.2658 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.2999 average per read: inf
+
+# 88978 (12017) unspliced, 14247 (3744) spliced alignments, 123997 unmapped (spliced 13.8%, unmapped 54.6%)
+.230000.
+# [capture_hits] timing: 0.0000, 884.1742, 776.8429 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 90122 (12185) unspliced, 14477 (3791) spliced alignments, 124273 unmapped (spliced 13.8%, unmapped 54.3%)
+..
+# [capture_hits] timing: 0.0000, 890.9387, 781.6193 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0900 average per read: inf
+
+# 91492 (12415) unspliced, 14775 (3848) spliced alignments, 124600 unmapped (spliced 13.9%, unmapped 54.0%)
+..# [capture_hits] timing: 0.0000, 897.6130, 786.3260 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.3400 average per read: inf
+
+# 92873 (12675) unspliced, 15061 (3901) spliced alignments, 124888 unmapped (spliced 14.0%, unmapped 53.6%)
+
+..# [capture_hits] timing: 0.0000, 904.9082, 791.6928 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 94095 (12874) unspliced, 15312 (3953) spliced alignments, 125133 unmapped (spliced 14.0%, unmapped 53.4%)
+
+..# [capture_hits] timing: 0.0000, 911.7525, 796.4291 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 95484 (13165) unspliced, 15595 (3983) spliced alignments, 125399 unmapped (spliced 14.0%, unmapped 53.0%)
+
+.240000# [capture_hits] timing: 0.0000, 918.2975, 801.0659 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 96754 (13421) unspliced, 15863 (4031) spliced alignments, 125668 unmapped (spliced 14.1%, unmapped 52.7%)
+.
+.# [capture_hits] timing: 0.0000, 925.1326, 806.2023 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0100 average per read: inf
+
+# 97946 (13679) unspliced, 16109 (4081) spliced alignments, 125927 unmapped (spliced 14.1%, unmapped 52.5%)
+.
+# [capture_hits] timing: 0.0000, 934.5486, 814.2496 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 1.5100 average per read: inf
+
+# 98822 (13825) unspliced, 16316 (4123) spliced alignments, 126102 unmapped (spliced 14.2%, unmapped 52.3%)
+.
+.# [capture_hits] timing: 0.0000, 943.2042, 821.0970 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 1.7900 average per read: inf
+
+# 99841 (14057) unspliced, 16542 (4165) spliced alignments, 126288 unmapped (spliced 14.2%, unmapped 52.0%)
+.
+.# [capture_hits] timing: 0.0000, 950.5093, 826.7838 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 101034 (14275) unspliced, 16771 (4209) spliced alignments, 126513 unmapped (spliced 14.2%, unmapped 51.8%)
+
+.# [capture_hits] timing: 0.0000, 957.9046, 832.4711 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+# 102082 (14489) unspliced, 17022 (4248) spliced alignments, 126721 unmapped (spliced 14.3%, unmapped 51.5%)
+.
+.250000# [map_reads] timing: 5.780, 205.630, 218.260, 229.640, 1197.460, avg/read: 0.005 (247286/250001 spliced alignm., 98.9%)
+# [capture_hits] timing: 0.0000, 963.5199, 836.3780 (0.0000 ss access; 1nt and 0.0 threads per alignment) this read: 0.0000 average per read: inf
+
+writing QPALMA reporting map to report.map:
