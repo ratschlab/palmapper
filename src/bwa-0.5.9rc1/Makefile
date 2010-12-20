@@ -1,6 +1,6 @@
 CC=			g++
 CXX=		g++
-CFLAGS=		-O -g -Wall 
+CFLAGS=		-O9 -g -Wall 
 CXXFLAGS=	$(CFLAGS)
 DFLAGS=		-DHAVE_PTHREAD #-D_FILE_OFFSET_BITS=64
 OBJS=		utils.o bwt.o bwtio.o bwtaln.o bwtmyaln.o bwtgap.o is.o \
@@ -10,7 +10,7 @@ OBJS=		utils.o bwt.o bwtio.o bwtaln.o bwtmyaln.o bwtgap.o is.o \
 			bwtsw2_chain.o bamlite.o
 PROG=		bwa
 INCLUDES=	
-LIBS=		-lm -lz -lpthread -Lbwt_gen -lbwtgen -L . -lbwa
+LIBS=		-lm -lz -lpthread -Lbwt_gen -lbwtgen -L. -lbwa
 SUBDIRS=	. bwt_gen
 
 .SUFFIXES:.c .o .cc
