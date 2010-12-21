@@ -76,6 +76,8 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	// #########################################
 	// ###### PERFECT ALIGNMENTS: #############
 
+	
+
 	if (hit->mismatches == 0) {
 
 		count_char = 0;
@@ -126,7 +128,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	
 	// fprintf(stdout, "CHR SEQ: ");
 	// for (int i=0; i<(int)read.length()+5;i++)
-	// 	fprintf(stdout, "%c",hit->chromosome->operator [](readstart+i));
+	// 	fprintf(stdout, "%c",get_compl_base(hit->chromosome->operator []((int)read.length()+4+readstart-i)));
 	// fprintf(stdout, "\n");
 
 
@@ -228,15 +230,19 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 				{
 					num_mismatches++ ;
 					qual_mismatches += read.quality(0)[hit->edit_op[j].pos - 1] - read.get_quality_offset() ;
+			   
 				}
 			}
 			else
 			{
+			
 				sprintf(ALIGNSEQ + count_char, "[%c%c]", (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset], get_compl_base(read.data()[((int)read.length()) - hit->edit_op[j].pos]));
-				if ( (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset]!='N' && get_compl_base(read.data()[((int)read.length()) - hit->edit_op[j].pos])!='N' )
+				if ( (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset]!='N' && get_compl_base(read.data()[((int)read.length()) - hit->edit_op[j].pos ])!='N' ){					
 					num_mismatches++ ;
 					qual_mismatches += read.quality(0)[((int)read.length()) - hit->edit_op[j].pos] - read.get_quality_offset() ;
+				}	
 			}
+			
 		}
 		else if (gap_in_chr)
 		{
@@ -246,13 +252,17 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 
 			if (hit->orientation == '+')
 			{
-				if (read.data()[hit->edit_op[j].pos - 1]!='N')
+				if (read.data()[hit->edit_op[j].pos - 1]!='N'){					
 					qual_mismatches += read.quality(0)[hit->edit_op[j].pos - 1] - read.get_quality_offset() ;
+				}
+				
 			}
 			else
 			{
-				if (read.data()[read.length() - hit->edit_op[j].pos]!='N')
+				if (read.data()[read.length() - hit->edit_op[j].pos]!='N'){					
 					qual_mismatches += read.quality(0)[read.length() - hit->edit_op[j].pos] - read.get_quality_offset() ;
+				}
+				
 			}
 			
 			if (_config.BSSEQ && (*hit->chromosome)[readstart + hit->edit_op[j].pos - 1 + gap_offset] == (hit->orientation == '+'? read.data()[hit->edit_op[j].pos - 1] : get_compl_base(read.data()[read.length() - hit->edit_op[j].pos])))
@@ -338,6 +348,7 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 		*num_matches_p = num_matches ;
 	
 
+	
 	return alignment_length ;
 
 }
