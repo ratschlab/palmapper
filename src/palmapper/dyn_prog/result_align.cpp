@@ -131,73 +131,73 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
       int prev_z= next_seed->best_score_pos[zz]->path_number_matrices;
       
       while(!(rstart==rseed+1 && dstart==dseed+1)){
-       
-	//	fprintf(stdout,"%i-%i:%i-%i (%i)\n",rstart,dstart,rseed,dseed,prev_z);
-	int matrix_position= (rseed-rstart)*(max_gap*2+1)+(dseed-(rseed-rstart))-dstart+max_gap; 
-	int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
-	int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
-	prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
-	//	fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
-	assert(rstart<=prev_i && dstart<=prev_j);
-	  
-	//read gap
-	if (prev_i==rstart && prev_j==dstart+1){
-	  (*result_length_ptr)= (*result_length_ptr) + 1;
-	  s_align[dstart] = splice_state; 
-	  
-	  dnanum = check_char(dna[dstart]) ; 
-	  estnum = 0 ; //gap
-	  
-	  if(currentMode == USE_QUALITY_SCORES)
-	    mparam[dnanum] ++ ;
-	  else
-	    mparam[mlen*dnanum +estnum] ++ ;
-	}
+		  
+		  //fprintf(stdout,"%i-%i:%i-%i (%i)\n",rstart,dstart,rseed,dseed,prev_z);
+		  int matrix_position= (rseed-rstart)*(max_gap*2+1)+(dseed-(rseed-rstart))-dstart+max_gap; 
+		  int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
+		  int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
+		  prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
+		  //	fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
+		  assert(rstart<=prev_i && dstart<=prev_j);
+		  
+		  //read gap
+		  if (prev_i==rstart && prev_j==dstart+1){
+			  (*result_length_ptr)= (*result_length_ptr) + 1;
+			  s_align[dstart] = splice_state; 
+			  
+			  dnanum = check_char(dna[dstart]) ; 
+			  estnum = 0 ; //gap
+			  
+			  if(currentMode == USE_QUALITY_SCORES)
+				  mparam[dnanum] ++ ;
+			  else
+				  mparam[mlen*dnanum +estnum] ++ ;
+		  }
+		  
+		  
+		  //dna gap
+		  else if(prev_i==rstart+1 && prev_j==dstart){
+			  (*result_length_ptr)= (*result_length_ptr) + 1;
+			  e_align[rstart] = est_state ;  //1 or 2, depended
 
+			  dnanum = 0 ; //gap
+			  estnum = check_char(est[rstart]) ;
+			  
+			  if(currentMode == USE_QUALITY_SCORES){
+				  prbnum = prb[rstart];
+				  increaseFeatureCount(qparam,dnanum,estnum,prbnum);
+			  }
+			  else
+				  mparam[mlen*dnanum +estnum] ++;
+		  }
+		  
+		  //match/mismatch
+		  else if(prev_i==rstart+1 && prev_j==dstart+1){
+			  (*result_length_ptr)= (*result_length_ptr) + 1;
+			  
+			  s_align[dstart] = splice_state; 
+			  e_align[rstart] = est_state ; //1 or 2, depended
+			  
+			  dnanum = check_char(dna[dstart]); 
+			  estnum = check_char(est[rstart]); 
+			  
+			  
+			  if(currentMode == USE_QUALITY_SCORES){
+				  prbnum = prb[rstart];
+				  increaseFeatureCount(qparam,dnanum,estnum,prbnum);
+			  }
+			  else
+				  mparam[mlen*dnanum+estnum] ++ ;
+		  }
 
-	//dna gap
-	else if(prev_i==rstart+1 && prev_j==dstart){
-	  (*result_length_ptr)= (*result_length_ptr) + 1;
-	  e_align[rstart] = est_state ;  //1 or 2, depended
-
-	  dnanum = 0 ; //gap
-	  estnum = check_char(est[rstart]) ;
-
-	  if(currentMode == USE_QUALITY_SCORES){
-	    prbnum = prb[rstart];
-	    increaseFeatureCount(qparam,dnanum,estnum,prbnum);
-	  }
-	  else
-	    mparam[mlen*dnanum +estnum] ++;
-	}
-
-	//match/mismatch
-	else if(prev_i==rstart+1 && prev_j==dstart+1){
-	  (*result_length_ptr)= (*result_length_ptr) + 1;
-      
-	  s_align[dstart] = splice_state; 
-	  e_align[rstart] = est_state ; //1 or 2, depended
-     
-	  dnanum = check_char(dna[dstart]); 
-	  estnum = check_char(est[rstart]); 
-
-
-	  if(currentMode == USE_QUALITY_SCORES){
-	    prbnum = prb[rstart];
-	    increaseFeatureCount(qparam,dnanum,estnum,prbnum);
-	  }
-	  else
-	    mparam[mlen*dnanum+estnum] ++ ;
-	}
-
-	rstart=prev_i;
-	dstart=prev_j;
-	
+		  rstart=prev_i;
+		  dstart=prev_j;
+		  
       }
 	      
       rstart=next_seed->best_score_pos[zz]->read_pos;
       dstart=next_seed->best_score_pos[zz]->dna_pos;
-	
+	  
       int tmp=next_seed->best_score_pos[zz]->path_number;
       next_seed=next_seed->best_score_pos[zz]->next_seed;
       zz=tmp;
@@ -205,36 +205,36 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
       
       //Spliced alignment
       if (next_seed!=NULL){
-	//	  fprintf(stdout,"%i %i\n",dstart,next_seed->dna_pos-1);
-	(*result_length_ptr) =  (*result_length_ptr) + (dstart-next_seed->dna_pos-1);
-	
-	if (est_state==1) //was exon labeled "1"
-	  est_state = 2; //new exon is labeled "2"
-	else
-	  est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
-	
-	for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
-	  if (splice_state == 0) //coming from exon
-	    splice_state = 2; //first intron_state for left side: acceptor
-	  else
-	    splice_state = 3; //intron
-	    
-	  if (n == next_seed->dna_pos+1) //last intron_state for left side: donor
+		  //	  fprintf(stdout,"%i %i\n",dstart,next_seed->dna_pos-1);
+		  (*result_length_ptr) =  (*result_length_ptr) + (dstart-next_seed->dna_pos-1);
+		  
+		  if (est_state==1) //was exon labeled "1"
+			  est_state = 2; //new exon is labeled "2"
+		  else
+			  est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
+		  
+		  for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
+			  if (splice_state == 0) //coming from exon
+				  splice_state = 2; //first intron_state for left side: acceptor
+			  else
+				  splice_state = 3; //intron
+			  
+			  if (n == next_seed->dna_pos+1) //last intron_state for left side: donor
 	    splice_state = 1;//donor
-	  
-	  s_align[n] = splice_state; 
-	}
-
-	splice_state = 0 ; //exon again
+			  
+			  s_align[n] = splice_state; 
+		  }
+		  
+		  splice_state = 0 ; //exon again
       }
     }
 
     //Left side not aligned
     for (int dna_pos=0; dna_pos<dstart; dna_pos++) {
-      s_align[dna_pos] = 4; 
+		s_align[dna_pos] = 4; 
     }
     for (int est_pos=0; est_pos<rstart; est_pos++) {
-      e_align[est_pos] = 4;
+		e_align[est_pos] = 4;
     }            
     
     (*result_length_ptr) =  (*result_length_ptr) -1; //Seed position counted twice
@@ -262,65 +262,65 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
       
       while(!(rstart==rseed-1 && dstart==dseed-1)){
 	
-	int matrix_position= (rstart-rseed)*(max_gap*2+1)+dstart-(dseed+rstart-rseed)+max_gap;
-	//	fprintf(stdout,"(%i-%i),(%i,%i) %i\n",rstart,dstart,rseed,dseed,matrix_position);
-	int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
-	int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
-	prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
-	//fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
+		  int matrix_position= (rstart-rseed)*(max_gap*2+1)+dstart-(dseed+rstart-rseed)+max_gap;
+		  //fprintf(stdout,"(%i-%i),(%i,%i) %i\n",rstart,dstart,rseed,dseed,matrix_position);
+		  int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
+		  int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
+		  prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
+		  //fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
 	  
-	//read gap
-	if (prev_i==rstart && prev_j==dstart-1){
-	  (*result_length_ptr)= (*result_length_ptr) + 1;
-	  s_align[dstart] = splice_state; 
+		  //read gap
+		  if (prev_i==rstart && prev_j==dstart-1){
+			  (*result_length_ptr)= (*result_length_ptr) + 1;
+			  s_align[dstart] = splice_state; 
 	  
-	  dnanum = check_char(dna[dstart]) ; 
-	  estnum = 0 ; //gap
+			  dnanum = check_char(dna[dstart]) ; 
+			  estnum = 0 ; //gap
 
-	  if(currentMode == USE_QUALITY_SCORES)
-	    mparam[dnanum] ++ ;
-	  else
-	    mparam[mlen*dnanum +estnum] ++ ;
+			  if(currentMode == USE_QUALITY_SCORES)
+				  mparam[dnanum] ++ ;
+			  else
+				  mparam[mlen*dnanum +estnum] ++ ;
 	  
-	}
+		  }
 
-	//dna gap
-	else if(prev_i==rstart-1 && prev_j==dstart){
-	  (*result_length_ptr)= (*result_length_ptr) + 1;
-	  e_align[rstart] = est_state ;  //1 or 2, depended
+		  //dna gap
+		  else if(prev_i==rstart-1 && prev_j==dstart){
+			  (*result_length_ptr)= (*result_length_ptr) + 1;
+			  e_align[rstart] = est_state ;  //1 or 2, depended
 
-	  dnanum = 0 ; //gap
-	  estnum = check_char(est[rstart]) ;
+			  dnanum = 0 ; //gap
+			  estnum = check_char(est[rstart]) ;
 
-	  if(currentMode == USE_QUALITY_SCORES){
-	    prbnum = prb[rstart];
-	    increaseFeatureCount(qparam,dnanum,estnum,prbnum);
-	  }
-	  else
-	    mparam[mlen*dnanum +estnum] ++;
-	}
+			  if(currentMode == USE_QUALITY_SCORES){
+				  prbnum = prb[rstart];
+				  increaseFeatureCount(qparam,dnanum,estnum,prbnum);
+			  }
+			  else
+				  mparam[mlen*dnanum +estnum] ++;
+		  }
 
-	//match/mismatch
-	else if(prev_i==rstart-1 && prev_j==dstart-1){
-	  (*result_length_ptr)= (*result_length_ptr) + 1;
+		  //match/mismatch
+		  else if(prev_i==rstart-1 && prev_j==dstart-1){
+			  (*result_length_ptr)= (*result_length_ptr) + 1;
       
-	  s_align[dstart] = splice_state; 
-	  e_align[rstart] = est_state ; //1 or 2, depended
+			  s_align[dstart] = splice_state; 
+			  e_align[rstart] = est_state ; //1 or 2, depended
 	  
-	  dnanum = check_char(dna[dstart]); 
-	  estnum = check_char(est[rstart]); 
+			  dnanum = check_char(dna[dstart]); 
+			  estnum = check_char(est[rstart]); 
 	  
-	  if(currentMode == USE_QUALITY_SCORES){
-	    prbnum = prb[rstart];
-	    increaseFeatureCount(qparam,dnanum,estnum,prbnum);
-	  }
-	  else
-	    mparam[mlen*dnanum+estnum] ++ ;
-	}
+			  if(currentMode == USE_QUALITY_SCORES){
+				  prbnum = prb[rstart];
+				  increaseFeatureCount(qparam,dnanum,estnum,prbnum);
+			  }
+			  else
+				  mparam[mlen*dnanum+estnum] ++ ;
+		  }
 
 	
-	rstart=prev_i;
-	dstart=prev_j;
+		  rstart=prev_i;
+		  dstart=prev_j;
       }
       
 	
@@ -333,50 +333,57 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 
       //Spliced alignment
       if (next_seed!=NULL){
-	(*result_length_ptr) =  (*result_length_ptr) + (next_seed->dna_pos-dstart-1);
-	  if (est_state==1) //was exon labeled "1"
-	    est_state = 2; //new exon is labeled "2"
-	  else
-	    est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
+		  (*result_length_ptr) =  (*result_length_ptr) + (next_seed->dna_pos-dstart-1);
+		  if (est_state==1) //was exon labeled "1"
+			  est_state = 2; //new exon is labeled "2"
+		  else
+			  est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
 	  
-	  for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
-	    if (splice_state == 0) //coming from exon
-	      splice_state = 1; //first intron_state for right side: donor
-	    else
-	      splice_state = 3; //intron
+		  for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
+			  if (splice_state == 0) //coming from exon
+				  splice_state = 1; //first intron_state for right side: donor
+			  else
+				  splice_state = 3; //intron
 	    
-	    if (n == next_seed->dna_pos-1) //last intron_state for right side: acceptor
-	      splice_state = 1;//acceptor
+			  if (n == next_seed->dna_pos-1) //last intron_state for right side: acceptor
+				  splice_state = 1;//acceptor
 	  
-	    s_align[n] = splice_state; 
-	  }
+			  s_align[n] = splice_state; 
+		  }
 
-	  splice_state = 0 ; //exon again
+		  splice_state = 0 ; //exon again
       }
 
     }
   
     // Right side not aligned
     for (int dna_pos=dstart+1; dna_pos<dna_len; dna_pos++) {
-      s_align[dna_pos] = 4; 
+		s_align[dna_pos] = 4; 
     }
     for (int est_pos=rstart+1; est_pos<est_len; est_pos++) {
-      e_align[est_pos] = 4;
+		e_align[est_pos] = 4;
     } 
+
+	// for (int n=0;n<dna_len;n++)
+	// 	fprintf(stdout,"%i",s_align[n]);
+	// fprintf(stdout,"\n");
+	// for (int n=0;n<est_len;n++)
+	// 	fprintf(stdout,"%i",e_align[n]);
+	// fprintf(stdout,"\n");
       
     return 0;
   }
 
   // No alignment found
   else{
-    for (int dna_pos=0; dna_pos<dna_len; dna_pos++) {
-      s_align[dna_pos] = 4 ; 
-    }
-    for (int est_pos=0; est_pos<est_len; est_pos++) {
-      e_align[est_pos] = 4 ;
-    }
-    //fprintf(stdout,"No alignment for this read\n");
-    return 1;
+	  for (int dna_pos=0; dna_pos<dna_len; dna_pos++) {
+		  s_align[dna_pos] = 4 ; 
+	  }
+	  for (int est_pos=0; est_pos<est_len; est_pos++) {
+		  e_align[est_pos] = 4 ;
+	  }
+	  //fprintf(stdout,"No alignment for this read\n");
+	  return 1;
   }
 
 }
