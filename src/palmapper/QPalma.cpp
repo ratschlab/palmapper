@@ -2602,7 +2602,15 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						max_intron_len=intron_len ;
 				}
 				exons.push_back(positions[exon_start]) ;
-				exons.push_back(positions[i-1]) ;
+				if (s_align[i]==0){
+					exons.push_back(positions[i]) ;
+					//fprintf(stdout,"Exon: %i-%i\n",exon_start,i);
+				}				
+				else{					
+					exons.push_back(positions[i-1]) ;
+					//fprintf(stdout,"Exon: %i-%i\n",exon_start,i-1);
+				}
+				
 				int exon_len=positions[i-1] - positions[exon_start] ;
 				if (strand=='-')
 					exon_len*=-1 ;
