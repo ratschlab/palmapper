@@ -14,6 +14,9 @@
 #include <palmapper/TopAlignments.h>
 #include <palmapper/Util.h>
 
+//int num_filtered=0;
+
+
 TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
 	top_alignments(),
 	num_spliced_alignments(0),
@@ -648,6 +651,85 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	    
 		//fprintf(stderr, "trying to insert %s\n", alignment->read_id);
 	    
+		if (alignment->spliced && alignment->non_consensus==0)
+		{	
+			for (uint8_t i = 0; i < top_alignments.size(); i++)
+			{
+				//Filter consensus spliced alignments which overlap by keeping the one with best qpalma score
+				if(top_alignments[i]->spliced && top_alignments[i]->non_consensus==0 && top_alignments[i]->chromosome==alignment->chromosome){
+					int startalign1=alignment->exons[0];
+					int endalign1=alignment->exons[alignment->exons.size()-1];
+					int startalign2=top_alignments[i]->exons[0];
+					int endalign2=top_alignments[i]->exons[top_alignments[i]->exons.size()-1];
+					
+					//Continue if they don't overlap
+					if (endalign1<startalign2 || startalign1 > endalign2)
+						continue;
+					
+					if (top_alignments[i]->qpalma_score<alignment->qpalma_score){
+						// fprintf(stdout,"\n# Filter alignment with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",								
+						// 		(int) top_alignments[i]->exons.size() / 2, 
+						// 		top_alignments[i]->read_id, 
+						// 		top_alignments[i]->qpalma_score,
+						// 		top_alignments[i]->num_matches, 
+						// 		top_alignments[i]->num_gaps, 
+						// 		top_alignments[i]->strand, 
+						// 		top_alignments[i]->orientation, 
+						// 		top_alignments[i]->read_anno);
+						// 	for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
+						// 		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, top_alignments[i]->exons[j], top_alignments[i]->exons[j+ 1]);
+						// fprintf(stdout,"# Keep alignment with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",								
+						// 		(int) alignment->exons.size() / 2, 
+						// 		alignment->read_id, 
+						// 		alignment->qpalma_score,
+						// 		alignment->num_matches, 
+						// 		alignment->num_gaps, 
+						// 		alignment->strand, 
+						// 		alignment->orientation, 
+						// 		alignment->read_anno);
+						// 	for (size_t j = 0; j < alignment->exons.size(); j += 2)
+						// 		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, alignment->exons[j], alignment->exons[j+ 1]);
+						// 	num_filtered++;							
+						// 	fprintf(stdout,"%i\n",num_filtered);
+						delete top_alignments[i] ;
+						top_alignments[i]=NULL ;
+						top_alignments.erase(top_alignments.begin()+i) ;
+						i--;
+					}
+					else{
+						// fprintf(stdout,"\n# Filter alignment with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",								
+						// 		(int) alignment->exons.size() / 2, 
+						// 		alignment->read_id, 
+						// 		alignment->qpalma_score,
+						// 		alignment->num_matches, 
+						// 		alignment->num_gaps, 
+						// 		alignment->strand, 
+						// 		alignment->orientation, 
+						// 		alignment->read_anno);
+						// 	for (size_t j = 0; j < alignment->exons.size(); j += 2)
+						// 		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, alignment->exons[j], alignment->exons[j+ 1]);
+						// fprintf(stdout,"# Keep alignment with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",								
+						// 		(int) top_alignments[i]->exons.size() / 2, 
+						// 		top_alignments[i]->read_id, 
+						// 		top_alignments[i]->qpalma_score,
+						// 		top_alignments[i]->num_matches, 
+						// 		top_alignments[i]->num_gaps, 
+						// 		top_alignments[i]->strand, 
+						// 		top_alignments[i]->orientation, 
+						// 		top_alignments[i]->read_anno);
+						// 	for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
+						// 		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, top_alignments[i]->exons[j], top_alignments[i]->exons[j+ 1]);
+						// 	num_filtered++;							
+						// 	fprintf(stdout,"%i\n",num_filtered);
+							
+						delete alignment;
+						return NULL;						
+					}										
+				}
+			}
+		}
+		
+
 		if (alignment->spliced)
 		{	
 			for (uint8_t i = 0; i < top_alignments.size(); i++)
