@@ -14,7 +14,8 @@
 #include <palmapper/TopAlignments.h>
 #include <palmapper/Util.h>
 
-//int num_filtered=0;
+
+
 
 
 TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
@@ -651,6 +652,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	    
 		//fprintf(stderr, "trying to insert %s\n", alignment->read_id);
 	    
+
+		
 		if (alignment->spliced && alignment->non_consensus==0)
 		{	
 			for (uint8_t i = 0; i < top_alignments.size(); i++)
@@ -689,8 +692,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 						// 		alignment->read_anno);
 						// 	for (size_t j = 0; j < alignment->exons.size(); j += 2)
 						// 		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, alignment->exons[j], alignment->exons[j+ 1]);
-						// 	num_filtered++;							
-						// 	fprintf(stdout,"%i\n",num_filtered);
+						
 						delete top_alignments[i] ;
 						top_alignments[i]=NULL ;
 						top_alignments.erase(top_alignments.begin()+i) ;
@@ -718,10 +720,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 						// 		top_alignments[i]->orientation, 
 						// 		top_alignments[i]->read_anno);
 						// 	for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
-						// 		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, top_alignments[i]->exons[j], top_alignments[i]->exons[j+ 1]);
-						// 	num_filtered++;							
-						// 	fprintf(stdout,"%i\n",num_filtered);
-							
+						// 		fprintf(stdout, "# exon %i: %i - %i\n", (int)j / 2, top_alignments[i]->exons[j], top_alignments[i]->exons[j+ 1]);							
 						delete alignment;
 						return NULL;						
 					}										
