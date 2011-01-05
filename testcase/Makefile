@@ -29,7 +29,7 @@ outFiles = -o $(resultDir)/$(Mapped) -u $(resultDir)/$(Unmapped) #-H $(resultDir
 output = -f sam -report-coverage-wig $(resultDir)/$(Coverage)
 qpalma = -qpalma $(dataDir)/parameters.qpalma 
 report = 
-other = -M 4 -G 1 -E 4 -l 20 -L 35 -K 12 -C 55 -z 1 -S -seed-hit-cancel-threshold 1000 
+other = -M 4 -G 1 -E 4 -l 20 -L 35 -K 12 -C 55 -z 1 -S -seed-hit-cancel-threshold 1000 -polytrim 40
 threads = -threads $(nrThreads)
 
 allFlags=$(inFiles) $(accDon) $(outFiles) $(output) $(qpalma) $(report) $(other) $(threads)
@@ -64,6 +64,14 @@ map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 #	valgrind $(MapCmd)
 	(cd $(resultDir) ; md5sum $(notdir $(ResultFiles))) 
 	(cd $(resultDir) ; md5sum -c $(CurrentDir)/result.md5)
+
+valgrind: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(dataDir)
+	bash -c "valgrind $(MapCmd)"
+
+cachegrind: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(dataDir)
+	bash -c "valgrind --tool=cachegrind $(MapCmd)"
 
 bwamap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
 	mkdir -p $(dataDir)
