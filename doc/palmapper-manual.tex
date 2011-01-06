@@ -5,7 +5,7 @@
 % graphicx package, useful for including eps and pdf graphics
 % include graphics with the command \includegraphics
 \usepackage{graphicx}
-
+\usepackage{tabularx}
 \begin{document}
 
 \newcommand{\PALMA}{{\sl PALMA}}
@@ -37,30 +37,28 @@
 
 \section{Overview}
 \label{sec:overview}
-\QP{}~\cite{DeBona08} is a component of \PALMapper{}~\cite{Palmapper},
-an alignment tool targeted to accurately and efficiently align both
-unspliced and spliced reads produced by Next Generation sequencing
-platforms such as \emph{Illumina Genome Analyzer} or
-\emph{454}. \PALMapper{} is designed to deal with the relatively short
-length and the possible low quality of reads by combining both the
-training algorithm and the alignment component of \QP{} with the
-efficient read mapping algorithm of \GM{}~\cite{GenomeMapper}. 
 
-\QP{} relies on a machine learning strategy similar to Support Vector
-Machine (SVM) and provides a scoring function to optimally combine
-several pieces of information, in particular, the (a) alignment
-information, (b) computational splice-site predictions, (c) read
-quality values and (d) (optionally) intron lengths. This \QP{}
-scoring model is then used by \PALMapper{} to guide a semi-global
-alignment algorithm that allows for long gaps that correspond to
-introns. For further details on \QP{} itself consult the paper
-\cite{DeBona08}. For details about the learning method see
-\cite{Tsochantaridis04}.
-
-This documentation describes how to install the training component of
-\QP{} and how to train it based on (a) the reference genome, (b) a 
-set of RNA-seq reads,  and (c) a small set of annotated (spliced)
-transcripts. 
+\PALMapper{}~\cite{Palmapper} is the fusion of the short read mapper
+\GM{}~\cite{GenomeMapper} and the short read aligner
+\QP{}~\cite{DeBona08}. This is an easy-to-use and flexible tool 
+to accurately and efficiently align both transcriptome reads (spliced 
+and unspliced) from RNA-Seq experiments against a reference
+genome. \PALMapper{} is able to take advantage of read-quality 
+information by using the efficient training algorithm of \QP{}. It is
+additionally able to benefit from computational splice-site
+predictions which can be computed via
+\mGene{}~\cite{Schweikertetal09,Schweikertetal09b} or
+\ASP{}~\cite{Sonnenburgetal07} to improve the alignment accuracy.\\ 
+This documentation describes how to install \PALMapper{} and how to
+align with on the command-line based on (a) the reference genome, (b) a 
+set of RNA-seq reads and (c) a \QP{} parameter file (obtained by
+training \QP{}). \PALMapper{} can also be used through a Web service,
+which is a customized version of the Galaxy
+framework~\cite{Galaxy1,Galaxy2,Galaxy3}. For further detail, a
+comprehensive tutorial~\cite{Palmapper} about 
+training \QP{}, aligning with \PALMapper{}, evaluating and visualizing
+the resulting alignments is available in Current Protocols in
+Bioinformatics. 
 
 For further information, you may contact:
 \begin{center}
@@ -86,7 +84,7 @@ source. The memory requirement of \PALMapper{} depends on which kind of index is
   splice-site predictions, and one time the genome size as working
   memory). In this case, \PALMapper{} requires about 21 GB of memory
   for the human genome. 
-\item Bwa index: TODO
+\item Burrows-Wheeler transform (bwt)-based index: TODO
 \end{itemize}
 The machine’s architecture does not significantly influence the memory requirement for
 these program.\\
@@ -121,27 +119,21 @@ user:~/palmapper-0.4$ make\end{verbatim}
 Two binary files are created in the working directory: \texttt{palmapper} (the
 mapping program) and \texttt{pmindex} (genome array-based index
 builder). An other binary file named \texttt{bwa} is created under
-\texttt{src/bwa/} and is used for building a genome bwa index.
+\texttt{src/bwa/} and is used for building a genome bwt-based index.
 \end{enumerate}
 
 \section{Generating alignments with PALMapper}
 \label{sec:aligning}
 
-%%TODO: rewrite without protocol references
-This section describes how to use \PALMapper{} for generating both unspliced
-and spliced alignments for a set of RNA-Seq reads on the command-
-line. A Galaxy version is described in Alternate Protocol
-2. Using the Galaxy environment to run PALMapper is ideal if the user does not want
-to worry about storage or installation. However, the current Galaxy version does not
-provide enough resources to run PALMapper on big genomes such as Human; for this
-case, the user should prefer the command-line version to carry out the study (see memory
-requirements in Support Protocol 1).
-This section shows how to run \PALMapper{} with the consideration that \QP{} has
-been already trained (see TODO) and optionally splice sites have been predicted
-(see TODO) for the organism of interest. Finally, the protocol describes a
-test case included in the package that checks whether \PALMapper{} gives the expected
-results. Results can then be used for evaluation (see TODO) and
-vizualisation.
+This section shows how to use \PALMapper{} for generating both unspliced
+and spliced alignments for a set of RNA-Seq reads on the
+command-line with the consideration that \QP{}~\cite{DeBona08} has
+been already trained and optionally splice sites have been predicted
+(see section~\ref{sec:inputfile} about input files) for the organism
+of interest. Finally, this section describes a test case included in
+the package that checks whether \PALMapper{} gives the expected
+results. The Galaxy version of \PALMapper{} is briefly described in
+section~\ref{sec:aligninggal}. 
 
 \subsection{Input files}
 \label{sec:inputfile}
@@ -150,7 +142,7 @@ Aligning with \PALMapper{} needs the following files:
 \item Genome sequence in FASTA format
 \item Read data to align in Sanger FASTQ format (see section
   \ref{sec:readfile} for Sanger FASTQ format).
-\item Genome annotation in GFF3 format.
+\item Genome annotation in GFF3 format (optional).
 \item Donor and acceptor splice-site predictions in SPF format and
 corresponding binary files (optional; see section
 \ref{sec:splicescoresfile} for BSPF format). There are two ways for
@@ -172,7 +164,7 @@ user:~/palmapper-0.4/splice_predictions$ make <organism>
 \end{verbatim}
 where \texttt{<organism>} is the name of the organism of interest.\\
 The user may also disable the use of splice site predictions by using
-\texttt{-no-ss-pred} parameter in the way explained in step 3 below.
+\texttt{-no-ss-pred} parameter in the way explained in step 2 below.
 \item \QP{} parameter file (see
   Figure~\ref{fig:qp_parameter_file}). This file is obtained by
   training \QP{} (for more information, consult the comprehensive tutorial
@@ -209,12 +201,13 @@ README file in the same directory for more information.
 \begin{enumerate}
 \item Create an index of the reference genome:\\
 \PALMapper{} offers the possibility to use two different kinds of
-index for the reference genome: array-based and bwa. The first one
-uses more space but provides a better runtime. We advise the user to
+index for the reference genome: array-based and bwt-based indexes. The
+first one uses more space but provides a better runtime especially for
+small genomes. We advise the user to
 use array-based index for genomes of small size (\emph{C. Elegans} for
-instance) and the bwa index for large genomes as \emph{Human}.
+instance) and the bwt-based index for large genomes as \emph{Human}.
 \begin{itemize}
-\item[a] Create an array-based index:
+\item[a.] Create an array-based index:
 \begin{verbatim}
 user:~$ cd palmapper-0.4/
 user:~/palmapper-0.4$ ./pmindex -i <genome_file> -s <index_size> -v
@@ -229,7 +222,7 @@ where \texttt{<index\_size>} is the seed length used during indexing
 \item \texttt{<genome\_file>.mrc}: reverse index file
 \end{itemize}
 
-\item [b] Create a bwa index:
+\item [b.] Create a bwt-based index:
 \begin{verbatim}
 user:~$ cd palmapper-0.4/src/bwa
 user:~/palmapper-0.4/src/bwa$ ./bwa index <genome_file>
@@ -247,7 +240,7 @@ This creates 4 files the prefix of which is \texttt{<genome\_file>}:
 \item Use the command below to run \PALMapper{} within the working directory. The
 command provided here is a generic one for computing both unspliced and spliced
 alignments (spliced via \texttt{-S} option), and the user should
-revise the options described in TODO and TODO for best results.
+revise the options described in section~\ref{sec:settings} for best results.
 \begin{verbatim}
 user:~/palmapper-0.4$ ./palmapper -i <genome_file> -q <read_file> \
 [OPTIONS_PALMAPPER] -S -qpalma <qpalma_param_file> \
@@ -262,14 +255,14 @@ where:
 \item \texttt{<qpalma\_param \_file>} is the path to the \QP{} parameter file.
 \item \texttt{<acc\_pred\_file>}, \texttt{<don\_pred\_file>} are the paths to acceptor and
 donor splice-site prediction files. Replace both of these parameters
-by \texttt{no-ss-pred} option if you want to disable the use of splice
+by \texttt{-no-ss-pred} option if you want to disable the use of splice
 site predictions during the alignment process. In this case, use a
-\QP{} parameter file obtained by training QP{} without using splice
+\QP{} parameter file obtained by training \QP{} without using splice
 site predictions.
 \item \texttt{<out\_mapped\_file>}, \texttt{<out\_unmapped\_file>}
 are the paths to the alignment output and the unmapped reads files.
-See Tables TODO and TODO for details about \texttt{[OPTIONS\_PALMAPPER]} and
-\texttt{[OPTIONS\_QPALMA]}, respectively.
+See section~\ref{sec:settings} for detail about
+\texttt{[OPTIONS\_PALMAPPER]} and \texttt{[OPTIONS\_QPALMA]}.
 \end{itemize}
 By default, the array-based index is used to generate alignments. To
 switch to bwt-based index, the user should add the option \texttt{-bwa} in
@@ -332,7 +325,7 @@ using the following detailed command:
 ../palmapper -i data/c_elegans.WS209.dna.fa -q data/split_1m.000 \
 -acc data/C_elegans_SpliceSitePred_WS209/acc_pred.bspf/contig_%i%c \
 -don data/C_elegans_SpliceSitePred_WS209/don_pred.bspf/contig_%i%c \
--o data/split 1m.000.sam -u data/split_1m.000.unmapped \
+-o data/split_1m.000.sam -u data/split_1m.000.unmapped \
 -S -f sam -report-coverage-wig data/split_1m.000.wiggle -qpalma \
 data/parameters.qpalma \
 -M 4 -G 1 -E 4 -l 20 -L 35 -K 12 -C 55 -z 1 \
@@ -368,27 +361,6 @@ carried out with galaxy as well. For further details about how to
 align with \PALMapper{} using Galaxy tools, please read \PALMapper{}
 tutorial \cite{Palmapper}.
 
-
-% \label{sec:training}
-% This section describes how to train the \QP{} component of \PALMapper{}
-% based on the reference genome, a set of RNA-seq reads and a small set
-% of annotated (spliced) transcripts. During this process an  
-% error model is estimated from a preliminary alignment of the reads to
-% the reference genome and a set of artificial reads is created from the
-% annotated transcripts and the error model. Both steps are necessary to
-% generate a set of realistic artificial reads with known alignment in
-% order to train \QP{}. The training and later the alignment benefit
-% from computational splice sites predictions for the reference
-% genome. The result of the training step is a \QP{} parameter file
-% adapted to the specifics of the reads of an RNA-seq experiment, which
-% is required for the alignment protocol.\\ 
-% The \QP{} and \PALMapper{} releases also contain pre-trained \QP{}
-% parameter files, which can be used alternatively. It should be noted,
-% however, that the \QP{} parameters optimally trade-off the amount
-% errors in the reads and the information from splice site predictions
-% for one combination of RNA-seq experiment, splice site predictions and
-% genome. Using sharing parameter sets among experiments or genome can
-% lead to a suboptimal alignment performance with \PALMapper{}. 
 
 
 \section{File Formats / Specifications}
@@ -427,13 +399,12 @@ As mentioned before, the splice site scores can be generated using an
 appropriate tool such that
 mGene~\cite{Schweikertetal09,Schweikertetal09b} or
 ASP~\cite{Sonnenburgetal07}. If you would like to use your own splice
-site 
-predictions you can create files according to the Binary Signal
+site predictions you can create files according to the Binary Signal 
 Prediction Format (BSPF) described below: 
 
 For each canonical acceptor ($AG$) and donor site ($GT$/$GC$)
-\QP{} expects a score. The data is organized in files for each signal
-(acc/don) for each strand (+/-).  The information on positions of
+\PALMapper{} expects a score. The data is organized in files for each
+signal (acc/don) for each strand (+/-). The information on positions of
 canonical splice sites and the corresponding scores lies in separate
 files. Every chromosome or contig leads then to $8$ files (acc/don, +/-
 and pos/score). The position and score files are raw binary files
@@ -453,19 +424,261 @@ $GC$. For example:
 \end{tabular}
 \end{center}
 
+
 \subsection{Alignment file}
 \label{sec:samfile}
+By default, the alignment file is encoded in a SAM format but the user
+can alternatively choose between BED, an extended BED format (BEDx),
+SHORE, and SAM formats using the option \texttt{-f}.
+
+The SAM format used by \PALMapper{} is described below. For
+complementary information, you should refer to
+\url{http://samtools.sourceforge.net/}. Each row in SAM file describes
+an alignment with the following fields:
+\begin{enumerate}
+\item \textbf{qname} - Query name (read id)
+\item \textbf{flag} - Bitwise flag (16 )
+\item \textbf{rname} - Reference sequence name (chromosome id) 
+\item \textbf{pos} - 1-based leftmost position/coordinate of the
+  clipped sequence 
+\item \textbf{mapq} - Mapping Quality (phred-scaled posterior probability that the mapping
+position of this read is incorrect).Field MAPQ considers pairing in
+calculation if the read is paired. Providing MAPQ is recommended. If
+such a calculation is difficult, 255 should be applied, indicating the
+mapping quality is not available.
+\item \textbf{cigar} -extended CIGAR string 
+\item \textbf{mrnm} - Mate reference sequence name; “=” if the same as
+  RNAME (set to * if no paired information)
+\item \textbf{mpos} - 1-based leftmost Mate position of the clipped
+  sequence (set to 0 if no paired information)
+\item \textbf{isize} - inferred Insert SIZE (set to 0 if no paired information)
+\item \textbf{seq} - query sequence
+\item \textbf{qual} - query quality; ASCII-33 gives the Phred base quality
+\item \textbf{tag} - Tag
+\item \textbf{vtype} - Value type
+\item \textbf{value} - match vtype (space allowed) 
+\end{enumerate}
+
+The fields \texttt{tag}, \texttt{vtype} and \texttt{value} are
+concatenated and separated by a ":''. The possible tags
+encountered in the output of \PALMapper{} are the following:\\
+
+\begin{tabular}{|c|c|p{12cm}|}
+\hline
+{\bf Tag}&{\bf Type}&{\bf Description}\\
+\hline
+NM&i&Number of nucleotide differences (i.e. edit distance to the reference sequence)\\
+\hline
+H0&i&Number of perfect hits\\
+\hline
+XS&A&Strand information (for spliced alignments only)\\
+\hline
+Xe&i&Minimal exon length\\
+\hline
+XI&i&Maximal intron length\\
+\hline
+Xi&i&Minimal intron length\\
+\hline
+XC&Z&Non consensus splice site sequence in case of a spliced alignment
+with a non-consensus splice site (with option \texttt{-non-consensus-search}) \\
+\hline
+XQ&i&Sum of mismatch qualities\\
+\hline
+XN&i&Number of exon(s)\\
+\hline
+ZS&f&\QP{} score for the alignment\\
+\hline
+AS&i&Alignment score generated by aligner (for \PALMapper{}, it
+corresponds to \QP{} score multiplied by 100)\\
+\hline
+HI&i&Query hit index, indicating the alignment record is the i-th one stored in SAM\\
+\hline
+XD&f& \QP{} score difference between the alignment with the best
+\QP{} score and the given one for the same query\\
+\hline
+Xd&i&Difference in terms of edit operations between the given
+alignment and the alignment with the minimum number of edit operations
+for the same query\\
+\hline
+\end{tabular}
+
 
 
 \section{General settings}
 \label{sec:settings}
 
-\subsection{GenomeMapper settings}
-\label{sec:settingsgm}
+\PALMapper{} offers a large set of parameters to run \GM{} and \QP{}
+(see Tables~\ref{tab:palmapper_param} and~\ref{tab:qpalma_param}) and
+running this tool with default parameters may lead to suboptimal
+results. It is therefore important to monitor the alignment quality
+using the provided evaluation and visualization tools before they are
+used for further analysis. 
 
-\subsection{QPALMA settings}
-\label{sec:settingsqp}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PALMapper options
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{table}[h!]
+\begin{tabular}{p{3cm}p{6cm}cp{2cm}}
+\hline
+Option/Flag&Description&Default&Range\\
+\hline
+\texttt{-f}& output format&sam& [shore, bed, bedx, sam]\\
+\texttt{-o}& output filename & stdout& STRING\\
+\texttt{-u}& unmapped reads filename&/dev/null& STRING\\
+\texttt{-z}& report a number of top scoring alignments&10&INT\\
+\texttt{-a}& report all alignments as good as the best one&&\\
+\texttt{-ar}& report a limited number of best alignments&0(all)&INT\\
+\texttt{-r}& disable reverse alignment &&\\
+\texttt{-h}& always perform alignment on entire read (implied for
+spliced alignments)&&\\ 
+\texttt{-d}& align gaps most right (most left) (ignored for spliced alignments)&&\\
+\texttt{-w}& allow more gaps for best hit (ignored for spliced
+alignments)&&\\ 
+\texttt{-l}& seed length & index size & INT\\
+\texttt{-threads}&maximal number of threads &4&INT\\ 
+\texttt{-seed-hit -cancel-threshold}& number of hits of a seed that
+lead to its ignoration &&INT\\
+\texttt{-index-precache}& linearly read index file to fill caches&&\\
+\texttt{-rtrim}&shortens the read until a hit is found or the minimal length is reached&&INT\\
+\texttt{-polytrim}& trims polyA or polyT ends until a hit is found or
+the minimal length is reached&&INT\\
+\texttt{-rlim}& limit the number of reads for alignment&&INT\\
+\texttt{-M}& max number of mismatches&3&INT\\
+\texttt{-G}& max number of gaps&1&INT\\
+\texttt{-E}& max edit operations&3&INT\\
+\texttt{-m}& mismatch penalty&4&DOUBLE\\
+\texttt{-g}& gap penalty &5&DOUBLE\\
+\texttt{-v}& verbose &silent&\\
+\hline
+\end{tabular}
+\caption{Description of the options that influence the general
+  behaviour of \PALMapper{} (mostly for unspliced alignments).}
+\label{tab:palmapper_param}
+\end{table}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% QPALMA options for alignment
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{table}[h!]
+\begin{tabular}{p{3cm}p{6cm}clc}
+  \hline
+  Option/Flag&Description&Default&Range&Optional?\\
+  \hline
+\texttt{-S}& report spliced alignments (detailed options below)&&No\\
+  \texttt{-qpalma}&file name with qpalma parameters&&STRING&No\\
+  \texttt{-acc}&path name to acceptor splice site predictions&&STRING&No\\
+  \texttt{-don}&path name to donor splice site predictions&&STRING&No\\
+  \texttt{-no-ss-pred}&indicates that no splice site predictions should
+  be used&&&Yes\\ 
+  \texttt{-filter-splice -sites-top -perc}&trigger spliced alignments, if
+  best read alignment covers putative splice site with score in the given top percentile &&[0-1],Float&Yes\\
+  \texttt{-filter-max -mismatches}&trigger spliced alignment, if
+  unspliced alignment has at least this many mismatches &0&INT&Yes\\
+  \texttt{-filter-max-gaps}&trigger spliced alignment, if unspliced
+  alignment has at least this many gaps&0&INT&Yes\\
+  \texttt{-C}& min combined length&Auto&INT&Yes\\
+  \texttt{-L}& min length of long hit&Auto&INT&Yes\\
+  \texttt{-K}& min length of short hit&Auto&INT&Yes\\
+  \texttt{-I}& longest intron length&Auto&INT&Yes\\ 
+  \texttt{-EL}&Minimum segment length in spliced alignments&Auto&INT&Yes\\
+  \texttt{-SA}& maximum number of spliced alignments per read &10&INT&Yes\\
+  \texttt{-NI}& maximum number of introns in spliced alignments &Auto&INT&Yes\\
+  \texttt{-CT}& distance to tolerate between hit and existing hit cluster&10&INT&Yes\\
+  \texttt{-QMM}&number of matches required for identifying a splice site&5&INT&Yes\\
+  \texttt{-qpalma-use-map -max-len}& limit the map extension up- and
+  downstream to the given length &$10000$&INT&Yes\\ 
+  \texttt{-report}& file for map reporting&&STRING&Yes\\
+\texttt{-report-coverage -wig}&Output read coverage track in wriggle
+format&&STRING&Yes\\
+\texttt{-report-splice -sites}&Report splice sites with confidence not less than a threshold&&  FLOAT& Yes\\
+\texttt{-report-splice -sites-top-perc}&Report splice sites with
+confidence in top percentile&&[0-1], FLOAT& Yes\\
+ \texttt{-report-gff-init}& initialize map with exons from GFF file&&STRING&Yes\\
+  \hline
+\end{tabular}
+\caption{Description of the parameters influencing the spliced
+  alignments in \PALMapper{} (only needed when option \texttt{-S} is given).}
+\label{tab:qpalma_param}
+\end{table}
+
+
+\subsection{Influencing the General Behaviour}
+The most important parameters that influence the sensitivity and
+specificity of \PALMapper{} are \texttt{-M}, \texttt{-G} and
+\texttt{-E} for specifying the maximal number of mismatches, gaps and
+edit operations (mismatch or gaps) allowed in a reported alignment. We
+often allow 4-6 mismatches for sequences of length 76 nt with at most
+2 gaps.  However, reasonable results can already be obtained with just
+1-2 mismatches and no gap (depending on the sequence quality and the
+technology). Moreover, the options \texttt{-z}, \texttt{-a} and
+\texttt{-ar} determine which alignments should be written into the
+result files. In most cases, the setting \texttt{-z 1} will be
+sufficient, where only the best alignment is determined and written to
+the output file.  
+
+\subsection{Spliced Alignments} 
+There exist a few parameters that influence spliced alignments. First
+of all, there are parameters, which influence when a spliced alignment
+is triggered. This decision is made based on the number of mismatches
+and gaps, the presence of strong splice site predictions for the best
+unspliced alignment (options \texttt{-filter-max- mismatches},
+\texttt{-filter-max-gaps}, and
+\texttt{-filter-splice-site-top-perc}). Once the spliced alignment
+routine is  triggered, the seed hits are analyzed and a full alignment
+is performed for regions that are longer than a given length (option 
+\texttt{-L}). This parameter should be set smaller than half of the
+read length. The options \texttt{-I} and \texttt{-NI} determine the
+maximal intron length and number that is allowed in spliced
+alignments.  
+
+\subsection{Using Report Maps to Improve Alignments}
+\PALMapper{} implements a mechanism to exploit information from
+existing annotations or from previous alignments to increase the
+sensitivity of alignments. For instance, the option \texttt{-report-gff-init}
+allows the user to specify a GFF file with known exons to guide and
+improve spliced alignments. Similarly, the option
+\texttt{-report-map-read} enables storing information of previously
+mapped reads to improve the recognition of exonic regions in following 
+spliced alignments. This option is often used in conjunction with
+option \texttt{-report}, which specifies a file name to which the
+mapping information is saved, and a two-step alignment approach: 1)
+the reads are preliminarily aligned (for instance, unspliced or with
+other stringent settings to increase the speed), and 2) a map file is
+generated. This map file is used in the second step for a refined
+spliced alignment. Finally, the options \texttt{-report-splice-sites} (and
+\texttt{-report-splice-sites-top-perc}) can be used to exploit
+computational splice site predictions to identify genomic regions to
+which the reads should be aligned.  
+
+\subsection{Settings for Faster Alignments} 
+The following strategies will help to limit the computing time needed
+for the alignment: 
+\begin{itemize}
+\item For very repetitive or large genomes the option
+  \texttt{-seed-hit-cancel-threshold 1000} can help to reduce the
+  alignment time, by ignoring seed hits which occur too often (more
+  than 1,000 times) in the genome.
+\item To reduce the number of spliced alignments performed
+for one read, one may use the option \texttt{-SA} (e.g., \texttt{-SA 2}).
+\item The seed length (option \texttt{-s} specified during index
+  creation with pmindex) also determines the speed of the alignment:
+  larger seeds have fewer hits in the genome and, hence, lead to
+  faster alignment, but also to less sensitive results.
+\item Reducing the maximal intron length (\texttt{-I}) will
+also lead to quicker alignments.
+\item To limit the size of the regions that are used for alignment
+  that are inferred from the report maps (see above), there is a
+  parameter: \texttt{-qpalma-use-map-max-len}. This parameter
+  crucially influences the alignment speed, when the large parts of
+  the genome are covered with reads or are annotated as exonic (set
+  it, for instance, to 5000 to limit the alignment sequence length to
+  2X5000 nt).  
+\end{itemize}
+
+It is useful to use the parameter \texttt{-rlim} to perform the  
+alignment first on a small subset of the reads, for instance, 10,000, 
+to estimate the time needed for aligning the reads.
 
 \section{Internet Resources}
 \url{http://www.fml.mpg.de/raetsch/suppl/palmapper}\\
