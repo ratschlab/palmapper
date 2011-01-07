@@ -50,7 +50,7 @@ predictions which can be computed via
 \mGene{}~\cite{Schweikertetal09,Schweikertetal09b} or
 \ASP{}~\cite{Sonnenburgetal07} to improve the alignment accuracy.\\ 
 This documentation describes how to install \PALMapper{} and how to
-align with on the command-line based on (a) the reference genome, (b) a 
+use it on the command-line based on (a) the reference genome, (b) a 
 set of RNA-seq reads and (c) a \QP{} parameter file (obtained by
 training \QP{}). \PALMapper{} can also be used through a Web service,
 which is a customized version of the Galaxy
@@ -84,7 +84,7 @@ source. The memory requirement of \PALMapper{} depends on which kind of index is
   splice-site predictions, and one time the genome size as working
   memory). In this case, \PALMapper{} requires about 21 GB of memory
   for the human genome. 
-\item Burrows-Wheeler transform (bwt)-based index: TODO
+\item Burrows-Wheeler transform (bwt)-based index. %TODO
 \end{itemize}
 The machine’s architecture does not significantly influence the memory requirement for
 these program.\\
@@ -252,7 +252,7 @@ where:
 \begin{itemize}
 \item \texttt{<genome\_file>} is the path to the genome sequence file.
 \item \texttt{<read\_file>} is the path to the genome read data file.
-\item \texttt{<qpalma\_param \_file>} is the path to the \QP{} parameter file.
+\item \texttt{<qpalma\_param\_file>} is the path to the \QP{} parameter file.
 \item \texttt{<acc\_pred\_file>}, \texttt{<don\_pred\_file>} are the paths to acceptor and
 donor splice-site prediction files. Replace both of these parameters
 by \texttt{-no-ss-pred} option if you want to disable the use of splice
@@ -437,12 +437,12 @@ complementary information, you should refer to
 an alignment with the following fields:
 \begin{enumerate}
 \item \textbf{qname} - Query name (read id)
-\item \textbf{flag} - Bitwise flag (16 )
+\item \textbf{flag} - Bitwise flag
 \item \textbf{rname} - Reference sequence name (chromosome id) 
 \item \textbf{pos} - 1-based leftmost position/coordinate of the
   clipped sequence 
 \item \textbf{mapq} - Mapping Quality (phred-scaled posterior probability that the mapping
-position of this read is incorrect).Field MAPQ considers pairing in
+position of this read is incorrect). Field MAPQ considers pairing in
 calculation if the read is paired. Providing MAPQ is recommended. If
 such a calculation is difficult, 255 should be applied, indicating the
 mapping quality is not available.
