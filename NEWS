@@ -1,32 +1,74 @@
-Release 0.4 (DD MONTH, 2010)
+Beta Release 0.4 (DD MONTH, 2010)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Notable changes in palmapper:
+This release introduces a lot of changes since the last version and
+fixes a few bugs. The documentation of PALMapper is now available in
+PDF format under the subdirectory doc/. Please, consult the
+documentation for more information about how to use this software.
 
- *
- *
+Notable changes in palmapper output:
+ * Fixed bugs which may lead to incorrect cigar string or incorrect
+ exon length in SAM file
+ * Add more informative tags in SAM output: ZS, Xe, Xi, XI, XN, HI,
+ AS, XQ, XD, Xd. Consult the documentation for more information
+ * Give strand flag only for splice reads
 
-Notable changes in pmindex:
+Notable changes in palmapper options:
+ * add -no-ss-pred option to compute alignments without using splice site predictions
+ * add -acc-consensus and -don-consensus options to define splice site 
+ consensus sequences to consider (options have to be jointly used with
+ -no-ss-pred)
+ * Add -non-consensus-search option (search for a spliced alignment
+ with non consensus splice sites which does not overlap with a spliced
+ alignment with known consensus splice sites)
+ * 
 
- *
-
+Other notable changes:
+ * Multithreading
+ * Allow seed lengths up to 15 for array-based indexes
+ * Genome coverage computation (-report-coverage-wig option)
+ * Add fast mapping with bwt-based index (Burrows-Wheeler
+ Transform). We use the sources from BWA (Burrows-Wheeler Alignment
+ tool) which are located under src/bwa. The use of bwt-based index
+ should give the same results than with the use of the array-based
+ index provided by GenomeMapper.
 
 (0.4: DD MONTH 2010, rXXXX)
 
 
-Release 0.4-rc3 (DD MONTH, 2010)
+Beta Release Candidate 0.4-rc3 (09 May, 2010)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Notable changes in palmapper:
+ * Improve rtrim and polytrim strategies
+ * Set SAM as default output format for mapped reads
+ * Set /dev/null as default output file for unmapped reads
+ * Merge unspliced and spliced alignments in the same output if -H
+ option not given
+ * Save space by using smaller index (don't generate index for negative strand)
 
- *
- *
-
-Notable changes in pmindex:
-
- *
-
-
-(0.4-rc3: DD MONTH 2010, rXXXX)
+(0.4-rc3: 09 May 2010, r18597)
 
 
+Beta Release Candidate 0.4-rc2 (19 April, 2010)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Notable changes in palmapper:
+ * Improve BED output for rtim strategy
+ * Global change from genomemapper to palmapper (in src directory)
+ 
+Notable changes in pmindex: 
+ * Global change from mkindex to pmindex (in src directory)
+
+(0.4-rc2: 19 April 2010, r18207)
+
+
+Beta Release Candidate 0.4-rc1 (16 April, 2010)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the first release of the alignment tool PALMapper, which is
+the fusion of QPALMA and PALMapper. Please consult the webpage
+http://www.fml.tuebingen.mpg.de/raetsch/suppl/palmapper/ for more
+information about this software.   
+
+(0.4-rc1: 16 April 2010, r18141)
