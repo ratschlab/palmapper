@@ -12,7 +12,7 @@ CFLAGS = -O -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimpli
 #CFLAGS = -O9 -Wall -g -pg -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
-LDFLAGS = -Lsrc/bwa -lbwa
+LDFLAGS = 
 
 SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
 	$(ObjDir)/palmapper/shogun/Mathematics.o \
@@ -77,7 +77,7 @@ bwa: src/bwa/bwa
 	ln -sf src/bwa/bwa
 
 palmapper: src/bwa/libbwa.a bwa $(PM_OBJ) src/palmapper/*.h 
-	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -o palmapper
+	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -o palmapper
 	ln -sf palmapper genomemapper
 
 pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c
