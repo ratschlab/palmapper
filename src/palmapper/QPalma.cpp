@@ -614,7 +614,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.ACC_CONSENSUS.size(); j++)
-						if (chr[i] == _config.ACC_CONSENSUS[j][0] && chr[i+1]==_config.ACC_CONSENSUS[j][1])
+						if (i>start && chr[i-1] == _config.ACC_CONSENSUS[j][0] && chr[i]==_config.ACC_CONSENSUS[j][1])
 						{
 							num++ ;
 							if (store_pos)
@@ -625,7 +625,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.ACC_CONSENSUS_REV.size(); j++)
-						if (chr[i] == _config.ACC_CONSENSUS_REV[j][0] && chr[i+1] == _config.ACC_CONSENSUS_REV[j][1])
+						if (i>start && chr[i-1] == _config.ACC_CONSENSUS_REV[j][0] && chr[i] == _config.ACC_CONSENSUS_REV[j][1])
 						{
 							num++ ;
 							if (store_pos)
@@ -639,7 +639,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.DON_CONSENSUS.size(); j++)
-						if (chr[i]== _config.DON_CONSENSUS[j][0] && chr[i+1]==_config.DON_CONSENSUS[j][1])
+						if (i<end-1 && chr[i]== _config.DON_CONSENSUS[j][0] && chr[i+1]==_config.DON_CONSENSUS[j][1])
 						{
 							num++ ;
 							if (store_pos)
@@ -650,7 +650,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.DON_CONSENSUS_REV.size(); j++)
-						if (chr[i]== _config.DON_CONSENSUS_REV[j][0] && chr[i+1]==_config.DON_CONSENSUS_REV[j][1])
+						if (i<end-1 && chr[i]== _config.DON_CONSENSUS_REV[j][0] && chr[i+1]==_config.DON_CONSENSUS_REV[j][1])
 						{
 							num++ ;
 							if (store_pos)
