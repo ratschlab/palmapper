@@ -1544,6 +1544,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 		return -1 ;
     }
 
+	// std::vector<std::vector<region_t *> > long_regions_other[2] ;
+	// if (paired_read_processing) 
+	//      	long_regions_other = get_long_regions_from_other_end(long_regions, semaphore_whatever_is_necessary) ;
 	
 	for (int ori = 0; ori < 2; ori++)
 		for (size_t chrN = 0; chrN < regions[ori].size(); chrN++) 
@@ -1585,6 +1588,10 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 				current_positions.push_back(regions[ori][chrN][start_region]->start + p);
 			}
 		  
+			// if (paired_read_processing) 
+			//      	"do some clever processing of the region list based on long_regions_other" ;
+
+
 			// initialize read_map
 			for (size_t i = 0; i < read.length(); i++)
 				read_map[i] = regions[ori][chrN][start_region]->read_map[i];
