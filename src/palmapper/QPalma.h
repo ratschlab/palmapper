@@ -49,6 +49,7 @@ public:
 
 	public:
 		std::vector<std::vector<region_t *> > regions[2];
+		std::vector<std::vector<region_t *> > long_regions[2];
 		int qpalma_filter_reason;
 		QPalma const &_qpalma;
 		Read const &_read;
@@ -123,7 +124,8 @@ protected:
 	////////////////////
 
 public:
-	int capture_hits(Hits &hits, Result &result, bool non_consensus_search=false) const;
+	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search=false) const;
+	int capture_hits_2(Hits &hits, Result &result, bool non_consensus_search=false) const;
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln) const;
 	float score_unspliced(Read const &read, const char * read_anno) const;
