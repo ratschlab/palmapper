@@ -1024,10 +1024,9 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 }
 
 
-int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) const
+int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_search) const
 {
 	Read const &read(hits.getRead());
-	int num_alignments_reported = 0 ;
 
 	clock_t start_time = clock();
   
@@ -1043,8 +1042,10 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 	// Examine all hits and construct a list of region where these hits map.
 	// regions is a list of region clusters per chromosome, sorted by start position
   
-	std::vector<std::vector<region_t *> > *regions = result.regions;
-	std::vector<std::vector<region_t *> > long_regions[2] = result.regions;
+	result.long_regions[0] = result.regions[0];
+	result.long_regions[1] = result.regions[1];
+	std::vector<std::vector<region_t *> > * const regions = result.regions;
+	std::vector<std::vector<region_t *> > * const long_regions = result.long_regions;
   
 
 	//TODO: Real length of a hit is i-1
@@ -1508,7 +1509,22 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 			}
 	if (verbosity >= 2)
 		fprintf(stdout, "# Merged hit list has %i items\n", num_merged);
-  
+	_stats.qpalma_region_align_time += clock() - start_time;
+	return 0;
+}
+
+int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search) const {
+	// Dominik marker
+	// std::vector<std::vector<region_t *> > long_regions_other[2] ;
+	// if (paired_read_processing)
+	//      	long_regions_other = get_long_regions_from_other_end(long_regions, semaphore_whatever_is_necessary) ;
+
+	Read const &read(hits.getRead());
+	clock_t start_time = clock();
+
+	std::vector<std::vector<region_t *> > *regions = result.regions;
+	std::vector<std::vector<region_t *> > *long_regions = result.long_regions;
+
 	// Construct a pseudo genomic sequence from the regions by stringing
 	// them together. A new sequence is started when two adjacent regions
 	// are farther apart than the maximum assumed intron length.
@@ -1516,6 +1532,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 	// their corresponding positions in the genomic sequence. This is
 	// so we can map the results of the alignment back onto the actual
 	// genomic sequence later.
+
+	int num_alignments_reported = 0 ;
 
 	std::string read_seq[2];
 	read_seq[0] = std::string(read.data(), read.length());
@@ -1544,10 +1562,6 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool non_consensus_search) 
 		return -1 ;
     }
 
-	// std::vector<std::vector<region_t *> > long_regions_other[2] ;
-	// if (paired_read_processing) 
-	//      	long_regions_other = get_long_regions_from_other_end(long_regions, semaphore_whatever_is_necessary) ;
-	
 	for (int ori = 0; ori < 2; ori++)
 		for (size_t chrN = 0; chrN < regions[ori].size(); chrN++) 
 		{

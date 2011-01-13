@@ -345,6 +345,7 @@ restart:
 			  try
 			    {
 					int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search);
+					ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search);
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
 						cancel=4 ;
