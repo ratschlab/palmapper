@@ -390,6 +390,8 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	best->exons.push_back(readstart) ;
 	best->exons.push_back(readend) ;
 	strcpy(best->read_anno, ALIGNSEQ) ;
+	best->min_exon_len=best->exons[1]-best->exons[0] ;
+	
 
 	if (_config._personality == Palmapper) {
 		best->max_intron_len = 0 ;
