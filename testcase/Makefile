@@ -10,15 +10,32 @@ MappedSam = split_1m.000.sam$(ext)
 MappedBed = split_1m.000.bedx$(ext)
 Coverage = split_1m.000.wiggle$(ext)
 #Spliced = split_1m.000.spliced$(ext)
-ResultFilesSam = $(resultDir)/$(MappedSam) $(resultDir)/$(Unmapped) $(resultDir)/$(Coverage)
-ResultFilesBed = $(resultDir)/$(MappedBed) $(resultDir)/$(Unmapped) $(resultDir)/$(Coverage)
 
+
+#Checksum file for each testcase
 result = result.md5
-resultUnspliced = resultUnspliced.md5
-resultRtrim = resultRtrim.md5
+resultUnspliced =resultUnspliced.md5
 resultPolytrim = resultPolytrim.md5
+resultRtrim = resultRtrim.md5
 resultNoss = resultNoss.md5
 resultBed = resultBed.md5
+
+#Output directory for each testcase
+resultDirTest = $(resultDir)/map/
+resultDirUnspliced = $(resultDir)/mapUnspliced/
+resultDirPolytrim = $(resultDir)/mapPolytrim/
+resultDirRtrim = $(resultDir)/mapRtrim/
+resultDirNoss = $(resultDir)/mapNoSpliceSitePred/
+resultDirBed = $(resultDir)/mapBed/
+
+#Output file names for each testcase
+ResultFilesTest = $(resultDirTest)/$(MappedSam) $(resultDirTest)/$(Unmapped) $(resultDirTest)/$(Coverage)
+ResultFilesUnspliced = $(resultDirUnspliced)/$(MappedSam) $(resultDirUnspliced)/$(Unmapped) $(resultDirUnspliced)/$(Coverage)
+ResultFilesPolytrim = $(resultDirPolytrim)/$(MappedSam) $(resultDirPolytrim)/$(Unmapped) $(resultDirPolytrim)/$(Coverage)
+ResultFilesRtrim = $(resultDirRtrim)/$(MappedSam) $(resultDirRtrim)/$(Unmapped) $(resultDirRtrim)/$(Coverage)
+ResultFilesNoss = $(resultDirNoss)/$(MappedSam) $(resultDirNoss)/$(Unmapped) $(resultDirNoss)/$(Coverage)
+ResultFilesBed = $(resultDirBed)/$(MappedBed) $(resultDirBed)/$(Unmapped) $(resultDirBed)/$(Coverage)
+
 
 DnaFile = $(dataDir)/c_elegans.WS209.dna.fa
 SpliceAccFile = $(dataDir)/C_elegans_SpliceSitePred_WS209/acc_pred.bspf
@@ -31,12 +48,11 @@ BwaIndexFiles := $(DnaFile).bwt # $(DnaFile).mfd $(DnaFile)/mrc $(DnaFile).mta
 
 CurrentDir := $(shell pwd)
 
+#PALMapper parameters
 inFiles = -i $(dataDir)/c_elegans.WS209.dna.fa -q $(dataDir)/split_1m.000
 accDon = -acc $(SpliceAccFile)/contig_%i%c -don $(SpliceDonFile)/contig_%i%c 
-outFiles =  -u $(resultDir)/$(Unmapped) #-H $(resultDir)/$(Spliced)
-outSam= -f sam -o $(resultDir)/$(MappedSam)
-outBed= -f bedx -o $(resultDir)/$(MappedBed)
-outCoverage =  -report-coverage-wig $(resultDir)/$(Coverage)
+outSam= -f sam 
+outBed= -f bedx
 qpalma =  -L 35 -K 12 -C 55 -S -qpalma $(dataDir)/parameters.qpalma 
 other = -M 4 -G 1 -E 4 -z 1 -l 20 -seed-hit-cancel-threshold 1000
 polytrim = -polytrim 40
@@ -44,10 +60,18 @@ rtrim = -rtrim 10
 report =
 threads = -threads $(nrThreads)
 
-allFlags=$(inFiles) $(outFiles) $(outCoverage) $(other) $(threads) $(report)
-MapCmd = $(binDir)/palmapper $(allFlags) #-no-ss-pred -min-spliced-segment-len 20  -rlim 10000  -don-consensus ?? -acc-consensus ??
+#Parameter base for all testcases
+allFlags=$(inFiles) $(other) $(threads) $(report) -rlim 10000
+MapCmd = $(binDir)/palmapper $(allFlags) 
+
+#outFiles =  -u $(resultDir)/$(Unmapped) #-H $(resultDir)/$(Spliced)
+#-o $(resultDir)/$(MappedSam)
+#outCoverage =  -report-coverage-wig $(resultDir)/$(Coverage)
 
 test: map
+
+mapall: map unsplicedmap polytrimmap rtrimmap nossmap bedmap
+bwamapall: bwamap bwaunsplicedmap bwapolytrimmap bwartrimmap bwanossmap bwabedmap
 
 $(dataDir)/split_1m.000: 
 	bzip2 -d $(dataDir)/split_1m.000.bz2
@@ -77,113 +101,109 @@ cachegrind: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 	mkdir -p $(dataDir)
 	bash -c "valgrind --tool=cachegrind $(MapCmd)"
 
-result.md5: $(ResultFilesSam)
-	mkdir -p $(dataDir)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) > $(result)
+clean:
+	rm -rf $(dataDir)/C_elegans_SpliceSitePred_WS209/ $(dataDir)/c_elegans.WS209.dna.fa* $(dataDir)/$(resultDirTest) $(dataDir)/$(resultDirUnspliced) $(dataDir)/$(resultDirRtrim) $(dataDir)/$(resultDirPolytrim) $(dataDir)/$(resultDirNoss) $(dataDir)/$(resultDirBed)
 
+allmd5: result.md5 resultUnspliced.md5 resultPolytrim.md5 resultRtrim.md5 resultNoss.md5 resultBed.md5
 
-resultUnspliced.md5: $(ResultFilesSam)
-	mkdir -p $(dataDir)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) > $(resultUnspliced)
+#Checksum file creation rules
+result.md5: $(ResultFilesTest)
+	mkdir -p $(resultDirTest)
+	(cd $(resultDirTest) ; md5sum $(notdir $(ResultFilesTest))) > $(result)
 
+resultUnspliced.md5: $(ResultFilesUnspliced)
+	mkdir -p $(resultDirUnspliced)
+	(cd $(resultDirUnspliced) ; md5sum $(notdir $(ResultFilesUnspliced))) > $(resultUnspliced)
 
-resultRtrim.md5: $(ResultFilesSam)
-	mkdir -p $(dataDir)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) > $(resultRtrim) 
+resultRtrim.md5: $(ResultFilesRtrim)
+	mkdir -p $(resultDirRtrim)
+	(cd $(resultDirRtrim) ; md5sum $(notdir $(ResultFilesRtrim))) > $(resultRtrim) 
 
+resultPolytrim.md5: $(ResultFilesPolytrim)
+	mkdir -p $(resultDirPolytrim)
+	(cd $(resultDirPolytrim) ; md5sum $(notdir $(ResultFilesPolytrim))) >  $(resultPolytrim) 
 
-resultPolytrim.md5: $(ResultFilesSam)
-	mkdir -p $(dataDir)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) >  $(resultPolytrim) 
-
-
-resultNoss.md5: $(ResultFilesSam)
-	mkdir -p $(dataDir)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) >  $(resultNoss) 
+resultNoss.md5: $(ResultFilesNoss)
+	mkdir -p $(resultDirNoss)
+	(cd $(resultDirNoss) ; md5sum $(notdir $(ResultFilesNoss))) >  $(resultNoss) 
 
 resultBed.md5: $(ResultFilesBed)
-	mkdir -p $(dataDir)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesBed))) >  $(resultBed) 
+	mkdir -p $(resultDirBed)
+	(cd $(resultDirBed) ; md5sum $(notdir $(ResultFilesBed))) >  $(resultBed) 
 
-clean:
-	rm -rf $(dataDir)/C_elegans_SpliceSitePred_WS209/ $(dataDir)/c_elegans.WS209.dna.fa* $(dataDir)/split_1m.000.*
 
+#Testcases with array-based index
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma)"
-#	valgrind $(MapCmd)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(result))
+	mkdir -p $(resultDirTest)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(Unmapped) -o $(resultDirTest)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(Coverage)"
+	(cd $(resultDirTest) ; md5sum $(notdir $(ResultFilesTest))) 
+	(cd $(resultDirTest) ; md5sum -c $(CurrentDir)/$(result)) || true
 
-unsplicedmap:$(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd)  $(outSam)"
-#	valgrind $(MapCmd)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultUnspliced))
+unsplicedmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(resultDirUnspliced)
+	bash -c "time $(MapCmd) $(outSam) -u $(resultDirUnspliced)/$(Unmapped) -o $(resultDirUnspliced)/$(MappedSam) -report-coverage-wig $(resultDirUnspliced)/$(Coverage)"
+	(cd $(resultDirUnspliced) ; md5sum $(notdir $(ResultFilesUnspliced))) 
+	(cd $(resultDirUnspliced) ; md5sum -c $(CurrentDir)/$(resultUnspliced)) || true
 
 rtrimmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(rtrim)"
-#	valgrind $(MapCmd)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultRtrim))
+	mkdir -p $(resultDirRtrim)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(rtrim) -u $(resultDirRtrim)/$(Unmapped) -o $(resultDirRtrim)/$(MappedSam) -report-coverage-wig $(resultDirRtrim)/$(Coverage)"
+	(cd $(resultDirRtrim) ; md5sum $(notdir $(ResultFilesRtrim))) 
+	(cd $(resultDirRtrim) ; md5sum -c $(CurrentDir)/$(resultRtrim)) || true
 
 polytrimmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(polytrim)"
-#	valgrind $(MapCmd)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultPolytrim))
+	mkdir -p $(resultDirPolytrim)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(polytrim) -u $(resultDirPolytrim)/$(Unmapped) -o $(resultDirPolytrim)/$(MappedSam) -report-coverage-wig $(resultDirPolytrim)/$(Coverage)"
+	(cd $(resultDirPolytrim) ; md5sum $(notdir $(ResultFilesPolytrim))) 
+	(cd $(resultDirPolytrim) ; md5sum -c $(CurrentDir)/$(resultPolytrim)) || true
 
 nossmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(outSam) $(qpalma) -no-ss-pred"
-#	valgrind $(MapCmd)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultNoss))
+	mkdir -p $(resultDirNoss)
+	bash -c "time $(MapCmd) -no-ss-pred $(outSam) $(qpalma) -u $(resultDirNoss)/$(Unmapped) -o $(resultDirNoss)/$(MappedSam) -report-coverage-wig $(resultDirNoss)/$(Coverage)"
+	(cd $(resultDirNoss) ; md5sum $(notdir $(ResultFilesNoss))) 
+	(cd $(resultDirNoss) ; md5sum -c $(CurrentDir)/$(resultNoss)) || true
 
 bedmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd)  $(accDon) $(outBed) $(qpalma)"
-#	valgrind $(MapCmd)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesBed))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultBed))
+	mkdir -p $(resultDirBed)
+	bash -c "time $(MapCmd) $(accDon)  $(outBed) $(qpalma) -u $(resultDirBed)/$(Unmapped) -o $(resultDirBed)/$(MappedBed) -report-coverage-wig $(resultDirBed)/$(Coverage)"
+	(cd $(resultDirBed) ; md5sum $(notdir $(ResultFilesBed))) 
+	(cd $(resultDirBed) ; md5sum -c $(CurrentDir)/$(resultBed)) || true
+
+#Testcases with bwa-based index
+bwamap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(resultDirTest)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(Unmapped) -o $(resultDirTest)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(Coverage) -bwa"
+	(cd $(resultDirTest) ; md5sum $(notdir $(ResultFilesTest))) 
+	(cd $(resultDirTest) ; md5sum -c $(CurrentDir)/$(result)) || true
+
+bwaunsplicedmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(resultDirUnspliced)
+	bash -c "time $(MapCmd) $(outSam) -u $(resultDirUnspliced)/$(Unmapped) -o $(resultDirUnspliced)/$(MappedSam) -report-coverage-wig $(resultDirUnspliced)/$(Coverage) -bwa"
+	(cd $(resultDirUnspliced) ; md5sum $(notdir $(ResultFilesUnspliced))) 
+	(cd $(resultDirUnspliced) ; md5sum -c $(CurrentDir)/$(resultUnspliced)) || true
+
+bwartrimmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(resultDirRtrim)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(rtrim) -u $(resultDirRtrim)/$(Unmapped) -o $(resultDirRtrim)/$(MappedSam) -report-coverage-wig $(resultDirRtrim)/$(Coverage) -bwa"
+	(cd $(resultDirRtrim) ; md5sum $(notdir $(ResultFilesRtrim))) 
+	(cd $(resultDirRtrim) ; md5sum -c $(CurrentDir)/$(resultRtrim)) || true
+
+bwapolytrimmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(resultDirPolytrim)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(polytrim) -u $(resultDirPolytrim)/$(Unmapped) -o $(resultDirPolytrim)/$(MappedSam) -report-coverage-wig $(resultDirPolytrim)/$(Coverage) -bwa"
+	(cd $(resultDirPolytrim) ; md5sum $(notdir $(ResultFilesPolytrim))) 
+	(cd $(resultDirPolytrim) ; md5sum -c $(CurrentDir)/$(resultPolytrim)) || true
+
+bwanossmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(resultDirNoss)
+	bash -c "time $(MapCmd) -no-ss-pred $(outSam) $(qpalma) -u $(resultDirNoss)/$(Unmapped) -o $(resultDirNoss)/$(MappedSam) -report-coverage-wig $(resultDirNoss)/$(Coverage) -bwa"
+	(cd $(resultDirNoss) ; md5sum $(notdir $(ResultFilesNoss))) 
+	(cd $(resultDirNoss) ; md5sum -c $(CurrentDir)/$(resultNoss)) || true
+
+bwabedmap: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+	mkdir -p $(resultDirBed)
+	bash -c "time $(MapCmd) $(accDon)  $(outBed) $(qpalma) -u $(resultDirBed)/$(Unmapped) -o $(resultDirBed)/$(MappedBed) -report-coverage-wig $(resultDirBed)/$(Coverage) -bwa"
+	(cd $(resultDirBed) ; md5sum $(notdir $(ResultFilesBed))) 
+	(cd $(resultDirBed) ; md5sum -c $(CurrentDir)/$(resultBed)) || true
 
 
-bwamap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma)"
-#	valgrind $(MapCmd)
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(result))
-
-bwaunsplicedmap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd)  $(outSam) -bwa"
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultUnspliced))
-
-bwartrimmap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(rtrim) -bwa"
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultRtrim))
-
-bwapolytrimmap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(polytrim) -bwa"
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultPolytrim))
-
-bwanossmap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd) $(outSam) $(qpalma) -no-ss-pred -bwa"
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesSam))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultNoss))
-
-bwabedmap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
-	mkdir -p $(dataDir)
-	bash -c "time $(MapCmd)  $(accDon) $(outBed) $(qpalma) -bwa"
-	(cd $(resultDir) ; md5sum $(notdir $(ResultFilesBed))) 
-	(cd $(resultDir) ; md5sum -c $(CurrentDir)/$(resultBed))
