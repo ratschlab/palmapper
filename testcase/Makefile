@@ -56,7 +56,7 @@ outBed= -f bedx
 qpalma =  -L 35 -K 12 -C 55 -S -qpalma $(dataDir)/parameters.qpalma 
 other = -M 4 -G 1 -E 4 -z 1 -l 20 -seed-hit-cancel-threshold 1000
 polytrim = -polytrim 40
-rtrim = -rtrim 10
+rtrim = -rtrim 25
 report =
 threads = -threads $(nrThreads)
 
