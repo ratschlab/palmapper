@@ -12,6 +12,7 @@ Notable changes in palmapper output:
  * Add more informative tags in SAM output: ZS, Xe, Xi, XI, XN, HI,
  AS, XQ, XD, Xd. Consult the documentation for more information
  * Give strand flag only for splice reads
+ * Fixed bug for minimal exon length in Bedx output
 
 Notable changes in palmapper options:
  * add -no-ss-pred option to compute alignments without using splice site predictions
