@@ -300,6 +300,7 @@ int Config::applyDefaults(Genome * genome)
 	if (any_default)
 		fprintf(stdout, "\n") ;
 	
+
 	return 0 ;
 }
 
@@ -347,6 +348,13 @@ int Config::checkConfig()
 		fprintf(stderr, "ERROR: SAM format not implemented yet\n") ;
 		exit(1) ;
 	}*/
+
+	if (MAX_EDIT_OPS<NUM_EDIT_OPS)
+	{
+		fprintf(stderr, "ERROR: NUM_EDIT_OPS>MAX_EDIT_OPS, please increase MAX_EDIT_OPS in config.h\n") ;
+		exit(1) ;
+	}
+	
 	return 0 ;
 }
 
