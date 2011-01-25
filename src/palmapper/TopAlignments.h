@@ -90,7 +90,6 @@ protected:
 	int num_spliced_alignments;
 	int num_unspliced_alignments;
 	const int verbosity ;
-	int MAX_EXON_LEN ;
 	char *ALIGNSEQ;
 
 	//pthread_mutex_t top_mutex;

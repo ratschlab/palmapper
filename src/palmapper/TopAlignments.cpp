@@ -35,7 +35,7 @@ TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
 	}
 	
 	genomemaps = genomemaps_ ;
-	MAX_EXON_LEN = 200 ;
+	
 }
 
 u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num, QPalma const *qpalma)
@@ -44,6 +44,8 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	algn_hit->from_gm = 2;
 	algn_hit->hit = hit ;
 	algn_hit->num = num ;
+	
+	//printhit(read,hit);
 	
 	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
 	add_alignment_record(algn_hit, 1) ;
@@ -530,10 +532,7 @@ void TopAlignments::check_alignment(struct alignment_t * alignment)
     {
 		assert(alignment->exons[i]<alignment->exons[i+1]) ;
     }
-	for (int i=0; i<((int)alignment->exons.size()); i+=2)
-    {
-		assert(alignment->exons[i+1]-alignment->exons[i]<=MAX_EXON_LEN) ;
-    }
+
 }
 
 void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
@@ -976,13 +975,13 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 
 	fprintf(MY_OUT_FP, "%d", best->exons[1] - best->exons[0]);
 	assert(best->exons[1] - best->exons[0] >  0) ;
-	assert(best->exons[1] - best->exons[0] <= MAX_EXON_LEN) ;
+
 	
 	for (uint32_t i = 2; i < best->exons.size(); i+=2)
     {
 		fprintf(MY_OUT_FP, ",%d", best->exons[i+1] - best->exons[i]);
 		assert(best->exons[i+1] - best->exons[i] >  0) ;
-		assert(best->exons[i+1] - best->exons[i] <= MAX_EXON_LEN) ;
+
     }
 
 	fprintf(MY_OUT_FP, "\t0");
@@ -1108,13 +1107,12 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 
 		fprintf(MY_OUT_FP, "%d", second->exons[1] - second->exons[0]);
 		assert(second->exons[1] - second->exons[0] >  0) ;
-		assert(second->exons[1] - second->exons[0] <= MAX_EXON_LEN) ;
+
 		
 		for (uint32_t i = 2; i < second->exons.size(); i+=2)
 		{
 			fprintf(MY_OUT_FP, ",%d", second->exons[i+1] - second->exons[i]);
 			assert(second->exons[i+1] - second->exons[i] >  0) ;
-			assert(second->exons[i+1] - second->exons[i] <= MAX_EXON_LEN) ;
 		}
 
 		fprintf(MY_OUT_FP, "\t0");
@@ -1122,7 +1120,6 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 		{
 			fprintf(MY_OUT_FP, ",%d", second->exons[i] - second->exons[0]);
 			assert(second->exons[i] - second->exons[0] >  0 ) ;
-			//assert(second->exons[i] - second->exons[0] <= MAX_EXON_LEN ) ;
 		}
 
 		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s", 
@@ -1676,7 +1673,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				idx += 2 ;
 				exon_size += (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
 				assert(curr_align->exons[idx+1] - curr_align->exons[idx] >  0) ;
-				assert(curr_align->exons[idx+1] - curr_align->exons[idx] <= MAX_EXON_LEN) ;
 			}
 
 			// start new block in cigar
