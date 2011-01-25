@@ -325,14 +325,14 @@ using the following detailed command:
 ../palmapper -i data/c_elegans.WS209.dna.fa -q data/split_1m.000 \
 -acc data/C_elegans_SpliceSitePred_WS209/acc_pred.bspf/contig_%i%c \
 -don data/C_elegans_SpliceSitePred_WS209/don_pred.bspf/contig_%i%c \
--o data/split_1m.000.sam -u data/split_1m.000.unmapped \
--S -f sam -report-coverage-wig data/split_1m.000.wiggle -qpalma \
-data/parameters.qpalma \
+-o data/map/split_1m.000.sam -u data/map/split_1m.000.unmapped \
+-S -f sam -report-coverage-wig data/map/split_1m.000.wiggle -qpalma \
+data/parameters.qpalma -threads 1 -rlim 10000\
 -M 4 -G 1 -E 4 -l 20 -L 35 -K 12 -C 55 -z 1 \
 -seed-hit-cancel-threshold 1000
 \end{verbatim}
-The output files in SAM format (see section~\ref{sec:samfile}) are
-stored in \texttt{./palmapper-0.4/testcase/data/}. Finally, the
+The output file in SAM format (see section~\ref{sec:samfile}) is
+stored in \texttt{./palmapper-0.4/testcase/data/map/}. Finally, the
 program checks if \PALMapper{} has correctly run by comparing obtained
 results with precomputed results on the same data set. The user should
 see the following information confirming that produced results are
@@ -347,6 +347,26 @@ split 1m.000.wiggle: OK
 This command uses array-based index files to run the testcase. To do
 the same testcase using bwt-based index, type \texttt{make bwamap}
 instead of \texttt{make test}. Results should be the same.
+
+You can run a set of tests using the command \texttt{make mapall} with
+array-based index or \texttt{make bwamapall} with bwt-based
+index. This command includes the previously presented testcase and the
+following ones:
+\begin{itemize}
+\item \texttt{make [bwa]unsplicedmap}: test \PALMapper{} without
+  spliced mapping.
+\item \texttt{make [bwa]polytrimmap}: test \texttt{-polytrim} option
+  of \PALMapper{}.
+\item \texttt{make [bwa]rtrimmap}: test \texttt{-rtrim} option
+  of \PALMapper{}.
+\item \texttt{make [bwa]nossmap}: test \PALMapper{} without splice
+  site predictions (option \texttt{-no-ss-pred}).
+\item \texttt{make [bwa]bedmap}: test bedx output of \PALMapper{}
+  (option \texttt{-f bedx}).
+\end{itemize}
+
+For each testcase, the comparison of produced results with expected
+ones appear in the shell window.
 \end{enumerate}
 
 \section{Aligning with PALMapper using Galaxy tools}
