@@ -926,6 +926,10 @@ int TopAlignments::print_top_alignment_records(Read const &read, std::ostream *O
 
 int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
+
+	int top_unspliced_alignments=0;
+	int top_spliced_alignments=0;
+
 	if (top_alignments.size()==0)
 		return 0 ;
 	alignment_t * best = top_alignments[0] ;
@@ -945,17 +949,26 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 		assert(_config.SPLICED_HITS) ;
 		MY_OUT_FP = SP_OUT_FP ;
 		_stats.alignment_num_spliced_best++ ;
+		++top_spliced_alignments;
+		
     }
-	else
+	else{
+		
 		_stats.alignment_num_unspliced_best++ ;
+		++top_unspliced_alignments;
+	}
 	
 
 	for (int i=1; i<(int)top_alignments.size(); i++)
-		if (top_alignments[i]->spliced)
+		if (top_alignments[i]->spliced){
+			++top_spliced_alignments;
 			_stats.alignment_num_spliced_suboptimal+=1 ;
-		else
+		}
+		else{
 			_stats.alignment_num_unspliced_suboptimal+= 1 ;
-
+			++top_unspliced_alignments;
+		}
+	
 	_stats.print_alignment_stats() ;
 	
 	pthread_mutex_unlock( &_stats.alignment_num_mutex) ;
@@ -969,9 +982,10 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			best->read_id,
 			best->num_matches,
 			best->strand,
-			num_unspliced_alignments,
-			num_spliced_alignments,
+			top_unspliced_alignments,
+			top_spliced_alignments,
 			int(best->exons.size() / 2));
+
 
 	fprintf(MY_OUT_FP, "%d", best->exons[1] - best->exons[0]);
 	assert(best->exons[1] - best->exons[0] >  0) ;
@@ -1122,8 +1136,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			assert(second->exons[i] - second->exons[0] >  0 ) ;
 		}
 
-		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s", 
-				second->qpalma_score, second->num_matches, second->num_gaps, second->min_exon_len, best->max_intron_len, second->orientation, second->read_anno) ;
+		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s",	second->qpalma_score, second->num_matches, second->num_gaps, second->min_exon_len, best->max_intron_len, second->orientation, second->read_anno) ;
 
 		if (_config.POLYTRIM_STRATEGY)
 		{
@@ -1132,9 +1145,12 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			if (second->polytrim_cut_start)
 				fprintf(MY_OUT_FP, ";polytrimEnd=%i", second->polytrim_cut_end) ;
 		}
+
     }
 
-	fprintf(MY_OUT_FP, "\n");
+
+	fprintf(MY_OUT_FP, "\n");	
+	
 	return top_alignments.size() ;
 }
 
