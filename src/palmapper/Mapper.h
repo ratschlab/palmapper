@@ -30,6 +30,9 @@ public:
 		  	_qpalma(_work, mapper._qpalma)
 		{
 			_state = NothingFound;
+			_rtrim_cut=0;
+			_polytrim_cut_start=0;
+			_polytrim_cut_end=0;
 		}
 
 		ResultState _state;
