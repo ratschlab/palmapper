@@ -1,4 +1,4 @@
-Beta Release 0.4 (DD MONTH, 2010)
+Release Candidate 0.4-rc4 (DD MONTH, 2011)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This release introduces a lot of changes since the last version and
@@ -15,14 +15,12 @@ Notable changes in palmapper output:
  * Fixed bug for minimal exon length in Bedx output
 
 Notable changes in palmapper options:
- * add -no-ss-pred option to compute alignments without using splice site predictions
  * add -acc-consensus and -don-consensus options to define splice site 
  consensus sequences to consider (options have to be jointly used with
  -no-ss-pred)
  * Add -non-consensus-search option (search for a spliced alignment
  with non consensus splice sites which does not overlap with a spliced
  alignment with known consensus splice sites)
- * 
 
 Other notable changes:
  * Multithreading
@@ -32,12 +30,17 @@ Other notable changes:
  Transform). We use the sources from BWA (Burrows-Wheeler Alignment
  tool) which are located under src/bwa. The use of bwt-based index
  should give the same results than with the use of the array-based
- index provided by GenomeMapper.
+ index provided by GenomeMapper. This version is experimental.
+ * New QPALMA pretrained models (for small and large genomes and short
+ and long reads without splice site predictions).
+ * More testcases to test different options.
+ * Remove MAX_EXON_LEN variable which could lead to aborted execution
+ for long reads
 
-(0.4: DD MONTH 2010, rXXXX)
+(0.4-rc4: DD MONTH 2011, rXXXX)
 
 
-Beta Release Candidate 0.4-rc3 (09 May, 2010)
+Release Candidate 0.4-rc3 (09 May, 2010)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Notable changes in palmapper:
@@ -47,11 +50,12 @@ Notable changes in palmapper:
  * Merge unspliced and spliced alignments in the same output if -H
  option not given
  * Save space by using smaller index (don't generate index for negative strand)
+ * add -no-ss-pred option to compute alignments without using splice site predictions
 
 (0.4-rc3: 09 May 2010, r18597)
 
 
-Beta Release Candidate 0.4-rc2 (19 April, 2010)
+Release Candidate 0.4-rc2 (19 April, 2010)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Notable changes in palmapper:
@@ -64,7 +68,7 @@ Notable changes in pmindex:
 (0.4-rc2: 19 April 2010, r18207)
 
 
-Beta Release Candidate 0.4-rc1 (16 April, 2010)
+Release Candidate 0.4-rc1 (16 April, 2010)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is the first release of the alignment tool PALMapper, which is
