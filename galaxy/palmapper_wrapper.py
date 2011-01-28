@@ -94,7 +94,7 @@ def __main__():
             except Exception, erf:
                 stop_err('Error creating temp directory for indexing purposes\n' + str(erf))
                 options.ref = os.path.join(tmp_dir, os.path.split(options.ref)[1])
-            cmd1 = '/fml/ag-raetsch/nobackup/galaxy/galaxy-29.11.2010/mlb_software/palmapper-trunk/pmindex -v -i %s %s' % (options.ref, indexing_cmds)
+            cmd1 = 'pmindex -v -i %s %s' % (options.ref, indexing_cmds)
             try:
                 os.system(cmd1)
             except Exception, erf:
@@ -107,7 +107,7 @@ def __main__():
             except Exception, erf:
                 stop_err('Error creating temp directory for indexing purposes\n' + str(erf))
                 options.ref = os.path.join(tmp_dir, os.path.split(options.ref)[1])
-            cmd1 = '/fml/ag-raetsch/nobackup/galaxy/galaxy-29.11.2010/mlb_software/palmapper-trunk/src/bwa index %s' % (options.ref)
+            cmd1 = 'src/bwa index %s' % (options.ref)
             try:
                 os.system(cmd1)
             except Exception, erf:
@@ -227,14 +227,14 @@ def __main__():
         print "Sorry, paired end alignments are not supported yet"
         return
     if options.format == 'sam':
-        cmd2a = '/fml/ag-raetsch/nobackup/galaxy/galaxy-29.11.2010/mlb_software/palmapper-trunk/palmapper %s %s -i %s -q %s -o %s -u %s -qpalma %s %s -report %s -threads 1' % (aligning_cmds, qpalma_cmds, options.ref, options.input1, options.sam_output, unmapped_tmp_fname, options.qpalma, ss_cmds, report_fname)
+        cmd2a = 'palmapper %s %s -i %s -q %s -o %s -u %s -qpalma %s %s -report %s -threads 1' % (aligning_cmds, qpalma_cmds, options.ref, options.input1, options.sam_output, unmapped_tmp_fname, options.qpalma, ss_cmds, report_fname)
     else:
-        cmd2a = '/fml/ag-raetsch/nobackup/galaxy/galaxy-29.11.2010/mlb_software/palmapper-trunk/palmapper %s %s -i %s -q %s -o %s -H %s -u %s -qpalma %s %s -report %s -threads 1' % (aligning_cmds, qpalma_cmds, options.ref, options.input1, options.unspliced_output, options.spliced_output, unmapped_tmp_fname, options.qpalma, ss_cmds, report_fname)
+        cmd2a = 'palmapper %s %s -i %s -q %s -o %s -H %s -u %s -qpalma %s %s -report %s -threads 1' % (aligning_cmds, qpalma_cmds, options.ref, options.input1, options.unspliced_output, options.spliced_output, unmapped_tmp_fname, options.qpalma, ss_cmds, report_fname)
 
     # align
     try:
         #os.environ['LD_LIBRARY_PATH']='/home/galaxy/svn/projects/QPalma/dyn_prog/cpplib/:/home/galaxy/software/shogun/lib/'
-        print re.sub(r'/fml/ag-raetsch/nobackup/galaxy/galaxy-29.11.2010/mlb_software/palmapper-trunk/palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
+        print re.sub(r'palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
         os.system(cmd2a)
     except Exception, erf:
         stop_err("Error aligning sequence\n" + str(erf))
