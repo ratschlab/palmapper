@@ -130,7 +130,7 @@ and spliced alignments for a set of RNA-Seq reads on the
 command-line with the consideration that \QP{}~\cite{DeBona08} has
 been already trained and optionally splice sites have been predicted
 (see section~\ref{sec:inputfile} about input files) for the organism
-of interest. Finally, this section describes a test case included in
+of interest. Finally, this section describes a testcase suite included in
 the package that checks whether \PALMapper{} gives the expected
 results. The Galaxy version of \PALMapper{} is briefly described in
 section~\ref{sec:aligninggal}. 
@@ -311,16 +311,20 @@ instance) or Galaxy Trackster.
 \begin{verbatim}
 user:~$ cd palmapper-0.4/testcase/
 \end{verbatim}
-The user can easily test \PALMapper{} on an example from
-\emph{C. elegans} that is ready to run in the testcase directory of
-\PALMapper{} package.
-\item Run test case by typing:
+The user can easily test different options of \PALMapper{} on an
+example from \emph{C. elegans} that is ready to run in the
+\texttt{testcase} directory of \PALMapper{} package.
+\item Run testcase by typing:
 \begin{verbatim}
-user:~/palmapper-0.4/testcase$ make test
+user:~/palmapper-0.4/testcase$ make all
 \end{verbatim}
 This command first downloads splice-site predictions and the
-\emph{C. elegans WS209} reference sequence. Then, it runs \PALMapper{}
-using the following detailed command:
+\emph{C. elegans WS209} reference sequence, and builds array-based and
+bwt-based indexes. Then, for each type of index, it runs \PALMapper{}
+for testing the following options. Each testcase can be run separately:
+\begin{itemize}
+\item \texttt{make [bwa]map}: test typical usage of \PALMapper{} with
+  the following detailed command:
 \begin{verbatim}
 ../palmapper -i data/c_elegans.WS209.dna.fa -q data/split_1m.000 \
 -acc data/C_elegans_SpliceSitePred_WS209/acc_pred.bspf/contig_%i%c \
@@ -331,12 +335,28 @@ data/parameters.qpalma -threads 1 -rlim 10000\
 -M 4 -G 1 -E 4 -l 20 -L 35 -K 12 -C 55 -z 1 \
 -seed-hit-cancel-threshold 1000
 \end{verbatim}
-The output file in SAM format (see section~\ref{sec:samfile}) is
-stored in \texttt{./palmapper-0.4/testcase/data/map/}. Finally, the
-program checks if \PALMapper{} has correctly run by comparing obtained
-results with precomputed results on the same data set. The user should
-see the following information confirming that produced results are
-those expected appear in the shell window: 
+\item \texttt{make [bwa]mapUnspliced}: test \PALMapper{} without
+  spliced mapping.
+\item \texttt{make [bwa]mapPolytrim}: test \texttt{-polytrim} option
+  of \PALMapper{}.
+\item \texttt{make [bwa]mapRtrim}: test \texttt{-rtrim} option
+  of \PALMapper{}.
+\item \texttt{make [bwa]mapNoss}: test \PALMapper{} without splice
+  site predictions (option \texttt{-no-ss-pred}).
+\item \texttt{make [bwa]mapBedx}: test bedx output of \PALMapper{}
+  (option \texttt{-f bedx}).
+\item \texttt{make [bwa]mapall}: test all cases for a particular index
+  (array-based by default, and bwt-based if \texttt{bwa} is provided
+  in target name). 
+\end{itemize}
+
+The output files (alignment file, unmapped reads file and coverage
+file) are stored in \texttt{./palmapper-0.4/testcase/data/}. Finally,
+the program checks whether \PALMapper{} has correctly run by comparing
+obtained results with precomputed results on the same data set. For
+each testcase, the user should see the following information
+confirming that produced results are those expected appear in the
+shell window:  
 
 \begin{verbatim}
 split 1m.000.sam: OK
@@ -344,29 +364,27 @@ split 1m.000.unmapped: OK
 split 1m.000.wiggle: OK
 \end{verbatim}
 
-This command uses array-based index files to run the testcase. To do
-the same testcase using bwt-based index, type \texttt{make bwamap}
-instead of \texttt{make test}. Results should be the same.
+At the end, a summary is printed out and should look like to the
+following one if everything ran well:
 
-You can run a set of tests using the command \texttt{make mapall} with
-array-based index or \texttt{make bwamapall} with bwt-based
-index. This command includes the previously presented testcase and the
-following ones:
-\begin{itemize}
-\item \texttt{make [bwa]unsplicedmap}: test \PALMapper{} without
-  spliced mapping.
-\item \texttt{make [bwa]polytrimmap}: test \texttt{-polytrim} option
-  of \PALMapper{}.
-\item \texttt{make [bwa]rtrimmap}: test \texttt{-rtrim} option
-  of \PALMapper{}.
-\item \texttt{make [bwa]nossmap}: test \PALMapper{} without splice
-  site predictions (option \texttt{-no-ss-pred}).
-\item \texttt{make [bwa]bedmap}: test bedx output of \PALMapper{}
-  (option \texttt{-f bedx}).
-\end{itemize}
-
-For each testcase, the comparison of produced results with expected
-ones appear in the shell window.
+\begin{verbatim}
+--------------------------------------------------------
+Test summary (12 testcases):
+   Test Failed: 0
+   Test Passed: 12
+      mapBedx (bwt-based index): OK
+      mapNoss (bwt-based index): OK
+      mapPolytrim (bwt-based index): OK
+      mapRtrim (bwt-based index): OK
+      map (bwt-based index): OK
+      mapUnspliced (bwt-based index): OK
+      mapBedx (array-based index): OK
+      mapNoss (array-based index): OK
+      mapPolytrim (array-based index): OK
+      mapRtrim (array-based index): OK
+      map (array-based index): OK
+      mapUnspliced (array-based index): OK
+\end{verbatim}
 \end{enumerate}
 
 \section{Aligning with PALMapper using Galaxy tools}
