@@ -53,6 +53,9 @@ Genome::Genome() {
 	NUM_CHROMOSOMES = 0;
 	INDEX_SIZE = Config::INDEX_SIZE_15 ;
 
+	INDEX=NULL;
+	BLOCK_TABLE=NULL;
+
  	if (_config.VERBOSE) { printf("Reading in indices\n"); }
 	build_index();
 
@@ -64,6 +67,7 @@ Genome::Genome() {
 Genome::~Genome() {
 	delete[] _chromosomes;
 	free(INDEX);
+	free(BLOCK_TABLE);
 
 	if (_config.BWA_INDEX == 1)
 		bwa_seed2genome_destroy() ;
