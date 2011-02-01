@@ -22,6 +22,7 @@ Personality Config::getPersonality() {
 	return ::strcmp("genomemapper", __progname) == 0 ? GenomeMapper : Palmapper;
 }
 
+
 Config::Config() {
 	_personality = getPersonality();
 
@@ -492,6 +493,14 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-bwa") == 0) {
 			not_defined = 0;
 			BWA_INDEX = 1 ;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -bwa\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			INDEX_DEPTH = atoi(argv[i]) ;
+
 		}
 		
 
@@ -798,7 +807,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			// splice-site based filter: require at least this many edits
-			if (strcmp(argv[i], "-filter-splice-min-edit") == 0) {
+			if (strcmp(argv[i], "-filter-max-edit") == 0) {
 				if (i + 1 > argc - 1) {
 					fprintf(stderr, "ERROR: Argument missing for option -filter-splice-min-edit\n") ;
 					usage();
@@ -1362,7 +1371,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//match score
-		if (strcmp(argv[i], "-match_score") == 0) {
+		if (strcmp(argv[i], "-match-score") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr, "ERROR: Argument missing for option -match_score\n") ;
@@ -1736,90 +1745,114 @@ int Config::usage() {
 		printf("USAGE: palmapper [options]\n");
 
 		printf("\n");
+
+		//MANDATORY parameters
 		printf("mandatory:\n");
-		printf(" -i STRING      reference sequence (fasta file and prefix to index files)\n");
-		printf(" -q STRING      query filename (fasta, fastq, or SHORE flat file)\n");
+		printf(" -i STRING       reference sequence (fasta file and prefix to index files)\n");
+		printf(" -q STRING       query filename (fasta, fastq, or SHORE flat file)\n");
+		printf(" -q1 STRING      \"left\" query filename for paired-end reads (fasta, fastq, or SHORE flat file)\n");
+		printf(" -q2 STRING      \"right\" query filename for paired-end reads (fasta, fastq, or SHORE flat file)\n");
+
+		//OPTIONAL parameters
 		printf("\n\n");
 		printf("optional:\n");
-		printf(" -bwa           use burrows-wheeler index instead of k-mer index (bwa-based)\n") ;
-		printf(" -S             report spliced alignments (detailed options below)\n\n");
-		printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")\n");
-		printf(" -o STRING      output filename [stdout]\n");
-		printf(" -H STRING      output filename for spliced hits [stdout]\n");
-		printf(" -u STRING      output filename for unmapped reads [no output]\n\n");
 
-		printf(" -a             report all alignments [best alignments only]\n");
-		printf(" -ar INT        report a limited number of alignments [best alignments only]\n");
-		printf(" -z INT         report a number of top alignments\n\n");
+		printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")[sam]\n");
+		printf(" -o STRING      output filename [stdout]\n");
+		printf(" -H STRING      output filename for spliced hits [no output]\n");
+		printf(" -u STRING      output filename for unmapped reads [/dev/null]\n\n");
+
+		printf(" -rlim INT      limit the number of reads for alignment\n");
+		printf(" -from INT      skip the first <from> reads from query file\n");
+		printf(" -to   INT      map only the first <to> reads from query file\n\n");
+
+		printf(" -a             report all alignments\n");
+		//printf(" -ar INT        report a limited number of alignments (best alignments only)\n");
+		printf(" -z  INT        report a number of top alignments\n");
+		printf(" -n  INT        report a maximal number of best alignments\n\n");
 
 		printf(" -r             disable alignment on reverse strand [enabled]\n");
 		printf(" -h             perform alignment of flanking regions of hits first [whole read alignment]\n");
 		printf(" -d             align gaps most right (ignored for spliced alignments) [most left]\n");
-		printf(" -w             allow more gaps for best hit (ignored for spliced alignments) [retain gap limit]\n");
-		//printf(" -e         report edit operations (alignment scores)\n");
-		printf(" -l INT         seed length [index size]\n");
-		printf(" -n INT         max number of best alignments [all best alignments]\n");
-		printf(" -c INT         seed container size [15.000.000]\n\n");
+ 		printf(" -w             allow more gaps for best hit (ignored for spliced alignments) [retain gap limit]\n\n");
 
-		printf(" -threads INT                       maximal number of threads [4] \n");
-		printf(" -seed-hit-cancel-threshold INT     number of hits of a seed that lead to its ignoration\n");
-		printf(" -index-extend-threshold INT        number of hits of a seed that lead to an seed-length extension\n");
-		printf(" -index-extend INT                  length of seed-length extension\n");
-		printf(" -index-precache                    linearly read index file to fill caches\n\n");
-		printf(" -stranded STRING                   strand specific experiment [ left | right | plus | minus ]\n");
+		printf(" -bwa INT                         use burrows-wheeler index instead of k-mer index (bwa-based) with a given seed length\n") ;
+		printf(" -seed-hit-cancel-threshold INT   number of hits of a seed that lead to its ignoration\n");
+		printf(" -index-extend-threshold INT      number of hits of a seed that lead to a seed-length extension\n");
+		printf(" -index-extend INT                length of seed-length extension\n");
+		printf(" -index-precache                  linearly read index file to fill caches\n");
+		printf(" -l INT                           minimal considered hit length [seed length]\n");
+		printf(" -c INT                           seed container size [15.000.000]\n\n");
 
-		printf(" -rtrim INT                         shortens the read until a hit is found or the minimal length is reached (INT)\n");
-		printf(" -rtrim-step INT                    rtrim step size (INT)\n");
-		printf(" -polytrim INT                      trims polyA or polyT ends until a hit is found or the minimal length is reached (INT)\n");
-		printf(" -adaptertrim INT                   trims away known adapter sequences, read is dropped, when shorter than parameter (INT)\n\n");
+		printf(" -threads INT                     maximal number of threads [1] \n");
+		printf(" -v                               verbose [silent]\n\n");
 
-		printf(" -rlim INT      limit the number of reads for alignment\n\n");
-		printf(" -to INT        map only the first <to> reads from query file\n");
-		printf(" -from INT      skip the first <from> reads from query file\n");
 
-		printf(" -M INT         max number of mismatches [3]\n");
-		printf(" -G INT         max number of gaps [1]\n");
-		printf(" -E INT         max edit operations [3]\n");
-		printf(" -m DOUBLE      mismatch penalty [4]\n");
-		printf(" -g DOUBLE      gap penalty [5]\n");
+		printf(" -stranded STRING        strand specific experiment [ left | right | plus | minus ]\n");
+		printf(" -rtrim INT              shortens the read until a hit is found or the minimal length is reached\n");
+		printf(" -rtrim-step INT         rtrim step size\n");
+		printf(" -polytrim INT           trims polyA or polyT ends until a hit is found or the minimal length is reached\n");
+		printf(" -fixtrim INT            shortens the read to a fixed length\n");
+		printf(" -adaptertrim INT        trims away known adapter sequences, read is dropped, when shorter than parameter\n\n");
+		//printf(" -adaptertrim-log STRING    \n");
 
-		printf(" -v             verbose [silent]\n\n");
 
+		printf(" -M INT                   max number of mismatches [auto]\n");
+		printf(" -G INT                   max number of gaps [auto]\n");
+		printf(" -E INT                   max edit operations [auto]\n");
+		printf(" -m DOUBLE                mismatch penalty [4]\n");
+		printf(" -g DOUBLE                gap penalty [5]\n");
+		printf(" -match-score DOUBLE      match penalty [0]\n\n");
+
+
+		printf(" -S                       report spliced alignments (detailed options below)\n");
 		printf("spliced hits definitions: (-S required)\n");
 		printf(" -qpalma STRING                        file name with qpalma parameters (essential)\n");
-		printf(" -qpalma-use-map-max-len INT           limit the map extension up- and downstream to the given length (10.000)\n");
+		printf(" -qpalma-use-map-max-len INT           limit the map extension up- and downstream to the given length [10.000]\n");
 		printf(" -qpalma-prb-offset-fix                automatically fix the quality offset, if necessary \n\n");
 
-		printf(" -acc STRING                           path name to acceptor splice site predictions (essential)\n");
-		printf(" -don STRING                           path name to donor splice site predictions (essential)\n");
+		printf(" -acc STRING                           path name to acceptor splice site predictions (essential if -no-ss-pred not provided)\n");
+		printf(" -don STRING                           path name to donor splice site predictions (essential if -no-ss-pred not provided)\n");
+		printf(" -acc-consensus STRING                 defines consensus sequences for acceptor sites (separated by \",\") [AG]\n");
+		printf(" -don-consensus STRING                 defines consensus sequences for donor sites (separated by \",\") [GT,GC]\n");
 		printf(" -no-ss-pred                           indicates that no splice site predictions should be used\n\n");
+		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as splice sites\n\n");
 
-		printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1)\n");
-		printf(" -filter-max-mismatches INT            trigger spliced alignment, if unspliced alignment has at least this many mismatches\n");
-		printf(" -filter-max-gaps INT                  trigger spliced alignment, if unspliced alignment has at least this many mismatches\n\n");
+		printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1) [0.01]\n");
+		printf(" -filter-splice-region INT             extension of the read region up- and downstream for triggeringspliced alignments by presence of splice sites [5]\n");
+		printf(" -filter-max-edit INT                  trigger spliced alignment, if unspliced alignment has at least this many edit operations [0]\n");
+		printf(" -filter-max-mismatches INT            trigger spliced alignment, if unspliced alignment has at least this many mismatches [0]\n");
+		printf(" -filter-max-gaps INT                  trigger spliced alignment, if unspliced alignment has at least this many gaps [0]\n");
+		printf(" -log-triggered-reads STRING           log file containing the triggered reads\n\n");
 
-		printf(" -C INT                                min combined length (auto)\n");
-		printf(" -L INT                                min length of long hit (auto)\n");
-		printf(" -K INT                                min length of short hit (auto)\n");
-		printf(" -SA INT                               maximum number of spliced alignments per read (10)\n");
-		printf(" -NI INT                               maximum number of introns in spliced alignments (auto)\n");
-		printf(" -CT INT                               distance to tolerate between hit and existing hit cluster (10)\n");
-		printf(" -QMM INT                              number of matches required for identifying a splice site (5)\n");
-		printf(" -I INT                                longest intron length  (auto)\n");
-		printf(" -EL INT                               minimal number of nucleotides in a spliced segment (auto)\n\n") ;
+		printf(" -C INT                                min combined length [auto]\n");
+		printf(" -L INT                                min length of long hit [auto]\n");
+		printf(" -K INT                                min length of short hit [auto]\n");
+		printf(" -SA INT                               maximum number of spliced alignments per read [10]\n");
+		printf(" -NI INT                               maximum number of introns in spliced alignments [auto]\n");
+		printf(" -CT INT                               distance to tolerate between hit and existing hit cluster [10]\n");
+		printf(" -QMM INT                              number of matches required for identifying a splice site [auto]\n");
+		printf(" -I INT                                longest intron length  [auto]\n");
+		printf(" -min-spliced-segment-len INT          minimal exon length [auto]\n");
+		printf(" -EL INT                               minimal number of nucleotides in a spliced segment [auto]\n\n") ;
 
 		printf(" -report STRING                        file for map reporting\n");
 		printf(" -report-ro STRING                     file for map reporting (read only)\n");
 		printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
 		printf(" -report-map-region                    switch on reporting of mapped regions\n");
+		//printf(" -no-report-map-region                 switch off reporting of mapped regions\n");
 		printf(" -report-map-read                      switch on reporting of mapped reads\n");
+		//printf(" -no-report-map-read                   switch off reporting of mapped reads\n");
 		printf(" -report-spliced-read                  switch on reporting of spliced reads\n");
+		//printf(" -no-report-spliced-read               switch off reporting of spliced reads\n");
 		printf(" -report-splice-sites FLOAT            report splice sites with confidence not less that threshold\n");
 		printf(" -report-splice-sites-top-perc FLOAT   report splice sites with confidence in top percentile (between 0 and 1)\n");
 		printf(" -report-gff-init STRING               initialize map with exons from GFF file\n");
 		printf(" -report-coverage-map STRING           report genome coverage in map format\n");
-		printf(" -report-coverage-wig STRING           report genome coverage in wiggle format\n");
+		printf(" -report-coverage-wig STRING           report genome coverage in wiggle format\n\n");
 		//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
+		//printf(" -e         report edit operations (alignment scores)\n");
+
 	} else {
 
 		printf("USAGE: genomemapper [options] -i <reference> -q <reads>\n");
