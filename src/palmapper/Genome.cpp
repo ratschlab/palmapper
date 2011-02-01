@@ -220,8 +220,6 @@ int Genome::build_index()
 
 	}
 	else{
-		_config.INDEX_DEPTH=12 ;
-		assert(_config.INDEX_DEPTH<=MAX_INDEX_DEPTH) ;
 
 		if (_config.VERBOSE) { printf("\tIndex depth is %d\n", _config.INDEX_DEPTH); }
 
@@ -592,88 +590,100 @@ void Genome::mmap_indices()
 
 int Genome::init_constants() 
 {
-	if (_config.INDEX_DEPTH == 5) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 256; //binary number: 0000 0000 0000 0001 0000 0000
-		BINARY_CODE[2] = 512; //binary number: 0000 0000 0000 0010 0000 0000
-		BINARY_CODE[3] = 768; //binary number: 0000 0000 0000 0011 0000 0000
-		BINARY_CODE[4] = 1023;     //binary number: 0000 0000 0000 0000 0000 0011 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 6) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 1024; //binary number: 0000 0000 0000 0100 0000 0000
-		BINARY_CODE[2] = 2048; //binary number: 0000 0000 0000 1000 0000 0000
-		BINARY_CODE[3] = 3072; //binary number: 0000 0000 0000 1100 0000 0000
-		BINARY_CODE[4] = 4095;    //binary number: 0000 0000 0000 0000 0000 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 7) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 4096; //binary number: 0000 0000 0001 0000 0000 0000
-		BINARY_CODE[2] = 8192; //binary number: 0000 0000 0010 0000 0000 0000
-		BINARY_CODE[3] = 12288; //binary number: 0000 0000 0011 0000 0000 0000
-		BINARY_CODE[4] = 16383;    //binary number: 0000 0000 0000 0000 0011 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 8) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 16384; //binary number: 0000 0000 0100 0000 0000 0000
-		BINARY_CODE[2] = 32768; //binary number: 0000 0000 1000 0000 0000 0000
-		BINARY_CODE[3] = 49152; //binary number: 0000 0000 1100 0000 0000 0000
-		BINARY_CODE[4] = 65535;    //binary number: 0000 0000 0000 0000 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 9) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 65536; //binary number: 0000 0001 0000 0000 0000 0000
-		BINARY_CODE[2] = 131072; //binary number: 0000 0010 0000 0000 0000 0000
-		BINARY_CODE[3] = 196608; //binary number: 0000 0011 0000 0000 0000 0000
-		BINARY_CODE[4] = 262143;    //binary number: 0000 0000 0000 0011 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 10) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 262144; //binary number: 0000 0100 0000 0000 0000 0000
-		BINARY_CODE[2] = 524288; //binary number: 0000 1000 0000 0000 0000 0000
-		BINARY_CODE[3] = 786432; //binary number: 0000 1100 0000 0000 0000 0000
-		BINARY_CODE[4] = 1048575;    //binary number: 0000 0000 0000 1111 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 11) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 1048576; //binary number: 0001 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 2097152; //binary number: 0010 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 3145728; //binary number: 0011 0000 0000 0000 0000 0000
-		BINARY_CODE[4] = 4194303;    //binary number: 0000 0000 0011 1111 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 12) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 4194304; //binary number: 0100 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 8388608; //binary number: 1000 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 12582912; //binary number: 1100 0000 0000 0000 0000 0000
-		BINARY_CODE[4] = 16777215;    //binary number: 0000 0000 1111 1111 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 13) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 16777216; //binary number: 0001 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 33554432; //binary number: 0010 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 50331648; //binary number: 0011 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[4] = 67108863;    //binary number: 0000 0011 1111 1111 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 14) {
-		BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 67108864; //binary number: 0001 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 134217728; //binary number: 0010 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 201326592; //binary number: 0011 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[4] = 268435455;    //binary number: 0000 1111 1111 1111 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH == 15) {
-		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[4] = 268435456*4-1; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
-	}
-	if (_config.INDEX_DEPTH>15 || _config.INDEX_DEPTH<5)
-	  {
-		  fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
-	    //exit(1) ;
-	  }
 
+	if (_config.BWA_INDEX==0){	
+		if (_config.INDEX_DEPTH == 5) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 256; //binary number: 0000 0000 0000 0001 0000 0000
+			BINARY_CODE[2] = 512; //binary number: 0000 0000 0000 0010 0000 0000
+			BINARY_CODE[3] = 768; //binary number: 0000 0000 0000 0011 0000 0000
+			BINARY_CODE[4] = 1023;     //binary number: 0000 0000 0000 0000 0000 0011 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 6) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 1024; //binary number: 0000 0000 0000 0100 0000 0000
+			BINARY_CODE[2] = 2048; //binary number: 0000 0000 0000 1000 0000 0000
+			BINARY_CODE[3] = 3072; //binary number: 0000 0000 0000 1100 0000 0000
+			BINARY_CODE[4] = 4095;    //binary number: 0000 0000 0000 0000 0000 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 7) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 4096; //binary number: 0000 0000 0001 0000 0000 0000
+			BINARY_CODE[2] = 8192; //binary number: 0000 0000 0010 0000 0000 0000
+			BINARY_CODE[3] = 12288; //binary number: 0000 0000 0011 0000 0000 0000
+			BINARY_CODE[4] = 16383;    //binary number: 0000 0000 0000 0000 0011 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 8) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 16384; //binary number: 0000 0000 0100 0000 0000 0000
+			BINARY_CODE[2] = 32768; //binary number: 0000 0000 1000 0000 0000 0000
+			BINARY_CODE[3] = 49152; //binary number: 0000 0000 1100 0000 0000 0000
+			BINARY_CODE[4] = 65535;    //binary number: 0000 0000 0000 0000 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 9) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 65536; //binary number: 0000 0001 0000 0000 0000 0000
+			BINARY_CODE[2] = 131072; //binary number: 0000 0010 0000 0000 0000 0000
+			BINARY_CODE[3] = 196608; //binary number: 0000 0011 0000 0000 0000 0000
+			BINARY_CODE[4] = 262143;    //binary number: 0000 0000 0000 0011 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 10) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 262144; //binary number: 0000 0100 0000 0000 0000 0000
+			BINARY_CODE[2] = 524288; //binary number: 0000 1000 0000 0000 0000 0000
+			BINARY_CODE[3] = 786432; //binary number: 0000 1100 0000 0000 0000 0000
+			BINARY_CODE[4] = 1048575;    //binary number: 0000 0000 0000 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 11) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 1048576; //binary number: 0001 0000 0000 0000 0000 0000
+			BINARY_CODE[2] = 2097152; //binary number: 0010 0000 0000 0000 0000 0000
+			BINARY_CODE[3] = 3145728; //binary number: 0011 0000 0000 0000 0000 0000
+			BINARY_CODE[4] = 4194303;    //binary number: 0000 0000 0011 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 12) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 4194304; //binary number: 0100 0000 0000 0000 0000 0000
+			BINARY_CODE[2] = 8388608; //binary number: 1000 0000 0000 0000 0000 0000
+			BINARY_CODE[3] = 12582912; //binary number: 1100 0000 0000 0000 0000 0000
+			BINARY_CODE[4] = 16777215;    //binary number: 0000 0000 1111 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 13) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 16777216; //binary number: 0001 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[2] = 33554432; //binary number: 0010 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[3] = 50331648; //binary number: 0011 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[4] = 67108863;    //binary number: 0000 0011 1111 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 14) {
+			BINARY_CODE[0] = 0; //binary number: 0000 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 67108864; //binary number: 0001 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[2] = 134217728; //binary number: 0010 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[3] = 201326592; //binary number: 0011 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[4] = 268435455;    //binary number: 0000 1111 1111 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH == 15) {
+			BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
+			BINARY_CODE[4] = 268435456*4-1; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH>15 || _config.INDEX_DEPTH<5)
+		{
+			fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
+			//exit(1) ;
+		}
+	}
+	else{
+		// Initialize binary codes to 0. Not used for bwt-based index
+		BINARY_CODE[0] = 0;             
+		BINARY_CODE[1] = 0;     
+		BINARY_CODE[2] = 0;     
+		BINARY_CODE[3] = 0;     
+		BINARY_CODE[4] = 0;
+		
+	}
+	
 	return (0);
 }
