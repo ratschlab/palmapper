@@ -40,6 +40,9 @@ rm -rf .settings
 rm -f .cproject
 rm -f .project
 
+#remove galaxy test data
+rm -rf galaxy/test_data
+
 find . -name \*~ -exec rm {} \;
 
 for i in `find . -name .svn`
