@@ -1,4 +1,4 @@
-Release Candidate 0.4-rc4 (DD MONTH, 2011)
+Release Candidate 0.4-rc4 (02 February, 2011)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This release introduces a lot of changes since the last version and
@@ -37,7 +37,7 @@ Other notable changes:
  * Remove MAX_EXON_LEN variable which could lead to aborted execution
  for long reads
 
-(0.4-rc4: DD MONTH 2011, rXXXX)
+(0.4-rc4: 02 February 2011, r21526)
 
 
 Release Candidate 0.4-rc3 (09 May, 2010)
