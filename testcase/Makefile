@@ -121,7 +121,7 @@ cachegrind: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 	bash -c "valgrind --tool=cachegrind $(MapCmd)"
 
 clean:
-	rm -rf $(dataDir)/C_elegans_SpliceSitePred_WS209/ $(dataDir)/c_elegans.WS209.dna.fa* $(resultDirTest) $(resultDirUnspliced) $(resultDirRtrim) $(resultDirPolytrim) $(resultDirNoss) $(resultDirBed) $(CurrentDir)/*.test_passed $(CurrentDir)/*.test_failed
+	rm -rf $(dataDir)/C_elegans_SpliceSitePred_WS209/ $(dataDir)/c_elegans.WS209.dna.fa* $(resultDirTest) $(resultDirUnspliced) $(resultDirRtrim) $(resultDirPolytrim) $(resultDirNoss) $(resultDirBed) $(CurrentDir)/*.test_passed $(CurrentDir)/*.test_failed $(dataDir)/split_1m.000
 
 allmd5: result.md5 resultUnspliced.md5 resultPolytrim.md5 resultRtrim.md5 resultNoss.md5 resultBed.md5
 
