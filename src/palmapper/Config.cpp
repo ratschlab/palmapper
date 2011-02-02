@@ -1758,6 +1758,7 @@ int Config::usage() {
 		printf("optional:\n");
 
 		printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")[sam]\n");
+		printf(" -ff INT        bitwise output sam format flag (0x1: read sequence, 0x2: read quality, 0x4: common sam flags, 0x8: extended same flags)[15]\n");
 		printf(" -o STRING      output filename [stdout]\n");
 		printf(" -H STRING      output filename for spliced hits [no output]\n");
 		printf(" -u STRING      output filename for unmapped reads [/dev/null]\n\n");
