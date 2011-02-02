@@ -63,6 +63,7 @@ polytrim = -polytrim 40
 rtrim = -rtrim 25
 report =
 threads = -threads $(nrThreads)
+bwa = -bwa 12
 
 #Parameter base for all testcases
 allFlags=$(inFiles) $(other) $(threads) $(report) -rlim 10000
@@ -120,7 +121,7 @@ cachegrind: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 	bash -c "valgrind --tool=cachegrind $(MapCmd)"
 
 clean:
-	rm -rf $(dataDir)/C_elegans_SpliceSitePred_WS209/ $(dataDir)/c_elegans.WS209.dna.fa* $(resultDirTest) $(resultDirUnspliced) $(resultDirRtrim) $(resultDirPolytrim) $(resultDirNoss) $(resultDirBed)
+	rm -rf $(dataDir)/C_elegans_SpliceSitePred_WS209/ $(dataDir)/c_elegans.WS209.dna.fa* $(resultDirTest) $(resultDirUnspliced) $(resultDirRtrim) $(resultDirPolytrim) $(resultDirNoss) $(resultDirBed) $(CurrentDir)/*.test_passed $(CurrentDir)/*.test_failed
 
 allmd5: result.md5 resultUnspliced.md5 resultPolytrim.md5 resultRtrim.md5 resultNoss.md5 resultBed.md5
 
@@ -154,6 +155,7 @@ resultBed.md5: $(ResultFilesBed)/$(resultSubDirArray)/$(MappedBed) $(ResultFiles
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000	
 #@ echo "Array-based index: Basic Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirTest)/$(resultSubDirArray)
 	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirArray)/$(Coverage)> $(resultDirTest)/$(resultSubDirArray)/$(LogFile)"
 	@ (cd $(resultDirTest)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesTest)) > /dev/null)
@@ -163,6 +165,7 @@ map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 mapUnspliced: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 #@ echo "Array-based index: Unspliced Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirUnspliced)/$(resultSubDirArray)
 	bash -c "time $(MapCmd) $(outSam) -u $(resultDirUnspliced)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirUnspliced)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirUnspliced)/$(resultSubDirArray)/$(Coverage) > $(resultDirUnspliced)/$(resultSubDirArray)/$(LogFile)"
 	@ (cd $(resultDirUnspliced)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesUnspliced))  > /dev/null)
@@ -171,6 +174,7 @@ mapUnspliced: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.0
 mapRtrim: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 #@ echo "Array-based index: Rtrim Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirRtrim)/$(resultSubDirArray)
 	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(rtrim) -u $(resultDirRtrim)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirRtrim)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirRtrim)/$(resultSubDirArray)/$(Coverage) > $(resultDirRtrim)/$(resultSubDirArray)/$(LogFile)"
 	@ (cd $(resultDirRtrim)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesRtrim))  > /dev/null)
@@ -179,6 +183,7 @@ mapRtrim: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 mapPolytrim: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 #@ echo "Array-based index: Polytrim Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirPolytrim)/$(resultSubDirArray)
 	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(polytrim) -u $(resultDirPolytrim)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirPolytrim)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirPolytrim)/$(resultSubDirArray)/$(Coverage) > $(resultDirPolytrim)/$(resultSubDirArray)/$(LogFile)"
 	@ (cd $(resultDirPolytrim)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesPolytrim))  > /dev/null)
@@ -187,6 +192,7 @@ mapPolytrim: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.00
 mapNoss: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 #@ echo "Array-based index: No splice predictions Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirNoss)/$(resultSubDirArray)
 	bash -c "time $(MapCmd) -no-ss-pred $(outSam) $(qpalma) -u $(resultDirNoss)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirNoss)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirNoss)/$(resultSubDirArray)/$(Coverage) > $(resultDirNoss)/$(resultSubDirArray)/$(LogFile)"
 	@ (cd $(resultDirNoss)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesNoss))  > /dev/null)
@@ -195,6 +201,7 @@ mapNoss: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 mapBedx: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 #@ echo "Array-based index: Bedx Testcase"	
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirBed)/$(resultSubDirArray)
 	bash -c "time $(MapCmd) $(accDon)  $(outBed) $(qpalma) -u $(resultDirBed)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirBed)/$(resultSubDirArray)/$(MappedBed) -report-coverage-wig $(resultDirBed)/$(resultSubDirArray)/$(Coverage) > $(resultDirBed)/$(resultSubDirArray)/$(LogFile)"
 	@ (cd $(resultDirBed)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesBed))  > /dev/null)
@@ -204,48 +211,54 @@ mapBedx: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 bwamap: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
 #@ echo "Bwt-based index: Basic Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirTest)/$(resultSubDirBwa)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirBwa)/$(Coverage) -bwa > $(resultDirTest)/$(resultSubDirBwa)/$(LogFile)"
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirBwa)/$(Coverage) $(bwa) > $(resultDirTest)/$(resultSubDirBwa)/$(LogFile)"
 	@ (cd $(resultDirTest)/$(resultSubDirBwa) ; md5sum $(notdir $(ResultFilesTest))  > /dev/null)
 	@ (cd $(resultDirTest)/$(resultSubDirBwa) ; md5sum -c $(CurrentDir)/$(result)  && touch $(CurrentDir)/$@.test_passed) || touch $(CurrentDir)/$@.test_failed
 
 bwamapUnspliced: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
 #@ echo "Bwt-based index: Unspliced Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirUnspliced)/$(resultSubDirBwa)
-	bash -c "time $(MapCmd) $(outSam) -u $(resultDirUnspliced)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirUnspliced)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirUnspliced)/$(resultSubDirBwa)/$(Coverage) -bwa > $(resultDirUnspliced)/$(resultSubDirBwa)/$(LogFile)"
+	bash -c "time $(MapCmd) $(outSam) -u $(resultDirUnspliced)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirUnspliced)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirUnspliced)/$(resultSubDirBwa)/$(Coverage) $(bwa) > $(resultDirUnspliced)/$(resultSubDirBwa)/$(LogFile)"
 	@ (cd $(resultDirUnspliced)/$(resultSubDirBwa) ; md5sum $(notdir $(ResultFilesUnspliced))  > /dev/null)
 	@ (cd $(resultDirUnspliced)/$(resultSubDirBwa) ; md5sum -c $(CurrentDir)/$(resultUnspliced)  && touch $(CurrentDir)/$@.test_passed) || touch $(CurrentDir)/$@.test_failed
 
 bwamapRtrim: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
 #@ echo "Bwt-based index: Rtrim Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirRtrim)/$(resultSubDirBwa)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(rtrim) -u $(resultDirRtrim)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirRtrim)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirRtrim)/$(resultSubDirBwa)/$(Coverage) -bwa > $(resultDirRtrim)/$(resultSubDirBwa)/$(LogFile)"
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(rtrim) -u $(resultDirRtrim)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirRtrim)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirRtrim)/$(resultSubDirBwa)/$(Coverage) $(bwa) > $(resultDirRtrim)/$(resultSubDirBwa)/$(LogFile)"
 	@ (cd $(resultDirRtrim)/$(resultSubDirBwa) ; md5sum $(notdir $(ResultFilesRtrim))  > /dev/null)
 	@ (cd $(resultDirRtrim)/$(resultSubDirBwa) ; md5sum -c $(CurrentDir)/$(resultRtrim)  && touch $(CurrentDir)/$@.test_passed) || touch $(CurrentDir)/$@.test_failed
 
 bwamapPolytrim: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
 #@ echo "Bwt-based index: Polytrim Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirPolytrim)/$(resultSubDirBwa)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(polytrim) -u $(resultDirPolytrim)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirPolytrim)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirPolytrim)/$(resultSubDirBwa)/$(Coverage) -bwa > $(resultDirPolytrim)/$(resultSubDirBwa)/$(LogFile)"
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) $(polytrim) -u $(resultDirPolytrim)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirPolytrim)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirPolytrim)/$(resultSubDirBwa)/$(Coverage) $(bwa) > $(resultDirPolytrim)/$(resultSubDirBwa)/$(LogFile)"
 	@ (cd $(resultDirPolytrim)/$(resultSubDirBwa) ; md5sum $(notdir $(ResultFilesPolytrim))  > /dev/null)
 	@ (cd $(resultDirPolytrim)/$(resultSubDirBwa) ; md5sum -c $(CurrentDir)/$(resultPolytrim)  && touch $(CurrentDir)/$@.test_passed) || touch $(CurrentDir)/$@.test_failed
 
 bwamapNoss: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
 #@ echo "Array-based index: No splice predictions Testcase"
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirNoss)/$(resultSubDirBwa)
-	bash -c "time $(MapCmd) -no-ss-pred $(outSam) $(qpalma) -u $(resultDirNoss)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirNoss)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirNoss)/$(resultSubDirBwa)/$(Coverage) -bwa> $(resultDirNoss)/$(resultSubDirBwa)/$(LogFile)"
+	bash -c "time $(MapCmd) -no-ss-pred $(outSam) $(qpalma) -u $(resultDirNoss)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirNoss)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirNoss)/$(resultSubDirBwa)/$(Coverage) $(bwa) > $(resultDirNoss)/$(resultSubDirBwa)/$(LogFile)"
 	@ (cd $(resultDirNoss)/$(resultSubDirBwa) ; md5sum $(notdir $(ResultFilesNoss))  > /dev/null)
 	@ (cd $(resultDirNoss)/$(resultSubDirBwa) ; md5sum -c $(CurrentDir)/$(resultNoss)  && touch $(CurrentDir)/$@.test_passed) || touch $(CurrentDir)/$@.test_failed
 
 bwamapBedx: $(binDir)/palmapper $(DnaFile) $(BwaIndexFiles) $(dataDir)/split_1m.000
 #@ echo "Array-based index: Bedx Testcase"	
 #@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirBed)/$(resultSubDirBwa)
-	bash -c "time $(MapCmd) $(accDon)  $(outBed) $(qpalma) -u $(resultDirBed)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirBed)/$(resultSubDirBwa)/$(MappedBed) -report-coverage-wig $(resultDirBed)/$(resultSubDirBwa)/$(Coverage) -bwa > $(resultDirBed)/$(resultSubDirBwa)/$(LogFile)"
+	bash -c "time $(MapCmd) $(accDon)  $(outBed) $(qpalma) -u $(resultDirBed)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirBed)/$(resultSubDirBwa)/$(MappedBed) -report-coverage-wig $(resultDirBed)/$(resultSubDirBwa)/$(Coverage) $(bwa) > $(resultDirBed)/$(resultSubDirBwa)/$(LogFile)"
 	@ (cd $(resultDirBed)/$(resultSubDirBwa) ; md5sum $(notdir $(ResultFilesBed))  > /dev/null)
 	@ (cd $(resultDirBed)/$(resultSubDirBwa) ; md5sum -c $(CurrentDir)/$(resultBed)  && touch $(CurrentDir)/$@.test_passed) || touch $(CurrentDir)/$@.test_failed
 
