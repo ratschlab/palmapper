@@ -1768,7 +1768,7 @@ int Config::usage() {
 
 		printf(" -a             report all alignments\n");
 		//printf(" -ar INT        report a limited number of alignments (best alignments only)\n");
-		printf(" -z  INT        report a number of top alignments\n");
+		printf(" -z  INT        report a number of top alignments [5]\n");
 		printf(" -n  INT        report a maximal number of best alignments\n\n");
 
 		printf(" -r             disable alignment on reverse strand [enabled]\n");
@@ -1788,7 +1788,7 @@ int Config::usage() {
 		printf(" -v                               verbose [silent]\n\n");
 
 
-		printf(" -stranded STRING        strand specific experiment [ left | right | plus | minus ]\n");
+		printf(" -stranded STRING        strand specific experiment (left, right, plus, minus)\n");
 		printf(" -rtrim INT              shortens the read until a hit is found or the minimal length is reached\n");
 		printf(" -rtrim-step INT         rtrim step size\n");
 		printf(" -polytrim INT           trims polyA or polyT ends until a hit is found or the minimal length is reached\n");
@@ -1815,8 +1815,8 @@ int Config::usage() {
 		printf(" -don STRING                           path name to donor splice site predictions (essential if -no-ss-pred not provided)\n");
 		printf(" -acc-consensus STRING                 defines consensus sequences for acceptor sites (separated by \",\") [AG]\n");
 		printf(" -don-consensus STRING                 defines consensus sequences for donor sites (separated by \",\") [GT,GC]\n");
-		printf(" -no-ss-pred                           indicates that no splice site predictions should be used\n\n");
-		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as splice sites\n\n");
+		printf(" -no-ss-pred                           indicates that no splice site predictions should be used and only scores positions corresponding to consensus sequences for acceptors and donors\n");
+		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as plausible splice sites\n\n");
 
 		printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1) [0.01]\n");
 		printf(" -filter-splice-region INT             extension of the read region up- and downstream for triggeringspliced alignments by presence of splice sites [5]\n");
@@ -1838,6 +1838,7 @@ int Config::usage() {
 
 		printf(" -report STRING                        file for map reporting\n");
 		printf(" -report-ro STRING                     file for map reporting (read only)\n");
+		//printf(" -report-reset                         does not load report even if it is available\n");
 		printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
 		printf(" -report-map-region                    switch on reporting of mapped regions\n");
 		//printf(" -no-report-map-region                 switch off reporting of mapped regions\n");
