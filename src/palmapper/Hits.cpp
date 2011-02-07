@@ -948,6 +948,7 @@ int Hits::browse_hits()
 			// foreach hit with hitlength i:
 			while (hit != NULL) 
 			{
+			
 				hitlength = hit->end - hit->start + 1;
 				
 				if (_config.STATISTICS) 
@@ -987,8 +988,9 @@ int Hits::browse_hits()
 
 					// update length:
 					hitlength = hit->end - hit->start + 1;
+				
 				}
-
+				
 				// if hit ends at pos |read|-1, then spare alignment since if last base is mm, it's cheaper than a gap
 				if (hit->readpos + hitlength == (int)_read.length()) {
 					if ((_config.NOT_MAXIMAL_HITS && hit->mismatches <= _config.NUM_MISMATCHES) || hit->mismatches < _config.NUM_MISMATCHES) {
@@ -1113,14 +1115,12 @@ int Hits::browse_hits()
 			} // while hitlist not empty
 
 		}
-
 	} //for each hitlength
 
 
 	// store successfully aligned hits in HITS_BY_SCORE list for printout
 	// by iterating a second time over HIT_LIST:
 	for (i=_read.length(); i!=(int)(_config.INDEX_DEPTH) - 1; --i) {
-
 		// if only perfect reads should be reported, break earlier:
 		if ((_numEditOps == 0) && (i < (int)_read.length()))
 		{
@@ -1150,7 +1150,6 @@ int Hits::browse_hits()
 			}
 
 		}
-
 	}
 	//fprintf(stdout, "normal exit\n") ;
 	//printhits() ;
@@ -1858,7 +1857,7 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 	HAS_SLOT = 0;
 
 	while (spacer < read.length())
-	{
+	{		
 		char * read_data = read.data() ;
 
 		read_data[spacer] = mytoupper(read_data[spacer]);
@@ -1945,10 +1944,12 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 				HAS_SLOT = 0;
 			}
 		}
+
+
 	}
 	
 	HAS_SLOT = 0;
-
+	//fprintf(stdout,"end map_short_read \n");
 	return 1;
 }
 
@@ -2109,6 +2110,7 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 		j = readpos + hitlength - 1;
 		i = 0;
 
+		
 		// from read[hit->readpos + hitlength] to read[_read.lenght() - 1]
 		while ((mismatches <= _config.NUM_EDIT_OPS) && (j < (int)_read.length())) {
 
@@ -2175,53 +2177,54 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 
-		if (mismatches > _numEditOps) {
+			if (mismatches > _numEditOps) {
 				return 0;
+			}
 		}
-
+		
 		j = readpos + hitlength - 1;
 		i = 0;
-
 		// from read[hit->readpos + hitlength] to read[_read.lenght() - 1]
 		while ((mismatches <= _numEditOps) && (j < (int)_read.length())) {
 
 			if (	(orientation == '+')
 					&& (    (hit->chromosome->operator [](end + i) != READ[j])
-						|| !(unique_base(READ[j]))		// [XX] should also be a mismatch!
-						// if read[j]=X and chr_seq not, then first or-condition is automatically true -> genome sequence doesn't have to be checked
-					)
-			)
+							|| !(unique_base(READ[j]))		// [XX] should also be a mismatch!
+							// if read[j]=X and chr_seq not, then first or-condition is automatically true -> genome sequence doesn't have to be checked
+						)
+				)
 			{
 				// create mismatch:
-			if (mismatches < _numEditOps) {
+				if (mismatches < _numEditOps) {
 					(edit_op[mismatches]).pos = j+1;
 					(edit_op[mismatches]).mm = 1;
 				}
-
+				
 				mismatches++;
 				assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 
-
+			
 			if (	(orientation == '-')
 					&& (    (get_compl_base(chromosome[start - 2 - i]) != READ[j])
-						|| !(unique_base(READ[j]))
-					)
-			)
+							|| !(unique_base(READ[j]))
+						)
+				)
 				// create mismatch:
-			if (mismatches < _numEditOps) {
+				if (mismatches < _numEditOps) {
 					(edit_op[mismatches]).pos = _read.length() - j;
 					(edit_op[mismatches]).mm = 1;
 				}
 
-				mismatches++;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
-			}
+			mismatches++;
+			assert(mismatches<=Config::MAX_EDIT_OPS) ;
 
 			if (mismatches > _numEditOps)
 				return 0;
+
 			++i;
 			++j;
+
 		}
 
 	}
