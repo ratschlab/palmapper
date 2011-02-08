@@ -1,3 +1,12 @@
+Release XXX (DD MONTH, 2011)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Bug fixes:
+ * Correct SAM output in case of long reads (longer to 500nt)
+ * Aligning a simple hit: remove case of infinite loop 
+
+(XXX: DD MONTH 2011, rXXXXX)
+
 Release Candidate 0.4-rc4 (02 February, 2011)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
