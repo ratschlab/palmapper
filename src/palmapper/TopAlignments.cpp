@@ -1615,8 +1615,8 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		//	double qpalma_score = best->qpalma_score ;
         
 		// determine CIGAR
-		char __cigar[500] ; 
-		char cigar[500] ;
+		char __cigar[1000] ; 
+		char cigar[1000] ;
 		char cig_buf[255] ;
 
 		uint32_t pos_in_cigar = 0;
@@ -1634,7 +1634,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 		for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
 		{
-			if (curr_align->read_anno[i] != '[') 
+			if (curr_align->read_anno[i] != '[')
 				__cigar[idx] = 'M' ;	
 			else
 			{
@@ -1649,6 +1649,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			idx += 1 ;
 		}
 		__cigar[idx] = 0 ;
+
 
 		uint32_t last = __cigar[0] ;
 		uint32_t count = 1 ;
@@ -1736,11 +1737,11 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		}
 		//cigar[pos] = 0 ;
 		//if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
-		if (exon_size + insertions - deletions != curr_read->length()-polytrim_cut_start-polytrim_cut_end) 
+		if (exon_size + insertions - deletions != curr_read->length()-polytrim_cut_start-polytrim_cut_end){
+			
 			fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", exon_size + insertions - deletions, curr_read->length(), curr_read->data(), curr_align->read_id) ;
-		//fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", cum_size + polytrim_cut_start + polytrim_cut_end + indel_offset, curr_read->length(), curr_read->data(), curr_align->read_id) ;
-		//fprintf(stderr, "cum_size %i, trim_start %i, trim_end %i, read_length %i, read %s , indel_offset %i, read anno %s no exons %i\n", cum_size, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(), indel_offset, curr_align->read_anno, curr_align->exons.size()) ;
-		//}
+			//fprintf(stderr, " cigar: %s\nexon %i, insert %i, deletion %i, trim_start %i, trim_end %i, read_length %i\n read %s\n read anno %s\n\n", cigar, exon_size,insertions,deletions, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(),curr_align->read_anno) ;
+		}
 		//assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
 
 		cigar[pos_in_cigar] = 0 ;
