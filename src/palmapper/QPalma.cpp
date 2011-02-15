@@ -2468,14 +2468,27 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		hit_dna_converted=(int)dna.length()-1-hit_dna_converted;
 
 	assert (hit_dna_converted >= 0);
-	alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
+	if (non_consensus_search){
+		
+		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
 						   est_len_p, prb, alignment_parameters->h,
 						   alignment_parameters->matchmatrix,
 						   alignment_parameters->matchmatrix_dim[0]
 						   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
 						   acceptor, a_len, alignment_parameters->qualityPlifs,
 						   remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
-						   _config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.get_num_edit_ops(), MIN_NUM_MATCHES);
+						   _config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.get_num_edit_ops(), MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN);
+	}
+	
+	else
+		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
+							   est_len_p, prb, alignment_parameters->h,
+							   alignment_parameters->matchmatrix,
+							   alignment_parameters->matchmatrix_dim[0]
+							   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
+							   acceptor, a_len, alignment_parameters->qualityPlifs,
+							   remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
+							   _config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.get_num_edit_ops(), MIN_NUM_MATCHES);
 
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;

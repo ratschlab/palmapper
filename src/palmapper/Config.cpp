@@ -135,6 +135,9 @@ Config::Config() {
 	non_consensus_search = false ;
 	non_consensus_search_gap=1 ;
 	non_consensus_search_discount=1 ;
+	// Number of additional matches you have to find in case of a non consensus search compared to consensus one (based on QMM)
+	MIN_NUM_MATCHES_PEN=2;
+	
 
 	NO_QPALMA = false;
 	
@@ -211,8 +214,8 @@ int Config::applyDefaults(Genome * genome)
 			if (SPLICED_HITS && QPALMA_MIN_NUM_MATCHES == DEFAULT_SETTING)
 			{
 				QPALMA_MIN_NUM_MATCHES=5 ;
-				if (non_consensus_search)
-					QPALMA_MIN_NUM_MATCHES+=2 ;
+				//if (non_consensus_search)
+				//	QPALMA_MIN_NUM_MATCHES+=2 ;
 				fprintf(stdout, "* Automatically determined minimal match length near splice sites (%int)\n", QPALMA_MIN_NUM_MATCHES) ;
 			}
 
