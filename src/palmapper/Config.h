@@ -171,7 +171,8 @@ public:
 	bool non_consensus_search ;
 	int non_consensus_search_gap ;
 	float non_consensus_search_discount ;
-
+	int MIN_NUM_MATCHES_PEN;
+	
 	int INDEX_PRECACHE;
 	unsigned int FLANKING;
 	int NUM_EDIT_OPS;
