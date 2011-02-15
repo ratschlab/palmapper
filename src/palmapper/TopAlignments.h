@@ -56,6 +56,11 @@ public:
 	int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
 	
 
+	void init_top_alignment_indice()  ;
+	void update_top_alignment_indice()  ;
+	alignment_t * add_alignment_record2(alignment_t *alignment, int num_alignments);
+	
+
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
@@ -84,6 +89,11 @@ protected:
 	int32_t compare_score(alignment_t *a1, alignment_t *a2) ;
 	bool alignment_is_equal(alignment_t *a1, alignment_t *a2) ;
 	int alignment_is_opposite(alignment_t *a1, alignment_t *a2) ;
+
+	int spliced_is_overlapping(alignment_t *a1, alignment_t *a2) ;
+	int non_consensus_overlaps_consensus(alignment_t *a1, alignment_t *a2) ;
+	void sort_top_alignment_list()  ;  
+	void qsort_top_alignments(alignment_t** output, int size);
 	
 
 	std::vector<alignment_t *> top_alignments;
@@ -91,6 +101,10 @@ protected:
 	int num_unspliced_alignments;
 	const int verbosity ;
 	char *ALIGNSEQ;
+
+	int num_filtered;
+	int current_ind;
+	int temp_ind;
 
 	//pthread_mutex_t top_mutex;
 
