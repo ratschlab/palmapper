@@ -554,10 +554,12 @@ bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2)
 
 int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t *a2)
 {
+
+
 	if (a1->non_consensus == a2->non_consensus)
 		return 0;
-	if (a1->strand==a2->strand || a1->orientation != a2->orientation)
-		return 0;
+	//if (a1->strand==a2->strand || a1->orientation != a2->orientation)
+	//	return 0;
 	if (a1->chromosome != a2->chromosome)
 		return 0;
 	if (!a1->spliced && !a2->spliced)
@@ -567,6 +569,9 @@ int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t
 	int endalign1=a1->exons[a1->exons.size()-1];
 	int startalign2=a2->exons[0];
 	int endalign2=a2->exons[a2->exons.size()-1];
+
+	//fprintf(stdout,"a1: %i-%i\n",startalign1,endalign1);
+	//fprintf(stdout,"a2: %i-%i\n",startalign2,endalign2);
 
 	if (endalign1<startalign2 || startalign1 > endalign2)
 		return 0;
@@ -864,7 +869,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 			int i =current_ind;
 			//fprintf(stdout,"   Start comparing with %i\n", i);
 			while (i< (int)top_alignments.size()){
-				// fprintf(stdout,"   Compare with %i\n", i);
+				//fprintf(stdout,"   Compare with %i\n", i);
 				// for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
 				// 	fprintf(stdout, "# exon %i: %i - %i (%i)\n", (int)j / 2,  top_alignments[i]->exons[j],  top_alignments[i]->exons[j+ 1], top_alignments[i]->chromosome->nr());
 				//Adapt pointer
