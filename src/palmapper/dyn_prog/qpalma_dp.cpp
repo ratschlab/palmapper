@@ -534,11 +534,11 @@ void Alignment::getAlignmentResults(int* s_align, int* e_align,
    //printf("Leaving getAlignmentResults...\n");
 }
 
-float Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double * matchmatrix, char strand) 
+double Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double * matchmatrix, char strand) 
 {
 	int len_=strlen(align_seq) ;
-	float score=0.0 ;
-	//fprintf(stderr, "align_seq=%s\n", align_seq) ;
+	double score=0.0 ;
+	//fprintf(stdout, "align_seq=%s\n", align_seq) ;
 	
 	assert(strand=='+'||strand=='-') ;
 	int reverse[7] = { -1, 0, 4, 3, 2, 1, 5 } ;
@@ -573,7 +573,7 @@ float Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, i
 			dnachar=0 ;
 
 		//fprintf(stderr, "i=%i, pos=%i, dnachar=%i, estchar=%i\n", i, pos, dnachar, estchar) ;
-		float score_ ;
+		double score_ ;
 		if (estchar>0)
 		{
 			assert(pos<read_length) ;

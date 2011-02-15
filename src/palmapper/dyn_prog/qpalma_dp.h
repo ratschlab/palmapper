@@ -101,7 +101,7 @@ class Alignment {
 			       int* mmatrix_p, double* alignscores, double* qScores);
       int getResultLength() { return result_len; }
       void getAlignmentArrays(int* dna_align, int* est_align);
-      float scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double* matchmatrix, char strand) ;
+      double scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double* matchmatrix, char strand) ;
 };
 
 #endif  // _QPALMA_DP_H_
