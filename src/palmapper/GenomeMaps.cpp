@@ -334,7 +334,7 @@ int GenomeMaps::report_mapped_read(Chromosome const &chr, int start, int end, in
 			end = chr.length() ;
 	}
 
-	//fprintf(stdout, "mapped_read:  \tchr=%s\tstart=%i\tend=%i\tmatches=%i\tnbest=%i\n", CHR_DESC[chr], start, end, num_matches, nbest_hit) ;
+	//fprintf(stdout, "mapped_read:  \tchr=%s\tstart=%i\tend=%i\tmatches=%i\tnbest=%i\n", chr.desc(), start, end, num_matches, nbest_hit) ;
 	int start_map=start-Config::QPALMA_USE_MAP_WINDOW ;
 	if (start_map<0)
 		start_map=0 ;
