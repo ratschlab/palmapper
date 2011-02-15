@@ -1051,13 +1051,13 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 	//TODO: Real length of a hit is i-1
 	for (int32_t i = read.length(); i >= _config.SPLICED_HIT_MIN_LENGTH_SHORT; i--) {
 
-
+		
 		hit = hits.HIT_LISTS_OPERATOR[i];
     
 		while (hit != NULL) 
 		{
 			//bool captured = false;
-	
+			
 			num_hits++;
 			//TODO: Real length of a hit is i-1
 			bool consider_as_long_hit = (i >= _config.SPLICED_HIT_MIN_LENGTH_LONG);
@@ -1534,7 +1534,9 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 	// genomic sequence later.
 
 	int num_alignments_reported = 0 ;
+	
 
+  
 	std::string read_seq[2];
 	read_seq[0] = std::string(read.data(), read.length());
 	read_seq[1] = reverse(complement(read_seq[0]));
@@ -1562,7 +1564,10 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 		return -1 ;
     }
 
-	for (int ori = 0; ori < 2; ori++)
+	for (int ori = 0; ori < 2; ori++){
+
+		hits.topAlignments().init_top_alignment_indice();
+	
 		for (size_t chrN = 0; chrN < regions[ori].size(); chrN++) 
 		{
 			Chromosome const &chr = genome->chromosome(chrN);
@@ -1655,9 +1660,10 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 							hit_read_position = read.length()-hit_len-hit_read_position+1;
 						}
 						assert (hit_read_position>=0 && hit_len >0);
-						//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
-						//    corres_long_regions[0]->start, hit_len);					  
-						//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+						// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
+						// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, corres_long_regions[0]->start, hit_len);					  
+						// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+						
 						bool isunspliced ;
 						{
 							int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
@@ -1700,7 +1706,9 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				  
 					for (size_t i = 0; i < read.length(); i++)
 						read_map[i] = regions[ori][chrN][nregion]->read_map[i];
-				  
+				
+					hits.topAlignments().update_top_alignment_indice();
+					
 				} else {
 					// Regions are close enough that they may contain parts of one
 					// spliced hit. They need thus be part of the same alignment
@@ -1753,9 +1761,11 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 					hit_read_position = read.length()-hit_len-hit_read_position+1;
 				}
 				assert (hit_read_position>=0 && hit_len >0);
-				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
+				// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
+				// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
 				//    corres_long_regions[0]->start, hit_len);
-				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+				// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					
+				
 				{
 					int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori],
 														current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
@@ -1771,8 +1781,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				}
 				//if (!isunspliced) 
 				{
-					// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),
-					//      corres_long_regions[0]->end, hit_len);					  
+					//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),corres_long_regions[0]->end, hit_len);					  
 					// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 					int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
 														read_quality[1 - ori], current_seq,
@@ -1786,12 +1795,15 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 					}
 				}
 	  
+				hits.topAlignments().update_top_alignment_indice();
+
 			} else {
 				if (verbosity >= 2)
 					fprintf(stdout,	"# dropped region list covering only %i bases\n", num_read_map);
 			}
 		}
-  
+	}
+	
 	delete[] read_map;
 
 	result.delete_regions();
@@ -1842,35 +1854,7 @@ int QPalma::perform_alignment_starter(Result &result,
 
 		ALIGNMENT* non_consensus_alignment = NULL ;
 		ALIGNMENT* consensus_alignment = NULL ;
-		
-		if (non_consensus_search)
-		{
-			data = new struct perform_alignment_t ;
 
-			data->result = &result;
-			data->readMappings = &readMappings;
-			data->read_string=read_string ;
-			data->read_quality=read_quality ;
-			data->dna = dna ;
-			data->current_regions=current_regions ;
-			data->positions=positions ;
-			data->contig_idx=&contig_idx;
-			data->strand =strand ;
-			data->ori = ori ;
-			data->ret = -1000 ;
-			data->hit_read = hit_read_position;
-			data->hit_dna = hit_dna_position;
-			data->hit_length = hit_length;
-			data->qpalma = this ;
-			data->joined=false ;
-			data->aln=NULL ;
-			data->non_consensus_search=true ;
-			perform_alignment_wrapper(data);
-			non_consensus_alignment=data->aln ;
-			data->aln=NULL;
-
-			delete data ;
-		}
 
 		{
 			data = new struct perform_alignment_t ;
@@ -1901,114 +1885,164 @@ int QPalma::perform_alignment_starter(Result &result,
 		}
 
 		
-		if (non_consensus_alignment && consensus_alignment && non_consensus_alignment->passed_filters && consensus_alignment->passed_filters)
+		if (non_consensus_search) // && !consensus_alignment)
 		{
-		    
-		    if ((int)(non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps) >= (int)(consensus_alignment->num_mismatches+consensus_alignment->num_gaps) - (int)_config.non_consensus_search_gap)
-			{
-			
-				// fprintf(stdout,"# non-consensus alignment rejected (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
-				// 		non_consensus_alignment->non_consensus,
-				// 		(int) non_consensus_alignment->exons.size() / 2, 
-				// 		non_consensus_alignment->read_id, 
-				// 		non_consensus_alignment->qpalma_score,
-				// 		non_consensus_alignment->num_matches, 
-				// 		non_consensus_alignment->num_gaps, 
-				// 		non_consensus_alignment->strand, 
-				// 		non_consensus_alignment->orientation, 
-				// 		non_consensus_alignment->read_anno);
-				// for (size_t i = 0; i < non_consensus_alignment->exons.size(); i += 2)
-				// 	fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, non_consensus_alignment->exons[i], non_consensus_alignment->exons[i+ 1]);
-				// fprintf(stdout,"# consensus alignment preferred (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
-				// 	consensus_alignment->non_consensus,
-				// 	(int) consensus_alignment->exons.size() / 2, 
-				// 	consensus_alignment->read_id, 
-				// 	consensus_alignment->qpalma_score,
-				// 	consensus_alignment->num_matches, 
-				// 	consensus_alignment->num_gaps, 
-				// 	consensus_alignment->strand, 
-				// 	consensus_alignment->orientation, 
-				// 	consensus_alignment->read_anno);
-				// for (size_t i = 0; i < consensus_alignment->exons.size(); i += 2)
-				//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, consensus_alignment->exons[i], consensus_alignment->exons[i+ 1]);
-				readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
-				num_alignments_reported++ ;
-			} 
-		    else
-			{
-				if (non_consensus_alignment->qpalma_score<consensus_alignment->qpalma_score)
-				{
-					consensus_alignment->qpalma_score = non_consensus_alignment->qpalma_score - _config.non_consensus_search_discount ;
-				}
-				// fprintf(stdout,"# non-consensus alignment preferred (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
-				// 		non_consensus_alignment->non_consensus,
-				// 		(int) non_consensus_alignment->exons.size() / 2, 
-				// 		non_consensus_alignment->read_id, 
-				// 		non_consensus_alignment->qpalma_score,
-				// 		non_consensus_alignment->num_matches, 
-				// 		non_consensus_alignment->num_gaps, 
-				// 		non_consensus_alignment->strand, 
-				// 		non_consensus_alignment->orientation, 
-				// 		non_consensus_alignment->read_anno);
-				// for (size_t i = 0; i < non_consensus_alignment->exons.size(); i += 2)
-				// 	fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, non_consensus_alignment->exons[i], non_consensus_alignment->exons[i+ 1]);
-				// fprintf(stdout,"# consensus alignment added (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
-				// 	consensus_alignment->non_consensus,
-				// 	(int) consensus_alignment->exons.size() / 2, 
-				// 	consensus_alignment->read_id, 
-				// 	consensus_alignment->qpalma_score,
-				// 	consensus_alignment->num_matches, 
-				// 	consensus_alignment->num_gaps, 
-				// 	consensus_alignment->strand, 
-				// 	consensus_alignment->orientation, 
-				// 	consensus_alignment->read_anno);
-				// for (size_t i = 0; i < consensus_alignment->exons.size(); i += 2)
-				//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, consensus_alignment->exons[i], consensus_alignment->exons[i+ 1]);
-				readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
-				readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
-				num_alignments_reported+=2 ;
-			}
-		    
-		    //readMappings.topAlignments().eval_non_consensus_alignment(non_consensus_alignment, consensus_alignment) ;
+			data = new struct perform_alignment_t ;
+
+			data->result = &result;
+			data->readMappings = &readMappings;
+			data->read_string=read_string ;
+			data->read_quality=read_quality ;
+			data->dna = dna ;
+			data->current_regions=current_regions ;
+			data->positions=positions ;
+			data->contig_idx=&contig_idx;
+			data->strand =strand ;
+			data->ori = ori ;
+			data->ret = -1000 ;
+			data->hit_read = hit_read_position;
+			data->hit_dna = hit_dna_position;
+			data->hit_length = hit_length;
+			data->qpalma = this ;
+			data->joined=false ;
+			data->aln=NULL ;
+			data->non_consensus_search=true ;
+			perform_alignment_wrapper(data);
+			non_consensus_alignment=data->aln ;
+			data->aln=NULL;
+
+			delete data ;
 		}
-		else
-		{
-		    if (non_consensus_alignment && non_consensus_alignment->passed_filters)
-			{   
-				// fprintf(stdout,"# non-consensus alone alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
-				// 	non_consensus_alignment->non_consensus,
-				// 	(int) non_consensus_alignment->exons.size() / 2, 
-				// 	non_consensus_alignment->read_id, 
-				// 	non_consensus_alignment->qpalma_score,
-				// 	non_consensus_alignment->num_matches, 
-				// 	non_consensus_alignment->num_gaps, 
-				// 	non_consensus_alignment->strand, 
-				// 	non_consensus_alignment->orientation, 
-				// 	non_consensus_alignment->read_anno);
-				// for (size_t i = 0; i < non_consensus_alignment->exons.size(); i += 2)
-				//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, non_consensus_alignment->exons[i], non_consensus_alignment->exons[i+ 1]);
+
+		
+		if (consensus_alignment && (consensus_alignment->passed_filters || non_consensus_search)){
 			
-				num_alignments_reported++ ;
-				readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
-			}
-		    if (consensus_alignment && consensus_alignment->passed_filters)
-			{
-				// fprintf(stdout,"# consensus alone alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
-				// 	consensus_alignment->non_consensus,
-				// 	(int) consensus_alignment->exons.size() / 2, 
-				// 	consensus_alignment->read_id, 
-				// 	consensus_alignment->qpalma_score,
-				// 	consensus_alignment->num_matches, 
-				// 	consensus_alignment->num_gaps, 
-				// 	consensus_alignment->strand, 
-				// 	consensus_alignment->orientation, 
-				// 	consensus_alignment->read_anno);
-				// for (size_t i = 0; i < consensus_alignment->exons.size(); i += 2)
-				//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, consensus_alignment->exons[i], consensus_alignment->exons[i+ 1]);
-				num_alignments_reported++ ;
-				readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
-			}
+			readMappings.topAlignments().add_alignment_record2(consensus_alignment, 1) ;
+			num_alignments_reported++ ;
 		}
+		
+		else{
+			if (non_consensus_alignment && non_consensus_alignment->passed_filters){
+				
+				readMappings.topAlignments().add_alignment_record2(non_consensus_alignment, 1) ;
+				num_alignments_reported++ ;
+			}
+			
+		}
+		
+		
+		// if (true){
+			
+		// 	if (non_consensus_alignment && consensus_alignment && non_consensus_alignment->passed_filters && consensus_alignment->passed_filters)
+		// 	{
+				
+		// 		if ((int)(non_consensus_alignment->num_mismatches+non_consensus_alignment->num_gaps) >= (int)(consensus_alignment->num_mismatches+consensus_alignment->num_gaps) - (int)_config.non_consensus_search_gap)
+		// 		{
+				
+		// 			// fprintf(stdout,"# non-consensus alignment rejected (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
+		// 			// 		non_consensus_alignment->non_consensus,
+		// 			// 		(int) non_consensus_alignment->exons.size() / 2, 
+		// 			// 		non_consensus_alignment->read_id, 
+		// 			// 		non_consensus_alignment->qpalma_score,
+		// 			// 		non_consensus_alignment->num_matches, 
+		// 			// 		non_consensus_alignment->num_gaps, 
+		// 			// 		non_consensus_alignment->strand, 
+		// 			// 		non_consensus_alignment->orientation, 
+		// 			// 		non_consensus_alignment->read_anno);
+		// 			// for (size_t i = 0; i < non_consensus_alignment->exons.size(); i += 2)
+		// 			// 	fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, non_consensus_alignment->exons[i], non_consensus_alignment->exons[i+ 1]);
+		// 			// fprintf(stdout,"# consensus alignment preferred (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
+		// 			// 	consensus_alignment->non_consensus,
+		// 			// 	(int) consensus_alignment->exons.size() / 2, 
+		// 			// 	consensus_alignment->read_id, 
+		// 			// 	consensus_alignment->qpalma_score,
+		// 			// 	consensus_alignment->num_matches, 
+		// 			// 	consensus_alignment->num_gaps, 
+		// 			// 	consensus_alignment->strand, 
+		// 			// 	consensus_alignment->orientation, 
+		// 			// 	consensus_alignment->read_anno);
+		// 			// for (size_t i = 0; i < consensus_alignment->exons.size(); i += 2)
+		// 			//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, consensus_alignment->exons[i], consensus_alignment->exons[i+ 1]);
+		// 			readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
+		// 			num_alignments_reported++ ;
+		// 		} 
+		// 		else
+		// 		{
+		// 			if (non_consensus_alignment->qpalma_score<consensus_alignment->qpalma_score)
+		// 			{
+		// 				consensus_alignment->qpalma_score = non_consensus_alignment->qpalma_score - _config.non_consensus_search_discount ;
+		// 			}
+		// 			// fprintf(stdout,"# non-consensus alignment preferred (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
+		// 			// 		non_consensus_alignment->non_consensus,
+		// 			// 		(int) non_consensus_alignment->exons.size() / 2, 
+		// 			// 		non_consensus_alignment->read_id, 
+		// 			// 		non_consensus_alignment->qpalma_score,
+		// 			// 		non_consensus_alignment->num_matches, 
+		// 			// 		non_consensus_alignment->num_gaps, 
+		// 			// 		non_consensus_alignment->strand, 
+		// 			// 		non_consensus_alignment->orientation, 
+		// 			// 		non_consensus_alignment->read_anno);
+		// 			// for (size_t i = 0; i < non_consensus_alignment->exons.size(); i += 2)
+		// 			// 	fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, non_consensus_alignment->exons[i], non_consensus_alignment->exons[i+ 1]);
+		// 			// fprintf(stdout,"# consensus alignment added (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
+		// 			// 	consensus_alignment->non_consensus,
+		// 			// 	(int) consensus_alignment->exons.size() / 2, 
+		// 			// 	consensus_alignment->read_id, 
+		// 			// 	consensus_alignment->qpalma_score,
+		// 			// 	consensus_alignment->num_matches, 
+		// 			// 	consensus_alignment->num_gaps, 
+		// 			// 	consensus_alignment->strand, 
+		// 			// 	consensus_alignment->orientation, 
+		// 			// 	consensus_alignment->read_anno);
+		// 			// for (size_t i = 0; i < consensus_alignment->exons.size(); i += 2)
+		// 			//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, consensus_alignment->exons[i], consensus_alignment->exons[i+ 1]);
+		// 			readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
+		// 			readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
+		// 			num_alignments_reported+=2 ;
+		// 		}
+		    
+		// 		//readMappings.topAlignments().eval_non_consensus_alignment(non_consensus_alignment, consensus_alignment) ;
+		// 	}
+		// 	else
+		// 	{
+		// 		if (non_consensus_alignment && non_consensus_alignment->passed_filters)
+		// 		{   
+		// 			// fprintf(stdout,"# non-consensus alone alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
+		// 			// 	non_consensus_alignment->non_consensus,
+		// 			// 	(int) non_consensus_alignment->exons.size() / 2, 
+		// 			// 	non_consensus_alignment->read_id, 
+		// 			// 	non_consensus_alignment->qpalma_score,
+		// 			// 	non_consensus_alignment->num_matches, 
+		// 			// 	non_consensus_alignment->num_gaps, 
+		// 			// 	non_consensus_alignment->strand, 
+		// 			// 	non_consensus_alignment->orientation, 
+		// 			// 	non_consensus_alignment->read_anno);
+		// 			// for (size_t i = 0; i < non_consensus_alignment->exons.size(); i += 2)
+		// 			//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, non_consensus_alignment->exons[i], non_consensus_alignment->exons[i+ 1]);
+			
+		// 			num_alignments_reported++ ;
+		// 			readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
+		// 		}
+		// 		if (consensus_alignment && consensus_alignment->passed_filters)
+		// 		{
+		// 			// fprintf(stdout,"# consensus alone alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c orientation=%c): %s\n",
+		// 			// 	consensus_alignment->non_consensus,
+		// 			// 	(int) consensus_alignment->exons.size() / 2, 
+		// 			// 	consensus_alignment->read_id, 
+		// 			// 	consensus_alignment->qpalma_score,
+		// 			// 	consensus_alignment->num_matches, 
+		// 			// 	consensus_alignment->num_gaps, 
+		// 			// 	consensus_alignment->strand, 
+		// 			// 	consensus_alignment->orientation, 
+		// 			// 	consensus_alignment->read_anno);
+		// 			// for (size_t i = 0; i < consensus_alignment->exons.size(); i += 2)
+		// 			//   fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, consensus_alignment->exons[i], consensus_alignment->exons[i+ 1]);
+		// 			num_alignments_reported++ ;
+		// 			readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
+		// 		}
+		// 	}
+		// }
+	
 		return 0 ; // in the meaning of perform_alignment this corresponds to a spliced alignment
 	}
 	catch (std::bad_alloc&)
@@ -2161,10 +2195,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	for (int i = 0; i < est_len_p; i++)
 	{
-		prb[i] = (read_quality[i] - alignment_parameters->quality_offset);
+		prb[i] = (read_quality[i] - alignment_parameters->quality_offset);	
 		//assert(prb[i]>=-10 && prb[i]<=70) ;
 	}
 
+	
 	int num_qual_support = 0;
 	if (alignment_parameters->num_qualityPlifs > 0)
 		num_qual_support = alignment_parameters->qualityPlifs[0].len;
@@ -2861,7 +2896,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
 
 	bool alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
-		&& (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH) ;
+		&&(exons.size()==2 ||( (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH))) ;
 
 	if (alignment_valid) // it must be spliced and not have too many mismatches
 	{
@@ -2961,7 +2996,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	return (int) isunspliced;
 }
 
-float QPalma::score_unspliced(Read const &read, const char * read_anno) const
+double QPalma::score_unspliced(Read const &read, const char * read_anno, const char strand, const char ori) const
 {
 	if (alignment_parameters==NULL)
 	{
@@ -2993,7 +3028,7 @@ float QPalma::score_unspliced(Read const &read, const char * read_anno) const
 	{
 		fprintf(stderr,	"[score_unspliced] Could not allocate memory (_read.id() = %s)\n", read.id());
 		return -1;
-	}
+	} 
 	for (size_t i = 0; i < read.length(); i++)
 	{
 		prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
@@ -3021,11 +3056,15 @@ float QPalma::score_unspliced(Read const &read, const char * read_anno) const
 		//assert(prb[i]>=-10 && prb[i]<=70) ;
 	}
 
-	float score1 = alignment.scoreUnsplicedAlignment(read_anno, prb, read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix, '+') ;
-	float score2 = alignment.scoreUnsplicedAlignment(read_anno, prb, read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix, '-') ;
+	if (ori=='-')
+		reverse(prb,read.length());
+
+			
+	double score1 = alignment.scoreUnsplicedAlignment(read_anno, prb, read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix,strand) ;
+	//float score2 = alignment.scoreUnsplicedAlignment(read_anno, prb, read.length(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix, '-') ;
 	
 	delete[] prb ;
-	if (score1>score2)
-		return score1 ;
-	return score2 ;
+	//if (score1>score2)
+	return score1 ;
+		//return score2 ;
 }

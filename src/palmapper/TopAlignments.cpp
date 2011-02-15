@@ -16,13 +16,14 @@
 
 
 
-
-
 TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
 	top_alignments(),
 	num_spliced_alignments(0),
 	num_unspliced_alignments(0),
-	verbosity(0)
+	verbosity(0),
+	num_filtered(0),
+	current_ind(0),
+	temp_ind(0)
 {
 	//int ret = pthread_mutex_init(&top_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
 	//assert(ret==0) ;
@@ -48,7 +49,9 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	//printhit(read,hit);
 	
 	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-	add_alignment_record(algn_hit, 1) ;
+	//add_alignment_record(algn_hit, 1) ;
+	
+	add_alignment_record2(algn_hit, 1) ;
 	return 1 ;
 }
 
@@ -403,8 +406,19 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 		bool alignment_passed_filters= (num_mismatches <= _config.NUM_MISMATCHES && num_gaps <= _config.NUM_GAPS && num_mismatches+num_gaps <= _config.NUM_EDIT_OPS) ;
 		best->passed_filters=alignment_passed_filters ;
 
-		if (qpalma)
-			best->qpalma_score = qpalma->score_unspliced(read, ALIGNSEQ) ;
+		if (qpalma){
+			double score1=qpalma->score_unspliced(read, ALIGNSEQ,'+',best->orientation) ;
+			double score2=qpalma->score_unspliced(read, ALIGNSEQ,'-',best->orientation) ;
+			
+			if (score1>score2)
+				best->qpalma_score =score1;
+			else{
+				best->qpalma_score =score2;
+				best->strand='-';
+			}
+			
+		}
+		
 		else
 			best->qpalma_score = - ((best_hit->mismatches * _config.MM_SCORE) + (best_hit->gaps * _config.GAP_SCORE) + ((hitlength-best_hit->mismatches-best_hit->gaps) * _config.M_SCORE));
 	} else {
@@ -455,6 +469,35 @@ int32_t TopAlignments::compare_score(alignment_t *a1, alignment_t *a2) {
 
 
 
+int TopAlignments::spliced_is_overlapping(alignment_t *a1, alignment_t *a2) 
+{
+
+	if (!a1->spliced || !a2->spliced)
+		return 0;
+	if(a1->non_consensus!=a2->non_consensus)
+		return 0;
+	if(a1->chromosome!=a2->chromosome)
+		return 0;
+	
+	int startalign1=a1->exons[0];
+	int endalign1=a1->exons[a1->exons.size()-1];
+	int startalign2=a2->exons[0];
+	int endalign2=a2->exons[a2->exons.size()-1];
+	if (endalign1<startalign2 || startalign1 > endalign2)	
+		return 0;
+	
+	if (a2->passed_filters && !a1->passed_filters)
+		return 1;
+
+	if (a1->passed_filters && !a2->passed_filters)
+		return -1;
+
+	if(a1->qpalma_score < a2->qpalma_score) 
+		return 1;
+	
+	return -1;
+}
+
 
 int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2) 
 {
@@ -476,29 +519,79 @@ int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2)
 	
 	return 1 ;
 }
+
 bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2) 
 {
-	if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-6)
+	
+	
+	if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-3){
 		return false ;
-	if (a1->num_matches!=a2->num_matches)
+	}
+	
+	if (a1->num_matches!=a2->num_matches){
 		return false ;
-	if (a1->orientation!=a2->orientation)
+	}
+	if (a1->orientation!=a2->orientation){
 		return false ;
-	if (a1->strand!=a2->strand)
+	}
+	if (a1->strand!=a2->strand){
 		return false ;
-	if (a1->chromosome!=a2->chromosome)
+	}
+	if (a1->chromosome!=a2->chromosome){
 		return false ;
+	}
 	if (a1->exons!=a2->exons)
     {
-		/*for (int i=0; i<a1->exons.size(); i++)
-		  fprintf(stderr, "a1.e[%i]=%i\n", i, a1->exons[i]) ;
-		  for (int i=0; i<a2->exons.size(); i++)
-		  fprintf(stderr, "a2.e[%i]=%i\n", i, a2->exons[i]) ;*/
+		// for (int i=0; i<a1->exons.size(); i++)
+		// 	fprintf(stderr, "a1.e[%i]=%i\n", i, a1->exons[i]) ;
+		// for (int i=0; i<a2->exons.size(); i++)
+		// 	fprintf(stderr, "a2.e[%i]=%i\n", i, a2->exons[i]) ;
 		
 		return false ;
     }
 
 	return true ;	
+}
+
+int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t *a2)
+{
+	if (a1->non_consensus == a2->non_consensus)
+		return 0;
+	if (a1->strand==a2->strand || a1->orientation != a2->orientation)
+		return 0;
+	if (a1->chromosome != a2->chromosome)
+		return 0;
+	if (!a1->spliced && !a2->spliced)
+		return 0;
+	
+	int startalign1=a1->exons[0];
+	int endalign1=a1->exons[a1->exons.size()-1];
+	int startalign2=a2->exons[0];
+	int endalign2=a2->exons[a2->exons.size()-1];
+
+	if (endalign1<startalign2 || startalign1 > endalign2)
+		return 0;
+	
+	if (a1->non_consensus)
+		return 1;
+	
+	return -1;
+}
+
+
+void TopAlignments::init_top_alignment_indice() 
+{
+	current_ind=0;
+	temp_ind=0;
+	
+}
+
+void TopAlignments::update_top_alignment_indice() 
+{
+	//fprintf(stdout,"temp indice %i\n",temp_ind);
+	
+	current_ind=temp_ind;
+	
 }
 
 void TopAlignments::clean_top_alignment_record() 
@@ -514,6 +607,10 @@ void TopAlignments::clean_top_alignment_record()
 	top_alignments.clear();
 	num_spliced_alignments = 0;
 	num_unspliced_alignments = 0;
+
+	num_filtered=0;
+	current_ind=0;
+	temp_ind=0;
 
 	//pthread_mutex_unlock( &top_mutex) ;
 }
@@ -535,6 +632,105 @@ void TopAlignments::check_alignment(struct alignment_t * alignment)
 
 }
 
+
+/** performs a quicksort on an array output of length size
+ * it is sorted from in ascending (for type T) */
+void TopAlignments::qsort_top_alignments(alignment_t** output, int num) {
+	
+	if(num == 1)
+		return;
+	
+
+	if (num == 2) {
+		if (compare_score(output[0],output[1])<0) {
+			alignment_t *c = output[0];
+			output[0] = output[1];
+			output[1] = c;
+		}
+		return;
+	}
+	alignment_t *split = output[num / 2];
+
+	int32_t left = 0;
+	int32_t right = num - 1;
+
+	while (left <= right) {
+		while (compare_score(output[left],split)>0)
+			left++;
+		while (compare_score(output[right],split)<0)
+			right--;
+
+		if (left <= right) {
+			alignment_t *c = output[left];
+			output[left] = output[right];
+			output[right] = c;
+			left++;
+			right--;
+		}
+	}
+
+	if (right + 1 > 1)
+		qsort_top_alignments(output, right + 1);
+
+	if (num - left > 1)
+		qsort_top_alignments(&output[left], num - left);
+}
+
+void TopAlignments::sort_top_alignment_list()
+{
+	
+	//fprintf(stdout, "Number of alignments %i\n", top_alignments.size());
+
+	// Remove unfiltered alignments from non_consensus_search
+	if (_config.non_consensus_search){
+		for (size_t i=0; i<top_alignments.size();++i){
+			if (!top_alignments[i]->passed_filters){
+				delete top_alignments[i] ;
+				top_alignments[i]=NULL ;
+				top_alignments.erase(top_alignments.begin()+i) ;
+				i--;
+			}
+		}
+		
+	}
+
+	// Sort by qpalma score and positions remaining alignments if not all reported
+	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP){
+		
+		alignment_t ** arr = NULL ;
+		size_t nbr_aligments=top_alignments.size();
+		try 
+		{
+			arr = new alignment_t*[nbr_aligments] ;			
+		}
+		catch (std::bad_alloc&)
+		{
+			fprintf(stderr, "[sort_top_alignment_list] ERROR Could not allocate memory\n");
+		}
+		
+		for (int i = 0; i < (int)nbr_aligments; i++)
+			arr[i] = top_alignments[i];
+		
+		//fprintf(stdout, "[sort_top_alignment_list] start sorting %i alignments...\n", nbr_aligments);
+		qsort_top_alignments(arr, nbr_aligments);
+		//fprintf(stdout, "[sort_top_alignment_list] end sorting...\n");
+
+		for (int i = 0; i < (int)nbr_aligments; i++)
+			top_alignments[i] = arr[i];
+		
+		delete[] arr;
+
+		if (top_alignments.size()>_config.OUTPUT_FILTER_NUM_TOP){
+			for(size_t i=top_alignments.size()-1;i>=_config.OUTPUT_FILTER_NUM_TOP;i--){
+				delete top_alignments[i] ;
+				top_alignments[i]=NULL ;
+				top_alignments.pop_back();
+			}
+		}
+	}
+	
+}
+
 void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
 
 	if (top_alignments.empty())
@@ -544,6 +740,8 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 
 	//pthread_mutex_lock( &top_mutex) ;
 
+	sort_top_alignment_list();
+	
 	for (unsigned int i=0; i<top_alignments.size(); i++)
     {
 		top_alignments[i]->rtrim_cut=rtrim_cut ;
@@ -553,6 +751,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 			check_alignment(top_alignments[i]) ;
 	}
 
+	
 	if (_config._personality == Palmapper && _config.REPORT_SPLICED_READS)
     {
 		for (unsigned int i=0; i<top_alignments.size(); i++)
@@ -578,6 +777,224 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 	//exit(1) ;
 	
 }
+
+alignment_t * TopAlignments::add_alignment_record2(alignment_t *alignment, int num_alignments)
+{
+
+	std::vector<alignment_t *>::iterator it;
+
+	if (alignment == NULL)
+		return NULL;
+	assert(num_alignments>0);
+
+	if (_config._personality != Palmapper || !alignment->spliced)
+		num_unspliced_alignments += num_alignments;
+	else
+		num_spliced_alignments += num_alignments;
+
+
+	if (_config._personality == Palmapper) {
+		// if (!alignment->passed_filters)
+		// {
+		// 	delete alignment;
+		// 	return NULL ;
+		// }
+		check_alignment(alignment) ;
+	}
+
+
+	if (verbosity >= 2)
+		printf("entering alignment with score %f\n", alignment->qpalma_score);
+ 
+	// Go through the list and see whether we can find a hit that has a worse
+	// score than this one.
+
+	// Special case: list of top hits is still empty. Kick-start it with the
+	// current hit.
+
+	// fprintf(stdout,"number of alignments %i\n", (int)top_alignments.size());
+	
+	// fprintf(stdout,"#alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i mismatches=%i gaps=%i strand=%c orientation=%c spliced=%i): %s\n",
+	// 		alignment->non_consensus,
+	// 		(int) alignment->exons.size() / 2, 
+	// 		alignment->read_id, 
+	// 		alignment->qpalma_score,
+	// 		alignment->num_matches, 
+	// 		alignment->num_mismatches, 
+	// 		alignment->num_gaps, 
+	// 		alignment->strand, 
+	// 		alignment->orientation, 
+	// 		alignment->spliced, 
+	// 		alignment->read_anno);
+	// for (size_t j = 0; j < alignment->exons.size(); j += 2)
+	// 	fprintf(stdout, "# exon %i: %i - %i (%i)\n", (int)j / 2, alignment->exons[j], alignment->exons[j+ 1],alignment->chromosome->nr());
+
+	// First alignment added
+	if (top_alignments.empty())
+    {
+		top_alignments.push_back(alignment);
+		current_ind=0;
+		if (alignment->passed_filters)
+			num_filtered++;
+		return alignment ;
+    }
+	else
+    {
+		int chr = alignment->chromosome->nr();
+		int endalign=alignment->exons[alignment->exons.size()-1];
+
+		int current_chr=top_alignments[current_ind]->chromosome->nr();
+		int current_start=top_alignments[current_ind]->exons[0];
+		
+
+		it = top_alignments.begin();
+
+		// Sort alignment by chromosome and start position
+
+		//Nothing to compare: add before
+		if ( (chr < current_chr) || (chr==current_chr && endalign < current_start))
+		{
+			//fprintf(stdout,"   Add first\n");
+			top_alignments.insert(it+current_ind,1,alignment);
+			if (alignment->passed_filters)
+				num_filtered++;
+			return alignment;
+		}
+		else{
+			
+			int i =current_ind;
+			//fprintf(stdout,"   Start comparing with %i\n", i);
+			while (i< (int)top_alignments.size()){
+				// fprintf(stdout,"   Compare with %i\n", i);
+				// for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
+				// 	fprintf(stdout, "# exon %i: %i - %i (%i)\n", (int)j / 2,  top_alignments[i]->exons[j],  top_alignments[i]->exons[j+ 1], top_alignments[i]->chromosome->nr());
+				//Adapt pointer
+				if (chr!=current_chr && chr==(int)top_alignments[i]->chromosome->nr()){
+					current_chr = chr;
+					current_ind=i;
+				}
+				
+		
+				//Alignment to compare is further away: no conflict possible
+				if ((chr==(int)top_alignments[i]->chromosome->nr() && endalign < top_alignments[i]->exons[0]) 
+					|| (int)top_alignments[i]->chromosome->nr() > chr)
+				{
+					//fprintf(stdout,"   Add before because no conflict possible\n");
+					top_alignments.insert(it+i,1,alignment);
+					if (temp_ind<i)
+						temp_ind=i;
+					else
+						temp_ind++;
+					
+					if (alignment->passed_filters)
+						num_filtered++;
+					return alignment;
+				}
+	
+					
+				int ret;
+				// Alignment already present
+				if (alignment_is_equal(alignment,top_alignments[i]))
+				{
+					//fprintf(stdout,"   Ignore alignment: already present\n");
+					if (temp_ind<i)
+						temp_ind=i;
+					
+					if (alignment!=top_alignments[i])
+						delete alignment ;
+					return NULL ;
+				}
+
+				//Overlapping consensus alignments: keep the one which passes filters with best score
+				ret=spliced_is_overlapping(alignment, top_alignments[i]);
+				if (ret==-1){
+					//fprintf(stdout,"   Replace alignment: spliced overlapping\n");
+					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
+						num_filtered++;
+					delete top_alignments[i] ;
+					top_alignments[i]=alignment;
+					if (temp_ind<i)
+						temp_ind=i;
+
+					return alignment;		
+				}
+				if (ret==1){
+					//fprintf(stdout,"   Ignore alignment: spliced overlapping\n");
+					if (temp_ind<i)
+						temp_ind=i;
+
+					
+					delete alignment;
+					return NULL;						
+				}
+					
+				//Overlapping consensus alignment with a non consensus one: keep consensus
+				ret=non_consensus_overlaps_consensus(alignment,top_alignments[i]);
+				
+				if (ret==-1){
+					//fprintf(stdout,"   Replace alignment: consensus and non consensus\n");
+					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
+						num_filtered++;
+					delete top_alignments[i] ;
+					top_alignments[i]=alignment;
+					if (temp_ind<i)
+						temp_ind=i;
+					
+					return alignment;		
+				}
+				if (ret==1){
+					//fprintf(stdout,"   Ignore alignment: consensus and non consensus\n");
+					if (temp_ind<i)
+						temp_ind=i;
+
+					delete alignment;
+					return NULL;						
+				}
+
+				// Opposite alignments:
+				ret=alignment_is_opposite(alignment,top_alignments[i]);
+				if (ret==-1){
+					//fprintf(stdout,"   Replace alignment: opposite\n");
+					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
+						num_filtered++;
+					delete top_alignments[i] ;
+					top_alignments[i]=alignment;
+					if (temp_ind<i)
+						temp_ind=i;
+
+					
+					return alignment;		
+				}
+				if (ret==1){
+					//fprintf(stdout,"   Ignore alignment: opposite\n");
+					if (temp_ind<i)
+						temp_ind=i;
+					
+					delete alignment;
+					return NULL;						
+				}
+
+				
+				i++;
+					
+			}//End while i
+				
+			//Alignment is without conflict and from a further chromosome or position compared to the others
+			//fprintf(stdout,"   Add at the end\n");
+			top_alignments.push_back(alignment);
+			temp_ind=top_alignments.size()-1;
+			
+			if (alignment->passed_filters)
+				num_filtered++;
+			return alignment;
+
+		}
+	}// Top alignment not empty
+
+}
+
+
+			
 
 
 alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments)
@@ -621,6 +1038,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	// Special case: list of top hits is still empty. Kick-start it with the
 	// current hit.
 
+	// fprintf(stdout,"number of alignments %i\n", top_alignments.size());
+	
 	// fprintf(stdout,"#alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i mismatches=%i gaps=%i strand=%c orientation=%c spliced=%i): %s\n",
 	// 		alignment->non_consensus,
 	// 		(int) alignment->exons.size() / 2, 
