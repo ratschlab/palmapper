@@ -58,14 +58,13 @@ public:
 
 	void init_top_alignment_indice()  ;
 	void update_top_alignment_indice()  ;
-	alignment_t * add_alignment_record2(alignment_t *alignment, int num_alignments);
+	alignment_t * add_alignment_record(alignment_t *alignment, int num_alignments);
 	
 
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
 	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end) ;
-	alignment_t* add_alignment_record(alignment_t *alignment, int num_alignments) ;
 
 	int print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP);
