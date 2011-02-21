@@ -234,7 +234,7 @@ int Read::read_short_read()
 
 		READ_PE_FLAG = 0;
 		strcpy(READ_QUALITY[0], READ) ;
-		memset(READ_QUALITY[0], 'h', strlen(READ)) ;
+		memset(READ_QUALITY[0], 'g', strlen(READ)) ;
 
 		//READ_QUALITY[0] = (char*)"";
 		READ_FORMAT = 1;
