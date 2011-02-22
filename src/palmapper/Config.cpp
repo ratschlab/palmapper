@@ -311,6 +311,8 @@ int Config::applyDefaults(Genome * genome)
 int Config::checkConfig()
 {
 	if (_personality == Palmapper) {
+		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES);
+
 		if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
 		{
 			fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
@@ -333,6 +335,11 @@ int Config::checkConfig()
 		{
 			fprintf(stderr, "ERROR: SHORE or BED format currently do not support spliced alignments (choose BEDX or SAM) %i\n", (int)OUTPUT_FORMAT) ;
 			exit(1) ;
+		}
+
+		if(SPLICED_HIT_MIN_LENGTH_LONG>read_length/2){
+			fprintf(stderr,"WARNING: Minimal length of long hit is greater to the half of read length. Reset to half read length\n");
+			SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
 		}
 	}
 
@@ -359,11 +366,7 @@ int Config::checkConfig()
 		exit(1) ;
 	}
 	
-	if(SPLICED_HIT_MIN_LENGTH_LONG>read_length/2){
-		fprintf(stderr,"WARNING: Minimal length of long hit is greater to the half of read length. Reset to half read length\n");
-		SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
-		
-	}
+
 	
 
 	return 0 ;

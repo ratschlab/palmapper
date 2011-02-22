@@ -2062,7 +2062,7 @@ template<enum index_type_t index_type> int Hits::get_slots(Read & read, int pos)
 int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches)
 {
 	char const * const READ = _read.data();
-//printhit(_read,hit);
+	//printhit(_read,hit);
 
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
 	memcpy(edit_op, hit->edit_op, mismatches * sizeof(EDIT_OPS));
@@ -2210,15 +2210,18 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 							|| !(unique_base(READ[j]))
 						)
 				)
+			{
+				
 				// create mismatch:
 				if (mismatches < _numEditOps) {
 					(edit_op[mismatches]).pos = _read.length() - j;
 					(edit_op[mismatches]).mm = 1;
 				}
 
-			mismatches++;
-			assert(mismatches<=Config::MAX_EDIT_OPS) ;
-
+				mismatches++;
+				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+			}
+			
 			if (mismatches > _numEditOps)
 				return 0;
 
@@ -2241,7 +2244,7 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 
 		// this version leads to seg faults later on ... quite unclear why
 		for (int ii=0; ii<mismatches; ii++)
-		{
+		{			
 			assert(edit_op[ii].pos>=-((int)_read.length()) && edit_op[ii].pos<=((int)_read.length())) ;
 			hit->edit_op[ii]=edit_op[ii] ;
 			assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
