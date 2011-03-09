@@ -19,7 +19,7 @@ public:
 
 	static void skip_comment_lines(FILE* fd)
 		{
-			const int buffer_len=1000 ;
+			const int buffer_len=5000 ;
 			char buffer[buffer_len] ;
 			
 			while (!feof(fd))
