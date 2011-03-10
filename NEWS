@@ -5,6 +5,7 @@ Bug fixes:
  * Correct SAM output in case of long reads (longer to 500nt)
  * Aligning a simple hit: remove case of infinite loop 
  * Correct computation of qpalma score for unspliced alignment
+ * Correction of soft clipping position in CIGAR string and start position of read according to a presence or soft clipping at the beginning of the read
 
 Non-consensus search option:
 This option enables PALMapper to output spliced alignments whose
