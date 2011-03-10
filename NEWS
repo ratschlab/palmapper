@@ -4,6 +4,16 @@ Release XXX (DD MONTH, 2011)
 Bug fixes:
  * Correct SAM output in case of long reads (longer to 500nt)
  * Aligning a simple hit: remove case of infinite loop 
+ * Correct computation of qpalma score for unspliced alignment
+
+Non-consensus search option:
+This option enables PALMapper to output spliced alignments whose
+splice sites are not within the known consensus sequences. These
+alignments are provided only if they do not overlap another spliced 
+alignment with consensus splice sites.  
+
+
+
 
 (XXX: DD MONTH 2011, rXXXXX)
 
