@@ -1692,10 +1692,21 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		 * flag+=(curr_read.FIRST_IN_PAIR)?64:128 ;
 		 */
 		flag+=((top_alignments.size()>1)*256) ;
+
+		//start position on chromosome adapted to soft clipped
+		int start_offset=0;
+		if (_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY){
+			if (polytrim_cut_start>0 && curr_align->orientation == '+')
+				start_offset=polytrim_cut_start;
+			if (polytrim_cut_end>0 && curr_align->orientation == '-')
+				start_offset=polytrim_cut_end;
+		}
+		
+
 		fprintf(MY_OUT_FP, "\t%d\t%s\t%d", 
 				flag, 
 				curr_align->chromosome->desc(),
-				curr_align->exons[0] + 1) ; 
+				curr_align->exons[0] + 1 - start_offset) ; 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MAQQUALITY)
 		{
 			fprintf(stderr, "MAQ quality not implemented yet\n") ;
@@ -1720,7 +1731,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		uint32_t idx = 0 ;
         
 		// handle trimmed start as soft clips
-		if (_config.POLYTRIM_STRATEGY && polytrim_cut_start>0 )
+		if (_config.POLYTRIM_STRATEGY && (polytrim_cut_start>0 && curr_align->orientation=='+'))
 		{
 			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_start) ;
 			for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
@@ -1728,7 +1739,17 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
 		}
+		if (_config.POLYTRIM_STRATEGY && (polytrim_cut_end>0 && curr_align->orientation=='-'))
+		{
+			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_end) ;
+			for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
+				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+			pos_in_cigar += strlen(cig_buf) ;
+			cigar[pos_in_cigar++] = 'S' ;
+		}
 
+		//fprintf(stdout,"read anno: %s\n",curr_align->read_anno);
+		
 		for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
 		{
 			if (curr_align->read_anno[i] != '[')
@@ -1824,7 +1845,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 
 		// handle trimmed reads end
-		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0)
+		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0 &&  curr_align->orientation=='+')
 		{
 			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_end) ;
 			for (ii=0; ii < strlen(cig_buf); ii++)
@@ -1832,6 +1853,16 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
 		}
+		// handle trimmed reads end
+		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_start>0  && curr_align->orientation=='-')
+		{
+			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_start) ;
+			for (ii=0; ii < strlen(cig_buf); ii++)
+				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
+			pos_in_cigar += strlen(cig_buf) ;
+			cigar[pos_in_cigar++] = 'S' ;
+		}
+
 		//cigar[pos] = 0 ;
 		//if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
 		if (exon_size + insertions - deletions != curr_read->length()-polytrim_cut_start-polytrim_cut_end){
