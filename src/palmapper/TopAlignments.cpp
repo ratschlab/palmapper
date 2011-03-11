@@ -1693,20 +1693,10 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		 */
 		flag+=((top_alignments.size()>1)*256) ;
 
-		//start position on chromosome adapted to soft clipped
-		int start_offset=0;
-		if (_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY){
-			if (polytrim_cut_start>0 && curr_align->orientation == '+')
-				start_offset=polytrim_cut_start;
-			if (polytrim_cut_end>0 && curr_align->orientation == '-')
-				start_offset=polytrim_cut_end;
-		}
-		
-
 		fprintf(MY_OUT_FP, "\t%d\t%s\t%d", 
 				flag, 
 				curr_align->chromosome->desc(),
-				curr_align->exons[0] + 1 - start_offset) ; 
+				curr_align->exons[0] + 1) ; 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MAQQUALITY)
 		{
 			fprintf(stderr, "MAQ quality not implemented yet\n") ;
