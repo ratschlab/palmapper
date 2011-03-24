@@ -126,7 +126,8 @@ public:
 	std::string READ2_FILE_NAME;
 	OutputFormatEnum OUTPUT_FORMAT;
 	unsigned int OUTPUT_FORMAT_FLAGS;
-
+	bool INCLUDE_UNMAPPED_READS_SAM;
+	
 	char * REPORT_FILE;
 	int REPORT_FILE_READONLY;
 	int REPORT_REPETITIVE_SEEDS;

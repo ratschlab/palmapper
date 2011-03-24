@@ -138,7 +138,8 @@ Config::Config() {
 	// Number of additional matches you have to find in case of a non consensus search compared to consensus one (based on QMM)
 	MIN_NUM_MATCHES_PEN=2;
 	
-
+	INCLUDE_UNMAPPED_READS_SAM=false;
+	
 	NO_QPALMA = false;
 	
     STRAND = -1 ;
@@ -354,11 +355,12 @@ int Config::checkConfig()
 		exit(1);
 	}*/
 
-/*	if (OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
+	if (INCLUDE_UNMAPPED_READS_SAM && OUTPUT_FORMAT!=OUTPUT_FORMAT_SAM)
 	{
-		fprintf(stderr, "ERROR: SAM format not implemented yet\n") ;
-		exit(1) ;
-	}*/
+		fprintf(stderr, "WARNING: unmapped reads can only be written in the same output file than mapped reads for sam format\n") ; 
+		INCLUDE_UNMAPPED_READS_SAM=false;
+		
+	}
 
 	if (MAX_EDIT_OPS<NUM_EDIT_OPS)
 	{
@@ -1094,6 +1096,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		if (strcmp(argv[i], "-include-unmapped-reads") == 0) {
+			not_defined = 0;
+			INCLUDE_UNMAPPED_READS_SAM = true ;
+		}
+
 		//output format flags
 		if (strcmp(argv[i], "-ff") == 0) {
 			not_defined = 0;
@@ -1770,11 +1777,12 @@ int Config::usage() {
 		printf("\n\n");
 		printf("optional:\n");
 
-		printf(" -f STRING      output format (\"shore\", \"bed\", \"bedx\", or \"sam\")[sam]\n");
-		printf(" -ff INT        bitwise output sam format flag (0x1: read sequence, 0x2: read quality, 0x4: common sam flags, 0x8: extended same flags)[15]\n");
-		printf(" -o STRING      output filename [stdout]\n");
-		printf(" -H STRING      output filename for spliced hits [no output]\n");
-		printf(" -u STRING      output filename for unmapped reads [/dev/null]\n\n");
+		printf(" -f STRING                   output format (\"shore\", \"bed\", \"bedx\", or \"sam\")[sam]\n");
+		printf(" -ff INT                     bitwise output sam format flag (0x1: read sequence, 0x2: read quality, 0x4: common sam flags, 0x8: extended same flags)[15]\n");
+		printf(" -include-unmapped-reads     write directly unmapped reads in sam file\n");
+		printf(" -o STRING                   output filename [stdout]\n");
+		printf(" -H STRING                   output filename for spliced hits [no output]\n");
+		printf(" -u STRING                   output filename for unmapped reads [/dev/null]\n\n");
 
 		printf(" -rlim INT      limit the number of reads for alignment\n");
 		printf(" -from INT      skip the first <from> reads from query file\n");
