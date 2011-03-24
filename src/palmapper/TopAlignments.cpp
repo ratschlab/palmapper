@@ -737,8 +737,11 @@ void TopAlignments::sort_top_alignment_list()
 
 void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
 
-	if (top_alignments.empty())
+	if (top_alignments.empty() && ! _config.INCLUDE_UNMAPPED_READS_SAM)
 		return;
+	
+	
+	
 
 	// Process collected hits and write extracted information
 
@@ -1589,8 +1592,45 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 // SAM format
 int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP)
 {
-	if (top_alignments.size()==0)
+	std::ostream* MY_OUT_FP = OUT_FP ;
+	if (top_alignments.size()==0){
+		
+		if (_config.INCLUDE_UNMAPPED_READS_SAM){
+		
+			_stats.alignment_num_unmapped+= 1 ;
+			_stats.print_alignment_stats() ;
+
+			uint32_t flag=4 ;			
+			char unavailablechar='*';
+			int  unavailableint=0;
+			int mapq=255;
+			
+			fprintf(MY_OUT_FP, "%s\t%d\t%c\t%i\t%i\t%c\t%c\t%i\t%i", 
+					read.id(),
+					flag, 
+					unavailablechar,
+					unavailableint,
+					mapq,
+					unavailablechar,
+					unavailablechar,
+					unavailableint,
+					unavailableint);
+		
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_READ)
+				fprintf(MY_OUT_FP, "\t%s", read.data()) ;
+			else
+				fprintf(MY_OUT_FP, "\t*") ;
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_QUALITY)
+				fprintf(MY_OUT_FP, "\t%s", read.quality(0)) ;
+			else
+				fprintf(MY_OUT_FP, "\t*") ;
+
+			fprintf(MY_OUT_FP, "\n");
+			
+		}
 		return 0 ;
+	}
+	
 	// if (_config.RTRIM_STRATEGY)
 	//     return 0;
 
@@ -1615,7 +1655,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			max_qpalma_score = top_alignments[j]->qpalma_score ;
     }
 
-	std::ostream* MY_OUT_FP = OUT_FP ;
 	Read const * curr_read;
 
 	for (unsigned int j=0; j<top_alignments.size(); j++)

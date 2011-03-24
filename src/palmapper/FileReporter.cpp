@@ -19,7 +19,7 @@ void FileReporter::report(Mapper::Result &result) {
 	std::stringstream sp_out;
 	std::stringstream leftOvers;
 
-	if (result._state == Mapper::ReadMapped) {
+	if (result._state == Mapper::ReadMapped || (result._state < Mapper::IgnoreResultBound && _config.INCLUDE_UNMAPPED_READS_SAM)){
 		result._readMappings.topAlignments().end_top_alignment_record(result._work, &out, &sp_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end);
 	} else {
 		if (result._state < Mapper::IgnoreResultBound && _config.LEFTOVER_FILE_NAME.length() > 0) {
@@ -34,7 +34,9 @@ void FileReporter::report(Mapper::Result &result) {
 				default:
 					;
 			}
-			print_leftovers(result._work, text, &leftOvers);
+
+			if (!_config.INCLUDE_UNMAPPED_READS_SAM)
+				print_leftovers(result._work, text, &leftOvers);
 		}
 	}
 	delete &result;
