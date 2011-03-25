@@ -17,9 +17,9 @@ public:
 		NothingFound,
 		TooShortAfterTrimming,
 		MappingFailed,
-		IgnoreResultBound,
 		NonACGTChar,
 		ReadShorterThanHitLengthLimit,
+		IgnoreResultBound,
 	};
 	class Result {
 	public:
