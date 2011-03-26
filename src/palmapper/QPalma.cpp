@@ -2080,10 +2080,39 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		delete[] est;
 		return -1;
 	}
-	for (int i = 0; i < est_len_p; i++)
+
+	int offset_switched=0;
+	for (size_t i = 0; i < est_len_p; i++)
 	{
-		prb[i] = (read_quality[i] - alignment_parameters->quality_offset);	
-		//assert(prb[i]>=-10 && prb[i]<=70) ;
+		prb[i] = (read_quality[i] - alignment_parameters->quality_offset);
+		if (prb[i]<-10 || prb[i]>70)
+			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, read_quality, read.data()) ;
+
+		if (_config.QPALMA_PRB_OFFSET_FIX)
+		{
+			if (alignment_parameters->quality_offset==33 && prb[i]>70)
+			{
+				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 64) ;
+				_config.QPALMA_PRB_OFFSET_FIX=false ;
+				alignment_parameters->quality_offset=64 ;
+				read.set_quality_offset(64) ;
+				offset_switched=1;
+				
+			}
+			if (alignment_parameters->quality_offset==64 && prb[i]<-10)
+			{
+				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 33) ;
+				_config.QPALMA_PRB_OFFSET_FIX=false ;
+				alignment_parameters->quality_offset=33 ;
+				read.set_quality_offset(33) ;
+				offset_switched=1;
+			}
+		}
+	}
+	
+	if (offset_switched==1){
+		for (int i = 0; i < est_len_p; i++)
+			prb[i] = (read_quality[i] - alignment_parameters->quality_offset);	
 	}
 
 	
@@ -2929,6 +2958,8 @@ double QPalma::score_unspliced(Read const &read, const char * read_anno, const c
 		fprintf(stderr,	"[score_unspliced] Could not allocate memory (_read.id() = %s)\n", read.id());
 		return -1;
 	} 
+	int offset_switched=0;
+	
 	for (size_t i = 0; i < read.length(); i++)
 	{
 		prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
@@ -2939,22 +2970,32 @@ double QPalma::score_unspliced(Read const &read, const char * read_anno, const c
 		{
 			if (alignment_parameters->quality_offset==33 && prb[i]>70)
 			{
-				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 65) ;
+				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 64) ;
 				_config.QPALMA_PRB_OFFSET_FIX=false ;
-				alignment_parameters->quality_offset=65 ;
-				read.set_quality_offset(65) ;
+				alignment_parameters->quality_offset=64 ;
+				read.set_quality_offset(64) ;
+				offset_switched=1;
+				
 			}
-			if (alignment_parameters->quality_offset==65 && prb[i]<-10)
+			if (alignment_parameters->quality_offset==64 && prb[i]<-10)
 			{
 				fprintf(stderr, "setting prb offset from %i to %i\n", alignment_parameters->quality_offset, 33) ;
 				_config.QPALMA_PRB_OFFSET_FIX=false ;
 				alignment_parameters->quality_offset=33 ;
 				read.set_quality_offset(33) ;
+				offset_switched=1;
 			}
-			prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
 		}
+
 		//assert(prb[i]>=-10 && prb[i]<=70) ;
 	}
+
+	// If offset has been switched: recompute qualities for all positions
+	if (offset_switched==1){
+		for (size_t i = 0; i < read.length(); i++)
+			prb[i] = (read.quality(0)[i] - alignment_parameters->quality_offset);
+	}
+	
 
 	if (ori=='-')
 		reverse(prb,read.length());
