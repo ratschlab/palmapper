@@ -7,6 +7,7 @@ Bug fixes:
  * Correct computation of qpalma score for unspliced alignment
  * Correction of soft clipping position in CIGAR string and start position of read according to a presence or soft clipping at the beginning of the read
  * Quality offset of 64 instead of 65 for phred64
+ * All cases of unmapped reads are now reported in the unmapped read file or the sam file (option -include-unmapped-read)
 
 Non-consensus search option:
 This option enables PALMapper to output spliced alignments whose
