@@ -6,6 +6,7 @@ Bug fixes:
  * Aligning a simple hit: remove case of infinite loop 
  * Correct computation of qpalma score for unspliced alignment
  * Correction of soft clipping position in CIGAR string and start position of read according to a presence or soft clipping at the beginning of the read
+ * Quality offset of 64 instead of 65 for phred64
 
 Non-consensus search option:
 This option enables PALMapper to output spliced alignments whose
@@ -13,7 +14,9 @@ splice sites are not within the known consensus sequences. These
 alignments are provided only if they do not overlap another spliced 
 alignment with consensus splice sites.  
 
-
+Other notable changes:
+* Add -include-unmapped-reads option. This option outputs unmapped
+reads in the same file than mapped reads (valid only for sam output). 
 
 
 (XXX: DD MONTH 2011, rXXXXX)
