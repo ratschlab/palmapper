@@ -130,25 +130,26 @@ result.md5: $(resultDirTest)/$(resultSubDirArray)/$(MappedSam) $(resultDirTest)/
 	mkdir -p $(resultDirTest)/$(resultSubDirArray)
 	(cd $(resultDirTest)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesTest))) > $(result)
 
-resultUnspliced.md5: $(ResultFilesUnspliced)/$(resultSubDirArray)/$(MappedSam) $(ResultFilesUnspliced)/$(resultSubDirArray)/$(Unmapped) $(ResultFilesUnspliced)/$(resultSubDirArray)/$(Coverage)
+resultUnspliced.md5: $(resultDirUnspliced)/$(resultSubDirArray)/$(MappedSam) $(resultDirUnspliced)/$(resultSubDirArray)/$(Unmapped) $(resultDirUnspliced)/$(resultSubDirArray)/$(Coverage)
+	echo $(resultDirUnspliced)/$(resultSubDirArray)
 	mkdir -p $(resultDirUnspliced)/$(resultSubDirArray)
 	(cd $(resultDirUnspliced)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesUnspliced))) > $(resultUnspliced)
 
-resultRtrim.md5: $(ResultFilesRtrim)/$(resultSubDirArray)/$(MappedSam) $(ResultFilesRtrim)/$(resultSubDirArray)/$(Unmapped) $(ResultFilesRtrim)/$(resultSubDirArray)/$(Coverage)
+resultRtrim.md5: $(resultDirRtrim)/$(resultSubDirArray)/$(MappedSam) $(resultDirRtrim)/$(resultSubDirArray)/$(Unmapped) $(resultDirRtrim)/$(resultSubDirArray)/$(Coverage)
 	mkdir -p $(resultDirRtrim)/$(resultSubDirArray)
 	(cd $(resultDirRtrim)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesRtrim))) > $(resultRtrim) 
 
-resultPolytrim.md5: $(ResultFilesPolytrim)/$(resultSubDirArray)/$(MappedSam) $(ResultFilesPolytrim)/$(resultSubDirArray)/$(Unmapped) $(ResultFilesPolytrim)/$(resultSubDirArray)/$(Coverage)
-	mkdir -p $(resultDirPolytrim))/$(resultSubDirArray)
-	(cd $(resultDirPolytrim))/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesPolytrim))) >  $(resultPolytrim) 
+resultPolytrim.md5: $(resultDirPolytrim)/$(resultSubDirArray)/$(MappedSam) $(resultDirPolytrim)/$(resultSubDirArray)/$(Unmapped) $(resultDirPolytrim)/$(resultSubDirArray)/$(Coverage)
+	mkdir -p $(resultDirPolytrim)/$(resultSubDirArray)
+	(cd $(resultDirPolytrim)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesPolytrim))) >  $(resultPolytrim) 
 
-resultNoss.md5: $(ResultFilesNoss)/$(resultSubDirArray)/$(MappedSam) $(ResultFilesNoss)/$(resultSubDirArray)/$(Unmapped) $(ResultFilesNoss)/$(resultSubDirArray)/$(Coverage)
+resultNoss.md5: $(resultDirNoss)/$(resultSubDirArray)/$(MappedSam) $(resultDirNoss)/$(resultSubDirArray)/$(Unmapped) $(resultDirNoss)/$(resultSubDirArray)/$(Coverage)
 	mkdir -p $(resultDirNoss)/$(resultSubDirArray)
 	(cd $(resultDirNoss)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesNoss))) >  $(resultNoss) 
 
-resultBed.md5: $(ResultFilesBed)/$(resultSubDirArray)/$(MappedBed) $(ResultFilesBed)/$(resultSubDirArray)/$(Unmapped) $(ResultFilesBed)/$(resultSubDirArray)/$(Coverage)
-	mkdir -p $(resultDirBed))/$(resultSubDirArray)
-	(cd $(resultDirBed))/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesBed))) >  $(resultBed) 
+resultBed.md5: $(resultDirBed)/$(resultSubDirArray)/$(MappedBed) $(resultDirBed)/$(resultSubDirArray)/$(Unmapped) $(resultDirBed)/$(resultSubDirArray)/$(Coverage)
+	mkdir -p $(resultDirBed)/$(resultSubDirArray)
+	(cd $(resultDirBed)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesBed))) >  $(resultBed) 
 
 
 #Testcases with array-based index
