@@ -70,6 +70,11 @@ Config::Config() {
 	REPORT_GENOME_COVERAGE = 0 ;
 	REPORT_GENOME_COVERAGE_FILE = NULL;
 	
+	REPORT_JUNCTIONS_FILE = std::string("") ;
+	REPORT_JUNCTIONS=0;
+	MAP_JUNCTIONS_FILE = std::string("") ;
+	MAP_JUNCTIONS=0;
+
 	QPALMA_USE_MAP = 1 ;
 	QPALMA_USE_MAP_MAX_SIZE = 10000 ;
 	QPALMA_USE_SPLICE_SITES = 0 ;
@@ -718,6 +723,31 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_SPLICED_READS = 1 ;
 				REPORT_GENOME_COVERAGE = 1 ;
 			}
+
+			//report junctions
+			if (strcmp(argv[i], "-report-junctions") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-coverage-map\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_JUNCTIONS_FILE=strdup(argv[i]) ;
+				REPORT_JUNCTIONS = 1 ;
+			}
+			if (strcmp(argv[i], "-junction-remapping") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-coverage-map\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAP_JUNCTIONS_FILE=strdup(argv[i]) ;
+				MAP_JUNCTIONS = 1 ;
+			}
+
 
 			//report repetitive seeds
 			if (strcmp(argv[i], "-report-rep-seed") == 0) {
@@ -1838,7 +1868,8 @@ int Config::usage() {
 		printf(" -acc-consensus STRING                 defines consensus sequences for acceptor sites (separated by \",\") [AG]\n");
 		printf(" -don-consensus STRING                 defines consensus sequences for donor sites (separated by \",\") [GT,GC]\n");
 		printf(" -no-ss-pred                           indicates that no splice site predictions should be used and only scores positions corresponding to consensus sequences for acceptors and donors\n");
-		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as plausible splice sites\n\n");
+		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as plausible splice sites\n");
+		printf(" -junction-remapping STRING            enables remapping of unmapped or unspliced reads against the junction list provided in gff3 file\n\n");
 
 		printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1) [0.01]\n");
 		printf(" -filter-splice-region INT             extension of the read region up- and downstream for triggeringspliced alignments by presence of splice sites [5]\n");
@@ -1873,6 +1904,7 @@ int Config::usage() {
 		printf(" -report-gff-init STRING               initialize map with exons from GFF file\n");
 		printf(" -report-coverage-map STRING           report genome coverage in map format\n");
 		printf(" -report-coverage-wig STRING           report genome coverage in wiggle format\n\n");
+		printf(" -report-junctions STRING              report splice site junctions in gff3 format\n\n");
 		//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
 		//printf(" -e         report edit operations (alignment scores)\n");
 
