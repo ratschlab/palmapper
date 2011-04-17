@@ -5,6 +5,7 @@
 #include <palmapper/Read.h>
 #include <palmapper/dyn_prog/qpalma_dp.h>
 #include <palmapper/TopAlignments.h>
+#include <palmapper/JunctionMap.h>
 
 struct region_t {
 	int32_t start;
@@ -126,6 +127,7 @@ protected:
 public:
 	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search=false) const;
 	int capture_hits_2(Hits &hits, Result &result, bool non_consensus_search=false) const;
+	int junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap) const;
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln) const;
 	double score_unspliced(Read const &read, const char * read_anno, const char strand, const char ori) const;
