@@ -58,6 +58,11 @@ public:
 			return -1 ;
 		}
 
+	const char * get_desc(const int i) const
+	{
+		return _chromosomes[i].desc();
+	}
+
 	void print_desc(FILE * fd = stdout) const
 		{
 			for (unsigned int i=0; i<NUM_CHROMOSOMES; i++)
