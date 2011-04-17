@@ -735,7 +735,7 @@ void TopAlignments::sort_top_alignment_list()
 	
 }
 
-void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end) {
+void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end, JunctionMap &junctionmap) {
 
 	if (top_alignments.empty() && ! _config.INCLUDE_UNMAPPED_READS_SAM)
 		return;
@@ -774,6 +774,17 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 				genomemaps->report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
 											   top_alignments[i]->num_matches, i) ;
 		}
+    }
+
+	if ( _config.REPORT_JUNCTIONS)
+    {
+		for (unsigned int i=0; i<top_alignments.size(); i++)
+		{
+			for (int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
+				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), top_alignments[i]->exons[j-1]+1, top_alignments[i]->exons[j]-1,1) ;
+			}
+		}
+		
     }
 
 	print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
