@@ -5,6 +5,7 @@
 #include <palmapper/QPalma.h>
 #include <palmapper/Read.h>
 #include <palmapper/TopAlignments.h>
+#include <palmapper/JunctionMap.h>
 
 class Mapper {
 
@@ -48,10 +49,10 @@ public:
 
 	class Reporter {
 	public:
-		virtual void report(Result &result) = 0;
+		virtual void report(Result &result, JunctionMap &junctionmap) = 0;
 	};
 
-	Mapper(Genome const &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter);
+	Mapper(Genome const &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap);
 	~Mapper();
 	void setProgressChar(char c) {
 		_progressChar = c;
@@ -71,6 +72,8 @@ protected:
 
 	Genome const &_genome;
 	GenomeMaps &_genomeMaps ;
+	JunctionMap & _junctionmap;
+	
 
 private:
 	QueryFile &_queryFile;
