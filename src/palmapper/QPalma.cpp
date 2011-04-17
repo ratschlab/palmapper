@@ -1842,6 +1842,225 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 	return data ;
 }
 
+
+int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap) const {
+
+	return 1;
+	
+	// Read const &read(hits.getRead());
+	// clock_t start_time = clock();
+
+	// std::vector<std::vector<region_t *> > *long_regions = result.long_regions;
+
+
+	// int num_alignments_reported = 0 ;
+	
+
+ 	// std::string read_seq[2];
+	// read_seq[0] = std::string(read.data(), read.length());
+	// read_seq[1] = reverse(complement(read_seq[0]));
+	// if (verbosity >= 3) {
+	// 	fprintf(stdout, "# read[0]: %s\n", read_seq[0].c_str());
+	// 	fprintf(stdout, "# read[1]: %s\n", read_seq[1].c_str());
+	// }
+  
+	// std::string read_quality[2];
+	// read_quality[0] = std::string(read.quality(0), read.length());
+	// read_quality[1] = reverse(read_quality[0]);
+	// if (verbosity >= 3)
+	// 	fprintf(stdout, "# readqual[0]: %s\n", read_quality[0].c_str());
+  
+
+	// for (int ori = 0; ori < 2; ori++){
+
+	// 	hits.topAlignments().init_top_alignment_indice();
+	
+	// 	for (size_t chrN = 0; chrN < long_regions[ori].size(); chrN++) 
+	// 	{
+	// 		Chromosome const &chr = genome->chromosome(chrN);
+	// 		if (long_regions[ori][chrN].size() == 0)
+	// 			continue;
+			
+	// 		// list iterator:TODO
+			
+	// 		for (size_t nregion = 0; nregion < long_regions[ori][chrN].size(); nregion++){
+				
+
+	// 			//Search for an overlapping with junction
+
+	// 			//Create current_seq
+								
+	// 			//Take the first long region  to start alignment
+	// 			int hit_read_position = get_first_read_map(read, long_regions->read_map);
+	// 			int hit_len= long_regions->end-long_regions->start;
+	// 			if(ori==1){
+	// 				hit_read_position = read.length()-hit_len-hit_read_position+1;
+	// 			}
+	// 			assert (hit_read_position>=0 && hit_len >0);
+	// 			// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
+	// 			// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, corres_long_regions[0]->start, hit_len);					  
+	// 			// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+				
+	// 			bool isunspliced ;
+	// 			{
+	// 				int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
+	// 													current_positions, chr, '+', ori, hit_read_position,
+	// 													corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported);
+	// 				if (ret < 0)
+	// 				{
+	// 					result.delete_regions();
+	// 					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+	// 					return ret;
+	// 				}
+	// 				isunspliced = ret;
+	// 			}
+				
+	// 			//if (!isunspliced) 
+	// 			{
+	// 				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
+	// 				//      corres_long_regions[0]->end, hit_len);					  
+	// 				//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+	// 				int ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
+	// 													current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
+	// 													corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported);//end nucleotide in dna not included
+	// 				if (ret < 0)
+	// 				{
+	// 					result.delete_regions();
+	// 					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+	// 					return ret;
+	// 				}							
+	// 			}
+					  
+	// 				} else {
+	// 					if (verbosity >= 2)
+	// 						fprintf(stdout,	"# dropped region list covering only %i bases\n", num_read_map);
+	// 				}
+				  
+	// 				current_seq = str;
+	// 				current_regions.clear();
+	// 				current_positions.clear();
+				  
+				  
+	// 				for (size_t i = 0; i < read.length(); i++)
+	// 					read_map[i] = regions[ori][chrN][nregion]->read_map[i];
+				
+	// 				hits.topAlignments().update_top_alignment_indice();
+					
+	// 			} else {
+	// 				// Regions are close enough that they may contain parts of one
+	// 				// spliced hit. They need thus be part of the same alignment
+	// 				// run. String this region onto the current sequence.
+				  
+	// 				current_seq.append(str);
+				  
+	// 				// merge read_maps
+	// 				for (size_t i = 0; i < read.length(); i++)
+	// 					read_map[i] = read_map[i] || regions[ori][chrN][nregion]->read_map[i];
+	// 			}
+	// 			current_regions.push_back(regions[ori][chrN][nregion]);
+			  
+	// 			for (int p = 0; p < regions[ori][chrN][nregion]->end - regions[ori][chrN][nregion]->start; p++) 
+	// 			{
+	// 				current_positions.push_back(regions[ori][chrN][nregion]->start + p);
+	// 			}
+			  
+	// 			/*fprintf(stdout, "read_map: ") ;
+	// 			  for (int i=0; i<_read.lenght(); i++)
+	// 			  if (read_map[i])
+	// 			  fprintf(stdout, "1") ;
+	// 			  else
+	// 			  fprintf(stdout, "0") ;
+	// 			  fprintf(stdout, "\n") ;*/
+	// 		}
+		  
+	// 		int num_read_map = 0;
+	// 		for (size_t i = 0; i < read.length(); i++)
+	// 			if (read_map[i])
+	// 				num_read_map++;
+		  
+	// 		if (verbosity >= 2)
+	// 			fprintf(stdout, "# region list covering %i bases\n", num_read_map);
+	// 		if (num_read_map >= _config.SPLICED_HIT_MIN_LENGTH_COMB)// && current_regions.size()>=2)
+	// 		{
+	// 			bool isunspliced ;
+	// 			//Recover long regions (starting points in sequences) for current regions to align
+	// 			std::vector<region_t*> corres_long_regions;
+	// 			corres_long_regions.clear();
+	// 			//fprintf(stdout,"chr length %i\n",genome->chromosome(chrN).length());
+	// 			recover_long_regions(read, corres_long_regions, long_regions[ori][chrN], current_regions);
+	// 			assert(corres_long_regions.size()>0); // at least one long region as support of alignment
+	// 			assert(corres_long_regions[0]->read_map!=NULL);
+
+	// 			//Take the first long region  to start alignment
+	// 			int hit_read_position = get_first_read_map(read, corres_long_regions[0]->read_map);
+	// 			int hit_len= corres_long_regions[0]->end-corres_long_regions[0]->start;
+	// 			if(ori==1){
+	// 				hit_read_position = read.length()-hit_len-hit_read_position+1;
+	// 			}
+	// 			assert (hit_read_position>=0 && hit_len >0);
+	// 			// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
+	// 			// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
+	// 			//    corres_long_regions[0]->start, hit_len);
+	// 			// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					
+				
+	// 			{
+	// 				int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori],
+	// 													current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
+	// 													corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported); 
+	// 				if (ret < 0)
+	// 				{
+	// 					result.delete_regions();
+	// 					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+	// 					return ret;
+	// 				}
+			
+	// 				isunspliced = ret;
+	// 			}
+	// 			//if (!isunspliced) 
+	// 			{
+	// 				//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),corres_long_regions[0]->end, hit_len);					  
+	// 				// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+	// 				int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
+	// 													read_quality[1 - ori], current_seq,
+	// 													current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
+	// 													corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported);//end nucleotide in dna not included
+	// 				if (ret < 0)
+	// 				{
+	// 					result.delete_regions();
+	// 					delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+	// 					return ret;
+	// 				}
+	// 			}
+	  
+	// 			hits.topAlignments().update_top_alignment_indice();
+
+	// 		} else {
+	// 			if (verbosity >= 2)
+	// 				fprintf(stdout,	"# dropped region list covering only %i bases\n", num_read_map);
+	// 		}
+	// 	}
+	// }
+	
+	// delete[] read_map;
+
+	// result.delete_regions();
+	// delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+	// _stats.qpalma_region_align_time += clock() - start_time;
+	
+	// if (verbosity >= 1 || ((clock()-_stats.qpalma_last_timing_report)/CLOCKS_PER_SEC>=10))
+    // {
+	// 	_stats.qpalma_last_timing_report = clock() ;
+	// 	_stats.qpalma_timing(((float) clock() - start_time) / CLOCKS_PER_SEC);
+    // }
+
+	// //fprintf(stderr, "num_alignments_reported=%i\n", ret) ;
+	// return num_alignments_reported ;
+
+}
+
+
+ 
+
 // TODO: dd remove relicts from multithreading
 int QPalma::perform_alignment_starter(Result &result, 
 									  Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, 
