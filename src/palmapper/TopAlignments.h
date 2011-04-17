@@ -4,6 +4,7 @@
 #include <sstream>
 #include <palmapper/Config.h>
 #include <palmapper/GenomeMaps.h>
+#include <palmapper/JunctionMap.h>
 
 class Mapper ;
 class GenomeMaps ;
@@ -64,7 +65,7 @@ public:
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
-	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end) ;
+	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end, JunctionMap &junctionmap) ;
 
 	int print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP);
