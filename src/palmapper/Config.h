@@ -138,6 +138,12 @@ public:
 	char * REPORT_GENOME_COVERAGE_FILE;
 	std::string REPORT_GFF_FILE_NAME ;
 
+	std::string REPORT_JUNCTIONS_FILE ;
+	int REPORT_JUNCTIONS;
+	
+	std::string MAP_JUNCTIONS_FILE ;
+	int MAP_JUNCTIONS;
+
 	int REPORT_RESET;
 
 	int QPALMA_USE_MAP;
