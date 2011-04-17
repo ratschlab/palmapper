@@ -18,8 +18,8 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 		fprintf(stdout, "\n") ;
 }
 
-Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
-:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
+Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap)
+	:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter), _junctionmap(junctionmap)
 {
 	REDUNDANT = 0;
 
@@ -120,7 +120,7 @@ int Mapper::map_reads()
 			printf("%i..", count_reads) ;
 		map_read(result, start_time);
 		time3 += clock()-start_time ;
-		_reporter.report(result);
+		_reporter.report(result,_junctionmap);
 		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 		{
 			last_timing_report = clock() ;
@@ -342,10 +342,17 @@ restart:
 			{
 			  num_spliced_alignments_triggered++ ;
 			  
+			  //Number of unspliced alignments found
+			  int nb_unspliced= hits._topAlignments.size();
+			  
 			  try
 			    {
 					int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search);
 					ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search);
+					
+					if (_config.MAP_JUNCTIONS && (hits._topAlignments.size() -nb_unspliced ==0))
+						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap);
+
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
 						cancel=4 ;

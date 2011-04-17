@@ -1,6 +1,7 @@
 #pragma once
 
 #include <palmapper/Mapper.h>
+#include <palmapper/JunctionMap.h>
 
 class FileReporter : public Mapper::Reporter {
 	struct Entry {
@@ -23,7 +24,7 @@ public:
 		//fprintf(_sp_out, "#done\n") ;
 	}
 
-	void report(Mapper::Result &result);
+	void report(Mapper::Result &result, JunctionMap &junctionmap);
 
 private:
 	static int const _nrResults = 1024*10;

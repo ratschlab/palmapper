@@ -10,6 +10,7 @@
 #include <lang/Thread.h>
 #include <palmapper/FileReporter.h>
 #include <palmapper/Mapper.h>
+#include <palmapper/JunctionMap.h>
 
 Config _config;
 Statistics _stats;
@@ -18,8 +19,8 @@ using namespace lang;
 
 class MapperThread : public Thread, public Mapper {
 public:
-	MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter)
-	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter) {}
+MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap)
+	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter,junctionmap) {}
 	void run() {
 		map_reads();
 	}
@@ -52,6 +53,12 @@ int main(int argc, char *argv[])
 
 	QueryFile queryFile(_config.QUERY_FILE_NAMES);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
+	JunctionMap junctionmap(genome);
+	
+	if (_config.MAP_JUNCTIONS){
+		junctionmap.init_from_gff(_config.MAP_JUNCTIONS_FILE);
+	}
+	
 
 	// initialize GenomeMaps
 //	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
@@ -130,7 +137,7 @@ int main(int argc, char *argv[])
 	MapperThread *threads[numThreads];
 	std::string threadIds(".+-:=!$'");
 	for (unsigned int i = 0; i < numThreads; ++i) {
-		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter);
+		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap);
 		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
 		printf("Starting thread %d\n", i);
 		threads[i]->launch();
@@ -188,6 +195,10 @@ int main(int argc, char *argv[])
 	}
 	if (_config.REPORT_GENOME_COVERAGE)
 		genomemaps->write_cov_reporting() ;
+
+	if (_config.REPORT_JUNCTIONS)
+		junctionmap.report_to_gff(_config.REPORT_JUNCTIONS_FILE);
+	
 	if (qpalma != NULL)
 		delete qpalma;
 	if (genomemaps != NULL)
