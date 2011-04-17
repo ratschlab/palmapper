@@ -338,8 +338,8 @@ int Config::checkConfig()
 			exit(1) ;
 		}
 
-		if(SPLICED_HIT_MIN_LENGTH_LONG>read_length/2){
-			fprintf(stderr,"WARNING: Minimal length of long hit is greater to the half of read length. Reset to half read length\n");
+		if(SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
+			fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
 			SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
 		}
 	}
