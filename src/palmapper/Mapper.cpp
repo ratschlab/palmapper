@@ -350,8 +350,8 @@ restart:
 					int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search);
 					ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search);
 					
-					if (_config.MAP_JUNCTIONS && (hits._topAlignments.size() -nb_unspliced ==0))
-						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap);
+					if (_config.MAP_JUNCTIONS)
+						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,hits._topAlignments.size() -nb_unspliced);
 
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
