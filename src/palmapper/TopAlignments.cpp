@@ -781,7 +781,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
 			for (int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
-				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), top_alignments[i]->exons[j-1]+1, top_alignments[i]->exons[j]-1,1) ;
+				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,1) ;
 			}
 		}
 		
