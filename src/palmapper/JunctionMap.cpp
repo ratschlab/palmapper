@@ -10,19 +10,16 @@ JunctionMap::JunctionMap(Genome const &genome_)
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
 	
-	junctionlist[0] = new std::list<Junction>[nbchr];
-	junctionlist[1] = new std::list<Junction>[nbchr];
+	junctionlist = new std::list<Junction>[nbchr];
 
 }
 
 
 JunctionMap::~JunctionMap()
 {
-	delete[] junctionlist[1];
-	delete[] junctionlist[0];
-
-	
+	delete[] junctionlist;	
 }
+
 
 
 void JunctionMap::insert_junction(char strand, int chr, int start, int end, int coverage=1)
@@ -32,32 +29,29 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, int 
 	Junction j;
 
 	//fprintf(stdout,"%c %i %i %i\n",strand, chr, start, end);
-	int num_strand=0;
-	
-	if (strand=='-')
-		num_strand=1;
-		
 
-
-	if (junctionlist[num_strand][chr].empty())
+	if (junctionlist[chr].empty())
 	{
 		j.start=start;
 		j.end=end;
 		j.coverage=coverage;
-		junctionlist[num_strand][chr].push_back(j);
+		j.strand=strand;
+		junctionlist[chr].push_back(j);
 		return;
 		
 	}
 
 
 	std::list<Junction>::iterator it;
-	for (it=junctionlist[num_strand][chr].begin(); it!=junctionlist[num_strand][chr].end(); it++){
-	
+	for (it=junctionlist[chr].begin(); it!=junctionlist[chr].end(); it++){
+		
+	  
 		if (start <  (*it).start){
 			j.start=start;
 			j.end=end;
 			j.coverage=coverage;
-			junctionlist[num_strand][chr].insert(it,j);
+			j.strand=strand;
+			junctionlist[chr].insert(it,j);
 			return;
 		}
 	
@@ -66,13 +60,25 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, int 
 				j.start=start;
 				j.end=end;
 				j.coverage=coverage;
-				junctionlist[num_strand][chr].insert(it,j);
+				j.strand=strand;
+				junctionlist[chr].insert(it,j);
 				return;
 			}
 			
 			if (end == (*it).end){
-				(*it).coverage+=coverage;
-				return;
+				if (strand == (*it).strand){
+					(*it).coverage+=coverage;
+					return;
+				}
+				if (strand == '+'){
+					j.start=start;
+					j.end=end;
+					j.coverage=coverage;
+					j.strand=strand;
+					junctionlist[chr].insert(it,j);
+					return;
+				}
+
 			}
 		}
 		
@@ -83,7 +89,8 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, int 
 	j.start=start;
 	j.end=end;
 	j.coverage=coverage;
-	junctionlist[num_strand][chr].push_back(j);
+	j.strand=strand;
+	junctionlist[chr].push_back(j);
 	
 }
 
@@ -154,27 +161,17 @@ int JunctionMap::report_to_gff(std::string &gff_fname)
 	
 	FILE * fd=Util::openFile(gff_fname.c_str(), "w") ;
 	if (!fd)
-		return -1 ;
-
-	char strand;
-	
-	for (int i=0; i<2; i++){
+		return -1 ;	
+	for (int i=0; i<genome->nrChromosomes(); i++){
 		
-		if ( i==0)
-			strand='+';
-		else
-			strand='-';
-
-		for (int j=0; j<genome->nrChromosomes(); j++){
-			
-			const char * chr= genome->get_desc(j);
-			std::list<Junction>::iterator it;
-			
-			for (it=junctionlist[i][j].begin(); it!=junctionlist[i][j].end(); it++){			
-				fprintf(fd,"%s\tpalmapper\tintron\t%i\t%i\t.\t%c\t.\tID=intron_%i;Note=%i\n",chr,(*it).start,(*it).end,strand,nb_introns,(*it).coverage);
+		const char * chr= genome->get_desc(i);
+		std::list<Junction>::iterator it;
+		
+		for (it=junctionlist[i].begin(); it!=junctionlist[i].end(); it++){			
+			fprintf(fd,"%s\tpalmapper\tintron\t%i\t%i\t.\t%c\t.\tID=intron_%i;Note=%i\n",chr,(*it).start,(*it).end,(*it).strand,nb_introns,(*it).coverage);
 				nb_introns++;
-			}
-		}		
+		}
+	
 	}
 	fclose(fd) ;
 	fprintf(stdout, "report %i introns\n", nb_introns) ;	
