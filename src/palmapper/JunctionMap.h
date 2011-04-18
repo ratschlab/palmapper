@@ -6,9 +6,10 @@
 #include <stdlib.h> 
 
 struct junction_str {
-  int start; 
-  int end; 
-  int coverage;
+	int start; 
+	int end; 
+	int coverage;
+	char strand;
 };
 typedef struct junction_str Junction;
 
@@ -24,9 +25,9 @@ public:
 	int init_from_gff(std::string &gff_fname);
 	int report_to_gff(std::string &gff_fname);
 	
+	std::list<Junction> * junctionlist ;
 
 protected:
-	std::list<Junction> * junctionlist[2] ;
 	Genome const *genome;
 };
 
