@@ -265,7 +265,7 @@ void print_restricted_matrix(Prev_score* matrices[],int nr_paths, int matrix_len
 
 
 
-void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,	int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity, mode currentMode)
+void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,	int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity, mode currentMode, bool remapping)
 {
 
 //fprintf(stdout,"START: Fill %s side of the matrix from position %i-%i (%i,%i,%i,num_intron=%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,max_gap,max_mism,max_edit_op, max_number_introns);
@@ -605,229 +605,231 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 					//if (possible_sites.size()>10)
 					//fprintf(stdout, "possible_sites.size()=%i\n", (int)possible_sites.size()) ;
 					/* A. Explore splice sites */
-					for(int ss=(int)possible_sites.size()-1;ss>=0;ss--){
+
+					if(!remapping){
+						for(int ss=(int)possible_sites.size()-1;ss>=0;ss--){
 	    
-						//Position of the splice site 'G' of 'GT/C' or 'G' of 'AG' on DNA
-						int posj=((splice_pos*)possible_sites[ss])->site;
+							//Position of the splice site 'G' of 'GT/C' or 'G' of 'AG' on DNA
+							int posj=((splice_pos*)possible_sites[ss])->site;
 
-						//Last position before splice site
-						int posi=possible_sites[ss]->i;
-						int matrix_pos=((splice_pos*)possible_sites[ss])->matrix_pos;
+							//Last position before splice site
+							int posi=possible_sites[ss]->i;
+							int matrix_pos=((splice_pos*)possible_sites[ss])->matrix_pos;
 
-						int number=possible_sites[ss]->number;
-						int* pmatrices=possible_sites[ss]->matrices;
+							int number=possible_sites[ss]->number;
+							int* pmatrices=possible_sites[ss]->matrices;
 	    
+							
+							if (matrix_pos%row_len==nj){
 
-
-						if (matrix_pos%row_len==nj){
-
-							prevGaps=((Prev_score*)matrices[0] + matrix_pos)->num_gaps;
-							prevMism=((Prev_score*)matrices[0] + matrix_pos)->num_mismatches;
+								prevGaps=((Prev_score*)matrices[0] + matrix_pos)->num_gaps;
+								prevMism=((Prev_score*)matrices[0] + matrix_pos)->num_mismatches;
 	      
 	      
-							//Figure out possible complementary splice sites if not done before
-							if (first_seed && !comp_sites_filled){		
-								comp_sites_filled=true;
-								int first_ss=((splice_pos*)possible_sites[0])->site;
-								if(right_side){
-									for(int comp_ss=first_ss+2;comp_ss<dna_len-1;comp_ss++){
-										if (comp_site_scores[comp_ss]>-ALMOST_INFINITY && comp_site_scores[comp_ss]<ALMOST_INFINITY)
-											comp_sites.push_back(comp_ss);
-									}
-								}
-								else{
-									for(int comp_ss=first_ss-2;comp_ss>0;comp_ss--){
-										if (comp_site_scores[comp_ss]>-ALMOST_INFINITY && comp_site_scores[comp_ss]<ALMOST_INFINITY)
-											comp_sites.push_back(comp_ss);
-									}
-								}
-							}
-
-	      
-							//Alignment from each complementary splice site
-							for(int comp_ss=0; comp_ss<(int)comp_sites.size();comp_ss++){
-	      
-								// Next complementary splice site relative to the current splice site
-								int jj=comp_sites[comp_ss]; 
-								if (-prev_shift*jj<=posj*-prev_shift)
-									continue;
-
-								//Compute minimum number of matches needed with relaxing the constraint at the ends of the read
-								int diff_i;
-								if(right_side)
-								{
-									diff_i=read_len-1-posi;
-									if (posi==read_len-1 || diff_i>min_match)
-										diff_i=min_match;
-								}
-								else
-								{
-									diff_i=posi;
-									if (posi==0 || posi>min_match)
-										diff_i=min_match;
-								}
-		
-								//Check at least diff_i consecutive matches after this complementary splice site
-								bool conserved_seq=true;	      
-								int conserved_seq_mismatches=0 ;
-								int ii=posi;
-								int num_N=0 ;
-								int num_mismatch_score=0 ;
-								int num_mismatch_extend=0 ;
-								for(int nm=1; nm<=diff_i;nm++)
-								{
-									ii=ii-prev_shift; 
-									jj=jj-prev_shift; // One position after 'G' of 'AG' or before 'G' of 'GT/C'
-									if ( (right_side && (ii>=read_len || jj>=dna_len)) || (!right_side && (ii<0 || jj<0)))
-									{
-										conserved_seq_mismatches++ ;
-										conserved_seq=false;
-										break;		   
+								//Figure out possible complementary splice sites if not done before
+								if (first_seed && !comp_sites_filled){		
+									comp_sites_filled=true;
+									int first_ss=((splice_pos*)possible_sites[0])->site;
+									if(right_side){
+										for(int comp_ss=first_ss+2;comp_ss<dna_len-1;comp_ss++){
+											if (comp_site_scores[comp_ss]>-ALMOST_INFINITY && comp_site_scores[comp_ss]<ALMOST_INFINITY)
+												comp_sites.push_back(comp_ss);
+										}
 									}
 									else{
-										if (read[ii]!=dna[jj]) 
+										for(int comp_ss=first_ss-2;comp_ss>0;comp_ss--){
+											if (comp_site_scores[comp_ss]>-ALMOST_INFINITY && comp_site_scores[comp_ss]<ALMOST_INFINITY)
+												comp_sites.push_back(comp_ss);
+										}
+									}
+								}
+
+	      
+								//Alignment from each complementary splice site
+								for(int comp_ss=0; comp_ss<(int)comp_sites.size();comp_ss++){
+	      
+									// Next complementary splice site relative to the current splice site
+									int jj=comp_sites[comp_ss]; 
+									if (-prev_shift*jj<=posj*-prev_shift)
+										continue;
+
+									//Compute minimum number of matches needed with relaxing the constraint at the ends of the read
+									int diff_i;
+									if(right_side)
+									{
+										diff_i=read_len-1-posi;
+										if (posi==read_len-1 || diff_i>min_match)
+											diff_i=min_match;
+									}
+									else
+									{
+										diff_i=posi;
+										if (posi==0 || posi>min_match)
+											diff_i=min_match;
+									}
+		
+									//Check at least diff_i consecutive matches after this complementary splice site
+									bool conserved_seq=true;	      
+									int conserved_seq_mismatches=0 ;
+									int ii=posi;
+									int num_N=0 ;
+									int num_mismatch_score=0 ;
+									int num_mismatch_extend=0 ;
+									for(int nm=1; nm<=diff_i;nm++)
+									{
+										ii=ii-prev_shift; 
+										jj=jj-prev_shift; // One position after 'G' of 'AG' or before 'G' of 'GT/C'
+										if ( (right_side && (ii>=read_len || jj>=dna_len)) || (!right_side && (ii<0 || jj<0)))
 										{
-											if (check_char(read[ii])!=5 && check_char(dna[jj])!=5 && read_scores[ii]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
+											conserved_seq_mismatches++ ;
+											conserved_seq=false;
+											break;		   
+										}
+										else{
+											if (read[ii]!=dna[jj]) 
 											{
-												conserved_seq=false;
-												break;
-											}
-											else
-											{
-												diff_i++ ;
-												if (check_char(read[ii])==5 || check_char(dna[jj])==5)
-													num_N++ ;
-												else
-												{
-													num_mismatch_score+=read_scores[ii] ;
-													num_mismatch_extend++ ;
-												}
-												if (num_N>MAX_SPLICE_MISMATCH_NUM_N || num_mismatch_score>MAX_SPLICE_MISMATCH_QUAL_TOTAL || num_mismatch_extend>MAX_SPLICE_MISMATCH_QUAL_EXTEND)
+												if (check_char(read[ii])!=5 && check_char(dna[jj])!=5 && read_scores[ii]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
 												{
 													conserved_seq=false;
-													break;  
+													break;
+												}
+												else
+												{
+													diff_i++ ;
+													if (check_char(read[ii])==5 || check_char(dna[jj])==5)
+														num_N++ ;
+													else
+													{
+														num_mismatch_score+=read_scores[ii] ;
+														num_mismatch_extend++ ;
+													}
+													if (num_N>MAX_SPLICE_MISMATCH_NUM_N || num_mismatch_score>MAX_SPLICE_MISMATCH_QUAL_TOTAL || num_mismatch_extend>MAX_SPLICE_MISMATCH_QUAL_EXTEND)
+													{
+														conserved_seq=false;
+														break;  
+													}
 												}
 											}
 										}
 									}
-								}
 
-								if (conserved_seq){
+									if (conserved_seq){
 		  
 
 
-									int seed_already_filled=-1;
-									bool continue_searching=true;
-									double tempSplicedScore = main_site_scores[posj]+comp_site_scores[comp_sites[comp_ss]];
-									double currentScore= ((Prev_score*)current_seed->matrices[pmatrices[0]] +matrix_pos)->value ; 	    
+										int seed_already_filled=-1;
+										bool continue_searching=true;
+										double tempSplicedScore = main_site_scores[posj]+comp_site_scores[comp_sites[comp_ss]];
+										double currentScore= ((Prev_score*)current_seed->matrices[pmatrices[0]] +matrix_pos)->value ; 	    
 
-									for(int num_seed=0; num_seed< (int)seed_matrix.size();num_seed++){
+										for(int num_seed=0; num_seed< (int)seed_matrix.size();num_seed++){
 										
-										if(seed_matrix[num_seed]->read_pos==posi-prev_shift && 
-										   seed_matrix[num_seed]->dna_pos==comp_sites[comp_ss]-prev_shift && seed_matrix[num_seed]->max_introns==max_number_introns-1)
-										{
+											if(seed_matrix[num_seed]->read_pos==posi-prev_shift && 
+											   seed_matrix[num_seed]->dna_pos==comp_sites[comp_ss]-prev_shift && seed_matrix[num_seed]->max_introns==max_number_introns-1)
+											{
 								
-											if ((seed_matrix[num_seed]->best_score_pos[0]->num_gaps>max_gap-prevGaps && seed_matrix[num_seed]->best_score_pos[0]->num_mm>=max_mism-prevMism)||
-												(seed_matrix[num_seed]->best_score_pos[0]->num_gaps>=max_gap-prevGaps && seed_matrix[num_seed]->best_score_pos[0]->num_mm>max_mism-prevMism)){
-												continue_searching=false;
-												continue;												
-											}
+												if ((seed_matrix[num_seed]->best_score_pos[0]->num_gaps>max_gap-prevGaps && seed_matrix[num_seed]->best_score_pos[0]->num_mm>=max_mism-prevMism)||
+													(seed_matrix[num_seed]->best_score_pos[0]->num_gaps>=max_gap-prevGaps && seed_matrix[num_seed]->best_score_pos[0]->num_mm>max_mism-prevMism)){
+													continue_searching=false;
+													continue;												
+												}
 											
-											if ((seed_matrix[num_seed]->max_gaps>=max_gap-prevGaps && seed_matrix[num_seed]->max_mm>=max_mism-prevMism)&&
-												(seed_matrix[num_seed]->best_score_pos[0]->num_gaps<=max_gap-prevGaps && seed_matrix[num_seed]->best_score_pos[0]->num_mm<=max_mism-prevMism)){
+												if ((seed_matrix[num_seed]->max_gaps>=max_gap-prevGaps && seed_matrix[num_seed]->max_mm>=max_mism-prevMism)&&
+													(seed_matrix[num_seed]->best_score_pos[0]->num_gaps<=max_gap-prevGaps && seed_matrix[num_seed]->best_score_pos[0]->num_mm<=max_mism-prevMism)){
 												
-												if (seed_matrix[num_seed]->best_scores[0] > log(0.0) && tempSplicedScore+currentScore >= seed_matrix[num_seed]->best_prev_score){
-													continue_searching=true;
-													seed_already_filled=num_seed;
-													break;
+													if (seed_matrix[num_seed]->best_scores[0] > log(0.0) && tempSplicedScore+currentScore >= seed_matrix[num_seed]->best_prev_score){
+														continue_searching=true;
+														seed_already_filled=num_seed;
+														break;
+													}
+													else{													
+														continue_searching=false;
+														break;
+													}												
 												}
-												else{													
-													continue_searching=false;
-													break;
-												}												
-											}
 
-											if (seed_matrix[num_seed]->max_gaps < max_gap-prevGaps && seed_matrix[num_seed]->max_mm < max_mism-prevMism){		
-												if (tempSplicedScore+currentScore >= seed_matrix[num_seed]->best_prev_score){
-													continue_searching=true;
-													continue;
+												if (seed_matrix[num_seed]->max_gaps < max_gap-prevGaps && seed_matrix[num_seed]->max_mm < max_mism-prevMism){		
+													if (tempSplicedScore+currentScore >= seed_matrix[num_seed]->best_prev_score){
+														continue_searching=true;
+														continue;
+													}
+													else{													
+														continue_searching=false;
+														break;
+													}												
 												}
-												else{													
-													continue_searching=false;
-													break;
-												}												
 											}
 										}
-									}
 									
 														  
-									// if (!continue_searching)									   
-									// 	fprintf(stdout,"**1** Don't fill this seed matrix and don't compare results\n");
-									// else{
-									// 	if (seed_already_filled!=-1)
-									// 		fprintf(stdout,"**2** Use already filled matrix\n");
-									// 	//else
-									// 		//fprintf(stdout,"**3** New seed matrix\n");
-									// }
+										// if (!continue_searching)									   
+										// 	fprintf(stdout,"**1** Don't fill this seed matrix and don't compare results\n");
+										// else{
+										// 	if (seed_already_filled!=-1)
+										// 		fprintf(stdout,"**2** Use already filled matrix\n");
+										// 	//else
+										// 		//fprintf(stdout,"**3** New seed matrix\n");
+										// }
 									
-									if (continue_searching){
+										if (continue_searching){
 										
-										if(seed_already_filled==-1){
-											//Number of this seedElem in the vector seedMatrix (because of recursive calls that add new seedElem)
-											seed_already_filled=seed_matrix.size();
-											fast_fill_side_unspliced_first(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
-																		   main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
-																		   comp_sites[comp_ss]-prev_shift, best_match_scores, right_side,false,
-																		   max_number_introns-1,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode);
-										}
+											if(seed_already_filled==-1){
+												//Number of this seedElem in the vector seedMatrix (because of recursive calls that add new seedElem)
+												seed_already_filled=seed_matrix.size();
+												fast_fill_side_unspliced_first(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
+																			   main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
+																			   comp_sites[comp_ss]-prev_shift, best_match_scores, right_side,false,
+																			   max_number_introns-1,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, remapping);
+											}
 
-										//Keep best scores
-										//double tempSplicedScore = main_site_scores[posj]+comp_site_scores[comp_sites[comp_ss]];
-										//fprintf(stdout,"Intron score %f %f \n",main_site_scores[posj],comp_site_scores[comp_sites[comp_ss]]);
+											//Keep best scores
+											//double tempSplicedScore = main_site_scores[posj]+comp_site_scores[comp_sites[comp_ss]];
+											//fprintf(stdout,"Intron score %f %f \n",main_site_scores[posj],comp_site_scores[comp_sites[comp_ss]]);
 		  
-										for (int z=0; z<nr_paths_par;z++){
-											for (int zz=0; zz<number;zz++){
-												double priorScore= ((Prev_score*)current_seed->matrices[pmatrices[zz]] +matrix_pos)->value ; 	    
-												//fprintf(stdout,"prior score %f new score %f splice score %f\n",priorScore,seed_matrix[seed_already_filled]->best_scores[z],tempSplicedScore);
+											for (int z=0; z<nr_paths_par;z++){
+												for (int zz=0; zz<number;zz++){
+													double priorScore= ((Prev_score*)current_seed->matrices[pmatrices[zz]] +matrix_pos)->value ; 	    
+													//fprintf(stdout,"prior score %f new score %f splice score %f\n",priorScore,seed_matrix[seed_already_filled]->best_scores[z],tempSplicedScore);
 												
-												if(tempSplicedScore +priorScore>seed_matrix[seed_already_filled]->best_prev_score)
-													seed_matrix[seed_already_filled]->best_prev_score=tempSplicedScore +priorScore;
+													if(tempSplicedScore +priorScore>seed_matrix[seed_already_filled]->best_prev_score)
+														seed_matrix[seed_already_filled]->best_prev_score=tempSplicedScore +priorScore;
 												
-												if(tempSplicedScore +priorScore+seed_matrix[seed_already_filled]->best_scores[z] > current_seed->best_scores[nr_paths_par-1]){											
-													current_seed->best_scores[nr_paths_par-1]=tempSplicedScore+priorScore+seed_matrix[seed_already_filled]->best_scores[z];
-													current_seed->best_score_pos[nr_paths_par-1]->read_pos=posi;
-													current_seed->best_score_pos[nr_paths_par-1]->dna_pos=posj+prev_shift;
-													current_seed->best_score_pos[nr_paths_par-1]->num_gaps=((Prev_score*)current_seed->matrices[pmatrices[zz]] +matrix_pos)->num_gaps + seed_matrix[seed_already_filled]->best_score_pos[z]->num_gaps;
-													current_seed->best_score_pos[nr_paths_par-1]->num_mm=((Prev_score*)current_seed->matrices[pmatrices[zz]] +matrix_pos)->num_mismatches+ seed_matrix[seed_already_filled]->best_score_pos[z]->num_mm;
-													current_seed->best_score_pos[nr_paths_par-1]->num_introns=seed_matrix[seed_already_filled]->best_score_pos[z]->num_introns +1;					
-													current_seed->best_score_pos[nr_paths_par-1]->next_seed=seed_matrix[seed_already_filled];
-													current_seed->best_score_pos[nr_paths_par-1]->path_number=z;
-													current_seed->best_score_pos[nr_paths_par-1]->path_number_matrices=pmatrices[zz];
-													current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore+tempSplicedScore;
-													// Resort best_score_pos and best_scores
-													sort_best_scores(current_seed, nr_paths_par);
-												}
-												else{
-													break;
+													if(tempSplicedScore +priorScore+seed_matrix[seed_already_filled]->best_scores[z] > current_seed->best_scores[nr_paths_par-1]){											
+														current_seed->best_scores[nr_paths_par-1]=tempSplicedScore+priorScore+seed_matrix[seed_already_filled]->best_scores[z];
+														current_seed->best_score_pos[nr_paths_par-1]->read_pos=posi;
+														current_seed->best_score_pos[nr_paths_par-1]->dna_pos=posj+prev_shift;
+														current_seed->best_score_pos[nr_paths_par-1]->num_gaps=((Prev_score*)current_seed->matrices[pmatrices[zz]] +matrix_pos)->num_gaps + seed_matrix[seed_already_filled]->best_score_pos[z]->num_gaps;
+														current_seed->best_score_pos[nr_paths_par-1]->num_mm=((Prev_score*)current_seed->matrices[pmatrices[zz]] +matrix_pos)->num_mismatches+ seed_matrix[seed_already_filled]->best_score_pos[z]->num_mm;
+														current_seed->best_score_pos[nr_paths_par-1]->num_introns=seed_matrix[seed_already_filled]->best_score_pos[z]->num_introns +1;					
+														current_seed->best_score_pos[nr_paths_par-1]->next_seed=seed_matrix[seed_already_filled];
+														current_seed->best_score_pos[nr_paths_par-1]->path_number=z;
+														current_seed->best_score_pos[nr_paths_par-1]->path_number_matrices=pmatrices[zz];
+														current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore+tempSplicedScore;
+														// Resort best_score_pos and best_scores
+														sort_best_scores(current_seed, nr_paths_par);
+													}
+													else{
+														break;
+													}
 												}
 											}
 										}
 									}
-								}
 								
-							}//End look through complementary splice sites
+								}//End look through complementary splice sites
 
-							delete[] possible_sites[ss]->matrices;
-							possible_sites[ss]->matrices=NULL;
-							delete possible_sites[ss];
-							if (ss!=(int)possible_sites.size()-1){
-								possible_sites[ss]=possible_sites[possible_sites.size()-1];
+								delete[] possible_sites[ss]->matrices;
+								possible_sites[ss]->matrices=NULL;
+								delete possible_sites[ss];
+								if (ss!=(int)possible_sites.size()-1){
+									possible_sites[ss]=possible_sites[possible_sites.size()-1];
+								}
+								possible_sites.pop_back();
 							}
-							possible_sites.pop_back();
 						}
-					}
-					/* A.END */
-
+						/* A.END */
+					}//remapping
+				
 	  
 					/* B. Allow gaps from the previous position in the diagonal */
 					matrix_prev_position= matrix_position-row_len;
@@ -1001,7 +1003,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 					  double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
-					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode)
+					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping)
 {
   
 	const int MMATRIX_LEN = 6; // length of matchmatrix
@@ -1041,12 +1043,12 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 
 	std::vector<int> comp_sites;
 	fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_right,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, donor,acceptor,comp_sites,seed_i, 
-								   seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode);
+								   seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping);
 //	fprintf(stdout,"%i right sides of the matrix filled...\n",seed_matrix_right.size());
   
 	comp_sites.clear();
 	fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_left,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, acceptor,donor,comp_sites,seed_i, 
-								   seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode);
+								   seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping);
 	comp_sites.clear();
 //	fprintf(stdout,"%i left sides of the matrix filled...\n",seed_matrix_left.size());
 
