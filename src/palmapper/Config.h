@@ -143,6 +143,7 @@ public:
 	
 	std::string MAP_JUNCTIONS_FILE ;
 	int MAP_JUNCTIONS;
+	int MAP_JUNCTIONS_COVERAGE;
 
 	int REPORT_RESET;
 

@@ -53,10 +53,12 @@ int main(int argc, char *argv[])
 
 	QueryFile queryFile(_config.QUERY_FILE_NAMES);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
-	JunctionMap junctionmap(genome);
+	JunctionMap junctionmap(genome,_config.MAP_JUNCTIONS_COVERAGE);
 	
 	if (_config.MAP_JUNCTIONS){
-		junctionmap.init_from_gff(_config.MAP_JUNCTIONS_FILE);
+		int ret=junctionmap.init_from_gffs(_config.MAP_JUNCTIONS_FILE);
+		if (ret!=0)
+			return -1;
 	}
 	
 
