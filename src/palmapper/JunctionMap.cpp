@@ -5,13 +5,15 @@
 #include <stdlib.h> 
 #include <palmapper/Util.h>
 
-JunctionMap::JunctionMap(Genome const &genome_)
+JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_)
 {
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
 	
 	junctionlist = new std::list<Junction>[nbchr];
-
+	
+	min_coverage=min_coverage_;
+	
 }
 
 
@@ -21,6 +23,36 @@ JunctionMap::~JunctionMap()
 }
 
 
+void JunctionMap::filter_junctions()
+{
+
+	int total=0;
+	
+	for (int chr=0; chr < genome->nrChromosomes(); chr++){
+
+		if (junctionlist[chr].empty())
+			continue;
+		
+		std::list<Junction>::iterator it=junctionlist[chr].begin(); 
+
+		while(!junctionlist[chr].empty() and it!=junctionlist[chr].end()){
+
+			if ((*it).coverage>0 and (*it).coverage<min_coverage){
+				it=junctionlist[chr].erase(it);
+			}
+			else
+				it++;
+		}
+		
+		total+=junctionlist[chr].size();
+		
+	}
+	
+	fprintf(stdout,"Number of junctions in database (min support=%i): %i\n",min_coverage,total);
+	
+
+}
+	
 
 void JunctionMap::insert_junction(char strand, int chr, int start, int end, int coverage=1)
 {
@@ -132,7 +164,20 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				genome->print_desc(stderr) ;
 				return -1 ;
 			}
-			insert_junction(strand,chr_idx,start, end );
+			
+			std::string tmp(properties);
+			
+			int pos_cov=tmp.find("Note=");
+			
+			int coverage;
+			if (pos_cov>0){
+				coverage= atoi(tmp.substr(pos_cov+5).c_str());
+			}
+			else
+				coverage=1;
+			
+			insert_junction(strand,chr_idx,start, end, coverage);
+			
 			intron_lines++;
 
 		}
@@ -176,5 +221,34 @@ int JunctionMap::report_to_gff(std::string &gff_fname)
 	fclose(fd) ;
 	fprintf(stdout, "report %i introns\n", nb_introns) ;	
 	return 0;
+	
+}
+
+int JunctionMap::init_from_gffs(std::string &gff_fname)
+{
+
+	int previousfound=0;
+	int found=gff_fname.find(",");
+	std::string filename;
+	
+	while (found >= 0){
+		
+		filename=gff_fname.substr(previousfound,found-previousfound);
+		int ret=init_from_gff(filename);
+		if (ret!=0)
+			return ret;
+	   
+		previousfound=found+1;
+		found=gff_fname.find(",",found+1);
+	}
+	
+	filename=gff_fname.substr(previousfound);
+	int ret=init_from_gff(filename);
+	if (ret!=0)
+		return  ret;
+	
+	filter_junctions();
+	
+	return ret;
 	
 }

@@ -18,16 +18,23 @@ class JunctionMap
 {
 
 public:
-	JunctionMap(Genome const &genome_) ;
+	JunctionMap(Genome const &genome_, int min_coverage_) ;
 	~JunctionMap() ;
 
 	void insert_junction(char strand, int chr, int start, int end,int coverage);
-	int init_from_gff(std::string &gff_fname);
+	int init_from_gffs(std::string &gff_fname);
 	int report_to_gff(std::string &gff_fname);
+	void filter_junctions();
 	
+
 	std::list<Junction> * junctionlist ;
 
 protected:
+
+	int init_from_gff(std::string &gff_fname);
+
 	Genome const *genome;
+	int min_coverage;
+	
 };
 

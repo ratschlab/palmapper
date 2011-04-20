@@ -74,6 +74,7 @@ Config::Config() {
 	REPORT_JUNCTIONS=0;
 	MAP_JUNCTIONS_FILE = std::string("") ;
 	MAP_JUNCTIONS=0;
+	MAP_JUNCTIONS_COVERAGE=2;
 
 	QPALMA_USE_MAP = 1 ;
 	QPALMA_USE_MAP_MAX_SIZE = 10000 ;
@@ -728,7 +729,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-report-junctions") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
-					fprintf(stderr, "ERROR: Argument missing for option -report-coverage-map\n") ;
+					fprintf(stderr, "ERROR: Argument missing for option -report-junctions\n") ;
 					usage();
 					exit(1);
 				}
@@ -739,7 +740,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
-					fprintf(stderr, "ERROR: Argument missing for option -report-coverage-map\n") ;
+					fprintf(stderr, "ERROR: Argument missing for option -junction-remapping\n") ;
 					usage();
 					exit(1);
 				}
@@ -748,6 +749,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				MAP_JUNCTIONS = 1 ;
 			}
 
+			if (strcmp(argv[i], "-junction-remapping-coverage") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -junction-remapping-coverage\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAP_JUNCTIONS_COVERAGE=atoi(argv[i]) ;
+				assert(MAP_JUNCTIONS_COVERAGE>=0) ;
+			}
 
 			//report repetitive seeds
 			if (strcmp(argv[i], "-report-rep-seed") == 0) {
@@ -1869,7 +1881,8 @@ int Config::usage() {
 		printf(" -don-consensus STRING                 defines consensus sequences for donor sites (separated by \",\") [GT,GC]\n");
 		printf(" -no-ss-pred                           indicates that no splice site predictions should be used and only scores positions corresponding to consensus sequences for acceptors and donors\n");
 		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as plausible splice sites\n");
-		printf(" -junction-remapping STRING            enables remapping of unmapped or unspliced reads against the junction list provided in gff3 file\n\n");
+		printf(" -junction-remapping STRING[,STRING,..,STRING]  enables remapping of unmapped or unspliced reads against the junction list provided in gff3 files\n");
+		printf(" -junction-remapping-coverage INT      minimum alignment support to take into account a junction\n\n");
 
 		printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1) [0.01]\n");
 		printf(" -filter-splice-region INT             extension of the read region up- and downstream for triggeringspliced alignments by presence of splice sites [5]\n");
