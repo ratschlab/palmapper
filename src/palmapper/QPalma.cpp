@@ -2314,11 +2314,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 
 	int offset_switched=0;
-	for (size_t i = 0; i < est_len_p; i++)
+	for (size_t i = 0; i < (size_t) est_len_p; i++)
 	{
 		prb[i] = (read_quality[i] - alignment_parameters->quality_offset);
 		if (prb[i]<-10 || prb[i]>70)
-			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, read_quality, read.data()) ;
+			fprintf(stderr, "prb[%i]=%f (offset=%i, %s, %s)\n", (int)i, prb[i], alignment_parameters->quality_offset, read_quality.c_str(), read.data()) ;
 
 		if (_config.QPALMA_PRB_OFFSET_FIX)
 		{
