@@ -28,7 +28,7 @@ void JunctionMap::filter_junctions()
 
 	int total=0;
 	
-	for (int chr=0; chr < genome->nrChromosomes(); chr++){
+	for (unsigned int chr=0; chr < genome->nrChromosomes(); chr++){
 
 		if (junctionlist[chr].empty())
 			continue;
@@ -207,7 +207,7 @@ int JunctionMap::report_to_gff(std::string &gff_fname)
 	FILE * fd=Util::openFile(gff_fname.c_str(), "w") ;
 	if (!fd)
 		return -1 ;	
-	for (int i=0; i<genome->nrChromosomes(); i++){
+	for (unsigned int i=0; i<genome->nrChromosomes(); i++){
 		
 		const char * chr= genome->get_desc(i);
 		std::list<Junction>::iterator it;
