@@ -235,7 +235,6 @@ restart:
 	int nr_seeds = (int) (read.length() / _config.INDEX_DEPTH);
 	if (!hits.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
 	{
-
         // if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 		int ret;
 		if (_config.BWA_INDEX == 1)
