@@ -328,7 +328,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 		{
 			char *seed=strdup(&SLOT_STR[reverse][SLOT_STR_POS[reverse]]) ;
 			seed[_config.INDEX_DEPTH]=0 ;
-			fprintf(stdout, "index_entry.num=%i, sa_num=%lld, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
+			fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
 			free(seed) ;
 			debug_show=true ;
 		}
@@ -445,7 +445,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 							{
 								char *seed=strdup(&SLOT_STR[reverse][SLOT_STR_POS[reverse]]) ;
 								seed[_config.INDEX_DEPTH]=0 ;
-								fprintf(stdout, "index_entry.num=%i, sa_num=%lld, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
+								fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
 								free(seed) ;
 								debug_show=true ;
 							}
@@ -1574,7 +1574,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 					{
 						char *seed=strdup(&SLOT_STR[rev][SLOT_STR_POS[rev]]) ;
 						seed[_config.INDEX_DEPTH]=0 ;
-						fprintf(stdout, "index_entry.num=%i, sa_num=%lld, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, rev) ;
+						fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, rev) ; 
 						free(seed) ;
 						debug_show=true ;
 					}
@@ -2067,6 +2067,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
 	memcpy(edit_op, hit->edit_op, mismatches * sizeof(EDIT_OPS));
 
+	assert(readpos>=0 && readpos<(int)_read.length()) ;
+
 	int hitlength = end - start + 1;
 	int afterhit_len = _read.length() - readpos - hitlength + 1;
 	int i,j;
@@ -2079,16 +2081,17 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 		readstart = start - afterhit_len - 1;	//changed		0-initialized
 	}
 
-	if (_config.BSSEQ) {
+	if (_config.BSSEQ) 
+	{
 		char diff;
-
+		
 		// from read[0] to read[hit->readpos]
 		for (j=0; j!=readpos-1; ++j) {
-
+			
 			diff = (hit->orientation == '+'?
 					chromosome[start - readpos + j] - READ[j] :
 					get_compl_base(chromosome[end + readpos - 2 - j]) - READ[j]);
-
+			
 			if ( (hit->conversion == 1 && diff != 0 && diff != -17) ||
 			     (hit->conversion == 2 && diff != 0 && diff !=   6) ||
 			     !unique_base(READ[j]) )
@@ -2098,26 +2101,26 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 					(edit_op[mismatches]).pos = (hit->orientation == '+'? j+1 : _read.length() - j);
 					(edit_op[mismatches]).mm = 1;
 				}
-
+				
 				mismatches++;
 				assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
-
+			
 			if (mismatches > _config.NUM_EDIT_OPS)
 				return 0;
 		}
-
+		
 		j = readpos + hitlength - 1;
 		i = 0;
-
+		
 		
 		// from read[hit->readpos + hitlength] to read[_read.lenght() - 1]
 		while ((mismatches <= _config.NUM_EDIT_OPS) && (j < (int)_read.length())) {
-
+			
 			diff = (hit->orientation == '+'?
 					hit->chromosome->operator [](end + i) - READ[j] :
 					get_compl_base(hit->chromosome->operator [](start - 2 - i)) - READ[j]);
-
+			
 			if ( (hit->conversion == 1 && diff != 0 && diff != -17) ||
 			     (hit->conversion == 2 && diff != 0 && diff !=   6) ||
 			     !unique_base(READ[j]) )
@@ -2127,23 +2130,24 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 					(edit_op[mismatches]).pos = (hit->orientation == '+'? j+1 : _read.length() - j);
 					(edit_op[mismatches]).mm = 1;
 				}
-
+				
 				mismatches++;
 				assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
-
+			
 			if (mismatches > _config.NUM_EDIT_OPS)
 				return 0;
-
+			
 			++i;
 			++j;
 		}
-
-	} else {
-
+		
+	} 
+	else 
+	{
 		// from read[0] to read[hit->readpos]
-		for (j=0; j!=readpos-1; ++j) {
-
+		for (j=0; j<readpos-1; ++j) 
+		{
 			if (	(orientation == '+')
 					&& (	(chromosome[start - readpos + j] != READ[j])
 						|| !(unique_base(READ[j]))		// [XX] should also be a mismatch!
@@ -2176,7 +2180,7 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				mismatches++;
 				assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
-
+ 
 			if (mismatches > _numEditOps) {
 				return 0;
 			}
