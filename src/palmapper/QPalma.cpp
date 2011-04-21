@@ -1850,11 +1850,11 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments) const {
 
 	std::vector<std::vector<region_t *> > *long_regions = result.long_regions;
-	if (nb_spliced_alignments > 0){
-		result.delete_regions();
-		delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-		return 0;
-	}
+	// if (nb_spliced_alignments > 0){
+	// 	result.delete_regions();
+	// 	delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+	// 	return 0;
+	// }
 
 	Read const &read(hits.getRead());
 

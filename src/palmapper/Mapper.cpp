@@ -337,7 +337,7 @@ restart:
 				read.printOn(_TRIGGERED_LOG_FP);
 		}
 
-		if (_config.SPLICED_HITS && (trigger  || FILTER_STAT))
+		if (_config.SPLICED_HITS && (trigger  || FILTER_STAT || _config.MAP_JUNCTIONS))
 			{
 			  num_spliced_alignments_triggered++ ;
 			  
@@ -347,7 +347,9 @@ restart:
 			  try
 			    {
 					int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search);
-					ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search);
+					
+					if (trigger  || FILTER_STAT)
+						ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search);
 					
 					if (_config.MAP_JUNCTIONS)
 						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,hits._topAlignments.size() -nb_unspliced);
