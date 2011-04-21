@@ -233,8 +233,6 @@ int Genome::build_index()
 		bwa_seed2genome_init(_config.GENOME_FILE_NAME.c_str(), NULL) ;
 		read_chr_bwa();
 		fprintf(stdout, "done.\n") ;
-
-	
 	}
 
    
