@@ -1855,7 +1855,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 	// 	delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 	// 	return 0;
 	// }
-
+	const int junction_tol = 10 ; // the hit may overlap by this length with the junction
+	
 	Read const &read(hits.getRead());
 
    	
@@ -1916,14 +1917,19 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 			for (size_t nregion = 0; nregion < long_regions[ori][chrN].size(); nregion++){
 				
-				int rstart=arr[nregion]->start;
-				int rend=arr[nregion]->end;
+				int rstart_=arr[nregion]->start;
+				int rend_=arr[nregion]->end;
 				
-				//fprintf(stdout, "long region: %i-%i (%i,%i)\n",rstart,rend,chrN,ori);
+				if (verbosity>4)
+					fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart_, rend_, chrN, ori);
 				
 				
-				while (it != junctionmap.junctionlist[chrN].end()){
+				while (it != junctionmap.junctionlist[chrN].end())
+				{
 					
+					int rstart=rstart_ ;
+					int rend=rend_ ;
+
 				//Search for an overlapping with junction
 
 					//Intervals around junctions
@@ -1937,16 +1943,26 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					if ((unsigned int)int2_end >= chr.length())
 						int2_end=chr.length()-1;
 
-					//fprintf(stdout, "    junction: (%i-%i)-(%i-%i) (%i,%c)\n",int1_start,int1_end,int2_start,int2_end,chrN,(*it).strand);
-					//fprintf(stdout, "    junction %c%c-%c%c\n",chr[(*it).start],chr[(*it).start+1],chr[(*it).end-1],chr[(*it).end]);
-					
-
+					//if ((*it).start==10515958)
 					if (rstart < int1_start)
 						break; //no overlapping -> next long region
 					
 					//Overlapping junction
-					if ( (rstart >= int1_start and rend <= int1_end) or (rstart >= int2_start and rend <= int2_end)){
+					if ( (rstart >= int1_start and rend <= int1_end+junction_tol) or (rstart >= int2_start-junction_tol and rend <= int2_end))
+					{
+						if (rstart >= int1_start and !(rend <= int1_end) and (rend <= int1_end+junction_tol))
+							rend=int1_end ;
+						if (!(rstart >= int2_start) and rend <= int2_end and (rstart >= int2_start-junction_tol))
+							rstart=int2_start ;
 						
+						if (verbosity>4)
+						{
+							fprintf(stdout, "try to align\n") ;
+							fprintf(stdout, "    junction: (%i-%i)-(%i-%i) (%ld,%c)\n",int1_start,int1_end,int2_start,int2_end,chrN,(*it).strand);
+							fprintf(stdout, "    junction %c%c-%c%c\n",chr[(*it).start],chr[(*it).start+1],chr[(*it).end-1],chr[(*it).end]);
+							fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart, rend, chrN, ori);
+						}
+
 						//Create regions from junction
 						region_t *new_region1 = NULL; 
 						try {
@@ -2004,18 +2020,21 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 						//Take the first long region  to start alignment
 						int hit_read_position = get_first_read_map(read, arr[nregion]->read_map);
-						int hit_len= arr[nregion]->end-arr[nregion]->start;
+						int hit_len= rend - rstart ; //arr[nregion]->end-arr[nregion]->start;
 
 						if(ori==1){
 							hit_read_position = read.length()-hit_len-hit_read_position+1;
 						}
 						assert (hit_read_position>=0 && hit_len >0);
-						// fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
-						// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, arr[nregion]->start, hit_len);					  
-						// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
-
-						// fprintf(stdout,"DNA:%s\n",current_seq.c_str());
-						// fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
+						if (verbosity>4)
+						{
+							fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
+							fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*arr[nregion]->start*/, hit_len);					  
+							fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+							
+							fprintf(stdout,"DNA:%s\n",current_seq.c_str());
+							fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
+						}
 						int ret;
 						
 						if ((*it).strand == '+')
@@ -2023,7 +2042,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 							ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], 
 															current_seq, current_regions, current_positions, 
 															chr, '+', ori, hit_read_position, 
-															arr[nregion]->start, 
+															rstart /*arr[nregion]->start*/, 
 															hit_len, false, num_alignments_reported, true);
 						}
 						else
@@ -2031,7 +2050,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 							ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
 															current_seq, current_regions, current_positions, 
 															chr, '-', ori, read.length()-(hit_read_position+hit_len),
-															arr[nregion]->end-1, hit_len, false, num_alignments_reported, true);
+															rend /*arr[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true);
 						}
 						
 						if (ret < 0)
@@ -3126,6 +3145,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			}
 		    aln->intron_consensus.push_back(strdup(buf)) ;
 		}
+		if (remapping)
+		{
+			alignscore += alignment_parameters->d.penalties[alignment_parameters->d.len-1] ;
+			alignscore += alignment_parameters->a.penalties[alignment_parameters->a.len-1] ;
+		}
 		
 		aln->qpalma_score = alignscore;
 		aln->num_matches = alignment_matches;
@@ -3142,7 +3166,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->passed_filters=alignment_passed_filters ;
 		aln->non_consensus = non_consensus_search ;
 		aln->remapped = remapping ;
-		
+
 		aln->from_gm = 3;
 
 		if (ori == 0)
