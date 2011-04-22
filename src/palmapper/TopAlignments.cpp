@@ -501,8 +501,9 @@ int TopAlignments::spliced_is_overlapping(alignment_t *a1, alignment_t *a2)
 
 int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2) 
 {
-	if (a1->num_matches!=a2->num_matches)
+	if (a1->num_matches!=a2->num_matches) 
 		return 0 ;
+
 	if (a1->strand==a2->strand && a1->orientation==a2->orientation)
 		return 0 ;
 	if (a1->chromosome!=a2->chromosome)
@@ -514,19 +515,23 @@ int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2)
 		return 1 ;
 	if (!a1->non_consensus && a2->non_consensus)
 		return -1 ;
-	if (a1->strand=='+') // ???
-		return -1 ;
+
+	if(a1->qpalma_score < a2->qpalma_score) 
+		return 1;
+
+	//if (a1->strand=='+') // ???
+	//	return -1 ;
 	
-	return 1 ;
+	return -1 ;
 }
 
 bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2) 
 {
 	
 	
-	if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-3){
+	/*if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-3){
 		return false ;
-	}
+		}*/ // cant use this due to the remapping scoring
 	
 	if (a1->num_matches!=a2->num_matches){
 		return false ;
@@ -911,6 +916,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				}
 	
 					
+					
 				int ret;
 				// Alignment already present
 				if (alignment_is_equal(alignment,top_alignments[i]))
@@ -924,33 +930,38 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					return NULL ;
 				}
 
-				//Overlapping consensus alignments: keep the one which passes filters with best score
-				ret=spliced_is_overlapping(alignment, top_alignments[i]);
-				if (ret==-1){
-					//fprintf(stdout,"   Replace alignment: spliced overlapping\n");
-					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
-						num_filtered++;
-					delete top_alignments[i] ;
-					top_alignments[i]=alignment;
-					if (temp_ind<i)
-						temp_ind=i;
-
-					return alignment;		
+				if (false)
+				{
+					//Overlapping consensus alignments: keep the one which passes filters with best score
+					ret=spliced_is_overlapping(alignment, top_alignments[i]);
+					if (ret==-1)
+					{
+						//fprintf(stdout,"   Replace alignment: spliced overlapping\n");
+						if (!top_alignments[i]->passed_filters && alignment->passed_filters)
+							num_filtered++;
+						delete top_alignments[i] ;
+						top_alignments[i]=alignment;
+						if (temp_ind<i)
+							temp_ind=i;
+						
+						return alignment;		
+					}
+					if (ret==1)
+					{
+						//fprintf(stdout,"   Ignore alignment: spliced overlapping\n");
+						if (temp_ind<i)
+							temp_ind=i;
+						
+						delete alignment;
+						return NULL;						
+					}
 				}
-				if (ret==1){
-					//fprintf(stdout,"   Ignore alignment: spliced overlapping\n");
-					if (temp_ind<i)
-						temp_ind=i;
-
-					
-					delete alignment;
-					return NULL;						
-				}
-					
-				//Overlapping consensus alignment with a non consensus one: keep consensus
-				ret=non_consensus_overlaps_consensus(alignment,top_alignments[i]);
 				
-				if (ret==-1){
+				//Overlapping consensus alignment with a non consensus one: keep consensus
+				ret=non_consensus_overlaps_consensus(alignment, top_alignments[i]);
+				
+				if (ret==-1)
+				{
 					//fprintf(stdout,"   Replace alignment: consensus and non consensus\n");
 					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 						num_filtered++;
@@ -965,14 +976,15 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					//fprintf(stdout,"   Ignore alignment: consensus and non consensus\n");
 					if (temp_ind<i)
 						temp_ind=i;
-
+					
 					delete alignment;
 					return NULL;						
 				}
-
+				
 				// Opposite alignments:
 				ret=alignment_is_opposite(alignment,top_alignments[i]);
-				if (ret==-1){
+				if (ret==-1)
+				{
 					//fprintf(stdout,"   Replace alignment: opposite\n");
 					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 						num_filtered++;
@@ -984,7 +996,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					
 					return alignment;		
 				}
-				if (ret==1){
+				if (ret==1)
+				{
 					//fprintf(stdout,"   Ignore alignment: opposite\n");
 					if (temp_ind<i)
 						temp_ind=i;
@@ -992,7 +1005,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					delete alignment;
 					return NULL;						
 				}
-
+			
 				
 				i++;
 					
