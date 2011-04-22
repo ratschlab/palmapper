@@ -2018,20 +2018,16 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						// fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
 						int ret;
 						
-						if ((*it).strand == '+'){
-		
-
-						
-							
+						if ((*it).strand == '+')
+						{
 							ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], 
 															current_seq, current_regions, current_positions, 
 															chr, '+', ori, hit_read_position, 
 															arr[nregion]->start, 
 															hit_len, false, num_alignments_reported, true);
 						}
-						else{
-		
-
+						else
+						{
 							ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
 															current_seq, current_regions, current_positions, 
 															chr, '-', ori, read.length()-(hit_read_position+hit_len),
@@ -2107,7 +2103,9 @@ int QPalma::perform_alignment_starter(Result &result,
 			data->aln=NULL ;
 			data->non_consensus_search=false ;
 			data->remapping=remapping;
+
 			perform_alignment_wrapper(data);
+
 			consensus_alignment=data->aln ;
 			data->aln=NULL ;
 			data->joined = true;
@@ -2138,7 +2136,9 @@ int QPalma::perform_alignment_starter(Result &result,
 			data->aln=NULL ;
 			data->non_consensus_search=true ;
 			data->remapping=remapping;
+
 			perform_alignment_wrapper(data);
+
 			non_consensus_alignment=data->aln ;
 			data->aln=NULL;
 
@@ -3141,7 +3141,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		//aln->rescue_end = rescue_end ;
 		aln->passed_filters=alignment_passed_filters ;
 		aln->non_consensus = non_consensus_search ;
-
+		aln->remapped = remapping ;
+		
 		aln->from_gm = 3;
 
 		if (ori == 0)

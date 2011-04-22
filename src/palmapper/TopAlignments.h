@@ -33,6 +33,8 @@ typedef struct alignment_t {
   int polytrim_cut_end ;
   char from_gm ;
   bool passed_filters;
+  bool remapped ;
+	
 
   HIT* hit ;
   int num ;

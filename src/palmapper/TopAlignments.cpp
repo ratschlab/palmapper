@@ -401,6 +401,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 		best->max_intron_len = 0 ;
 		best->spliced = false ;
 		best->non_consensus = false ;
+		best->remapped=false ;
 
 		bool alignment_passed_filters= (num_mismatches <= _config.NUM_MISMATCHES && num_gaps <= _config.NUM_GAPS && num_mismatches+num_gaps <= _config.NUM_EDIT_OPS) ;
 		best->passed_filters=alignment_passed_filters ;
@@ -780,7 +781,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
     {
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
-			for (int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
+			for (unsigned int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
 				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,1) ;
 			}
 		}
@@ -2031,6 +2032,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
 			fprintf(MY_OUT_FP, "\tXD:f:%2.3f", max_qpalma_score-curr_align->qpalma_score) ;
 			fprintf(MY_OUT_FP, "\tXd:i:%i", curr_align->num_mismatches + curr_align->num_gaps - min_edit_ops) ;
+			fprintf(MY_OUT_FP, "\tXr:c:%i", curr_align->remapped + (curr_align->exons.size()>2)) ;
 		}
 		fprintf(MY_OUT_FP, "\n") ;
 
