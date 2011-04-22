@@ -318,6 +318,16 @@ restart:
 
 	read_mapped = 0 ;
 
+	if (false && !cancel && !_config.REPORT_REPETITIVE_SEEDS)
+	{
+		hits._topAlignments.start_top_alignment_record();
+
+		read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+
+		int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search);
+		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,1000);//hits._topAlignments.size() -nb_unspliced);
+	}
+
 	if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
 	{
 		hits._topAlignments.start_top_alignment_record();
