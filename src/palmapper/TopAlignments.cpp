@@ -800,7 +800,8 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		{
 			for (unsigned int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
 				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), 
-											top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,1) ;
+											top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,
+											!top_alignments[i]->non_consensus, 1) ;
 			}
 		}
 		
@@ -2035,7 +2036,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					assert(curr_align->intron_consensus.size()>0);
 					fprintf(MY_OUT_FP, "\tXC:Z:%s", curr_align->intron_consensus[0].c_str()) ;
 					for (unsigned int qq=1; qq<curr_align->intron_consensus.size(); qq++)
-						fprintf(MY_OUT_FP, "\t~~~~%s", curr_align->intron_consensus[qq].c_str()) ;
+						fprintf(MY_OUT_FP, "~~~~%s", curr_align->intron_consensus[qq].c_str()) ;
 				}
 			}
         }
