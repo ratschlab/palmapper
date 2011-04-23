@@ -1269,7 +1269,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr, "ERROR: output filter already defined\n") ;
 				exit(1) ;
 			}
-			//OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
 			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
 			ALL_HIT_STRATEGY = 1 ;
 		}
@@ -1831,7 +1830,7 @@ int Config::usage() {
 		printf(" -to   INT      map only the first <to> reads from query file\n\n");
 
 		printf(" -a             report all alignments\n");
-		//printf(" -ar INT        report a limited number of alignments (best alignments only)\n");
+		printf(" -ar INT        report a limited number of alignments (random subset) [10]\n");
 		printf(" -z  INT        report a number of top alignments [5]\n");
 		printf(" -n  INT        report a maximal number of best alignments\n\n");
 

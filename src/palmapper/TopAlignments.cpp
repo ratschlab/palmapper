@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <string>
 #include <time.h>
+#include <stdlib.h>
 
 #include "palmapper.h"
 #include "print.h"
@@ -383,6 +384,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	
 	alignment_t *best = new alignment_t ;
 	best->qpalma_score = 1000 ;
+	best->sort_key = random()/RAND_MAX ;
 	best->num_matches = num_matches ;
 	best->num_mismatches = num_mismatches ;
 	best->qual_mismatches = qual_mismatches ;
@@ -632,8 +634,8 @@ void TopAlignments::start_top_alignment_record()
 
 void TopAlignments::check_alignment(struct alignment_t * alignment)
 {
-	if (alignment->exons.size()>4)
-		return ;
+	//if (alignment->exons.size()<4)
+	//	return ;
 	
 	for (int i=0; i<((int)alignment->exons.size())-1; i++)
     {
@@ -692,7 +694,8 @@ void TopAlignments::sort_top_alignment_list()
 	//fprintf(stdout, "Number of alignments %i\n", top_alignments.size());
 
 	// Remove unfiltered alignments from non_consensus_search
-	if (_config.non_consensus_search){
+	if (_config.non_consensus_search)
+	{
 		for (size_t i=0; i<top_alignments.size();++i){
 			if (!top_alignments[i]->passed_filters){
 				delete top_alignments[i] ;
@@ -705,7 +708,7 @@ void TopAlignments::sort_top_alignment_list()
 	}
 
 	// Sort by qpalma score and positions remaining alignments if not all reported
-	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP){
+	{
 		
 		alignment_t ** arr = NULL ;
 		size_t nbr_aligments=top_alignments.size();
@@ -719,37 +722,46 @@ void TopAlignments::sort_top_alignment_list()
 		}
 		
 		for (int i = 0; i < (int)nbr_aligments; i++)
+		{
 			arr[i] = top_alignments[i];
+			if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || _config.OUTPUT_FILTER==OUTPUT_FILTER_ALL)
+				arr[i]->sort_key = arr[i]->qpalma_score ;
+			if (_config.OUTPUT_FILTER==OUTPUT_FILTER_LIMIT)
+				arr[i]->sort_key = random()/RAND_MAX ;
+		}
 		
-		//fprintf(stdout, "[sort_top_alignment_list] start sorting %i alignments...\n", nbr_aligments);
 		qsort_top_alignments(arr, nbr_aligments);
-		//fprintf(stdout, "[sort_top_alignment_list] end sorting...\n");
-
+		
 		for (int i = 0; i < (int)nbr_aligments; i++)
 			top_alignments[i] = arr[i];
 		
 		delete[] arr;
-
-		if (top_alignments.size()>_config.OUTPUT_FILTER_NUM_TOP){
-			for(size_t i=top_alignments.size()-1;i>=_config.OUTPUT_FILTER_NUM_TOP;i--){
+	}
+	
+	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || _config.OUTPUT_FILTER==OUTPUT_FILTER_LIMIT)
+	{
+		unsigned int limit = _config.OUTPUT_FILTER_NUM_TOP ;
+		
+		if (_config.OUTPUT_FILTER==OUTPUT_FILTER_LIMIT)
+			limit = _config.OUTPUT_FILTER_NUM_LIMIT ;
+		
+		if (top_alignments.size() > limit)
+		{
+			for(size_t i=top_alignments.size()-1; i>=limit; i--)
+			{
 				delete top_alignments[i] ;
 				top_alignments[i]=NULL ;
 				top_alignments.pop_back();
 			}
 		}
+		assert(top_alignments.size() <= limit) ;
 	}
-	
 }
 
 void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end, JunctionMap &junctionmap) {
 
 	if (top_alignments.empty() && ! _config.INCLUDE_UNMAPPED_READS_SAM)
 		return;
-	
-	
-	
-
-	// Process collected hits and write extracted information
 
 	//pthread_mutex_lock( &top_mutex) ;
 
@@ -787,7 +799,8 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
 			for (unsigned int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
-				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,1) ;
+				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), 
+											top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,1) ;
 			}
 		}
 		
@@ -798,8 +811,6 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 	//pthread_mutex_unlock( &top_mutex) ;
 
 	clean_top_alignment_record();
-	//exit(1) ;
-	
 }
 
 alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int num_alignments)
@@ -888,14 +899,15 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 			
 			int i =current_ind;
 			//fprintf(stdout,"   Start comparing with %i\n", i);
-			while (i< (int)top_alignments.size()){
+			while (i< (int)top_alignments.size())
+			{
 				//fprintf(stdout,"   Compare with %i\n", i);
 				// for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
 				// 	fprintf(stdout, "# exon %i: %i - %i (%i)\n", (int)j / 2,  top_alignments[i]->exons[j],  top_alignments[i]->exons[j+ 1], top_alignments[i]->chromosome->nr());
 				//Adapt pointer
 				if (chr!=current_chr && chr==(int)top_alignments[i]->chromosome->nr()){
 					current_chr = chr;
-					current_ind=i;
+					current_ind = i;
 				}
 				
 		
@@ -2045,7 +2057,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
 			fprintf(MY_OUT_FP, "\tXD:f:%2.3f", max_qpalma_score-curr_align->qpalma_score) ;
 			fprintf(MY_OUT_FP, "\tXd:i:%i", curr_align->num_mismatches + curr_align->num_gaps - min_edit_ops) ;
-			fprintf(MY_OUT_FP, "\tXr:c:%i", curr_align->remapped + (curr_align->exons.size()>2)) ;
+			//fprintf(MY_OUT_FP, "\tXr:i:%i", curr_align->remapped + (curr_align->exons.size()>2)) ;
 		}
 		fprintf(MY_OUT_FP, "\n") ;
 
