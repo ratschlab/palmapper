@@ -374,8 +374,10 @@ int Config::checkConfig()
 		exit(1) ;
 	}
 	
-
-	
+	if (SPLICED_MAX_INTRONS>1 && non_consensus_search)
+	{
+		fprintf(stdout, "WARNING: non-consensus search is slow with more than one intron per alignment\n") ;
+	}
 
 	return 0 ;
 }
