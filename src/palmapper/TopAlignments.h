@@ -41,7 +41,8 @@ typedef struct alignment_t {
 	HIT* hit ;
 	int num ;
 	std::vector<std::string> intron_consensus ;
-	bool non_consensus ;
+	std::vector<bool> non_consensus_intron ;
+	bool non_consensus_alignment ;
 	
 } ALIGNMENT;
 

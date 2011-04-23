@@ -402,7 +402,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	if (_config._personality == Palmapper) {
 		best->max_intron_len = 0 ;
 		best->spliced = false ;
-		best->non_consensus = false ;
+		best->non_consensus_alignment = false ;
 		best->remapped=false ;
 
 		bool alignment_passed_filters= (num_mismatches <= _config.NUM_MISMATCHES && num_gaps <= _config.NUM_GAPS && num_mismatches+num_gaps <= _config.NUM_EDIT_OPS) ;
@@ -476,7 +476,7 @@ int TopAlignments::spliced_is_overlapping(alignment_t *a1, alignment_t *a2)
 
 	if (!a1->spliced || !a2->spliced)
 		return 0;
-	if(a1->non_consensus!=a2->non_consensus)
+	if(a1->non_consensus_alignment!=a2->non_consensus_alignment)
 		return 0;
 	if(a1->chromosome!=a2->chromosome)
 		return 0;
@@ -513,9 +513,9 @@ int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2)
 	if (a1->exons!=a2->exons)
 		return 0 ;
 
-	if (a1->non_consensus && !a2->non_consensus)
+	if (a1->non_consensus_alignment && !a2->non_consensus_alignment)
 		return 1 ;
-	if (!a1->non_consensus && a2->non_consensus)
+	if (!a1->non_consensus_alignment && a2->non_consensus_alignment)
 		return -1 ;
 
 	if(a1->qpalma_score < a2->qpalma_score) 
@@ -564,7 +564,7 @@ int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t
 {
 
 
-	if (a1->non_consensus == a2->non_consensus)
+	if (a1->non_consensus_alignment == a2->non_consensus_alignment)
 		return 0;
 	//if (a1->strand==a2->strand || a1->orientation != a2->orientation)
 	//	return 0;
@@ -584,7 +584,7 @@ int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t
 	if (endalign1<startalign2 || startalign1 > endalign2)
 		return 0;
 	
-	if (a1->non_consensus)
+	if (a1->non_consensus_alignment)
 		return 1;
 	
 	return -1;
@@ -801,7 +801,8 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 			for (unsigned int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
 				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), 
 											top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,
-											!top_alignments[i]->non_consensus, 1) ;
+											!top_alignments[i]->non_consensus_intron[j/2-1], top_alignments[i]->min_exon_len, 
+											top_alignments[i]->read_id, 1) ;
 			}
 		}
 		
@@ -2016,7 +2017,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		{
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
 			{
-				if (!curr_align->non_consensus)
+				if (!curr_align->non_consensus_alignment)
 					fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
 				else
 				{
@@ -2031,7 +2032,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
 				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
 				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
-				if (curr_align->non_consensus)
+				if (curr_align->non_consensus_alignment)
 				{
 					assert(curr_align->intron_consensus.size()>0);
 					fprintf(MY_OUT_FP, "\tXC:Z:%s", curr_align->intron_consensus[0].c_str()) ;
