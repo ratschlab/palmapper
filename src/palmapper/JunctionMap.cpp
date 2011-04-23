@@ -124,8 +124,16 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 			{
 				if (strand == (*it).strand)
 				{
-					(*it).coverage+=coverage;
-					assert((*it).consensus==consensus) ;
+					if ((*it).consensus!=consensus)
+					{
+						fprintf(stderr, "WARNING: consensus mismatch:\n%i-%i %c %i %i\n%i-%i %c %i %i\n", (*it).start, (*it).end, (*it).strand, (*it).coverage, (*it).consensus, start, end, strand, coverage, consensus) ;
+						//assert(0) ;
+
+						if (!consensus)
+							(*it).consensus=false ;
+					}
+
+					(*it).coverage += coverage;
 
 					pthread_mutex_unlock( &junction_mutex) ;
 					return;
