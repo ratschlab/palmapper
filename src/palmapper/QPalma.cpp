@@ -1514,7 +1514,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 	return 0;
 }
 
-int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search) const {
+int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search) const 
+{
 	// Dominik marker
 	// std::vector<std::vector<region_t *> > long_regions_other[2] ;
 	// if (paired_read_processing)
@@ -2125,8 +2126,8 @@ int QPalma::perform_alignment_starter(Result &result,
 
 			perform_alignment_wrapper(data);
 
-			consensus_alignment=data->aln ;
-			data->aln=NULL ;
+			consensus_alignment = data->aln ;
+			data->aln = NULL ;
 			data->joined = true;
 			delete data ;
 		}
@@ -2165,15 +2166,15 @@ int QPalma::perform_alignment_starter(Result &result,
 		}
 
 		
-		if (consensus_alignment && (consensus_alignment->passed_filters || non_consensus_search)){
-			
+		if (consensus_alignment && (consensus_alignment->passed_filters || non_consensus_search))
+		{
 			readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
 			num_alignments_reported++ ;
 		}
-		
-		else{
-			if (non_consensus_alignment && non_consensus_alignment->passed_filters){
-				
+		else
+		{
+			if (non_consensus_alignment && non_consensus_alignment->passed_filters)
+			{
 				readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
 				num_alignments_reported++ ;
 			}
@@ -2660,7 +2661,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				}
 			if (non_consensus_search && !is_ss) 
 			{
-
 				if (dna[i]!='N' && dna[i+1]!='N')
 					donor[i] = NON_CONSENSUS_SCORE ;
 				match += 1 ;//(donor[i] > -ALMOST_INFINITY);
@@ -2732,8 +2732,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			if (donor[i] > -ALMOST_INFINITY)
 			{
 				if (donor[i]==NON_CONSENSUS_SCORE)
-					donor[i]=0.0 ;
-				else{
+				{
+					donor[i]=0.01 ; // low donor probability  -> correspondingly low score
+					if (not _config.NO_QPALMA)
+						donor[i] = lookup_penalty(&alignment_parameters->d, 0, &donor[i]);
+				}
+				else
+				{
 					if (not _config.NO_QPALMA)
 						donor[i] = lookup_penalty(&alignment_parameters->d, 0, &donor[i]);
 				}			
@@ -2742,8 +2747,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			if (acceptor[i] > -ALMOST_INFINITY)
 			{
 				if (acceptor[i]==NON_CONSENSUS_SCORE)
-					acceptor[i]=0.0 ;
-				else{
+				{
+					acceptor[i]=0.01 ; // low acceptor probability  -> correspondingly low score
+					if (not _config.NO_QPALMA)
+						acceptor[i] = lookup_penalty(&alignment_parameters->a, 0, &acceptor[i]);
+				}
+				else
+				{
 					if (not _config.NO_QPALMA)
 						acceptor[i] = lookup_penalty(&alignment_parameters->a, 0, &acceptor[i]);
 				}
@@ -2761,18 +2771,18 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		hit_dna_converted=(int)dna.length()-1-hit_dna_converted;
 
 	assert (hit_dna_converted >= 0);
-	if (non_consensus_search){
-		
+	if (non_consensus_search)
+	{
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
-						   est_len_p, prb, alignment_parameters->h,
-						   alignment_parameters->matchmatrix,
-						   alignment_parameters->matchmatrix_dim[0]
-						   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
-						   acceptor, a_len, alignment_parameters->qualityPlifs,
-						   remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
-							   _config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.get_num_edit_ops(), MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN,remapping);
+							   est_len_p, prb, alignment_parameters->h,
+							   alignment_parameters->matchmatrix,
+							   alignment_parameters->matchmatrix_dim[0]
+							   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
+							   acceptor, a_len, alignment_parameters->qualityPlifs,
+							   remove_duplicate_scores, hit_read, hit_dna_converted, hit_length, _config.SPLICED_MAX_INTRONS,
+							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
+							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping);
 	}
-	
 	else
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
 							   est_len_p, prb, alignment_parameters->h,
@@ -2781,7 +2791,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
-							   _config.NUM_GAPS,_config.NUM_MISMATCHES,readMappings.get_num_edit_ops(), MIN_NUM_MATCHES,remapping);
+							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
+							   MIN_NUM_MATCHES, remapping);
 
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
@@ -3110,6 +3121,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	bool alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
 		&&(exons.size()==2 ||( (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
 
+	bool non_consensus_alignment=false ;
+
 	if (alignment_valid) // it must be spliced and not have too many mismatches
 	{
 		aln = NULL;
@@ -3135,6 +3148,25 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						contig_idx[istart-2], contig_idx[istart-1], contig_idx[istart], contig_idx[istart+1],  contig_idx[istart+2], contig_idx[istart+3], 
 						contig_idx[istop-4], contig_idx[istop-3], contig_idx[istop-2], contig_idx[istop-1], contig_idx[istop], contig_idx[istop+1]) ;
 				//fprintf(stdout, "intron+: %s\n", buf) ;
+				
+				bool is_consensus_don = false ;
+				for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
+					if (contig_idx[istart] == _config.DON_CONSENSUS[j][0] && contig_idx[istart+1] == _config.DON_CONSENSUS[j][1])
+					{
+						is_consensus_don = true ;
+						break ;
+					}
+				bool is_consensus_acc = false ;
+				for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
+					if (contig_idx[istop-2] == _config.ACC_CONSENSUS[j][0] && contig_idx[istop-1] == _config.ACC_CONSENSUS[j][1])
+					{
+						is_consensus_acc = true ;
+						break ;
+					}
+				if (!is_consensus_don || !is_consensus_acc)
+					non_consensus_alignment=true ;
+				if (!non_consensus_search)
+					assert(!non_consensus_alignment) ;
 			}
 		    else
 			{
@@ -3142,13 +3174,34 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						complement(contig_idx[istop+1]), complement(contig_idx[istop]), complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istop-3]), complement(contig_idx[istop-4]), 
 						complement(contig_idx[istart+3]), complement(contig_idx[istart+2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0]), complement(contig_idx[istart-1]), complement(contig_idx[istart-2])) ;
 				//fprintf(stdout, "intron-: %s\n", buf) ;
+
+				bool is_consensus_don = false ;
+				for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
+					if (complement(contig_idx[istop-1]) == _config.DON_CONSENSUS[j][0] && complement(contig_idx[istop-2]) == _config.DON_CONSENSUS[j][1])
+					{
+						is_consensus_don = true ;
+						break ;
+					}
+				bool is_consensus_acc = false ;
+				for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
+					if (complement(contig_idx[istart+1]) == _config.ACC_CONSENSUS[j][0] && complement(contig_idx[istart-0]) == _config.ACC_CONSENSUS[j][1]) 
+					{
+						is_consensus_acc = true ;
+						break ;
+					}
+				if (!is_consensus_don || !is_consensus_acc)
+					non_consensus_alignment=true ;
+				if (!non_consensus_search)
+					assert(!non_consensus_alignment) ;
+
 			}
 		    aln->intron_consensus.push_back(strdup(buf)) ;
 		}
 		if (remapping)
 		{
-			alignscore += alignment_parameters->d.penalties[alignment_parameters->d.len-1] ;
-			alignscore += alignment_parameters->a.penalties[alignment_parameters->a.len-1] ;
+			REAL score = 1.0 ; // high probability for donr and acceptor -> large ss score
+			alignscore += lookup_penalty(&alignment_parameters->d, 0, &score) ; //alignment_parameters->d.penalties[alignment_parameters->d.len-1] ;
+			alignscore += lookup_penalty(&alignment_parameters->a, 0, &score) ; //alignment_parameters->a.penalties[alignment_parameters->a.len-1] ;
 		}
 		
 		aln->qpalma_score = alignscore;
@@ -3164,7 +3217,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		//aln->rescue_start = rescue_start ;
 		//aln->rescue_end = rescue_end ;
 		aln->passed_filters=alignment_passed_filters ;
-		aln->non_consensus = non_consensus_search ;
+		aln->non_consensus = non_consensus_alignment ; 
 		aln->remapped = remapping ;
 
 		aln->from_gm = 3;
@@ -3184,8 +3237,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		if (verbosity >= 2)
 		{
 			fprintf(stdout,
-					"# alignment (%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c): %s\n",
-					non_consensus_search,(int) exons.size() / 2, read.id(), alignscore,
+					"# alignment (%i/%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c): %s\n",
+					non_consensus_search,non_consensus_alignment, (int) exons.size() / 2, read.id(), alignscore,
 					alignment_matches, alignment_gaps, strand, read_anno.c_str());
 			for (size_t i = 0; i < exons.size(); i += 2)
 				fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, exons[i], exons[i+ 1]);
