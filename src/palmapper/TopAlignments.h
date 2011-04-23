@@ -12,35 +12,37 @@ class QPalma ;
 struct HIT;
 
 typedef struct alignment_t {
-  double qpalma_score;
-  uint32_t num_matches;
-  uint32_t num_mismatches;
-  uint32_t qual_mismatches;
-  uint32_t num_gaps;
-  char read_anno[4*Config::MAX_READ_LENGTH] ;
-  std::vector<int> exons;
-  Chromosome const *chromosome;
-  char orientation;
-  char strand ;
-  char read_id[Config::MAX_READ_ID_LENGTH];
-  int min_exon_len ;
-  int max_intron_len ;
-  bool spliced ;
-  //bool rescued ;
-  //int rescue_start, rescue_end ;
-  int rtrim_cut ;
-  int polytrim_cut_start ;
-  int polytrim_cut_end ;
-  char from_gm ;
-  bool passed_filters;
-  bool remapped ;
+	double qpalma_score;
+	double sort_key;
 	
-
-  HIT* hit ;
-  int num ;
-  std::vector<std::string> intron_consensus ;
+	uint32_t num_matches;
+	uint32_t num_mismatches;
+	uint32_t qual_mismatches;
+	uint32_t num_gaps;
+	char read_anno[4*Config::MAX_READ_LENGTH] ;
+	std::vector<int> exons;
+	Chromosome const *chromosome;
+	char orientation;
+	char strand ;
+	char read_id[Config::MAX_READ_ID_LENGTH];
+	int min_exon_len ;
+	int max_intron_len ;
+	bool spliced ;
+	//bool rescued ;
+	//int rescue_start, rescue_end ;
+	int rtrim_cut ;
+	int polytrim_cut_start ;
+	int polytrim_cut_end ;
+	char from_gm ;
+	bool passed_filters;
+	bool remapped ;
+	
+	
+	HIT* hit ;
+	int num ;
+	std::vector<std::string> intron_consensus ;
 	bool non_consensus ;
-
+	
 } ALIGNMENT;
 
 class TopAlignments {
