@@ -4,6 +4,7 @@
 #include <palmapper/Genome.h>
 #include <stdlib.h> 
 #include <palmapper/Util.h>
+#include <pthread.h>
 
 JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_)
 {
@@ -13,6 +14,9 @@ JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_)
 	junctionlist = new std::list<Junction>[nbchr];
 	
 	min_coverage=min_coverage_;
+
+	int ret = pthread_mutex_init(&junction_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
+	assert(ret==0) ;
 	
 }
 
@@ -25,37 +29,46 @@ JunctionMap::~JunctionMap()
 
 void JunctionMap::filter_junctions()
 {
+	pthread_mutex_lock( &junction_mutex) ;
 
-	int total=0;
+	int total=0, total_nonconsensus=0 ;
 	
-	for (unsigned int chr=0; chr < genome->nrChromosomes(); chr++){
-
+	for (unsigned int chr=0; chr < genome->nrChromosomes(); chr++)
+	{
 		if (junctionlist[chr].empty())
 			continue;
 		
 		std::list<Junction>::iterator it=junctionlist[chr].begin(); 
 
-		while(!junctionlist[chr].empty() and it!=junctionlist[chr].end()){
-
-			if ((*it).coverage>0 and (*it).coverage<min_coverage){
+		while (!junctionlist[chr].empty() and it!=junctionlist[chr].end())
+		{
+			assert((*it).coverage>0);
+			if ( ((*it).coverage<min_coverage) || (((*it).coverage < 2*min_coverage) && (!(*it).consensus) ) )
+			{
 				it=junctionlist[chr].erase(it);
 			}
 			else
+			{
 				it++;
+				if (!(*it).consensus)
+					total_nonconsensus++ ;
+			}
 		}
 		
 		total+=junctionlist[chr].size();
 		
 	}
-	
-	fprintf(stdout,"Number of junctions in database (min support=%i): %i\n",min_coverage,total);
-	
 
+	pthread_mutex_unlock( &junction_mutex) ;
+	
+	fprintf(stdout,"Number of junctions in database (min support=%i): %i consensus, %i nonconsensus\n", 
+			min_coverage,total-total_nonconsensus,total_nonconsensus);
 }
 	
 
-void JunctionMap::insert_junction(char strand, int chr, int start, int end, int coverage=1)
+void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool consensus, int coverage=1)
 {
+	pthread_mutex_lock( &junction_mutex) ;
 
 	//Sorted list by donor positions first and then acceptor positions
 	Junction j;
@@ -68,52 +81,69 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, int 
 		j.end=end;
 		j.coverage=coverage;
 		j.strand=strand;
+		j.consensus=consensus ;
 		junctionlist[chr].push_back(j);
+
+		pthread_mutex_unlock( &junction_mutex) ;
 		return;
 		
 	}
 
-
 	std::list<Junction>::iterator it;
-	for (it=junctionlist[chr].begin(); it!=junctionlist[chr].end(); it++){
-		
-	  
-		if (start <  (*it).start){
+	for (it=junctionlist[chr].begin(); it!=junctionlist[chr].end(); it++)
+	{
+		if (start <  (*it).start)
+		{
 			j.start=start;
 			j.end=end;
 			j.coverage=coverage;
 			j.strand=strand;
+			j.consensus = consensus ;
 			junctionlist[chr].insert(it,j);
+
+			pthread_mutex_unlock( &junction_mutex) ;
 			return;
 		}
-	
-		if (start==  (*it).start){
-			if (end < (*it).end){
+		
+		if (start ==  (*it).start)
+		{
+			if (end < (*it).end)
+			{
 				j.start=start;
 				j.end=end;
 				j.coverage=coverage;
 				j.strand=strand;
+				j.consensus = consensus ;
 				junctionlist[chr].insert(it,j);
+
+				pthread_mutex_unlock( &junction_mutex) ;
 				return;
 			}
 			
-			if (end == (*it).end){
-				if (strand == (*it).strand){
+			if (end == (*it).end)
+			{
+				if (strand == (*it).strand)
+				{
 					(*it).coverage+=coverage;
+					assert((*it).consensus==consensus) ;
+
+					pthread_mutex_unlock( &junction_mutex) ;
 					return;
 				}
-				if (strand == '+'){
+				if (strand == '+')
+				{
 					j.start=start;
 					j.end=end;
 					j.coverage=coverage;
-					j.strand=strand;
+					j.consensus = consensus ;
+					j.strand = strand;
 					junctionlist[chr].insert(it,j);
+
+					pthread_mutex_unlock( &junction_mutex) ;
 					return;
 				}
-
 			}
 		}
-		
 		continue;
 	}
 	
@@ -122,8 +152,11 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, int 
 	j.end=end;
 	j.coverage=coverage;
 	j.strand=strand;
+	j.consensus = consensus ;
 	junctionlist[chr].push_back(j);
 	
+	pthread_mutex_unlock( &junction_mutex) ;
+	return ;
 }
 
 int JunctionMap::init_from_gff(std::string &gff_fname)
@@ -167,19 +200,29 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			
 			std::string tmp(properties);
 			
-			int pos_cov=tmp.find("Note=");
-			
-			int coverage;
-			if (pos_cov>0){
-				coverage= atoi(tmp.substr(pos_cov+5).c_str());
-			}
+			int pos_cov=tmp.find("Confirmed=");
+			if (pos_cov>0)
+				pos_cov += strlen("Confirmed=") ;
 			else
-				coverage=1;
-			
-			insert_junction(strand,chr_idx,start, end, coverage);
-			
-			intron_lines++;
+			{
+				pos_cov=tmp.find("Note=");
+				if (pos_cov>0)
+					pos_cov += strlen("Note=") ;
+			}
+			int coverage = 1;
+			if (pos_cov>0)
+				coverage= atoi(tmp.substr(pos_cov).c_str());
 
+			bool nonconsensus=false ;
+			int pos_cons=tmp.find("Nonconsensus=");
+			if (pos_cons>0)
+				pos_cons += strlen("Nonconsensus=") ;
+			if (pos_cons>0)
+				nonconsensus = atoi(tmp.substr(pos_cons).c_str());
+			
+			insert_junction(strand,chr_idx,start, end, !nonconsensus, coverage);
+
+			intron_lines++;
 		}
 		
 
@@ -199,6 +242,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 int JunctionMap::report_to_gff(std::string &gff_fname)
 {
+	pthread_mutex_lock( &junction_mutex) ;
 
 	int nb_introns=0;
 	
@@ -213,13 +257,20 @@ int JunctionMap::report_to_gff(std::string &gff_fname)
 		std::list<Junction>::iterator it;
 		
 		for (it=junctionlist[i].begin(); it!=junctionlist[i].end(); it++){			
-			fprintf(fd,"%s\tpalmapper\tintron\t%i\t%i\t.\t%c\t.\tID=intron_%i;Note=%i\n",chr,(*it).start,(*it).end,(*it).strand,nb_introns,(*it).coverage);
-				nb_introns++;
+			fprintf(fd,"%s\tpalmapper\tintron\t%i\t%i\t.\t%c\t.\tID=intron_%i;Confirmed=%i",chr,(*it).start,(*it).end,(*it).strand,nb_introns,(*it).coverage);
+			if (!(*it).consensus)
+				fprintf(fd,";Nonconsensus=1\n");
+			else
+				fprintf(fd,"\n");
+			nb_introns++;
 		}
 	
 	}
 	fclose(fd) ;
 	fprintf(stdout, "report %i introns\n", nb_introns) ;	
+
+	pthread_mutex_unlock( &junction_mutex) ;
+
 	return 0;
 	
 }
@@ -231,10 +282,11 @@ int JunctionMap::init_from_gffs(std::string &gff_fname)
 	int found=gff_fname.find(",");
 	std::string filename;
 	
-	while (found >= 0){
+	while (found >= 0)
+	{
 		
-		filename=gff_fname.substr(previousfound,found-previousfound);
-		int ret=init_from_gff(filename);
+		filename = gff_fname.substr(previousfound, found-previousfound);
+		int ret = init_from_gff(filename);
 		if (ret!=0)
 			return ret;
 	   
