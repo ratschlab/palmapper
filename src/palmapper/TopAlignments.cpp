@@ -796,7 +796,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 
 	if ( _config.REPORT_JUNCTIONS)
     {
-		for (unsigned int i=0; i<top_alignments.size(); i++)
+		for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
 		{
 			for (unsigned int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
 				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), 
