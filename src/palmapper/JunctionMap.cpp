@@ -11,7 +11,7 @@ JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_)
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
 	
-	junctionlist = new std::list<Junction>[nbchr];
+	junctionlist = new std::deque<Junction>[nbchr];
 	
 	min_coverage=min_coverage_;
 
@@ -29,47 +29,72 @@ JunctionMap::~JunctionMap()
 
 void JunctionMap::filter_junctions()
 {
-	pthread_mutex_lock( &junction_mutex) ;
+	lock() ;
 
-	int total=0, total_nonconsensus=0 ;
+	int total=0, 
+		used_nonconsensus=0, 
+		used_consensus=0,
+		filtered_consensus=0, 
+		filtered_nonconsensus=0 ;
 	
 	for (unsigned int chr=0; chr < genome->nrChromosomes(); chr++)
 	{
 		if (junctionlist[chr].empty())
 			continue;
 		
-		std::list<Junction>::iterator it=junctionlist[chr].begin(); 
-
+		// create copy of list
+		std::deque<Junction>::iterator it=junctionlist[chr].begin(); 
+		std::deque<Junction> list  ;
 		while (!junctionlist[chr].empty() and it!=junctionlist[chr].end())
 		{
+			list.push_back(*it) ;
+			it++ ;
+		}
+		junctionlist[chr].clear() ;
+
+		it=list.begin(); 
+		
+		while (!list.empty() and it!=list.end())
+		{
 			assert((*it).coverage>0);
-			if ( ((*it).coverage<min_coverage) || (((*it).coverage < 2*min_coverage) && (!(*it).consensus) ) )
+			if ( ((*it).coverage<min_coverage) || (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && (!(*it).consensus) ) )
 			{
-				it=junctionlist[chr].erase(it);
+				if ((*it).consensus)
+					filtered_consensus++ ;
+				else
+					filtered_nonconsensus++ ;
 			}
 			else
 			{
-				it++;
-				if (!(*it).consensus)
-					total_nonconsensus++ ;
+				if ((*it).consensus)
+					used_consensus++ ;
+				else
+					used_nonconsensus++ ;
+				
+				junctionlist[chr].push_back(*it) ;
 			}
+			it++;
 		}
-		
 		total+=junctionlist[chr].size();
-		
 	}
-
-	pthread_mutex_unlock( &junction_mutex) ;
+	unlock() ;
 	
-	fprintf(stdout,"Number of junctions in database (min support=%i): %i consensus, %i nonconsensus\n", 
-			min_coverage,total-total_nonconsensus,total_nonconsensus);
+	fprintf(stdout,"Number of junctions in database (min support=%i): %i/%i consensus, %i/%i nonconsensus, %i total\n", 
+			min_coverage, used_consensus, used_consensus+filtered_consensus, used_nonconsensus, used_nonconsensus+filtered_nonconsensus, total);
 }
 	
-
-void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool consensus, int coverage=1)
+bool comp_junction(std::deque<Junction>::iterator &a, std::deque<Junction>::iterator & b)
 {
-	pthread_mutex_lock( &junction_mutex) ;
+	if ((*a).start<(*b).start)
+		return true ;
+	return false ;
+}
 
+void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool consensus,  const char* intron_string,
+								  int junction_qual, const char *read_id, int coverage = 1)
+{
+	lock() ;
+	
 	//Sorted list by donor positions first and then acceptor positions
 	Junction j;
 
@@ -82,15 +107,20 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 		j.coverage=coverage;
 		j.strand=strand;
 		j.consensus=consensus ;
+		j.intron_string = intron_string ;
+		j.read_id = read_id ;
+		j.junction_qual = junction_qual ;
 		junctionlist[chr].push_back(j);
 
-		pthread_mutex_unlock( &junction_mutex) ;
+		unlock() ;
 		return;
 		
 	}
 
-	std::list<Junction>::iterator it;
-	for (it=junctionlist[chr].begin(); it!=junctionlist[chr].end(); it++)
+	std::deque<Junction>::iterator it = my_lower_bound(junctionlist[chr].begin(), junctionlist[chr].end(), start) ;
+	//std::deque<Junction>::iterator it = junctionlist[chr].begin() ;
+	
+	for (; it!=junctionlist[chr].end(); it++)
 	{
 		if (start <  (*it).start)
 		{
@@ -99,12 +129,14 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 			j.coverage=coverage;
 			j.strand=strand;
 			j.consensus = consensus ;
+			j.intron_string = intron_string ;
+			j.read_id = read_id ;
+			j.junction_qual = junction_qual ;
 			junctionlist[chr].insert(it,j);
 
-			pthread_mutex_unlock( &junction_mutex) ;
+			unlock() ;
 			return;
 		}
-		
 		if (start ==  (*it).start)
 		{
 			if (end < (*it).end)
@@ -114,9 +146,12 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 				j.coverage=coverage;
 				j.strand=strand;
 				j.consensus = consensus ;
+				j.intron_string = intron_string ;
+				j.read_id = read_id ;
+				j.junction_qual = junction_qual ;
 				junctionlist[chr].insert(it,j);
 
-				pthread_mutex_unlock( &junction_mutex) ;
+				unlock() ;
 				return;
 			}
 			
@@ -126,16 +161,24 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 				{
 					if ((*it).consensus!=consensus)
 					{
-						fprintf(stderr, "WARNING: consensus mismatch:\n%i-%i %c %i %i\n%i-%i %c %i %i\n", (*it).start, (*it).end, (*it).strand, (*it).coverage, (*it).consensus, start, end, strand, coverage, consensus) ;
-						//assert(0) ;
+						fprintf(stderr, "WARNING: consensus mismatch:\n%s:\t%i-%i %c %i %i %i\n%s:\t%i-%i %c %i %i %i\n", 
+								(*it).read_id.c_str(), (*it).start, (*it).end, (*it).strand, (*it).coverage, (*it).consensus, (*it).junction_qual,
+								read_id, start, end, strand, coverage, consensus, junction_qual) ;
 
-						if (!consensus)
+						assert(0) ; // this should not happen -> please report this bug and try commenting out the assertion
+						
+						if (!consensus) // try to handle this case 
 							(*it).consensus=false ;
 					}
-
+					if (junction_qual > (*it).junction_qual)
+					{
+						(*it).junction_qual=junction_qual ;
+						(*it).read_id=read_id ;
+					}
+					
 					(*it).coverage += coverage;
 
-					pthread_mutex_unlock( &junction_mutex) ;
+					unlock() ;
 					return;
 				}
 				if (strand == '+')
@@ -144,10 +187,13 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 					j.end=end;
 					j.coverage=coverage;
 					j.consensus = consensus ;
+					j.intron_string = intron_string ;
 					j.strand = strand;
+					j.read_id = read_id ;
+					j.junction_qual = junction_qual ;
 					junctionlist[chr].insert(it,j);
 
-					pthread_mutex_unlock( &junction_mutex) ;
+					unlock() ;
 					return;
 				}
 			}
@@ -155,15 +201,17 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 		continue;
 	}
 	
-	
 	j.start=start;
 	j.end=end;
 	j.coverage=coverage;
 	j.strand=strand;
 	j.consensus = consensus ;
+	j.intron_string = intron_string ;
+	j.read_id = read_id ;
+	j.junction_qual = junction_qual ;
 	junctionlist[chr].push_back(j);
 	
-	pthread_mutex_unlock( &junction_mutex) ;
+	unlock() ;
 	return ;
 }
 
@@ -222,14 +270,43 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				coverage= atoi(tmp.substr(pos_cov).c_str());
 
 			bool nonconsensus=false ;
+			char* intron_string = strdup("") ;
 			int pos_cons=tmp.find("Nonconsensus=");
-			if (pos_cons>0)
-				pos_cons += strlen("Nonconsensus=") ;
-			if (pos_cons>0)
-				nonconsensus = atoi(tmp.substr(pos_cons).c_str());
-			
-			insert_junction(strand,chr_idx,start, end, !nonconsensus, coverage);
 
+			if (pos_cons>0)
+			{
+				pos_cons += strlen("Nonconsensus=") ;
+				nonconsensus = atoi(tmp.substr(pos_cons).c_str());
+
+				int pos_intron=tmp.find("IntronSeq=");
+				if (pos_intron>0)
+				{
+					pos_intron += strlen("IntronSeq=") ;
+					intron_string = strdup(tmp.substr(pos_intron).c_str()) ;
+				}
+			}
+			
+			int junction_qual = 0 ;
+			int pos_qual = tmp.find("BestSplit=") ;
+			if (pos_qual>0)
+			{
+				pos_qual += strlen("BestSplit=") ;
+				junction_qual = atoi(tmp.substr(pos_qual).c_str());
+			}
+
+			char * read_id = strdup("gff") ;
+			int pos_id=tmp.find("ReadID=");
+			if (pos_id>0)
+			{
+				pos_id += strlen("ReadID=") ;
+				read_id = strdup(tmp.substr(pos_id).c_str()) ;
+			}
+			
+			insert_junction(strand,chr_idx,start, end, !nonconsensus, intron_string, junction_qual, read_id, coverage);
+
+			free(intron_string) ;
+			free(read_id) ;
+			
 			intron_lines++;
 		}
 		
@@ -238,6 +315,9 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 		{
 			exon_lines++ ;
 		}
+
+		if (intron_lines%100000==0)
+			fprintf(stdout, "read %i intron lines\n", intron_lines) ;
 		
 	}
 	fclose(fd) ;
@@ -250,7 +330,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 int JunctionMap::report_to_gff(std::string &gff_fname)
 {
-	pthread_mutex_lock( &junction_mutex) ;
+	lock() ;
 
 	int nb_introns=0;
 	
@@ -262,12 +342,13 @@ int JunctionMap::report_to_gff(std::string &gff_fname)
 	for (unsigned int i=0; i<genome->nrChromosomes(); i++){
 		
 		const char * chr= genome->get_desc(i);
-		std::list<Junction>::iterator it;
+		std::deque<Junction>::iterator it;
 		
 		for (it=junctionlist[i].begin(); it!=junctionlist[i].end(); it++){			
-			fprintf(fd,"%s\tpalmapper\tintron\t%i\t%i\t.\t%c\t.\tID=intron_%i;Confirmed=%i",chr,(*it).start,(*it).end,(*it).strand,nb_introns,(*it).coverage);
+			fprintf(fd,"%s\tpalmapper\tintron\t%i\t%i\t.\t%c\t.\tID=intron_%i;Confirmed=%i;BestSplit=%i;ReadID=%s",
+					chr,(*it).start,(*it).end,(*it).strand,nb_introns,(*it).coverage, (*it).junction_qual, (*it).read_id.c_str());
 			if (!(*it).consensus)
-				fprintf(fd,";Nonconsensus=1\n");
+				fprintf(fd,";Nonconsensus=1;IntronSeq=%s\n", (*it).intron_string.c_str());
 			else
 				fprintf(fd,"\n");
 			nb_introns++;
@@ -277,7 +358,7 @@ int JunctionMap::report_to_gff(std::string &gff_fname)
 	fclose(fd) ;
 	fprintf(stdout, "report %i introns\n", nb_introns) ;	
 
-	pthread_mutex_unlock( &junction_mutex) ;
+	unlock() ;
 
 	return 0;
 	
