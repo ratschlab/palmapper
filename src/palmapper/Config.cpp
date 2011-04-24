@@ -112,6 +112,7 @@ Config::Config() {
 	SPLICED_HIT_MIN_LENGTH_COMB = DEFAULT_SETTING ;
 	SPLICED_HIT_MIN_LENGTH_LONG = DEFAULT_SETTING ;
 	SPLICED_LONGEST_INTRON_LENGTH = DEFAULT_SETTING ;
+	SPLICED_SHORTEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
 	SPLICED_CLUSTER_TOLERANCE = 10 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
@@ -158,7 +159,8 @@ int Config::applyDefaults(Genome * genome)
 	if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || 
 						  SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) || 
 		NUM_EDIT_OPS == DEFAULT_SETTING || NUM_MISMATCHES == DEFAULT_SETTING || NUM_GAPS == DEFAULT_SETTING || OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT ||
-		(SPLICED_HITS && (SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING || SPLICED_MIN_SEGMENT_LENGTH==DEFAULT_SETTING)) || 
+		(SPLICED_HITS && (SPLICED_LONGEST_INTRON_LENGTH == DEFAULT_SETTING || SPLICED_SHORTEST_INTRON_LENGTH == DEFAULT_SETTING || 
+						  SPLICED_MIN_SEGMENT_LENGTH==DEFAULT_SETTING)) || 
 		(OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) ||
 		((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING && POLYTRIM_STRATEGY) || 
 		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY))
@@ -262,6 +264,12 @@ int Config::applyDefaults(Genome * genome)
 			else
 				SPLICED_LONGEST_INTRON_LENGTH = 200000 ;
 			fprintf(stdout, "* Automatically determined maximal intron size based on genome size (%ikb)\n", SPLICED_LONGEST_INTRON_LENGTH/1000) ;
+		}
+
+		if (SPLICED_HITS && SPLICED_SHORTEST_INTRON_LENGTH == DEFAULT_SETTING)
+		{
+			SPLICED_SHORTEST_INTRON_LENGTH = 30 ;
+			fprintf(stdout, "* Automatically determined minimal intron size(%int)\n", SPLICED_SHORTEST_INTRON_LENGTH) ;
 		}
 
 		// determine default output format
@@ -1013,6 +1021,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				i++;
 				SPLICED_LONGEST_INTRON_LENGTH = atoi(argv[i]);
+			}
+
+			// longest intron length
+			if (strcmp(argv[i], "-MI") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -MI\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				SPLICED_SHORTEST_INTRON_LENGTH = atoi(argv[i]);
 			}
 
 			// maximal number of spliced alignments to be performed per read
@@ -1900,8 +1920,9 @@ int Config::usage() {
 		printf(" -CT INT                               distance to tolerate between hit and existing hit cluster [10]\n");
 		printf(" -QMM INT                              number of matches required for identifying a splice site [auto]\n");
 		printf(" -I INT                                longest intron length  [auto]\n");
+		printf(" -MI INT                               shortest intron length  [30]\n");
 		printf(" -min-spliced-segment-len INT          minimal exon length [auto]\n");
-		printf(" -EL INT                               minimal number of nucleotides in a spliced segment [auto]\n\n") ;
+		//printf(" -EL INT                               minimal number of nucleotides in a spliced segment [auto]\n\n") ;
 
 		printf(" -report STRING                        file for map reporting\n");
 		printf(" -report-ro STRING                     file for map reporting (read only)\n");
