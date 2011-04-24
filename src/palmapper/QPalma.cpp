@@ -14,7 +14,6 @@
 #include <palmapper/QPalma.h>
 #include <palmapper/JunctionMap.h>
 
-#define LONG_HIT_EXTEND_REGION _config.SPLICED_LONGEST_INTRON_LENGTH
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
@@ -90,7 +89,7 @@ QPalma::Result::Result(Read const &read, QPalma const &qpalma)
 	for (int ori=0; ori<2; ori++)
 		for (uint32_t i = 0; i < qpalma.genome->nrChromosomes(); i++)
 		{
-			std::vector<region_t *> r;
+			std::vector<region_t *> r; 
 			regions[ori].push_back(r);
 		}
 }
@@ -1075,10 +1074,10 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 				for (int32_t nregion = 0; nregion < (int)long_regions[ori_map(hit->orientation)][hit->chromosome->nr()].size(); nregion++) {
 					//if (!long_regions[hit->chromosome][nregion]->islong)
 					//	continue ;
-					int32_t rs = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->start - LONG_HIT_EXTEND_REGION;
+					int32_t rs = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->start - _config.SPLICED_LONGEST_INTRON_LENGTH;
 					if (rs < 0)
 						rs = 0;
-					int32_t re = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->end + LONG_HIT_EXTEND_REGION;
+					int32_t re = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->end + _config.SPLICED_LONGEST_INTRON_LENGTH;
 					if (((int)hit->start >= rs) && ((int)hit->end <= re)) 
 					{
 						found = true;
@@ -1202,10 +1201,10 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 					continue;
 				for (int i=0; i<(int)long_regions[ori][chrN].size(); i++)
 				{
-					int start = long_regions[ori][chrN][i]->start - LONG_HIT_EXTEND_REGION ;
+					int start = long_regions[ori][chrN][i]->start - _config.SPLICED_LONGEST_INTRON_LENGTH ;
 					if (start<0)
 						start=0 ;
-					int end = long_regions[ori][chrN][i]->end + LONG_HIT_EXTEND_REGION ;
+					int end = long_regions[ori][chrN][i]->end + _config.SPLICED_LONGEST_INTRON_LENGTH ;
 					if (end>(int)chromosome.length())
 						end=chromosome.length();
 					int midpoint = (end+start)/2 ;
@@ -1898,7 +1897,6 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 			current_positions.clear();
 			
 			Chromosome const &chr = genome->chromosome(chrN);			
-			std::list<Junction>::iterator it = junctionmap.junctionlist[chrN].begin();
 
 			//Sort long regions by start positions
 			region_t ** arr = NULL ;
@@ -1916,35 +1914,43 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 				arr[i] = long_regions[ori][chrN][i];  
 			qsort(arr, long_regions[ori][chrN].size());
 
-			for (size_t nregion = 0; nregion < long_regions[ori][chrN].size(); nregion++){
-				
+			for (size_t nregion = 0; nregion < long_regions[ori][chrN].size(); nregion++)
+			{
 				int rstart_=arr[nregion]->start;
 				int rend_=arr[nregion]->end;
 				
 				if (verbosity>4)
 					fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart_, rend_, chrN, ori);
-				
+
+				// find a lower bound on the index with binary search
+				junctionmap.lock() ;
+				//std::deque<Junction>::iterator it = junctionmap.junctionlist[chrN].begin();
+				std::deque<Junction>::iterator it = my_lower_bound(junctionmap.junctionlist[chrN].begin(), junctionmap.junctionlist[chrN].end(), rstart_-1000) ;
+				junctionmap.unlock() ;
 				
 				while (it != junctionmap.junctionlist[chrN].end())
 				{
-					
 					int rstart=rstart_ ;
 					int rend=rend_ ;
 
-				//Search for an overlapping with junction
+					//Search for an overlapping with junction
+
+					junctionmap.lock() ;
 
 					//Intervals around junctions
 					int int1_start = (*it).start - (read.length()+1);
 					if (int1_start <0)
 						int1_start=0;
 					int int1_end = (*it).start-1;
-
 					int int2_start = (*it).end + 1;					
 					int int2_end = (*it).end + (read.length()+1);
+					char strand = (*it).strand ;
+
+					junctionmap.unlock() ;
+					
 					if ((unsigned int)int2_end >= chr.length())
 						int2_end=chr.length()-1;
 
-					//if ((*it).start==10515958)
 					if (rstart < int1_start)
 						break; //no overlapping -> next long region
 					
@@ -1959,7 +1965,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						if (verbosity>4)
 						{
 							fprintf(stdout, "try to align\n") ;
-							fprintf(stdout, "    junction: (%i-%i)-(%i-%i) (%ld,%c)\n",int1_start,int1_end,int2_start,int2_end,chrN,(*it).strand);
+							fprintf(stdout, "    junction: (%i-%i)-(%i-%i) (%ld,%c)\n",int1_start,int1_end,int2_start,int2_end,chrN,strand);
 							fprintf(stdout, "    junction %c%c-%c%c\n",chr[(*it).start],chr[(*it).start+1],chr[(*it).end-1],chr[(*it).end]);
 							fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart, rend, chrN, ori);
 						}
@@ -2038,7 +2044,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						}
 						int ret;
 						
-						if ((*it).strand == '+')
+						if (strand == '+')
 						{
 							ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], 
 															current_seq, current_regions, current_positions, 
@@ -2816,6 +2822,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int exon_start = -1;
 	int min_exon_len = read.length();
 	int max_intron_len = 0;
+	int min_intron_len = 1000000;
 
 	bool alignment_valid=true ;
 
@@ -2867,6 +2874,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						intron_len*=-1 ;
 					if (intron_len>max_intron_len)
 						max_intron_len=intron_len ;
+					if (intron_len<min_intron_len)
+						min_intron_len=intron_len ;
 				}
 				exons.push_back(positions[exon_start]) ;
 				
@@ -3118,7 +3127,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
 
-	bool alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
+	bool alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && 
+		(rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
 		&&(exons.size()==2 ||( (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
 
 	bool non_consensus_alignment=false ;
@@ -3139,6 +3149,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 		for (unsigned int ne=0; ne<(exons.size()/2)-1; ne++)
 		{
+			bool non_consensus_intron = false ;
+			
 		    int istart=exons[ne*2+1] ;
 		    int istop =exons[(ne+1)*2] ;
 		    char buf[1000] ;
@@ -3164,9 +3176,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						break ;
 					}
 				if (!is_consensus_don || !is_consensus_acc)
+				{
+					non_consensus_intron=true ;
 					non_consensus_alignment=true ;
-				if (!non_consensus_search)
-					assert(!non_consensus_alignment) ;
+				}
+				if (!non_consensus_search && !remapping)
+					assert(!non_consensus_intron) ;
 			}
 		    else
 			{
@@ -3190,11 +3205,15 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						break ;
 					}
 				if (!is_consensus_don || !is_consensus_acc)
+				{
+					non_consensus_intron=true ;
 					non_consensus_alignment=true ;
-				if (!non_consensus_search)
-					assert(!non_consensus_alignment) ;
+				}
+				if (!non_consensus_search && !remapping)
+					assert(!non_consensus_intron) ;
 
 			}
+		    aln->non_consensus_intron.push_back(non_consensus_intron) ;
 		    aln->intron_consensus.push_back(strdup(buf)) ;
 		}
 		if (remapping)
@@ -3217,7 +3236,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		//aln->rescue_start = rescue_start ;
 		//aln->rescue_end = rescue_end ;
 		aln->passed_filters=alignment_passed_filters ;
-		aln->non_consensus = non_consensus_alignment ; 
+		aln->non_consensus_alignment = non_consensus_alignment ; 
 		aln->remapped = remapping ;
 
 		aln->from_gm = 3;
