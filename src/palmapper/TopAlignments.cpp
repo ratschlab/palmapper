@@ -776,36 +776,41 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 			check_alignment(top_alignments[i]) ;
 	}
 
-	
-	if (_config._personality == Palmapper && _config.REPORT_SPLICED_READS)
-    {
-		for (unsigned int i=0; i<top_alignments.size(); i++)
-			if (top_alignments[i]->exons.size()>2)
-				genomemaps->report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
-												top_alignments[i]->num_matches, i) ;
-    }
-	if (_config._personality == Palmapper && _config.REPORT_MAPPED_READS)
-    {
-		for (unsigned int i=0; i<top_alignments.size(); i++)
+	if (_config._personality == Palmapper)
+	{
+		if (_config.REPORT_SPLICED_READS)
 		{
-			if (top_alignments[i]->exons.size()<=2) 
-				genomemaps->report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
-											   top_alignments[i]->num_matches, i) ;
+			for (unsigned int i=0; i<top_alignments.size(); i++)
+				if (top_alignments[i]->exons.size()>2)
+					genomemaps->report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
+													top_alignments[i]->num_matches, i) ;
 		}
-    }
-
-	if ( _config.REPORT_JUNCTIONS)
-    {
-		for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
+		if (_config.REPORT_MAPPED_READS)
 		{
-			for (unsigned int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
-				junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), 
-											top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,
-											!top_alignments[i]->non_consensus_intron[j/2-1], top_alignments[i]->min_exon_len, 
-											top_alignments[i]->read_id, 1) ;
+			for (unsigned int i=0; i<top_alignments.size(); i++)
+			{
+				if (top_alignments[i]->exons.size()<=2) 
+					genomemaps->report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
+												   top_alignments[i]->num_matches, i) ;
 			}
 		}
 		
+		if (_config.REPORT_JUNCTIONS)
+		{
+			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
+			{
+				if (top_alignments[i]->remapped) // only count real alignments, not remapped alignments
+					continue ;
+				for (unsigned int j=2; j < top_alignments[i]->exons.size(); j+=2 ){
+					junctionmap.insert_junction(top_alignments[i]->strand,top_alignments[i]->chromosome->nr(), 
+												top_alignments[i]->exons[j-1], top_alignments[i]->exons[j]-1,
+												!top_alignments[i]->non_consensus_intron[j/2-1], 
+												top_alignments[i]->intron_consensus[j/2-1].c_str(), 
+												top_alignments[i]->min_exon_len, 
+												top_alignments[i]->read_id, 1) ;
+				}
+			}
+		}
     }
 
 	print_top_alignment_records(read, OUT_FP, SP_OUT_FP) ;
@@ -2032,7 +2037,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
 				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
 				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
-				if (curr_align->non_consensus_alignment)
+				if (curr_align->non_consensus_alignment) 
 				{
 					assert(curr_align->intron_consensus.size()>0);
 					fprintf(MY_OUT_FP, "\tXC:Z:%s", curr_align->intron_consensus[0].c_str()) ;
