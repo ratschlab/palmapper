@@ -978,7 +978,6 @@ int QPalma::get_first_read_map(Read const &read, bool* read_map) const
 	return -1;
 }
 
-
 // GenomeMapper's handling of spliced reads is very simplistic. It just finds
 // exact 12-mers and returns these as spliced hits. It does _not_ do an
 // alignment of any kind. The following routine takes a pair of such
@@ -1948,21 +1947,30 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 					junctionmap.unlock() ;
 					
+
 					if ((unsigned int)int2_end >= chr.length())
 						int2_end=chr.length()-1;
+
+
 
 					if (rstart < int1_start)
 						break; //no overlapping -> next long region
 					
 					//Overlapping junction
-					if ( (rstart >= int1_start and rend <= int1_end+junction_tol) or (rstart >= int2_start-junction_tol and rend <= int2_end))
+					if ( (rstart >= int1_start and rend <= int1_end+junction_tol+1) or (rstart >= int2_start-junction_tol and rend <= int2_end+1))
 					{
-						if (rstart >= int1_start and !(rend <= int1_end) and (rend <= int1_end+junction_tol))
-							rend=int1_end ;
-						if (!(rstart >= int2_start) and rend <= int2_end and (rstart >= int2_start-junction_tol))
-							rstart=int2_start ;
+						if (rstart >= int1_start and !(rend <= int1_end+1) and (rend <= int1_end+junction_tol+1)){
+							
+							rend=int1_end+1 ;
+
+						}
 						
-						if (verbosity>4)
+						if (!(rstart >= int2_start) and rend <= int2_end+1 and (rstart >= int2_start-junction_tol)){
+							
+							rstart=int2_start ;
+						}
+						
+					 	if (verbosity>4)
 						{
 							fprintf(stdout, "try to align\n") ;
 							fprintf(stdout, "    junction: (%i-%i)-(%i-%i) (%ld,%c)\n",int1_start,int1_end,int2_start,int2_end,chrN,strand);
@@ -2027,13 +2035,20 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 						//Take the first long region  to start alignment
 						int hit_read_position = get_first_read_map(read, arr[nregion]->read_map);
+						if (ori==0)
+							hit_read_position += (rstart - rstart_);
+						else
+							hit_read_position += (rend_-rend);
+
 						int hit_len= rend - rstart ; //arr[nregion]->end-arr[nregion]->start;
 
+
 						if(ori==1){
-							hit_read_position = read.length()-hit_len-hit_read_position+1;
+							hit_read_position = read.length()-hit_len-hit_read_position +1;
 						}
+
 						assert (hit_read_position>=0 && hit_len >0);
-						if (verbosity>4)
+						if (verbosity>3)
 						{
 							fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
 							fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*arr[nregion]->start*/, hit_len);					  
@@ -2171,6 +2186,7 @@ int QPalma::perform_alignment_starter(Result &result,
 			delete data ;
 		}
 
+		
 		
 		if (consensus_alignment && (consensus_alignment->passed_filters || non_consensus_search))
 		{
@@ -2913,8 +2929,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	    if (verbosity>=2)
 			fprintf(stdout, "alignment valid=%i (0 means that exons went over block boundaries)\n", alignment_valid) ;
 	    
-		//Add splice site scores for remapping with several exons: TODO
-
+	   
 	    if (strand=='-')
 			exons=reverse(exons) ;
 	    for (size_t i=0; i<exons.size(); i+=2)
@@ -3216,9 +3231,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		    aln->non_consensus_intron.push_back(non_consensus_intron) ;
 		    aln->intron_consensus.push_back(strdup(buf)) ;
 		}
-		if (remapping)
-		{
-			REAL score = 1.0 ; // high probability for donr and acceptor -> large ss score
+
+		if (remapping && exons.size()>=4){
+			REAL score = 1.0 ; // high probability for donor and acceptor -> large ss score
 			alignscore += lookup_penalty(&alignment_parameters->d, 0, &score) ; //alignment_parameters->d.penalties[alignment_parameters->d.len-1] ;
 			alignscore += lookup_penalty(&alignment_parameters->a, 0, &score) ; //alignment_parameters->a.penalties[alignment_parameters->a.len-1] ;
 		}
