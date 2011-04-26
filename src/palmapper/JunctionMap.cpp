@@ -6,6 +6,16 @@
 #include <palmapper/Util.h>
 #include <pthread.h>
 
+bool compare_exons(Exon ex1,Exon ex2)
+{
+	if (ex1.start < ex2.start)
+		return true;
+	if (ex1.start > ex2.start)
+		return false;
+	return (ex1.end < ex2.end);
+}
+
+
 JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_)
 {
 	genome = &genome_ ;
@@ -155,6 +165,7 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 				return;
 			}
 			
+
 			if (end == (*it).end)
 			{
 				if (strand == (*it).strand)
@@ -179,6 +190,7 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 					(*it).coverage += coverage;
 
 					unlock() ;
+
 					return;
 				}
 				if (strand == '+')
@@ -227,7 +239,11 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 	int exon_lines=0 ;
 	int intron_lines=0 ;
-
+	std::string prev_parent;
+	prev_parent.assign("");
+	std::list<Exon> exons_list;
+	
+		
 	while (!feof(fd))
 	{
 		char chr_name[1000], source[1000], type[1000], properties[1000], strand, tmp1, tmp2 ;
@@ -235,6 +251,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 		Util::skip_comment_lines(fd) ;
 		
+		//Scan gff3 line
 		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%c\t%c\t%c\t%1000s\n", chr_name, source, type, &start, &end, &tmp1, &strand, &tmp2, properties) ;  
 		if (num!=9)
 		{
@@ -243,7 +260,9 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			fprintf(stdout, "gff line only contained %i columns, aborting\n", num) ;
 		}
 		
-		if (strcmp(type, "intron")==0)
+
+		// Line comes from a gff3 file built by PALMapper
+		if (strcmp(source, "palmapper")==0 and strcmp(type, "intron")==0)
 		{
 
 			int chr_idx = genome->find_desc(chr_name) ;
@@ -251,11 +270,11 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			{
 				fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
 				genome->print_desc(stderr) ;
+				fclose(fd) ;
 				return -1 ;
 			}
 			
 			std::string tmp(properties);
-			
 			int pos_cov=tmp.find("Confirmed=");
 			if (pos_cov>0)
 				pos_cov += strlen("Confirmed=") ;
@@ -302,24 +321,132 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				read_id = strdup(tmp.substr(pos_id).c_str()) ;
 			}
 			
+
+			
+			//Attention: positions in this file start at 0! :S
 			insert_junction(strand,chr_idx,start, end, !nonconsensus, intron_string, junction_qual, read_id, coverage);
 
 			free(intron_string) ;
 			free(read_id) ;
+
 			
 			intron_lines++;
 		}
 		
-
+		//Line comes from annotation
 		if (strcmp(type, "exon")==0)
 		{
 			exon_lines++ ;
-		}
+			
+			//Get Parent name
+			std::string parent;
+			std::string tmp(properties);
+			int pos_parent=tmp.find("Parent=");
+			if (pos_parent <0){
+				fprintf(stderr, "No parent information for exon in gff3 file\n") ;
+				fclose(fd) ;
+				return -1 ;
+			}
+			else
+				pos_parent+=7;
+			
+			int pos_parent_end=tmp.find(";",pos_parent);
+			if (pos_parent<0)
+				parent=tmp.substr(pos_parent);
+			else
+				parent=tmp.substr(pos_parent,pos_parent_end-pos_parent);
 
 		if (intron_lines%100000==0)
 			fprintf(stdout, "read %i intron lines\n", intron_lines) ;
 		
+			//Get chromosome index
+			int chr_idx = genome->find_desc(chr_name) ;
+			if (chr_idx==-1)
+			{
+				fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
+				genome->print_desc(stderr) ;
+				fclose(fd) ;
+				return -1 ;
+			}
+
+			//Build exon
+			Exon ex;
+			ex.start=start;
+			ex.end=end;
+			ex.strand=strand;
+			ex.chr=chr_idx;
+			
+
+			//First exon from the first parsed transcript
+			if(prev_parent.empty()){				
+				prev_parent.assign(parent);
+				exons_list.push_back(ex);
+			}
+			else{
+				//Same transcript
+				if(strcmp(prev_parent.c_str(),parent.c_str())==0)
+					exons_list.push_back(ex);
+
+				//Transition between two transcripts
+				else{
+					
+					//Parse exons from the previous transcript
+					if(exons_list.size()>=2){
+						exons_list.sort(compare_exons);
+						std::list<Exon>::iterator it=exons_list.begin();
+						std::list<Exon>::iterator it_next=it++;
+						while( it_next!=exons_list.end() ){
+							
+							if ((*it).strand != (*it_next).strand or (*it).chr != (*it_next).strand or (*it).end >= (*it_next).start){
+								fprintf(stderr, "No consistent information between exons from the same transcript in gff3 file\n") ;
+								fclose(fd) ;
+								return -1 ;		
+							}
+							
+							//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
+							//insert_junction((*it_next).strand,(*it_next).chr,(*it).end,(*it_next).start-2, 0);
+					
+							it++;
+							it_next++;
+							
+						}
+					}
+					
+					//Start new exon list for the current transcript
+					prev_parent.assign(parent);
+					exons_list.clear();
+					exons_list.push_back(ex);
+					
+						
+				}
+			}
+		}	
 	}
+		
+
+	//Look at the last transcript if exists
+	if(exons_list.size()>=2){
+		exons_list.sort(compare_exons);
+		std::list<Exon>::iterator it=exons_list.begin();
+		std::list<Exon>::iterator it_next=it++;
+		while( it_next!=exons_list.end() ){
+			
+			if ((*it).strand != (*it_next).strand or (*it).chr != (*it_next).strand or (*it).end >= (*it_next).start){
+				fprintf(stderr, "No consistent information between exons from the same transcript in gff3 file\n") ;
+				fclose(fd) ;
+				return -1 ;		
+			}
+			
+			//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
+			//insert_junction((*it_next).strand,(*it_next).chr,(*it).end,(*it_next).start-2, 0);
+			
+			it++;
+			it_next++;
+			
+		}
+	}
+
+
 	fclose(fd) ;
 
 	fprintf(stdout, "read %i intron lines\n", intron_lines) ;

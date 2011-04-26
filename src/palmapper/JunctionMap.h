@@ -17,6 +17,13 @@ struct junction_str {
 };
 typedef struct junction_str Junction;
 
+struct exon_str {
+	int start; 
+	int end; 
+	int chr;
+	char strand;
+};
+typedef struct exon_str Exon;
 
 class JunctionMap
 {
@@ -53,6 +60,9 @@ protected:
 
 	pthread_mutex_t junction_mutex;
 	
+   	
+
+
 };
 
 inline std::deque<Junction>::iterator  my_lower_bound ( std::deque<Junction>::iterator first, std::deque<Junction>::iterator  last, const int& value )
@@ -69,7 +79,7 @@ inline std::deque<Junction>::iterator  my_lower_bound ( std::deque<Junction>::it
 		
 		if ( (*it).start < value) 
 		{
-			first=++it;
+			first=it; //++it;
 			count-=step+1;
 		}
 		else count=step;
