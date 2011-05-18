@@ -1,10 +1,66 @@
 #include <palmapper/JunctionMap.h>
 #include <string>
 #include <list>
+#include <map>
 #include <palmapper/Genome.h>
+#include <palmapper/Config.h>
 #include <stdlib.h> 
 #include <palmapper/Util.h>
 #include <pthread.h>
+
+bool JunctionMap::is_consensus_intron(char strand, int chr, int start, int end)
+{
+	const Chromosome & chrom = genome->chromosome(chr);
+	//fprintf(stdout,"%c-%c %c-%c\n",chrom[start], chrom[start+1],chrom[end-1],chrom[end]);
+
+	if (strand=='+'){
+		
+		bool is_consensus_don = false ;
+		for (unsigned int j=0; j < DON_CONSENSUS.size(); j++){
+			
+			if (chrom[start] == DON_CONSENSUS[j][0] && chrom[start+1] == DON_CONSENSUS[j][1])
+			{
+				is_consensus_don = true ;
+				break ;
+			}
+		}
+		
+		if (! is_consensus_don)
+			return false;
+	
+		bool is_consensus_acc = false ;
+		for (unsigned int j=0; j < ACC_CONSENSUS.size(); j++)
+			if (chrom[end-1] == ACC_CONSENSUS[j][0] && chrom[end] == ACC_CONSENSUS[j][1])
+			{
+				is_consensus_acc = true ;
+				break ;
+			}
+		return is_consensus_acc;
+	}
+	else{
+		bool is_consensus_acc = false ;
+		for (unsigned int j=0; j < ACC_CONSENSUS_REV.size(); j++)
+			if (chrom[start] == ACC_CONSENSUS_REV[j][0] && chrom[start+1] == ACC_CONSENSUS_REV[j][1])
+			{
+				is_consensus_acc = true ;
+				break ;
+			}
+	
+		if (! is_consensus_acc)
+			return false;
+	
+		bool is_consensus_don = false ;
+		for (unsigned int j=0; j < DON_CONSENSUS_REV.size(); j++)
+			if (chrom[end-1] == DON_CONSENSUS_REV[j][0] && chrom[end] == DON_CONSENSUS_REV[j][1])
+			{
+				is_consensus_don = true ;
+				break ;
+			}
+		return is_consensus_don;
+	}
+	
+	
+}
 
 bool compare_exons(Exon ex1,Exon ex2)
 {
@@ -16,7 +72,7 @@ bool compare_exons(Exon ex1,Exon ex2)
 }
 
 
-JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_)
+JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_,std::vector<const char*> ACC_CONSENSUS_, std::vector<const char*> DON_CONSENSUS_, std::vector<const char*> ACC_CONSENSUS_REV_, std::vector<const char*> DON_CONSENSUS_REV_ )
 {
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
@@ -24,7 +80,10 @@ JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_)
 	junctionlist = new std::deque<Junction>[nbchr];
 	
 	min_coverage=min_coverage_;
-
+	ACC_CONSENSUS= ACC_CONSENSUS_;
+	ACC_CONSENSUS_REV= ACC_CONSENSUS_REV_;
+	DON_CONSENSUS= DON_CONSENSUS_;
+	DON_CONSENSUS_REV= DON_CONSENSUS_REV_;
 	int ret = pthread_mutex_init(&junction_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
 	assert(ret==0) ;
 	
@@ -66,8 +125,8 @@ void JunctionMap::filter_junctions()
 		
 		while (!list.empty() and it!=list.end())
 		{
-			assert((*it).coverage>0);
-			if ( ((*it).coverage<min_coverage) || (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && (!(*it).consensus) ) )
+			assert((*it).coverage>=0);
+			if ( (*it).coverage!=0 && (((*it).coverage<min_coverage) || (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && (!(*it).consensus) ) ))
 			{
 				if ((*it).consensus)
 					filtered_consensus++ ;
@@ -104,12 +163,10 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 								  int junction_qual, const char *read_id, int coverage = 1)
 {
 	lock() ;
-	
 	//Sorted list by donor positions first and then acceptor positions
 	Junction j;
 
 	//fprintf(stdout,"%c %i %i %i\n",strand, chr, start, end);
-
 	if (junctionlist[chr].empty())
 	{
 		j.start=start;
@@ -187,8 +244,10 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 						(*it).read_id=read_id ;
 					}
 					
-					(*it).coverage += coverage;
-
+					if ((*it).coverage!=0 && coverage!=0)
+						(*it).coverage += coverage;
+					else
+						(*it).coverage = 0;
 					unlock() ;
 
 					return;
@@ -212,7 +271,7 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 		}
 		continue;
 	}
-	
+
 	j.start=start;
 	j.end=end;
 	j.coverage=coverage;
@@ -222,7 +281,8 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 	j.read_id = read_id ;
 	j.junction_qual = junction_qual ;
 	junctionlist[chr].push_back(j);
-	
+
+
 	unlock() ;
 	return ;
 }
@@ -241,7 +301,8 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 	int intron_lines=0 ;
 	std::string prev_parent;
 	prev_parent.assign("");
-	std::list<Exon> exons_list;
+	std::map<std::string,std::list<Exon> > transcript_map;
+	int prev_chr=-1;
 	
 		
 	while (!feof(fd))
@@ -356,8 +417,8 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			else
 				parent=tmp.substr(pos_parent,pos_parent_end-pos_parent);
 
-		if (intron_lines%100000==0)
-			fprintf(stdout, "read %i intron lines\n", intron_lines) ;
+			//if (intron_lines%100000==0)
+			//	fprintf(stdout, "read %i intron lines\n", intron_lines) ;
 		
 			//Get chromosome index
 			int chr_idx = genome->find_desc(chr_name) ;
@@ -368,6 +429,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				fclose(fd) ;
 				return -1 ;
 			}
+			
 
 			//Build exon
 			Exon ex;
@@ -375,82 +437,91 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			ex.end=end;
 			ex.strand=strand;
 			ex.chr=chr_idx;
-			
 
-			//First exon from the first parsed transcript
-			if(prev_parent.empty()){				
-				prev_parent.assign(parent);
-				exons_list.push_back(ex);
-			}
+			if (prev_chr==-1)
+				prev_chr=chr_idx;
 			else{
-				//Same transcript
-				if(strcmp(prev_parent.c_str(),parent.c_str())==0)
-					exons_list.push_back(ex);
-
-				//Transition between two transcripts
-				else{
-					
-					//Parse exons from the previous transcript
-					if(exons_list.size()>=2){
+				
+				//Deal with transcripts of the current chromosome
+				if (prev_chr!=chr_idx){
+					//fprintf(stdout,"prev chr=%i curr chr=%i\n",prev_chr, chr_idx);	
+					for (std::map<std::string,std::list<Exon> >::iterator it=transcript_map.begin();it!=transcript_map.end();it++){
+						
+						std::list<Exon> exons_list = (*it).second;
 						exons_list.sort(compare_exons);
-						std::list<Exon>::iterator it=exons_list.begin();
-						std::list<Exon>::iterator it_next=it++;
+						std::list<Exon>::iterator it_prev=exons_list.begin();
+						std::list<Exon>::iterator it_next=exons_list.begin();
+						it_next++;
+
+						//fprintf(stdout,"%s\n",(*it).first.c_str());	
 						while( it_next!=exons_list.end() ){
 							
-							if ((*it).strand != (*it_next).strand or (*it).chr != (*it_next).strand or (*it).end >= (*it_next).start){
+							//fprintf(stdout,"Exon1: %i-%i %c %i\n", (*it_prev).start,(*it_prev).end,(*it_prev).strand,(*it_prev).chr);
+							//fprintf(stdout,"Exon2: %i-%i %c %i\n", (*it_next).start,(*it_next).end,(*it_next).strand,(*it_next).chr);
+							if ((*it_prev).strand != (*it_next).strand  || (*it_prev).chr != (*it_next).chr || (*it_prev).end >= (*it_next).start){
 								fprintf(stderr, "No consistent information between exons from the same transcript in gff3 file\n") ;
 								fclose(fd) ;
 								return -1 ;		
 							}
 							
+							bool consensus_intron= is_consensus_intron((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2);
+
 							//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
-							//insert_junction((*it_next).strand,(*it_next).chr,(*it).end,(*it_next).start-2, 0);
-					
-							it++;
+							insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), 0);
+							it_prev++;
 							it_next++;
 							
 						}
+						
 					}
 					
-					//Start new exon list for the current transcript
-					prev_parent.assign(parent);
-					exons_list.clear();
-					exons_list.push_back(ex);
-					
-						
+					transcript_map.clear();
+					prev_chr=chr_idx;
 				}
 			}
+			transcript_map[parent].push_back(ex);		
+			
 		}	
 	}
-		
 
-	//Look at the last transcript if exists
-	if(exons_list.size()>=2){
+	//Last transcripts
+	for (std::map<std::string,std::list<Exon> >::iterator it=transcript_map.begin();it!=transcript_map.end();it++){
+		
+		std::list<Exon> exons_list = (*it).second;
 		exons_list.sort(compare_exons);
-		std::list<Exon>::iterator it=exons_list.begin();
-		std::list<Exon>::iterator it_next=it++;
+		std::list<Exon>::iterator it_prev=exons_list.begin();
+		std::list<Exon>::iterator it_next=exons_list.begin();
+		it_next++;
+		
+		//fprintf(stdout,"%s\n",(*it).first.c_str());	
 		while( it_next!=exons_list.end() ){
 			
-			if ((*it).strand != (*it_next).strand or (*it).chr != (*it_next).strand or (*it).end >= (*it_next).start){
+			//fprintf(stdout,"Exon1: %i-%i %c %i\n", (*it_prev).start,(*it_prev).end,(*it_prev).strand,(*it_prev).chr);
+			//fprintf(stdout,"Exon2: %i-%i %c %i\n", (*it_next).start,(*it_next).end,(*it_next).strand,(*it_next).chr);
+			if ((*it_prev).strand != (*it_next).strand  || (*it_prev).chr != (*it_next).chr || (*it_prev).end >= (*it_next).start){
 				fprintf(stderr, "No consistent information between exons from the same transcript in gff3 file\n") ;
 				fclose(fd) ;
 				return -1 ;		
 			}
 			
-			//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
-			//insert_junction((*it_next).strand,(*it_next).chr,(*it).end,(*it_next).start-2, 0);
+			bool consensus_intron= is_consensus_intron((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2);
+
 			
-			it++;
+			//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
+			insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), 0);
+			it_prev++;
 			it_next++;
 			
 		}
+						
 	}
-
+					
+	transcript_map.clear();
 
 	fclose(fd) ;
 
 	fprintf(stdout, "read %i intron lines\n", intron_lines) ;
-	
+	fprintf(stdout, "read %i exon lines\n", exon_lines) ;
 	return 0 ;
 
 }
