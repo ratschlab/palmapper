@@ -29,14 +29,13 @@ class JunctionMap
 {
 
 public:
-	JunctionMap(Genome const &genome_, int min_coverage_) ;
+	JunctionMap(Genome const &genome_, int min_coverage_, 	std::vector<const char*> ACC_CONSENSUS_, std::vector<const char*> DON_CONSENSUS_, std::vector<const char*> ACC_CONSENSUS_REV_, std::vector<const char*> DON_CONSENSUS_REV_ ) ;
 	~JunctionMap() ;
 
 	void insert_junction(char strand, int chr, int start, int end, bool consensus, const char* intron_string, int junction_qual, const char* read_id, int coverage);
 	int init_from_gffs(std::string &gff_fname);
 	int report_to_gff(std::string &gff_fname);
 	void filter_junctions();
-	
 
 	std::deque<Junction> * junctionlist ;
 
@@ -52,14 +51,15 @@ public:
 	
 
 protected:
-
+	bool is_consensus_intron(char strand, int chr, int start, int end);
+	
 	int init_from_gff(std::string &gff_fname);
 
 	Genome const *genome;
 	int min_coverage;
 
 	pthread_mutex_t junction_mutex;
-	
+	std::vector<const char*> ACC_CONSENSUS, DON_CONSENSUS, ACC_CONSENSUS_REV, DON_CONSENSUS_REV ;	
    	
 
 
