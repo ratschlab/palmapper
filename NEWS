@@ -15,6 +15,15 @@ splice sites are not within the known consensus sequences. These
 alignments are provided only if they do not overlap another spliced 
 alignment with consensus splice sites.  
 
+Remapping strategy:
+ * Report splice junctions from spliced alignments
+ * Map reads with the classical strategy or against the splice junctions found from a previous mapping or from the annotation
+
+Annotated splice sites (-score-annotated-splice-sites option):
+ * Score to 1 annotated acceptor and donor sites
+ * Use annotated splice sites for building the pseudo chromosome sequence
+ * Use annotated splice sites for filtering reads which need a spliced alignment
+
 Other notable changes:
 * Add -include-unmapped-reads option. This option outputs unmapped
 reads in the same file than mapped reads (valid only for sam output). 
