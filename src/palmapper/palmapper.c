@@ -19,8 +19,8 @@ using namespace lang;
 
 class MapperThread : public Thread, public Mapper {
 public:
-MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap)
-	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter,junctionmap) {}
+MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotated_junctions)
+	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter,junctionmap,annotated_junctions) {}
 	void run() {
 		map_reads();
 	}
@@ -54,13 +54,19 @@ int main(int argc, char *argv[])
 	QueryFile queryFile(_config.QUERY_FILE_NAMES);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
 	JunctionMap junctionmap(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
-	
+	JunctionMap annotated_junctions(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
+
 	if (_config.MAP_JUNCTIONS){
 		int ret=junctionmap.init_from_gffs(_config.MAP_JUNCTIONS_FILE);
 		if (ret!=0)
 			return -1;
 	}
 	
+	if (_config.SCORE_ANNOTATED_SPLICE_SITES){
+		int ret=annotated_junctions.init_from_gffs(_config.ANNOTATED_SPLICE_SITES_FILE);
+		if (ret!=0)
+			return -1;
+	}
 
 	// initialize GenomeMaps
 //	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
@@ -90,13 +96,15 @@ int main(int argc, char *argv[])
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_ACC = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma->map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		if (_config.ACC_FILES.length()>0)
+			qpalma->map_splice_sites(_config.ACC_FILES, 'a', _config.FILTER_BY_SPLICE_SITES_THRESH_ACC, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> acceptor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_ACC) ;
 
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.FILTER_BY_SPLICE_SITES_THRESH_DON = _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma->map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
+		if (_config.DON_FILES.length()>0)
+			qpalma->map_splice_sites(_config.DON_FILES, 'd', _config.FILTER_BY_SPLICE_SITES_THRESH_DON, _config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0, true) ;
 		if (_config.FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, " -> donor  splice sites with confidence >= %1.2f%% \n", 100*_config.FILTER_BY_SPLICE_SITES_THRESH_DON) ;
 	}
@@ -110,13 +118,15 @@ int main(int argc, char *argv[])
 		
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma->map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		if (_config.ACC_FILES.length()>0)
+			qpalma->map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> acceptor splice sites build_indexwith confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC) ;
 			
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_DON = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
-		qpalma->map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
+		if (_config.DON_FILES.length()>0)
+			qpalma->map_splice_sites(_config.DON_FILES, 'd', _config.QPALMA_USE_SPLICE_SITES_THRESH_DON, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			fprintf(stdout, "-> donor splice sites with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_DON) ;
 	}
@@ -139,7 +149,7 @@ int main(int argc, char *argv[])
 	MapperThread *threads[numThreads];
 	std::string threadIds(".+-:=!$'");
 	for (unsigned int i = 0; i < numThreads; ++i) {
-		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap);
+		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions);
 		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
 		printf("Starting thread %d\n", i);
 		threads[i]->launch();
