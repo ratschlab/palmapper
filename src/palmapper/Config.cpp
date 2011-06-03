@@ -85,6 +85,9 @@ Config::Config() {
 	QPALMA_MIN_NUM_MATCHES = DEFAULT_SETTING ;
 	QPALMA_PRB_OFFSET_FIX = false ;
 	
+	ANNOTATED_SPLICE_SITES_FILE= std::string("") ;
+	SCORE_ANNOTATED_SPLICE_SITES = 0 ;
+
 	READ_COUNT_LIMIT = 0 ; // limits the number of reads for alignment
 	LOG_TRIGGERED = false;  // #A#
 	FILTER_BY_MAX_MISMATCHES = 0 ;
@@ -334,15 +337,15 @@ int Config::checkConfig()
 			exit(1);
 		}
 
-		if (SPLICED_HITS && !(NO_SPLICE_PREDICTIONS || (ACC_FILES.length()>0 && DON_FILES.length()>0)))
+		if (SPLICED_HITS && !(NO_SPLICE_PREDICTIONS || (ACC_FILES.length()>0 && DON_FILES.length()>0) || ANNOTATED_SPLICE_SITES_FILE.length()>0))
 		{
-			fprintf(stderr, "ERROR: for spliced alignments either -acc and -don or -no-ss-pred need to be given as argument\n");
+			fprintf(stderr, "ERROR: for spliced alignments either -acc and -don and/or -score-annotated-splice-sites or -no-ss-pred need to be given as argument\n");
 			exit(1);
 		}
 
-		if (NO_SPLICE_PREDICTIONS && (ACC_FILES.length()>0 || DON_FILES.length()>0))
+		if (NO_SPLICE_PREDICTIONS && (ACC_FILES.length()>0 || DON_FILES.length()>0 || ANNOTATED_SPLICE_SITES_FILE.length()>0))
 		{
-			fprintf(stderr, "ERROR: the options -acc/-don and -no-ss-pred have to be used exclusively\n");
+			fprintf(stderr, "ERROR: the options -acc/-don/-score-annotated-splice-sites and -no-ss-pred have to be used exclusively\n");
 			exit(1);
 		}
 
@@ -735,6 +738,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_GENOME_COVERAGE = 1 ;
 			}
 
+			if (strcmp(argv[i], "-score-annotated-splice-sites") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -score-annotated-splice-sites\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				ANNOTATED_SPLICE_SITES_FILE=strdup(argv[i]) ;
+				SCORE_ANNOTATED_SPLICE_SITES = 1 ;
+			}
+
 			//report junctions
 			if (strcmp(argv[i], "-report-junctions") == 0) {
 				not_defined = 0;
@@ -758,6 +773,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				MAP_JUNCTIONS_FILE=strdup(argv[i]) ;
 				MAP_JUNCTIONS = 1 ;
 			}
+
 
 			if (strcmp(argv[i], "-junction-remapping-coverage") == 0) {
 				not_defined = 0;
@@ -1902,6 +1918,7 @@ int Config::usage() {
 		printf(" -don-consensus STRING                 defines consensus sequences for donor sites (separated by \",\") [GT,GC]\n");
 		printf(" -no-ss-pred                           indicates that no splice site predictions should be used and only scores positions corresponding to consensus sequences for acceptors and donors\n");
 		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as plausible splice sites\n");
+		printf(" -score-annotated-splice-sites STRING[,STRING,..,STRING]  set score of annotated splice sites from gff3 files to 1");
 		printf(" -junction-remapping STRING[,STRING,..,STRING]  enables remapping of unmapped or unspliced reads against the junction list provided in gff3 files\n");
 		printf(" -junction-remapping-coverage INT      minimum alignment support to take into account a junction\n\n");
 
