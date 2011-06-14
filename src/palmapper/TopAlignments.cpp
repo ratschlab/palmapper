@@ -1766,7 +1766,60 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 		fprintf(MY_OUT_FP, "%s", curr_align->read_id) ;
 		uint32_t flag=0 ;
+
+		// Read orientation output always depends on the left strand -> reverse orientation if found on negative strand
+		if (curr_align->strand == '-')
+			curr_align->orientation=(curr_align->orientation=='+')?'-':'+';
+		
 		flag+=((curr_align->orientation=='-')*16) ;
+
+		//Determine output strand or read orientation according to strand-specific information
+		if (curr_align->spliced)
+		{
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
+			{
+				if (_config.STRAND > -1) {
+					if  (!((( curr_align->strand == '+') && _config.STRAND) || ((curr_align->strand == '-') && ! _config.STRAND))){
+						if (_config.STRAND)
+							curr_align->strand = '+';
+						else
+							curr_align->strand = '-';
+						
+						if (curr_align->orientation == '+'){
+							curr_align->orientation = '-';
+							flag+=16 ;
+						}
+						else{
+							curr_align->orientation = '+';
+							flag-=16 ;
+						}
+					}
+				}
+			}
+		}	
+		
+		else if (_config.STRAND > -1) {
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS) {
+				if  (!((( curr_align->strand == '+') && _config.STRAND) || ((curr_align->strand == '-') && ! _config.STRAND))){
+					
+					if (_config.STRAND)
+						curr_align->strand = '+';
+					else
+						curr_align->strand = '-';
+					
+					if (curr_align->orientation == '+'){
+						curr_align->orientation = '-';
+						flag+=16 ;
+					}
+					else{
+						curr_align->orientation = '+';
+						flag-=16 ;
+					}
+				}
+			}
+		}
+
+
 		/* flag+=_config.SEQUENCING_WAS_PAIRED ;
 		 * flag+=(curr_read.MAPPED_AS_PAIR*2) ;
 		 * flag+=(IS_UNMAPPED*4) ;
@@ -2018,22 +2071,24 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		if (H2 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
 			fprintf(MY_OUT_FP, "\tH2:i:%i", H2) ;
 
+
 		if (curr_align->spliced)
 		{
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
 			{
-				if (!curr_align->non_consensus_alignment)
-					fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
-				else
-				{
-					if (_config.STRAND > -1) {
-						if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-							fprintf(MY_OUT_FP, "\tXS:A:+") ;
-						else
-							fprintf(MY_OUT_FP, "\tXS:A:-") ;
-					}
+				// if (!curr_align->non_consensus_alignment)
+				// 	fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
+				// else
+				// {
+				// 	if (_config.STRAND > -1) {
+				// 		if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+				// 			fprintf(MY_OUT_FP, "\tXS:A:+") ;
+				// 		else
+				// 			fprintf(MY_OUT_FP, "\tXS:A:-") ;
+				// 	}
 					
-				}
+				// }
+				fprintf(MY_OUT_FP, "\tXS:A:%c",curr_align->strand) ;
 				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
 				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
 				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
@@ -2048,10 +2103,11 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         }
         else if (_config.STRAND > -1) {
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS) {
-				if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-					fprintf(MY_OUT_FP, "\tXS:A:+") ;
-				else
-					fprintf(MY_OUT_FP, "\tXS:A:-") ;
+				fprintf(MY_OUT_FP, "\tXS:A:%c",curr_align->strand) ;
+				// if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+				// 	fprintf(MY_OUT_FP, "\tXS:A:+") ;
+				// else
+				// 	fprintf(MY_OUT_FP, "\tXS:A:-") ;
 			}
         }
 

@@ -1785,6 +1785,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
 						
 						bool isunspliced ;
+
 						{
 							int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
 																current_positions, chr, '+', ori, hit_read_position,
@@ -1804,7 +1805,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 							//      corres_long_regions[0]->end, hit_len);					  
 							//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 							int ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
-																current_positions, chr, '-', ori, read.length()-(hit_read_position+hit_len),
+																current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
 																corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,annotatedjunctions);//end nucleotide in dna not included
 							if (ret < 0)
 							{
@@ -1886,6 +1887,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				//    corres_long_regions[0]->start, hit_len);
 				// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					
 				
+
 				{
 					int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori],
 														current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
@@ -1905,7 +1907,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 					// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
 					int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
 														read_quality[1 - ori], current_seq,
-														current_regions, current_positions, chr, '-', ori,read.length()-(hit_read_position+hit_len),
+														current_regions, current_positions, chr, '-', 1-ori,read.length()-(hit_read_position+hit_len),
 														corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,annotatedjunctions);//end nucleotide in dna not included
 					if (ret < 0)
 					{
@@ -2192,7 +2194,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						{
 							ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
 															current_seq, current_regions, current_positions, 
-															chr, '-', ori, read.length()-(hit_read_position+hit_len),
+															chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
 															rend /*arr[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, annotatedjunctions);
 						}
 						
