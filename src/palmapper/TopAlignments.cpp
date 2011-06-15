@@ -417,6 +417,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 			else{
 				best->qpalma_score =score2;
 				best->strand='-';
+				best->orientation=(best->orientation=='+')?'-':'+';
 			}
 			
 		}
@@ -1130,7 +1131,9 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			top_spliced_alignments,
 			int(best->exons.size() / 2));
 
-
+	if (best->strand=='-')
+		best->orientation=(best->orientation=='+')?'-':'+';
+	
 	fprintf(MY_OUT_FP, "%d", best->exons[1] - best->exons[0]);
 	assert(best->exons[1] - best->exons[0] >  0) ;
 
@@ -1262,6 +1265,9 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 				second->num_matches,
 				second->strand,
 				int(second->exons.size() / 2));
+
+		if (second->strand=='-')
+			second->orientation=(second->orientation=='+')?'-':'+';
 
 		fprintf(MY_OUT_FP, "%d", second->exons[1] - second->exons[0]);
 		assert(second->exons[1] - second->exons[0] >  0) ;
@@ -1768,57 +1774,12 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		uint32_t flag=0 ;
 
 		// Read orientation output always depends on the left strand -> reverse orientation if found on negative strand
-		if (curr_align->strand == '-')
+		
+		if (curr_align->strand == '-'){
 			curr_align->orientation=(curr_align->orientation=='+')?'-':'+';
+		}
 		
 		flag+=((curr_align->orientation=='-')*16) ;
-
-		//Determine output strand or read orientation according to strand-specific information
-		if (curr_align->spliced)
-		{
-			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
-			{
-				if (_config.STRAND > -1) {
-					if  (!((( curr_align->strand == '+') && _config.STRAND) || ((curr_align->strand == '-') && ! _config.STRAND))){
-						if (_config.STRAND)
-							curr_align->strand = '+';
-						else
-							curr_align->strand = '-';
-						
-						if (curr_align->orientation == '+'){
-							curr_align->orientation = '-';
-							flag+=16 ;
-						}
-						else{
-							curr_align->orientation = '+';
-							flag-=16 ;
-						}
-					}
-				}
-			}
-		}	
-		
-		else if (_config.STRAND > -1) {
-			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS) {
-				if  (!((( curr_align->strand == '+') && _config.STRAND) || ((curr_align->strand == '-') && ! _config.STRAND))){
-					
-					if (_config.STRAND)
-						curr_align->strand = '+';
-					else
-						curr_align->strand = '-';
-					
-					if (curr_align->orientation == '+'){
-						curr_align->orientation = '-';
-						flag+=16 ;
-					}
-					else{
-						curr_align->orientation = '+';
-						flag-=16 ;
-					}
-				}
-			}
-		}
-
 
 		/* flag+=_config.SEQUENCING_WAS_PAIRED ;
 		 * flag+=(curr_read.MAPPED_AS_PAIR*2) ;
@@ -2076,19 +2037,18 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		{
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
 			{
-				// if (!curr_align->non_consensus_alignment)
-				// 	fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
-				// else
-				// {
-				// 	if (_config.STRAND > -1) {
-				// 		if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-				// 			fprintf(MY_OUT_FP, "\tXS:A:+") ;
-				// 		else
-				// 			fprintf(MY_OUT_FP, "\tXS:A:-") ;
-				// 	}
+				if (!curr_align->non_consensus_alignment)
+					fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
+				else
+				{
+					if (_config.STRAND > -1) {
+						if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+							fprintf(MY_OUT_FP, "\tXS:A:+") ;
+						else
+							fprintf(MY_OUT_FP, "\tXS:A:-") ;
+					}
 					
-				// }
-				fprintf(MY_OUT_FP, "\tXS:A:%c",curr_align->strand) ;
+				}
 				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
 				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
 				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
@@ -2103,11 +2063,10 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         }
         else if (_config.STRAND > -1) {
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS) {
-				fprintf(MY_OUT_FP, "\tXS:A:%c",curr_align->strand) ;
-				// if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-				// 	fprintf(MY_OUT_FP, "\tXS:A:+") ;
-				// else
-				// 	fprintf(MY_OUT_FP, "\tXS:A:-") ;
+				if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+					fprintf(MY_OUT_FP, "\tXS:A:+") ;
+				else
+					fprintf(MY_OUT_FP, "\tXS:A:-") ;
 			}
         }
 
