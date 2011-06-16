@@ -100,7 +100,8 @@ protected:
 	void sort_top_alignment_list()  ;  
 	void qsort_top_alignments(alignment_t** output, int size);
 	
-
+	void determine_transcription_direction(char strand,char orientation, int side, char &transcription, char &read_forward);
+	
 	std::vector<alignment_t *> top_alignments;
 	int num_spliced_alignments;
 	int num_unspliced_alignments;
