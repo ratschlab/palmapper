@@ -17,6 +17,7 @@
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
+
 void get_annotated_splice_positions( std::vector<int> &pos, JunctionMap &annotatedjunctions,const char * type, int start, int end, int chr, char strand)
 {
 	// find a lower bound on the index with binary search
@@ -96,6 +97,26 @@ void get_annotated_splice_sites(std::vector<int> &acc_pos, std::vector<int> &don
 	annotatedjunctions.unlock();
 }
 
+
+int QPalma::get_transcription_direction(int side,int orientation) const
+{
+
+	//Return 1 if the transcription is on the forward direction
+	//Return -1 if the transcriptioon is on the negative direction
+	//Return 0 if we don't know
+
+	//No strand specific information: need to try all combinations to look for splice sites
+	if (side<=-1)
+		return 0;
+	
+	//Left reads: should always have the same orientation than the transcription
+	if (side==1)
+		return (orientation==0)?1:-1;
+	
+	//Right reads: should always have the opposite orientation than the transcription
+	return (orientation==1)?1:-1;
+		   
+}
 
 QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
 //  : 	verbosity(3), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
@@ -1786,6 +1807,9 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						
 						bool isunspliced ;
 
+						int transcription_direction = get_transcription_direction(_config.STRAND,ori);
+						
+						if (transcription_direction >=0)
 						{
 							int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
 																current_positions, chr, '+', ori, hit_read_position,
@@ -1800,6 +1824,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						}
 					  
 						//if (!isunspliced) 
+						if (transcription_direction <=0)
 						{
 							//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 							//      corres_long_regions[0]->end, hit_len);					  
@@ -1888,6 +1913,9 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					
 				
 
+				int transcription_direction = get_transcription_direction(_config.STRAND,ori);
+						
+				if (transcription_direction >=0)
 				{
 					int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori],
 														current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
@@ -1902,6 +1930,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 					isunspliced = ret;
 				}
 				//if (!isunspliced) 
+				if (transcription_direction <=0)
 				{
 					//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),corres_long_regions[0]->end, hit_len);					  
 					// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
@@ -2005,7 +2034,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 	for (int ori = 0; ori < 2; ori++){
 
-		
+		int transcription_direction = get_transcription_direction(_config.STRAND,ori);
+						
 		hits.topAlignments().init_top_alignment_indice();
 	
 		for (size_t chrN = 0; chrN < long_regions[ori].size(); chrN++) 
@@ -2069,7 +2099,11 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 					junctionmap.unlock() ;
 					
-
+					
+					//Continue only if the strand with the splice junction is consistent with the transcription direction
+					if ((transcription_direction==1 && strand=='-') || (transcription_direction==-1 && strand=='+') )		
+						break;
+					
 					if ((unsigned int)int2_end >= chr.length())
 						int2_end=chr.length()-1;
 
@@ -2181,6 +2215,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						}
 						int ret;
 						
+
+
 						if (strand == '+')
 						{
 							ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], 

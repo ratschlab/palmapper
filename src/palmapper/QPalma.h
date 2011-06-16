@@ -153,6 +153,8 @@ protected:
 	int perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions) const;
 
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const;
+	int get_transcription_direction(int side,int orientation) const;
+	
 //	int rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
 
 
