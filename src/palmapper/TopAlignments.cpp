@@ -1211,7 +1211,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			read_len = orig_len ;
 			read_qual = read.get_orig()->quality(0);
 
-			if (best->orientation=='+')
+			if (read_orientation=='+')
 			{
 				for (int i=0; i<polytrim_cut_start; i++)
 				{
@@ -1258,9 +1258,9 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 		double qpalma_score = best->qpalma_score ;
 		
 		{
-			if (best->orientation=='+')
+			if (read_orientation=='+')
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
-						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, read_anno, read_qual) ;
+						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, read_orientation, read_anno, read_qual) ;
 			else
 			{
 				// reverse order of quality 
@@ -1270,7 +1270,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 				qual[read_len]=0 ;
 				
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
-						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, best->orientation, read_anno, qual) ;
+						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, read_orientation, read_anno, qual) ;
 			}
 			if (_config.POLYTRIM_STRATEGY)
 			{
@@ -1325,7 +1325,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			assert(second->exons[i] - second->exons[0] >  0 ) ;
 		}
 
-		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s",	second->qpalma_score, second->num_matches, second->num_gaps, second->min_exon_len, best->max_intron_len, second->orientation, second->read_anno) ;
+		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s",	second->qpalma_score, second->num_matches, second->num_gaps, second->min_exon_len, best->max_intron_len, read_orientation, second->read_anno) ;
 
 		if (_config.POLYTRIM_STRATEGY)
 		{
