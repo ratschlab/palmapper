@@ -55,6 +55,40 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	return 1 ;
 }
 
+void TopAlignments::determine_transcription_direction(char strand,char orientation, int side, char &transcription, char &read_forward)
+{
+	
+	//Left reads
+	if (side==1){
+		//For sense transcription, the left read is in the same direction
+		if (strand==orientation)
+			transcription='+';
+		else
+			transcription='-';
+	}
+	else{
+		//Right reads
+		if (side==0){
+			//For antisense transcription, the right read is in the same direction
+			if (strand==orientation)
+				transcription='-';
+			else
+				transcription='+';
+		}
+		//No information about the reads: the strand of a spliced alignment gives the direction of the transcription
+		else
+			transcription=strand;
+	}
+
+	//For all cases, the reverse bit has to be given according to the coding strand: reverse the read orientation if found on the non coding strand
+	if(strand=='-')
+		read_forward=(orientation=='+')?'-':'+';
+	else
+		read_forward=orientation;
+
+}
+
+
 
 int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *qual_mismatches_p, int *num_matches_p)
 {
@@ -1118,6 +1152,10 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 	
 	pthread_mutex_unlock( &_stats.alignment_num_mutex) ;
 
+	char transcription_direction;
+	char read_orientation;
+	determine_transcription_direction(best->strand,best->orientation,_config.STRAND,transcription_direction,read_orientation);
+
 	// Print spliced alignment to open file MY_OUT_FP in BED format
 	fprintf(MY_OUT_FP, "%s\t%s\t%d\t%d\t%s\t%d\t%c\t%i\t%i\t0,0,0\t%d\t",
 			best->from_gm == 2? "gm":"qp",
@@ -1126,13 +1164,13 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			best->exons[best->exons.size()-1],
 			best->read_id,
 			best->num_matches,
-			best->strand,
+			transcription_direction,
 			top_unspliced_alignments,
 			top_spliced_alignments,
 			int(best->exons.size() / 2));
 
-	if (best->strand=='-')
-		best->orientation=(best->orientation=='+')?'-':'+';
+
+
 	
 	fprintf(MY_OUT_FP, "%d", best->exons[1] - best->exons[0]);
 	assert(best->exons[1] - best->exons[0] >  0) ;
@@ -1257,17 +1295,18 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 		
 		assert(second->exons.size() >= 2);
 
+		determine_transcription_direction(second->strand,second->orientation,_config.STRAND,transcription_direction,read_orientation);
+
 		fprintf(MY_OUT_FP, "\t%s\t%s\t%d\t%d\t%d\t%c\t%d\t",
 				second->from_gm == 2? "gm":"qp",
 				second->chromosome->desc(),
 				second->exons[0],
 				second->exons[second->exons.size() - 1],
 				second->num_matches,
-				second->strand,
+				transcription_direction,
 				int(second->exons.size() / 2));
 
-		if (second->strand=='-')
-			second->orientation=(second->orientation=='+')?'-':'+';
+
 
 		fprintf(MY_OUT_FP, "%d", second->exons[1] - second->exons[0]);
 		assert(second->exons[1] - second->exons[0] >  0) ;
@@ -1775,11 +1814,12 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 		// Read orientation output always depends on the left strand -> reverse orientation if found on negative strand
 		
-		if (curr_align->strand == '-'){
-			curr_align->orientation=(curr_align->orientation=='+')?'-':'+';
-		}
+		char transcription_direction;
+		char read_orientation;
+		determine_transcription_direction(curr_align->strand,curr_align->orientation,_config.STRAND,transcription_direction,read_orientation);
 		
-		flag+=((curr_align->orientation=='-')*16) ;
+		
+		flag+=((read_orientation=='-')*16) ;
 
 		/* flag+=_config.SEQUENCING_WAS_PAIRED ;
 		 * flag+=(curr_read.MAPPED_AS_PAIR*2) ;
@@ -1818,7 +1858,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		uint32_t idx = 0 ;
         
 		// handle trimmed start as soft clips
-		if ((_config.POLYTRIM_STRATEGY  || _config.RTRIM_STRATEGY) && (polytrim_cut_start>0 && curr_align->orientation=='+'))
+		if ((_config.POLYTRIM_STRATEGY  || _config.RTRIM_STRATEGY) && (polytrim_cut_start>0 && read_orientation=='+'))
 		{
 			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_start) ;
 			for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
@@ -1826,7 +1866,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
 		}
-		if ((_config.POLYTRIM_STRATEGY  || _config.RTRIM_STRATEGY) && (polytrim_cut_end>0 && curr_align->orientation=='-'))
+		if ((_config.POLYTRIM_STRATEGY  || _config.RTRIM_STRATEGY) && (polytrim_cut_end>0 && read_orientation=='-'))
 		{
 			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_end) ;
 			for (uint32_t ii=0; ii < strlen(cig_buf); ii++)
@@ -1932,7 +1972,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 
 		// handle trimmed reads end
-		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0 &&  curr_align->orientation=='+')
+		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0 &&  read_orientation=='+')
 		{
 			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_end) ;
 			for (ii=0; ii < strlen(cig_buf); ii++)
@@ -1941,7 +1981,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			cigar[pos_in_cigar++] = 'S' ;
 		}
 		// handle trimmed reads end
-		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_start>0  && curr_align->orientation=='-')
+		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_start>0  && read_orientation=='-')
 		{
 			snprintf (cig_buf, (size_t) 255, "%d", polytrim_cut_start) ;
 			for (ii=0; ii < strlen(cig_buf); ii++)
@@ -1987,7 +2027,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", rcigar) ; 
 				}*/
 
-		if (curr_align->orientation=='+')
+		if (read_orientation=='+')
 		{
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_READ)
 				fprintf(MY_OUT_FP, "\t%s", curr_read->data()) ;
@@ -2037,18 +2077,21 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		{
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
 			{
-				if (!curr_align->non_consensus_alignment)
-					fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
-				else
-				{
-					if (_config.STRAND > -1) {
-						if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-							fprintf(MY_OUT_FP, "\tXS:A:+") ;
-						else
-							fprintf(MY_OUT_FP, "\tXS:A:-") ;
-					}
+				// if (!curr_align->non_consensus_alignment)
+				// 	fprintf(MY_OUT_FP, "\tXS:A:%c", curr_align->strand) ;
+				// else
+				// {
+				// 	if (_config.STRAND > -1) {
+				// 		if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+				// 			fprintf(MY_OUT_FP, "\tXS:A:+") ;
+				// 		else
+				// 			fprintf(MY_OUT_FP, "\tXS:A:-") ;
+				// 	}
 					
-				}
+				// }
+				if(!curr_align->non_consensus_alignment || _config.STRAND > -1) 
+					fprintf(MY_OUT_FP, "\tXS:A:%c",transcription_direction) ;
+
 				fprintf(MY_OUT_FP, "\tXe:i:%i", min_exon_len) ;
 				fprintf(MY_OUT_FP, "\tXI:i:%i", max_intron_len) ;
 				fprintf(MY_OUT_FP, "\tXi:i:%i", min_intron_len) ;
@@ -2063,10 +2106,11 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
         }
         else if (_config.STRAND > -1) {
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS) {
-				if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
-					fprintf(MY_OUT_FP, "\tXS:A:+") ;
-				else
-					fprintf(MY_OUT_FP, "\tXS:A:-") ;
+				fprintf(MY_OUT_FP, "\tXS:A:%c",transcription_direction) ;
+				// if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
+				// 	fprintf(MY_OUT_FP, "\tXS:A:+") ;
+				// else
+				// 	fprintf(MY_OUT_FP, "\tXS:A:-") ;
 			}
         }
 
