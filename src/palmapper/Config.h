@@ -116,14 +116,16 @@ public:
 	std::string INDEX_FWD_FILE_NAME;
 	std::string INDEX_REV_FILE_NAME;
 	std::string META_INDEX_FILE_NAME;
+	std::string Q_QUERY_FILE_NAMES;
+	std::string Q1_QUERY_FILE_NAMES;
+	std::string Q2_QUERY_FILE_NAMES;
 	std::vector<std::string> QUERY_FILE_NAMES;
+	std::vector<int> QUERY_FILE_STRANDS;
 	std::string OUT_FILE_NAME;
 	std::string SPLICED_OUT_FILE_NAME;
 	std::string GENOME_FILE_NAME;
 	std::string LEFTOVER_FILE_NAME;
 	std::string TRIGGERED_LOG_FILE;  // #A#
-	std::string READ1_FILE_NAME;
-	std::string READ2_FILE_NAME;
 	OutputFormatEnum OUTPUT_FORMAT;
 	unsigned int OUTPUT_FORMAT_FLAGS;
 	bool INCLUDE_UNMAPPED_READS_SAM;
@@ -190,6 +192,7 @@ public:
 	int NUM_MISMATCHES;
 	int NUM_GAPS;
     int STRAND;
+    int PROTOCOL;
 	double MM_SCORE;
 	double M_SCORE;
 	double GAP_SCORE;
@@ -218,6 +221,7 @@ private:
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;
 	int postprocess_consensus_list(std::vector<const char *> & consensus_list) ;
+	int postprocess_query_filenames(const std::string filenames, int strand) ;
 };
 
 
