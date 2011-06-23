@@ -109,12 +109,17 @@ int QPalma::get_transcription_direction(int side,int orientation) const
 	if (side<=-1)
 		return 0;
 	
-	//Left reads: should always have the same orientation than the transcription
-	if (side==1)
-		return (orientation==0)?1:-1;
 	
-	//Right reads: should always have the opposite orientation than the transcription
-	return (orientation==1)?1:-1;
+	//Left reads: 
+	//same orientation than the transcription for first strand protocol
+	//opposite orientation than the transcription for second strand protocol
+	if (side==1)
+		return (_config.PROTOCOL == orientation)?1:-1;
+	
+	//Right reads:
+	//opposite orientation than the transcription for first strand protocol
+	//same orientation than the transcription for second strand protocol
+	return (_config.PROTOCOL != orientation)?1:-1;
 		   
 }
 

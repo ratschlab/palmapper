@@ -62,18 +62,18 @@ void TopAlignments::determine_transcription_direction(char strand,char orientati
 	if (side==1){
 		//For sense transcription, the left read is in the same direction
 		if (strand==orientation)
-			transcription='+';
+			transcription=(_config.PROTOCOL==0)?'+':'-';
 		else
-			transcription='-';
+			transcription=(_config.PROTOCOL==0)?'-':'+';
 	}
 	else{
 		//Right reads
 		if (side==0){
 			//For antisense transcription, the right read is in the same direction
 			if (strand==orientation)
-				transcription='-';
+				transcription=(_config.PROTOCOL==0)?'-':'+';
 			else
-				transcription='+';
+				transcription=(_config.PROTOCOL==0)?'+':'-';
 		}
 		//No information about the reads: the strand of a spliced alignment gives the direction of the transcription
 		else
@@ -1818,8 +1818,12 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		char read_orientation;
 		determine_transcription_direction(curr_align->strand,curr_align->orientation,_config.STRAND,transcription_direction,read_orientation);
 		
-		
+		//Read reversed and complemented compared to the forward strand
 		flag+=((read_orientation=='-')*16) ;
+
+		//For several fragments: First corresponds to left reads and last corresponds to right reads
+		flag+=((_config.STRAND==1)*64) ;
+		flag+=((_config.STRAND==0)*128) ;
 
 		/* flag+=_config.SEQUENCING_WAS_PAIRED ;
 		 * flag+=(curr_read.MAPPED_AS_PAIR*2) ;
