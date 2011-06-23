@@ -27,13 +27,13 @@ public:
 		unsigned long _lineNr;
 	};
 
-	QueryFile(std::vector<std::string> const &filename);
+	QueryFile(std::vector<std::string> const &filename, std::vector<int> const &strands);
 	~QueryFile();
 
 	Read *next_read();
 
+	bool next_read(Read &read, int &strand);
 	bool next_read(Read &read);
-
 	bool next_line(char *buf, int maxLen);
 
 	unsigned long line_nr() const {
@@ -56,7 +56,7 @@ public:
 		_readCount=0;
 	}
 
-	static int determine_read_length(std::vector<std::string> const &filenames);
+	static int determine_read_length(std::vector<std::string> const &filenames,std::vector<int> const &strands);
 
 private:
 
@@ -66,8 +66,11 @@ private:
 	int _lineNr;
 	unsigned int _maxReadLen;
 	std::vector<std::string> const &_filenames;
+	std::vector<int> const &_strands;
+
 	unsigned long _currentFile;
 	int _readCount;
+	int _current_strand;
 	Mutex _mutex;
 };
 

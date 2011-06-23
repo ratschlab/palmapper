@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
 
-	QueryFile queryFile(_config.QUERY_FILE_NAMES);
+	QueryFile queryFile(_config.QUERY_FILE_NAMES,_config.QUERY_FILE_STRANDS);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
 	JunctionMap junctionmap(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
 	JunctionMap annotated_junctions(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	

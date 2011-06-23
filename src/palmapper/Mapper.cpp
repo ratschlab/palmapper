@@ -112,8 +112,9 @@ int Mapper::map_reads()
 
 		count_reads++;
 		Result &result = *new Result(*this);
-		if (!_queryFile.next_read(result._orig))
+		if (!_queryFile.next_read(result._orig,_config.STRAND))
 			break;
+		
 		
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))

@@ -132,8 +132,6 @@ Config::Config() {
 	BSSEQ = 0;
 
 	LEFTOVER_FILE_NAME = std::string("/dev/null") ;
-	READ1_FILE_NAME = std::string("") ;
-	READ2_FILE_NAME = std::string("") ;
 
 	ACC_CONSENSUS.push_back(strdup("AG")) ;
 	ACC_CONSENSUS_REV.push_back(strdup("CT")) ;
@@ -153,6 +151,12 @@ Config::Config() {
 	NO_QPALMA = false;
 	
     STRAND = -1 ;
+	PROTOCOL = 0 ;
+
+	Q_QUERY_FILE_NAMES= std::string("") ;
+	Q1_QUERY_FILE_NAMES= std::string("") ;
+	Q2_QUERY_FILE_NAMES= std::string("") ;
+
 };
 
 int Config::applyDefaults(Genome * genome)
@@ -173,7 +177,7 @@ int Config::applyDefaults(Genome * genome)
 	}
 
 	if (_personality == Palmapper)  {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES);
+		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
 		{
 			bool line_started=false ;
 			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
@@ -329,7 +333,7 @@ int Config::applyDefaults(Genome * genome)
 int Config::checkConfig()
 {
 	if (_personality == Palmapper) {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES);
+		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
 
 		if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
 		{
@@ -367,10 +371,7 @@ int Config::checkConfig()
 		exit(1) ;
 	}
 
-/*	if ((READ1_FILE_NAME.length() > 0) + (READ2_FILE_NAME.length() > 0) == 1) {
-		fprintf(stderr, "ERROR: If paired end information is available, please specify -q1 AND -q2\n");
-		exit(1);
-	}*/
+
 
 	if (INCLUDE_UNMAPPED_READS_SAM && OUTPUT_FORMAT!=OUTPUT_FORMAT_SAM)
 	{
@@ -391,6 +392,33 @@ int Config::checkConfig()
 	}
 
 	return 0 ;
+}
+
+int Config::postprocess_query_filenames(std::string filenames, int strand) 
+{
+
+	if (filenames.length()==0)
+		return 0;
+		
+	int previousfound=0;
+	int found=filenames.find(",");
+	std::string filename;
+	
+	while (found >= 0)
+	{
+		
+		QUERY_FILE_NAMES.push_back(filenames.substr(previousfound, found-previousfound));
+		QUERY_FILE_STRANDS.push_back(strand);
+		
+		previousfound=found+1;
+		found=filenames.find(",",found+1);
+	}
+		
+	QUERY_FILE_NAMES.push_back(filenames.substr(previousfound));
+	QUERY_FILE_STRANDS.push_back(strand);
+	
+	return 0;
+	
 }
 
 int Config::postprocess_consensus_list(std::vector<const char *> & consensus_list) 
@@ -566,7 +594,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1);
 			}
 			i++;
-			QUERY_FILE_NAMES.push_back(std::string(argv[i]));
+			Q_QUERY_FILE_NAMES=strdup(argv[i]);
 		}
 
 		//output file
@@ -1683,7 +1711,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//read2 file
-		if (strcmp(argv[i], "-q1") == 0 || strcmp(argv[i], "-q2") == 0) {
+		if (strcmp(argv[i], "-q1") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr, "ERROR: Argument missing for option %s\n", argv[i]);
@@ -1691,7 +1719,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1);
 			}
 			i++;
-			QUERY_FILE_NAMES.push_back(std::string(argv[i]));
+			Q1_QUERY_FILE_NAMES=strdup(argv[i]);
+		}
+
+		if (strcmp(argv[i], "-q2") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", argv[i]);
+				usage();
+				exit(1);
+			}
+			i++;
+			Q2_QUERY_FILE_NAMES=strdup(argv[i]);
 		}
 
 		if (_personality == Palmapper) {
@@ -1801,6 +1840,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 			}
 
+			//Used protocol
+			if (strcmp(argv[i], "-protocol") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1 || (strcmp(argv[i + 1], "first") != 0 && strcmp(argv[i + 1], "second") != 0)) {
+					fprintf(stderr, "ERROR: Argument missing for option -protocol\nMust be [ first | second ]") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				if (strcmp(argv[i], "first") == 0) {
+					PROTOCOL = 0 ; // first
+				}
+				else {
+					PROTOCOL = 1 ; // second
+				}
+			}
+
+
 			if (not_defined == 1) {
 				fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
 				usage();
@@ -1808,6 +1865,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 	}
+
+	//Initialize query file vectors (name and strand information)
+	postprocess_query_filenames(Q_QUERY_FILE_NAMES, STRAND) ;
+	postprocess_query_filenames(Q1_QUERY_FILE_NAMES, 1) ;
+	postprocess_query_filenames(Q2_QUERY_FILE_NAMES, 0) ;
 
 	if (has_index == 0 || QUERY_FILE_NAMES.size() == 0 || has_genome == 0) {
 		usage();
@@ -1847,15 +1909,18 @@ int Config::usage() {
 
 		//MANDATORY parameters
 		printf("mandatory:\n");
-		printf(" -i STRING       reference sequence (fasta file and prefix to index files)\n");
-		printf(" -q STRING       query filename (fasta, fastq, or SHORE flat file)\n");
-		printf(" -q1 STRING      \"left\" query filename for paired-end reads (fasta, fastq, or SHORE flat file)\n");
-		printf(" -q2 STRING      \"right\" query filename for paired-end reads (fasta, fastq, or SHORE flat file)\n");
+		printf(" -i STRING                       reference sequence (fasta file and prefix to index files)\n");
+		printf(" -q STRING[,STRING,..,STRING]    query filename (fasta, fastq, or SHORE flat file)\n");
+		printf(" -q1 STRING[,STRING,..,STRING]   \"left\" query filename for paired-end reads (fasta, fastq, or SHORE flat file)\n");
+		printf(" -q2 STRING[,STRING,..,STRING]   \"right\" query filename for paired-end reads (fasta, fastq, or SHORE flat file)\n");
 
 		//OPTIONAL parameters
 		printf("\n\n");
 		printf("optional:\n");
 
+		printf(" -stranded STRING        strand specific experiment (left, right, plus, minus)\n");
+		printf(" -protocol STRING        protocol used to prepared RNA-seq data (first,second)\n");
+		printf("                         examples: RNA ligation is first and dUTP protocol is second strand\n");
 		printf(" -f STRING                   output format (\"shore\", \"bed\", \"bedx\", or \"sam\")[sam]\n");
 		printf(" -ff INT                     bitwise output sam format flag (0x1: read sequence, 0x2: read quality, 0x4: common sam flags, 0x8: extended same flags)[15]\n");
 		printf(" -include-unmapped-reads     write directly unmapped reads in sam file\n");
@@ -1888,8 +1953,6 @@ int Config::usage() {
 		printf(" -threads INT                     maximal number of threads [1] \n");
 		printf(" -v                               verbose [silent]\n\n");
 
-
-		printf(" -stranded STRING        strand specific experiment (left, right, plus, minus)\n");
 		printf(" -rtrim INT              shortens the read until a hit is found or the minimal length is reached\n");
 		printf(" -rtrim-step INT         rtrim step size\n");
 		printf(" -polytrim INT           trims polyA or polyT ends until a hit is found or the minimal length is reached\n");
@@ -1966,8 +2029,8 @@ int Config::usage() {
 
 		printf("\n");
 		printf("*Mandatory arguments*\n\n");
-		printf("    -i STRING        reference sequence (fasta file and prefix to index files)\n");
-		printf("    -q STRING        query filename (fasta, fastq, or SHORE flat file)\n");
+		printf("    -i STRING                     reference sequence (fasta file and prefix to index files)\n");
+		printf("    -q STRING[,STRING,..,STRING]  query filename (fasta, fastq, or SHORE flat file)\n");
 		printf("\n");
 
 		printf("*Optional arguments*\n\n");
