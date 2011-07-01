@@ -1981,7 +1981,7 @@ int Config::usage() {
 		printf(" -don-consensus STRING                 defines consensus sequences for donor sites (separated by \",\") [GT,GC]\n");
 		printf(" -no-ss-pred                           indicates that no splice site predictions should be used and only scores positions corresponding to consensus sequences for acceptors and donors\n");
 		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as plausible splice sites\n");
-		printf(" -score-annotated-splice-sites STRING[,STRING,..,STRING]  set score of annotated splice sites from gff3 files to 1");
+		printf(" -score-annotated-splice-sites STRING[,STRING,..,STRING]  set score of annotated splice sites from gff3 files to 1\n");
 		printf(" -junction-remapping STRING[,STRING,..,STRING]  enables remapping of unmapped or unspliced reads against the junction list provided in gff3 files\n");
 		printf(" -junction-remapping-coverage INT      minimum alignment support to take into account a junction\n\n");
 
