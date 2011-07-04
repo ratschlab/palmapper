@@ -11,12 +11,14 @@
 #include <palmapper/FileReporter.h>
 #include <palmapper/Mapper.h>
 #include <palmapper/JunctionMap.h>
+#include <wait.h>
 
 Config _config;
 Statistics _stats;
 
 using namespace lang;
 
+ 
 class MapperThread : public Thread, public Mapper {
 public:
 MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotated_junctions)
@@ -26,9 +28,9 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 	}
 };
 
+
 int main(int argc, char *argv[]) 
 {
-
 	_config.VersionHeader() ;
 
 	init_shogun() ;
@@ -42,19 +44,56 @@ int main(int argc, char *argv[])
 	// initialize variables
 	_config.parseCommandLine(argc, argv);
 	
-	FILE *OUT_FP = Util::openFile(_config.OUT_FILE_NAME, "w");
-	FILE *SP_OUT_FP = _config.SPLICED_HITS && _config.SPLICED_OUT_FILE_NAME.length() > 0 ? Util::openFile(_config.SPLICED_OUT_FILE_NAME, "w") : OUT_FP;
-    FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
 
 	Genome genome;
 
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
 
+	FILE *OUT_FP = NULL ;
+	if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+		OUT_FP = Util::openFile(_config.OUT_FILE_NAME, "w");
+	else
+	{
+		OUT_FP = TopAlignments::open_bam_pipe(_config.OUT_FILE_NAME) ;
+		
+		if (OUT_FP==NULL)
+		{
+			fprintf(stderr, "popen failed: samtools subprocess could not be started (mapped reads)\n") ;
+			exit(-1) ;
+		}
+	}
+	
+	FILE *SP_OUT_FP = OUT_FP ;
+	if (_config.SPLICED_HITS && _config.SPLICED_OUT_FILE_NAME.length() > 0 && _config.SPLICED_OUT_FILE_NAME!=_config.OUT_FILE_NAME )
+	{
+		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+			SP_OUT_FP = Util::openFile(_config.SPLICED_OUT_FILE_NAME, "w") ;
+		else
+		{
+			SP_OUT_FP = TopAlignments::open_bam_pipe(_config.SPLICED_OUT_FILE_NAME) ;
+			
+			if (SP_OUT_FP==NULL)
+			{
+				fprintf(stderr, "popen failed: samtools subprocess could not be started (spliced reads)\n") ;
+				exit(-1) ;
+			}
+		}
+	}
+    FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
+
+
 	QueryFile queryFile(_config.QUERY_FILE_NAMES,_config.QUERY_FILE_STRANDS);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
 	JunctionMap junctionmap(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
 	JunctionMap annotated_junctions(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
+	
+	if ( _config.OUTPUT_FORMAT == OUTPUT_FORMAT_BAM)
+	{
+		TopAlignments::print_bam_header(genome, OUT_FP) ;
+		if (SP_OUT_FP!=OUT_FP)
+			TopAlignments::print_bam_header(genome, SP_OUT_FP) ;
+	}
 
 	if (_config.MAP_JUNCTIONS){
 		int ret=junctionmap.init_from_gffs(_config.MAP_JUNCTIONS_FILE);
@@ -121,7 +160,7 @@ int main(int argc, char *argv[])
 		if (_config.ACC_FILES.length()>0)
 			qpalma->map_splice_sites(_config.ACC_FILES, 'a', _config.QPALMA_USE_SPLICE_SITES_THRESH_ACC, _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0, false) ;
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
-			fprintf(stdout, "-> acceptor splice sites build_indexwith confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC) ;
+			fprintf(stdout, "-> acceptor splice sites build_index with confidence >= %1.2f%% \n", 100*_config.QPALMA_USE_SPLICE_SITES_THRESH_ACC) ;
 			
 		if (_config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC!=0.0)
 			_config.QPALMA_USE_SPLICE_SITES_THRESH_DON = _config.QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC ;
@@ -160,15 +199,37 @@ int main(int argc, char *argv[])
 		delete threads[i];
 	}
 	reporter.done();
-
+	
 	if (_config.OUT_FILE_NAME.length() > 0)
-		fclose(OUT_FP);
-	if (_config.SPLICED_OUT_FILE_NAME.length() > 0)
-		fclose(SP_OUT_FP);
-	if (_config.LEFTOVER_FILE_NAME.length() > 0) {
-		//fprintf(LEFTOVER_FP, "#done\n");
-		fclose(LEFTOVER_FP);
+	{
+		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+			fclose(OUT_FP);
+		else
+		{
+			int ret=TopAlignments::close_bam_pipe(OUT_FP) ;
+			if (ret!=0)
+			{
+				fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
+				exit(-1) ;
+			}
+		}
 	}
+	if (_config.SPLICED_OUT_FILE_NAME.length() > 0 && SP_OUT_FP!=OUT_FP)
+	{
+		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+			fclose(SP_OUT_FP);
+		else
+		{
+			int ret=TopAlignments::close_bam_pipe(SP_OUT_FP) ;
+			if (ret!=0)
+			{
+				fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
+				exit(-1) ;
+			}
+		}
+	}
+	if (_config.LEFTOVER_FILE_NAME.length() > 0) 
+		fclose(LEFTOVER_FP);
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);

@@ -5,6 +5,7 @@
 #include <string>
 #include <time.h>
 #include <stdlib.h>
+#include <wait.h>
 
 #include "palmapper.h"
 #include "print.h"
@@ -1089,12 +1090,12 @@ int TopAlignments::print_top_alignment_records(Read const &read, std::ostream *O
     }
 	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SHORE || _config.OUTPUT_FORMAT==OUTPUT_FORMAT_BED)
     {
-		return print_top_alignment_records_shorebed(read, OUT_FP) ;
+		return print_top_alignment_records_shorebed(read, OUT_FP, SP_OUT_FP) ;
     }
 
-	if (_config.OUTPUT_FORMAT==OUTPUT_FORMAT_SAM)
+	if ( _config.OUTPUT_FORMAT==OUTPUT_FORMAT_SAM || _config.OUTPUT_FORMAT==OUTPUT_FORMAT_BAM )
     {
-		return print_top_alignment_records_sam(read, OUT_FP) ;
+		return print_top_alignment_records_sam(read, OUT_FP, SP_OUT_FP) ;
     }
 
 	
@@ -1343,12 +1344,15 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 	return top_alignments.size() ;
 }
 
-int TopAlignments::print_top_alignment_records_shorebed(Read const &read, std::ostream *OUT_FP)
+int TopAlignments::print_top_alignment_records_shorebed(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
 	int printed = 0 ;
 	for (unsigned int i=0; i<top_alignments.size(); i++)
     {
-		printed+= print_alignment_shorebed(read, OUT_FP, top_alignments[i], top_alignments[i]->num)  ;
+		if (!top_alignments[i]->spliced)
+			printed+= print_alignment_shorebed(read, OUT_FP, top_alignments[i], top_alignments[i]->num)  ;
+		else
+			printed+= print_alignment_shorebed(read, SP_OUT_FP, top_alignments[i], top_alignments[i]->num)  ;
     }
 	return printed ;
 }
@@ -1678,14 +1682,76 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 	return 1;
 	}*/
 
+void TopAlignments::print_bam_header(Genome& genome, FILE*OUT_FP)
+{
+	for (unsigned int i=0; i<genome.nrChromosomes(); i++)
+	{
+		fprintf(OUT_FP, "@SQ\tSN:%s\tLN:%i\n", genome.get_desc(i), genome.chromosome(i).length())  ;
+		//fprintf(stdout, "@SQ\tSN:%s\tLN:%i\n", genome.get_desc(i), genome.chromosome(i).length())  ;
+	}
+}
+
+FILE* TopAlignments::open_bam_pipe(std::string & out_fname)
+{
+	std::string command = std::string("samtools view -Sb /dev/stdin > ") + out_fname  + " && echo samtools subprocess terminated successfully";
+	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTPOS )
+		command = std::string("samtools view -Sb /dev/stdin | samtools sort /dev/stdin ") + out_fname + std::string("&& mv ") + 
+			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
+	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTNAME )
+		command = std::string("samtools view -Sb /dev/stdin | samtools sort -n /dev/stdin ") + out_fname + std::string("&& mv ") + 
+			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
+	FILE* OUT_FP=NULL ;
+	
+	fflush(stdout) ;
+	if (false) // does not work
+	{
+		fprintf(stdout, "Testing samtools pipe: ") ;
+		OUT_FP = popen(command.c_str(), "w") ;
+		//TopAlignments::print_bam_header(genome, OUT_FP) ;
+		int status = pclose(OUT_FP);
+		if WIFEXITED(status) 
+			{
+				int ret=WEXITSTATUS(status);
+				if (ret==0)
+					fprintf(stdout, "OK\n");
+				else
+				{
+					fprintf(stdout, "exit code %i\n", ret) ;
+					fprintf(stderr, "samtools pipe failed (command '%s')\n", command.c_str()) ;
+					exit(-1) ;
+				}
+			}
+		fprintf(stderr, "samtools pipe status %i", status) ;
+	}
+	OUT_FP = popen(command.c_str(), "w") ;
+	return OUT_FP ;
+}
+
+int TopAlignments::close_bam_pipe(FILE * FP)
+{
+	int status = pclose(FP);
+
+	if WIFEXITED(status) 
+		{
+			int ret=WEXITSTATUS(status);
+			if (ret!=0)
+			{
+				return ret ;
+			}
+			return 0 ;
+		}
+	return -1 ;
+}
+
+
 // SAM format
-int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP)
+int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
 	std::ostream* MY_OUT_FP = OUT_FP ;
 	if (top_alignments.size()==0){
 		
-		if (_config.INCLUDE_UNMAPPED_READS_SAM){
-		
+		if (_config.INCLUDE_UNMAPPED_READS_SAM)
+		{
 			_stats.alignment_num_unmapped+= 1 ;
 			_stats.print_alignment_stats() ;
 
@@ -1749,7 +1815,11 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 	for (unsigned int j=0; j<top_alignments.size(); j++)
     {
 		alignment_t * curr_align  = top_alignments[j] ;
-
+		if (curr_align->spliced)
+			MY_OUT_FP = SP_OUT_FP ;
+		else
+			MY_OUT_FP = OUT_FP ;
+		
 		assert(curr_align->exons.size() >= 2);
 		
 		int min_exon_len = curr_align->exons[1]-curr_align->exons[0] ;

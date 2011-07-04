@@ -561,7 +561,11 @@ int GenomeMaps::read_reporting()
 		assert(CHR_MAP_c[i]!=NULL) ;
 		
 		int ret=gzread(fd, CHR_MAP_c[i], chr.length()) ;
-		assert((size_t)ret==chr.length());
+		if ((size_t)ret!=chr.length())
+		{
+			fprintf(stderr, "error: Genome map inconsistent (%s)\n", fname) ;
+			exit(-2) ;
+		}
 
 #ifdef CHR_MAP_DNAARRAY
 		if (to_be_transfered)

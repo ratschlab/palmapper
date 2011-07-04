@@ -58,6 +58,7 @@ Config::Config() {
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
 	OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	OUTPUT_FORMAT_FLAGS = OUTPUT_FORMAT_FLAGS_DEFAULT ;
+	OUTPUT_FORMAT_OPTION = OUTPUT_FORMAT_OPTION_DEFAULT ;
 
 	FIRST_READ_NR = 0;
 	LAST_READ_NR = 10000000;
@@ -374,7 +375,7 @@ int Config::checkConfig()
 	}
 
 
-	if (INCLUDE_UNMAPPED_READS_SAM && OUTPUT_FORMAT!=OUTPUT_FORMAT_SAM)
+	if (INCLUDE_UNMAPPED_READS_SAM && OUTPUT_FORMAT!=OUTPUT_FORMAT_SAM && OUTPUT_FORMAT!=OUTPUT_FORMAT_BAM)
 	{
 		fprintf(stderr, "WARNING: unmapped reads can only be written in the same output file than mapped reads for sam format\n") ; 
 		INCLUDE_UNMAPPED_READS_SAM=false;
@@ -1217,21 +1218,34 @@ int Config::parseCommandLine(int argc, char *argv[])
 				usage();
 				exit(1);
 			}
-			char const *output = argv[++i];
-			if (strcmp(output, "shore") == 0 || strcmp(output, "SHORE") == 0) {
+			std::string output = argv[++i];
+			std::transform(output.begin(), output.end(), output.begin(), toupper);
+			 
+			if (output=="SHORE") {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE ;
 			}
-			else if (_personality == Palmapper && (strcmp(output, "bed") == 0 || strcmp(output, "BED") == 0)) {
+			else if (_personality == Palmapper && (output=="BED")) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_BED;
 			}
-			else if (_personality == Palmapper && (strcmp(output, "bedx") == 0 || strcmp(output, "BEDX") == 0)) {
+			else if (_personality == Palmapper && (output=="BEDX")) {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_BEDX;
 			}
-			else if (strcmp(output, "sam") == 0 || strcmp(output, "SAM") == 0) {
+			else if (output=="SAM") {
 				OUTPUT_FORMAT = OUTPUT_FORMAT_SAM;
 			}
+			else if (output=="BAM") {
+				OUTPUT_FORMAT = OUTPUT_FORMAT_BAM;
+			}
+			else if (output=="BAMN") {
+				OUTPUT_FORMAT = OUTPUT_FORMAT_BAM;
+				OUTPUT_FORMAT_OPTION = OUTPUT_FORMAT_OPTION_SORTNAME ;
+			}
+			else if (output=="BAMP") {
+				OUTPUT_FORMAT = OUTPUT_FORMAT_BAM;
+				OUTPUT_FORMAT_OPTION = OUTPUT_FORMAT_OPTION_SORTPOS ;
+			}
 			else {
-				fprintf(stderr,	"ERROR: Output file format %s not supported\n", output);
+				fprintf(stderr,	"ERROR: Output file format %s not supported\n", output.c_str());
 				exit(1);
 			}
 		}
