@@ -1967,7 +1967,7 @@ int Config::usage() {
 		printf(" -stranded STRING        strand specific experiment (left, right, plus, minus)\n");
 		printf(" -protocol STRING        protocol used to prepared RNA-seq data (first,second)\n");
 		printf("                         examples: RNA ligation is first and dUTP protocol is second strand\n");
-		printf(" -f STRING                   output format (\"shore\", \"bed\", \"bedx\", or \"sam\")[sam]\n");
+		printf(" -f STRING                   output format (\"shore\", \"bed\", \"bedx\", \"sam\", \"bam\", \"bamp\" or \"bamn\")[sam]\n");
 		printf(" -ff INT                     bitwise output sam format flag (0x1: read sequence, 0x2: read quality, 0x4: common sam flags, 0x8: extended same flags)[15]\n");
 		printf(" -include-unmapped-reads     write directly unmapped reads in sam file\n");
 		printf(" -o STRING                   output filename [stdout]\n");

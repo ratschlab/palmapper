@@ -27,7 +27,7 @@ Annotated splice sites (-score-annotated-splice-sites option):
 Other notable changes:
 * Add -include-unmapped-reads option. This option outputs unmapped
 reads in the same file than mapped reads (valid only for sam output). 
-
+* Add bam output
 
 (XXX: DD MONTH 2011, rXXXXX)
 
