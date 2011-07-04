@@ -33,6 +33,8 @@ Config::Config() {
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
 
 	FIXTRIM_STRATEGY_LEN = 10000000;
+	FIXTRIMRIGHT_STRATEGY_LEN = 0 ;
+	FIXTRIMLEFT_STRATEGY_LEN = 0 ;
 	RTRIM_STRATEGY=0 ;
 	RTRIM_STRATEGY_MIN_LEN = 25 ;
 	RTRIM_STRATEGY_STEP = DEFAULT_SETTING ;
@@ -372,7 +374,6 @@ int Config::checkConfig()
 	}
 
 
-
 	if (INCLUDE_UNMAPPED_READS_SAM && OUTPUT_FORMAT!=OUTPUT_FORMAT_SAM)
 	{
 		fprintf(stderr, "WARNING: unmapped reads can only be written in the same output file than mapped reads for sam format\n") ; 
@@ -391,6 +392,12 @@ int Config::checkConfig()
 		fprintf(stdout, "WARNING: non-consensus search is slow with more than one intron per alignment\n") ;
 	}
 
+	if (FIXTRIM_STRATEGY_LEN< 10000000 && (FIXTRIMLEFT_STRATEGY_LEN>0 || FIXTRIMRIGHT_STRATEGY_LEN>0))
+	{
+		fprintf(stderr,	"ERROR: -fixtrim and -fixtrim[right|left] options cannot be combined\n");
+		exit(1) ;
+	}
+	
 	return 0 ;
 }
 
@@ -624,6 +631,31 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr,	"ERROR: minimal fixtrim alignment length too short\n");
 				exit(1) ;
 			}
+		}
+
+
+		//fix read trimming left
+		if (strcmp(argv[i], "-fixtrimleft") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -fixtrimleft\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			FIXTRIMLEFT_STRATEGY_LEN = atoi(argv[i]) ;
+		}
+
+		//fix read trimming right
+		if (strcmp(argv[i], "-fixtrimright") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -fixtrimright\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			FIXTRIMRIGHT_STRATEGY_LEN = atoi(argv[i]) ;
 		}
 
 		//partial alignments for rtrim
@@ -1957,6 +1989,8 @@ int Config::usage() {
 		printf(" -rtrim-step INT         rtrim step size\n");
 		printf(" -polytrim INT           trims polyA or polyT ends until a hit is found or the minimal length is reached\n");
 		printf(" -fixtrim INT            shortens the read to a fixed length\n");
+		printf(" -fixtrimleft INT        Removes the given number of first nucleotides of each read (can be used with -fixtrimright but not -fixtrim)\n");
+		printf(" -fixtrimright INT       Removes the given number of last nucleotides of each read  (can be used with -fixtrimleft but not -fixtrim)\n");
 		printf(" -adaptertrim INT        trims away known adapter sequences, read is dropped, when shorter than parameter\n\n");
 		//printf(" -adaptertrim-log STRING    \n");
 
