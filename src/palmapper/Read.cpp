@@ -173,12 +173,27 @@ int Read::read_short_read()
 		}*/
 
 		READ_LENGTH = strlen(READ);
-
+		
+		//Fixtrim global strategy
 		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
 			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_QUALITY[0][_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
 		}
+
+
+		//Fixtrim left and right strategy
+		int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
+		if (trimborders >0){
+			if (READ_LENGTH - trimborders < _config.INDEX_DEPTH){
+				cerr <<	"ERROR: fixtrim alignment length too short\n";
+				exit(0) ;
+			}
+			copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN,_config.FIXTRIMRIGHT_STRATEGY_LEN);
+			
+		}
+		
+		
 
 		// O T H E R
 		READ_PE_FLAG = 0;
@@ -230,6 +245,17 @@ int Read::read_short_read()
 		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
 			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
+		}
+
+		//Fixtrim left and right strategy
+		int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
+		if (trimborders >0){
+			if (READ_LENGTH - trimborders < _config.INDEX_DEPTH){
+				cerr <<	"ERROR: fixtrim alignment length too short\n";
+				exit(0) ;
+			}
+			copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN, _config.FIXTRIMRIGHT_STRATEGY_LEN);
+			
 		}
 
 		READ_PE_FLAG = 0;
@@ -299,6 +325,17 @@ int Read::read_short_read()
 			READ_QUALITY[1][_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_QUALITY[2][_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
+		}
+
+		//Fixtrim left and right strategy
+		int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
+		if (trimborders >0){
+			if (READ_LENGTH - trimborders < _config.INDEX_DEPTH){
+				cerr <<	"ERROR: fixtrim alignment length too short\n";
+				exit(0) ;
+			}
+			copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN,_config.FIXTRIMRIGHT_STRATEGY_LEN);
+			
 		}
 
 		READ_FORMAT = 2;
