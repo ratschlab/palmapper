@@ -74,10 +74,13 @@ public:
 
 	int print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP);
-	int print_top_alignment_records_shorebed(Read const &read, std::ostream *OUT_FP) ;
+	int print_top_alignment_records_shorebed(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_alignment_shorebed(Read const &read, std::ostream *OUT_FP, alignment_t* align, unsigned int num)  ;
-	int print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP) ;
-	int print_top_alignment_records_bedx() ;
+	int print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
+
+	static void print_bam_header(Genome& genome, FILE *OUT_FP);
+	static FILE* open_bam_pipe(std::string & out_fname) ;
+	static int close_bam_pipe(FILE * FP) ;
 
 	size_t size()
 	{
