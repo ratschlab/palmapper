@@ -48,10 +48,16 @@
     --format=$unmappedFormat.format
     --bed-output=$bed_output
     --sam-output=$sam_output
+    --bam-output=$bam_output
     #if $unmappedFormat.format == "sam"
        --include-unmapped=$unmappedFormat.includeunmapped
     #else
-       --include-unmapped="false"
+    	#if $unmappedFormat.format == "bam"
+	       --include-unmapped=$unmappedFormat.includeunmapped
+	       --bamsort=$unmappedFormat.bamsort
+	    #else
+           --include-unmapped="false"
+        #end if
     #end if
     --coverage-output=$coverage_output
     --junctions-output=$junctions_output
@@ -249,12 +255,21 @@
 	<conditional name="unmappedFormat">
 	<param name="format" type="select" label="Output format">
 	  <option value="sam">SAM format</option>
+	  <option value="bam">BAM format</option>
 	  <option value="bedx">Extended BED format</option>
 	</param> 
 	<when value="bedx" />
 	<when value="sam">
 	  <param name="includeunmapped" type="boolean" truevalue="true" falsevalue="false" checked="false" label="Write unmapped reads in the output file" />
 	</when> <!-- sam -->
+	<when value="bam">
+	<param name="bamsort" type="select" label="Sort alignments in BAM file">
+	  <option value="unsorted">Unsorted BAM file</option>
+	  <option value="position">BAM file sorted by position</option>
+	  <option value="read">BAM file sorted by read id</option>
+	</param> 
+	<param name="includeunmapped" type="boolean" truevalue="true" falsevalue="false" checked="false" label="Write unmapped reads in the output file" />
+	</when> <!-- bam -->
     </conditional> <!-- unmappedFormat -->
       <param name="coverage" type="select" label="Save the coverage map in a file?" help="Output the coverage map (including spliced alignments) in wiggle format.">
         <option value="true">Yes</option>
@@ -323,7 +338,7 @@
 		<param name="maxalign" type="integer" value="10" label="Maximal number of spliced alignments per read (-SA)" />  
 		<param name="aligntrigger" type="integer" value="18" label="Minimal length of long hit (-L)" help="Integer not smaller than the index seed length." />
 		<param name="alignshorttrigger" type="integer" value="15" label="Minimal length of short hit (-K)" help="Integer not smaller than the index seed length." />
-		<param name="aligncombinedtrigger" type="integer" value="20" label="Minimal combined matches (-C)" help="Integer not smaller than the index seed length." />
+		<param name="aligncombinedtrigger" type="integer" value="18" label="Minimal combined matches (-C)" help="Integer not smaller than the index seed length." />
 		<param name="maxintronlength" type="integer" value="10000" label="Maximal intron length (-I)" />  
 		<param name="maxintronnum" type="integer" value="2" label="Maximal number of introns (-NI)" />  
 		<param name="qmm" type="integer" value="5" label="Minimal number of matches required for identifying a splice site (-QMM)" />  
@@ -375,7 +390,10 @@
 	  <filter>unmappedFormat['format'] == "bedx"</filter> 
 	</data>
 	<data format="sam" name="sam_output" label="PALMapper spliced-unspliced alignment file in SAM format" >
-	  <filter>unamppedFormat['format'] == "sam"</filter> 
+	  <filter>unmappedFormat['format'] == "sam"</filter> 
+	</data>
+	<data format="bam" name="bam_output" label="PALMapper spliced-unspliced alignment file in BAM format" >
+	  <filter>unmappedFormat['format'] == "bam"</filter> 
 	</data>
     <data format="txt" name="logfile" label="PALMapper LOG" />
     <data format="wig" name="coverage_output" label="A UCSC BedGraph wigglegram track, showing the depth of coverage at each position, including the spliced read alignments." >

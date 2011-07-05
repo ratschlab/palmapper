@@ -39,10 +39,12 @@ def __main__():
     parser.add_option('', '--don', dest='don', help='Donor SS predictions')
 
     #Output files
-    parser.add_option('', '--format', dest='format', help='Output format (bedx or sam)')
+    parser.add_option('', '--format', dest='format', help='Output format (bedx, sam or bam)')
     parser.add_option('', '--bed-output', dest='bed_output', help='The Bedx output file for both spliced and unspliced reads')
     parser.add_option('', '--sam-output', dest='sam_output', help='The SAM output file for both spliced and unspliced reads')
-    parser.add_option('', '--include-unmapped', dest='unmapped_included', help='Whether unmapped reads are included in output file (only for SAM format)')
+    parser.add_option('', '--bam-output', dest='bam_output', help='The BAM output file for both spliced and unspliced reads')
+    parser.add_option('', '--bamsort', dest='bamsorting', help='Type of sorting for BAM output (unsorted, position or read)')
+    parser.add_option('', '--include-unmapped', dest='unmapped_included', help='Whether unmapped reads are included in output file (only for SAM and BAM format)')
 
     parser.add_option('', '--coverage-map', dest='coverage', help='Whether the coverage map should be output')
     parser.add_option('', '--junctions', dest='junctions', help='Whether the intron junction library should be built')
@@ -148,8 +150,6 @@ def __main__():
         except ValueError, erf:
             stop_err('Something is wrong with the alignment parameters and the alignment could not be run\n' + str(erf))
     
-    #Output format
-    aligning_cmds+=('','-f %s ' % options.format)[options.format!="None"]
 
     #Index type
     aligning_cmds+=('','-bwa ')[options.indexSource=="bwa"]
@@ -243,7 +243,21 @@ def __main__():
 
     ## Output files
     if options.format == 'sam':
-        output_cmd='-o %s ' % options.sam_output
+        output_cmd='-f sam -o %s ' % options.sam_output
+        if options.unmapped_included == 'true':
+            output_cmd+='-include-unmapped-reads '
+        else:
+            (unmapped_tmp_file, unmapped_tmp_fname) = tempfile.mkstemp(suffix='', prefix='unmapped_', dir=None) ;
+            os.close(unmapped_tmp_file) ;
+            output_cmd+='-u %s ' % unmapped_tmp_file
+    elif options.format == 'bam':
+        if options.bamsorting == "position":
+            output_cmd='-f bamp '
+        elif options.bamsorting == "read":
+            output_cmd='-f bamn '
+        else:
+            output_cmd='-f bam '
+        output_cmd+='-o %s ' % options.bam_output
         if options.unmapped_included == 'true':
             output_cmd+='-include-unmapped-reads '
         else:
@@ -253,7 +267,7 @@ def __main__():
     else: #bedx output
         (unmapped_tmp_file, unmapped_tmp_fname) = tempfile.mkstemp(suffix='', prefix='unmapped_', dir=None) ;
         os.close(unmapped_tmp_file) ;
-        output_cmd='-o %s -u %s ' % (options.bed_output, unmapped_tmp_file)
+        output_cmd='-f bedx -o %s -u %s ' % (options.bed_output, unmapped_tmp_file)
 
     if options.coverage == 'true':
         output_cmd+='-report-coverage-wig %s ' % options.coverage_output
@@ -269,13 +283,14 @@ def __main__():
             input_cmd+='-strand %s ' % options.strand
             input_cmd+='-protocol %s ' % options.protocol
         
-    cmd2a = 'palmapper %s %s -i %s %s  %s -qpalma %s %s -report %s -threads 1 -qpalma-prb-offset-fix >> %s' % (aligning_cmds, qpalma_cmds, options.ref, input_cmd, output_cmd, options.qpalma, ss_cmds, report_fname, options.logfile)
+    cmd2a = '/home/galaxy/software/palmapper-trunk/palmapper %s %s -i %s %s  %s -qpalma %s %s -report %s -threads 1 -qpalma-prb-offset-fix >> %s' % (aligning_cmds, qpalma_cmds, options.ref, input_cmd, output_cmd, options.qpalma, ss_cmds, report_fname, options.logfile)
     
 
     # align
     try:
         #os.environ['LD_LIBRARY_PATH']='/home/galaxy/svn/projects/QPalma/dyn_prog/cpplib/:/home/galaxy/software/shogun/lib/'
-        print re.sub(r'palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
+#        print re.sub(r'palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
+        print re.sub(r'/home/galaxy/software/palmapper-0.4/palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
         os.system(cmd2a)
     except Exception, erf:
         stop_err("Error aligning sequence\n" + str(erf))
