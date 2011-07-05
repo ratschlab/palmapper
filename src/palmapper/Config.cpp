@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <algorithm>
 
 #include <palmapper/Config.h>
 #include <palmapper/QueryFile.h>
