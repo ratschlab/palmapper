@@ -1693,12 +1693,13 @@ void TopAlignments::print_bam_header(Genome& genome, FILE*OUT_FP)
 
 FILE* TopAlignments::open_bam_pipe(std::string & out_fname)
 {
-	std::string command = std::string("samtools view -Sb /dev/stdin > ") + out_fname  + " && echo samtools subprocess terminated successfully";
+
+	std::string command = std::string("samtools view -Sb /dev/stdin  2> /dev/null > ") + out_fname  + " && echo samtools subprocess terminated successfully";
 	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTPOS )
-		command = std::string("samtools view -Sb /dev/stdin | samtools sort /dev/stdin ") + out_fname + std::string("&& mv ") + 
+		command = std::string("samtools view -Sb /dev/stdin 2> /dev/null | samtools sort /dev/stdin ") + out_fname + std::string("&& mv ") + 
 			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
 	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTNAME )
-		command = std::string("samtools view -Sb /dev/stdin | samtools sort -n /dev/stdin ") + out_fname + std::string("&& mv ") + 
+		command = std::string("samtools view -Sb /dev/stdin  2> /dev/null | samtools sort -n /dev/stdin ") + out_fname + std::string("&& mv ") + 
 			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
 	FILE* OUT_FP=NULL ;
 	
