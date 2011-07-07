@@ -10,6 +10,7 @@ def stop_err( msg ):
     sys.exit()
  
 def __main__():
+    #os.environ['PATH']=os.environ['PATH']+":/home/galaxy/software/samtools.svn"+":/home/galaxy/software/palmapper-trunk"
     stime = time.asctime( time.localtime(time.time()) )
     print '----------------------------------------------'
     print 'PALMapper started on ' + stime
@@ -40,7 +41,8 @@ def __main__():
 
     #Output files
     parser.add_option('', '--format', dest='format', help='Output format (bedx, sam or bam)')
-    parser.add_option('', '--bed-output', dest='bed_output', help='The Bedx output file for both spliced and unspliced reads')
+    parser.add_option('', '--unspliced-output', dest='unspliced_output', help='The Bedx output file for unspliced reads')
+    parser.add_option('', '--spliced-output', dest='spliced_output', help='The Bedx output file for spliced reads')
     parser.add_option('', '--sam-output', dest='sam_output', help='The SAM output file for both spliced and unspliced reads')
     parser.add_option('', '--bam-output', dest='bam_output', help='The BAM output file for both spliced and unspliced reads')
     parser.add_option('', '--bamsort', dest='bamsorting', help='Type of sorting for BAM output (unsorted, position or read)')
@@ -267,7 +269,7 @@ def __main__():
     else: #bedx output
         (unmapped_tmp_file, unmapped_tmp_fname) = tempfile.mkstemp(suffix='', prefix='unmapped_', dir=None) ;
         os.close(unmapped_tmp_file) ;
-        output_cmd='-f bedx -o %s -u %s ' % (options.bed_output, unmapped_tmp_file)
+        output_cmd='-f bedx -o %s -H %s -u %s ' % (options.unspliced_output,options.spliced_output, unmapped_tmp_file)
 
     if options.coverage == 'true':
         output_cmd+='-report-coverage-wig %s ' % options.coverage_output
@@ -276,21 +278,26 @@ def __main__():
 
     ## Input files
     if options.paired == 'paired':
-        input_cmd='-q1 %s -q2 %s -protocol %s ' % (options.input1, options.input2, options.protocol)
+        input_cmd='-q1 %s -q2 %s ' % (options.input1, options.input2)
+        if options.protocol != 'unstranded':
+            input_cmd+='-protocol %s ' % options.protocol
     else:
         input_cmd='-q %s ' % options.input1
         if options.strand != 'unstranded':
             input_cmd+='-strand %s ' % options.strand
-            input_cmd+='-protocol %s ' % options.protocol
+            if options.protocol != 'unstranded':
+                input_cmd+='-protocol %s ' % options.protocol
+
         
-    cmd2a = '/home/galaxy/software/palmapper-trunk/palmapper %s %s -i %s %s  %s -qpalma %s %s -report %s -threads 1 -qpalma-prb-offset-fix >> %s' % (aligning_cmds, qpalma_cmds, options.ref, input_cmd, output_cmd, options.qpalma, ss_cmds, report_fname, options.logfile)
+    cmd2a = 'palmapper %s %s -i %s %s  %s -qpalma %s %s -report %s -threads 2 -qpalma-prb-offset-fix >> %s' % (aligning_cmds, qpalma_cmds, options.ref, input_cmd, output_cmd, options.qpalma, ss_cmds, report_fname, options.logfile)
     
 
     # align
     try:
         #os.environ['LD_LIBRARY_PATH']='/home/galaxy/svn/projects/QPalma/dyn_prog/cpplib/:/home/galaxy/software/shogun/lib/'
 #        print re.sub(r'palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
-        print re.sub(r'/home/galaxy/software/palmapper-0.4/palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
+        #print re.sub(r'/home/galaxy/software/palmapper-0.4/palmapper', r'GALAXY-SOFTWARE-DIR', cmd2a)
+        print cmd2a
         os.system(cmd2a)
     except Exception, erf:
         stop_err("Error aligning sequence\n" + str(erf))
