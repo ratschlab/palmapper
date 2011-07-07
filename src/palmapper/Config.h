@@ -44,6 +44,13 @@ enum OutputFilterEnum
 	OUTPUT_FILTER_RANDOM=3
 }  ;
 
+enum ProtocolEnum
+{
+	PROTOCOL_UNSTRANDED=0,
+	PROTOCOL_FIRST=1,
+	PROTOCOL_SECOND=2
+}  ;
+
 enum Personality {
 	Palmapper,
 	GenomeMapper,
@@ -204,7 +211,7 @@ public:
 	int NUM_MISMATCHES;
 	int NUM_GAPS;
     int STRAND;
-    int PROTOCOL;
+    ProtocolEnum PROTOCOL;
 	double MM_SCORE;
 	double M_SCORE;
 	double GAP_SCORE;

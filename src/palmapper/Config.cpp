@@ -156,7 +156,7 @@ Config::Config() {
 	NO_QPALMA = false;
 	
     STRAND = -1 ;
-	PROTOCOL = 0 ;
+	PROTOCOL = PROTOCOL_UNSTRANDED ;
 
 	Q_QUERY_FILE_NAMES= std::string("") ;
 	Q1_QUERY_FILE_NAMES= std::string("") ;
@@ -1913,10 +1913,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				i++;
 				if (strcmp(argv[i], "first") == 0) {
-					PROTOCOL = 0 ; // first
+					PROTOCOL = PROTOCOL_FIRST ; // first
 				}
 				else {
-					PROTOCOL = 1 ; // second
+					PROTOCOL = PROTOCOL_SECOND ; // second
 				}
 			}
 

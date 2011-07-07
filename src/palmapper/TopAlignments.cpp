@@ -59,28 +59,35 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 void TopAlignments::determine_transcription_direction(char strand,char orientation, int side, char &transcription, char &read_forward)
 {
 	
-	//Left reads
-	if (side==1){
-		//For sense transcription, the left read is in the same direction
-		if (strand==orientation)
-			transcription=(_config.PROTOCOL==0)?'+':'-';
-		else
-			transcription=(_config.PROTOCOL==0)?'-':'+';
+	if (_config.PROTOCOL== PROTOCOL_UNSTRANDED){
+		transcription=strand;
 	}
+	
 	else{
-		//Right reads
-		if (side==0){
-			//For antisense transcription, the right read is in the same direction
+		
+		//Left reads
+		if (side==1){
+			//For sense transcription, the left read is in the same direction
 			if (strand==orientation)
-				transcription=(_config.PROTOCOL==0)?'-':'+';
+				transcription=(_config.PROTOCOL== PROTOCOL_FIRST)?'+':'-';
 			else
-				transcription=(_config.PROTOCOL==0)?'+':'-';
+				transcription=(_config.PROTOCOL==PROTOCOL_FIRST)?'-':'+';
 		}
-		//No information about the reads: the strand of a spliced alignment gives the direction of the transcription
-		else
-			transcription=strand;
+		else{
+			//Right reads
+			if (side==0){
+				//For antisense transcription, the right read is in the same direction
+				if (strand==orientation)
+					transcription=(_config.PROTOCOL==PROTOCOL_FIRST)?'-':'+';
+				else
+					transcription=(_config.PROTOCOL==PROTOCOL_FIRST)?'+':'-';
+			}
+			//No information about the reads: the strand of a spliced alignment gives the direction of the transcription
+			else
+				transcription=strand;
+		}
 	}
-
+	
 	//For all cases, the reverse bit has to be given according to the coding strand: reverse the read orientation if found on the non coding strand
 	if(strand=='-')
 		read_forward=(orientation=='+')?'-':'+';
@@ -2179,7 +2186,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				}
 			}
         }
-        else if (_config.STRAND > -1) {
+        else if (_config.STRAND > -1 && _config.PROTOCOL != PROTOCOL_UNSTRANDED) {
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS) {
 				fprintf(MY_OUT_FP, "\tXS:A:%c",transcription_direction) ;
 				// if ((( curr_align->orientation == '+') && _config.STRAND) || ((curr_align->orientation == '-') && ! _config.STRAND))
