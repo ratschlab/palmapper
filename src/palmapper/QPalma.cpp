@@ -102,24 +102,31 @@ int QPalma::get_transcription_direction(int side,int orientation) const
 {
 
 	//Return 1 if the transcription is on the forward direction
-	//Return -1 if the transcriptioon is on the negative direction
+	//Return -1 if the transcription is on the negative direction
 	//Return 0 if we don't know
 
 	//No strand specific information: need to try all combinations to look for splice sites
-	if (side<=-1)
+	if (side<=-1 || _config.PROTOCOL == PROTOCOL_UNSTRANDED)
 		return 0;
 	
 	
 	//Left reads: 
 	//same orientation than the transcription for first strand protocol
 	//opposite orientation than the transcription for second strand protocol
-	if (side==1)
-		return (_config.PROTOCOL == orientation)?1:-1;
+	if (side==1){
+		if (_config.PROTOCOL == PROTOCOL_FIRST)
+			return (orientation == 0)?1:-1;
+		else
+			return (orientation == 0)?-1:1;
+	}
 	
 	//Right reads:
 	//opposite orientation than the transcription for first strand protocol
 	//same orientation than the transcription for second strand protocol
-	return (_config.PROTOCOL != orientation)?1:-1;
+	if (_config.PROTOCOL == PROTOCOL_FIRST)
+		return (orientation == 0)?-1:1;
+	else
+		return (orientation == 0)?1:-1;
 		   
 }
 
