@@ -136,6 +136,7 @@ Config::Config() {
 	BSSEQ = 0;
 
 	LEFTOVER_FILE_NAME = std::string("/dev/null") ;
+	SAMTOOLS_PATH_NAME = std::string("") ;
 
 	ACC_CONSENSUS.push_back(strdup("AG")) ;
 	ACC_CONSENSUS_REV.push_back(strdup("CT")) ;
@@ -1211,6 +1212,21 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		//genome file
+		if (strcmp(argv[i], "-samtools") == 0) {
+
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -i\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			SAMTOOLS_PATH_NAME.assign(argv[i]);
+			SAMTOOLS_PATH_NAME+="/";
+			
+		}
+
 		//output format
 		if (strcmp(argv[i], "-f") == 0) {
 			not_defined = 0;
@@ -1968,7 +1984,8 @@ int Config::usage() {
 		printf(" -stranded STRING        strand specific experiment (left, right, plus, minus)\n");
 		printf(" -protocol STRING        protocol used to prepared RNA-seq data (first,second)\n");
 		printf("                         examples: RNA ligation is first and dUTP protocol is second strand\n");
-		printf(" -f STRING                   output format (\"shore\", \"bed\", \"bedx\", \"sam\", \"bam\", \"bamp\" or \"bamn\")[sam]\n");
+		printf(" -f STRING               output format (\"shore\", \"bed\", \"bedx\", \"sam\", \"bam\", \"bamp\" or \"bamn\")[sam]\n");
+		printf(" -samtools STRING        explicit samtools path (used for bam output)\n");
 		printf(" -ff INT                     bitwise output sam format flag (0x1: read sequence, 0x2: read quality, 0x4: common sam flags, 0x8: extended same flags)[15]\n");
 		printf(" -include-unmapped-reads     write directly unmapped reads in sam file\n");
 		printf(" -o STRING                   output filename [stdout]\n");

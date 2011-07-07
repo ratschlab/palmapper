@@ -137,6 +137,7 @@ public:
 	std::string LEFTOVER_FILE_NAME;
 	std::string TRIGGERED_LOG_FILE;  // #A#
 	OutputFormatEnum OUTPUT_FORMAT;
+	std::string SAMTOOLS_PATH_NAME;
 	OutputFormatOptionEnum OUTPUT_FORMAT_OPTION;
 	unsigned int OUTPUT_FORMAT_FLAGS;
 	bool INCLUDE_UNMAPPED_READS_SAM;
