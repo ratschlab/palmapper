@@ -1,4 +1,4 @@
-Release XXX (DD MONTH, 2011)
+Release 0.4 (08 July, 2011)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Bug fixes:
@@ -28,8 +28,11 @@ Other notable changes:
 * Add -include-unmapped-reads option. This option outputs unmapped
 reads in the same file than mapped reads (valid only for sam output). 
 * Add bam output
+* Add -fixtrimleft and -fixtrimright options to trim the beginning or the end of each
+read by a given number of nucleotides before processing.
+* Add -protocol <first|second> option to take into account strand-specific protocol (non strand specific by default)
 
-(XXX: DD MONTH 2011, rXXXXX)
+(0.4: 08 July 2011, r23380)
 
 Release Candidate 0.4-rc4 (02 February, 2011)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
