@@ -1,4 +1,4 @@
-<tool id="palmapper_wrapper_test" name="Map with PALMapper" version="0.4">
+<tool id="palmapper_wrapper" name="Map with PALMapper" version="0.4">
   <description></description>
   <command interpreter="python">
     palmapper_wrapper.py
