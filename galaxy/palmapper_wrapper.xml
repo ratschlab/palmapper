@@ -39,13 +39,29 @@
     --junctions=$junctions
 
     ##Reference source
-    --genomeSource=$refGenomeSource.genomeSource
-    #if $refGenomeSource.genomeSource == "history":
-     --ref=$refGenomeSource.ownFile
+    --indexSource=$refIndexSource.indexSource
+    #if $refIndexSource.indexSource=="bwa":
+       --genomeSource=$refIndexSource.refGenomeSourceBwa.genomeSourceBwa
+       #if $refIndexSource.refGenomeSourceBwa.genomeSourceBwa == "history":
+          --ref=$refIndexSource.refGenomeSourceBwa.ownFileBwa
+          --indexSettings="None"
+       #else:
+          --ref=$refIndexSource.refGenomeSourceBwa.bwaIndices.value
+          --indexSettings="None"
+       #end if
     #else:
-     --ref=$refGenomeSource.indices.value
-    #end if
-
+       --genomeSource=$refIndexSource.refGenomeSourceArray.genomeSourceArray
+       #if $refIndexSource.refGenomeSourceArray.genomeSourceArray=="history":
+          --ref=$refIndexSource.refGenomeSourceArray.ownFileArray
+          --indexSettings=$refIndexSource.refGenomeSourceArray.indexParams.index_settings
+       #else:
+          --ref=$refIndexSource.refGenomeSourceArray.arrayIndices.value
+          --indexSettings="None"
+       #end if
+       #if $refIndexSource.refGenomeSourceArray.genomeSourceArray=="history" and $refIndexSource.refGenomeSourceArray.indexParams.index_settings=="index_full":
+          --seedlength=$refIndexSource.refGenomeSourceArray.indexParams.seedlength
+       #end if 
+    #end if 
 
     ##Splice site predictions
     --ss-pred=$splicesite.splicesiteUse
@@ -139,44 +155,63 @@
      --junction-coverage="None"
      --non-consensus-search="None"
     #end if
-    #if $refGenomeSource.genomeSource == "history":
-     --indexSettings=$refGenomeSource.indexParams.index_settings
-    #else:
-     --indexSettings="None"
-    #end if
-    #if $refGenomeSource.genomeSource == "history" and $refGenomeSource.indexParams.index_settings == "index_full":
-     --seedlength=$refGenomeSource.indexParams.seedlength
-    #end if 
     --logfile=$logfile >> $logfile
   </command>
   <inputs>
-    <conditional name="refGenomeSource">
-      <param name="genomeSource" type="select" label="Will you select a reference genome from your history or use a built-in index?" help="Built-ins were indexed using default options">
-        <option value="indexed">Use a built-in index</option>
-        <option value="history">Use one from the history</option>
+    <conditional name="refIndexSource">
+      <param name="indexSource" type="select" label="Will you use bwa index or GenomeMapper index?" help="GenomeMapper index needs more space.">
+        <option value="array">GenomeMapper index</option>
+        <option value="bwa">BWA index</option>
       </param>
-      <when value="indexed">
-    	<param name="indices" type="select" label="Select a reference genome" help="if your genome of interest is not listed - contact Galaxy team">
-  	  <options from_file="genomemapper_indices.loc">
-  	    <column name="value" index="1" />
-  	    <column name="name" index="0" />
-  	  </options>
-  	</param>
+      <when value="array">
+	<conditional name="refGenomeSourceArray">
+	  <param name="genomeSourceArray" type="select" label="Will you select a reference genome from your history or use a built-in index?" help="Built-ins were indexed using default options">
+            <option value="indexed">Use a built-in index</option>
+            <option value="history">Use one from the history</option>
+	  </param>
+	  <when value="indexed">
+    	    <param name="arrayIndices" type="select" label="Select a reference genome" help="if your genome of interest is not listed - contact Galaxy team">
+  	      <options from_file="genomemapper_indices.loc">
+  	    	<column name="value" index="1" />
+  	    	<column name="name" index="0" />
+  	      </options>
+  	    </param>
+	  </when>
+	  <when value="history">
+            <param name="ownFileArray" type="data" format="fasta" label="Select a reference genome" />
+            <conditional name="indexParams">
+	      <param name="index_settings" type="select" label="Choose whether to use default options for building indices or to set your own">
+		<option value="index_pre_set">Default</option>
+		<option value="index_full">Set your own</option>
+	      </param> 
+	      <when value="index_pre_set" />
+	      <when value="index_full">
+		<param name="seedlength" type="integer" value="12" label="Index seed length" help="Integer between 8 and 13." />
+	      </when> <!-- index_full -->
+            </conditional>
+	  </when>
+	</conditional> <!-- refGenomeSourceArray -->
       </when>
-      <when value="history">
-        <param name="ownFile" type="data" format="fasta" label="Select a reference genome" />
-        <conditional name="indexParams">
-          <param name="index_settings" type="select" label="Choose whether to use default options for building indices or to set your own">
-            <option value="index_pre_set">Default</option>
-            <option value="index_full">Set your own</option>
-          </param> 
-          <when value="index_pre_set" />
-          <when value="index_full">
-            <param name="seedlength" type="integer" value="12" label="Index seed length" help="Integer between 8 and 13." />
-          </when> <!-- index_full -->
-        </conditional>
+      <when value="bwa">
+	<conditional name="refGenomeSourceBwa">
+	  <param name="genomeSourceBwa" type="select" label="Will you select a reference genome from your history or use a built-in index?" help="Built-ins were indexed using default options">
+            <option value="indexed">Use a built-in index</option>
+            <option value="history">Use one from the history</option>
+	  </param>
+	  <when value="indexed">
+    	    <param name="bwaIndices" type="select" label="Select a reference genome" help="if your genome of interest is not listed - contact Galaxy team">
+  	      <options from_file="bwa_index.loc">
+  	    	<column name="value" index="1" />
+  	    	<column name="name" index="0" />
+  	      </options>
+  	    </param>
+	  </when>
+	  <when value="history">
+            <param name="ownFileBwa" type="data" format="fasta" label="Select a reference genome" />
+	  </when>
+	</conditional> <!-- refGenomeSourceBwa -->
       </when>
-    </conditional> <!-- refGenomeSource -->
+    </conditional> <!-- refIndexSource -->
     <conditional name="singlePaired">
       <param name="sPaired" type="select" label="Is this library mate-paired?">
         <option value="single">Single-end</option>

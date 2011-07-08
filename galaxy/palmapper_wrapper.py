@@ -28,7 +28,7 @@ def __main__():
     parser.add_option('', '--protocol', dest='protocol', help='Protocol used (first or second)')
 
     #Reference genome and index information
-    parser.add_option('', '--indexSource', dest='indexSource', help='The type of index: bwa or array')
+    parser.add_option('', '--indexSource', dest='indexSource', default='array', help='The type of index: bwa or array')
     parser.add_option('', '--genomeSource', dest='genomeSource', help='The type of reference provided')
     parser.add_option('', '--ref', dest='ref', help='The reference genome to use or index')
     parser.add_option('', '--indexSettings', dest='index_settings', help='Whether or not indexing options are to be set')
@@ -127,7 +127,7 @@ def __main__():
             except Exception, erf:
                 stop_err('Error creating temp directory for indexing purposes\n' + str(erf))
                 options.ref = os.path.join(tmp_dir, os.path.split(options.ref)[1])
-            cmd1 = 'src/bwa index %s' % (options.ref)
+            cmd1 = 'bwa index %s' % (options.ref)
             try:
                 os.system(cmd1)
             except Exception, erf:
@@ -154,7 +154,7 @@ def __main__():
     
 
     #Index type
-    aligning_cmds+=('','-bwa ')[options.indexSource=="bwa"]
+    aligning_cmds+=('','-bwa 12 ')[options.indexSource=="bwa"]
 
     #QPALMA parameters
     if options.qpalma_params == 'pre_set':
@@ -282,6 +282,7 @@ def __main__():
         if options.protocol != 'unstranded':
             input_cmd+='-protocol %s ' % options.protocol
     else:
+        assert( options.paired == 'single' )
         input_cmd='-q %s ' % options.input1
         if options.strand != 'unstranded':
             input_cmd+='-strand %s ' % options.strand
