@@ -73,7 +73,7 @@ bwt_t *bwt_pac2bwt(const char *fn_pac, int use_is)
 	fclose(fp);
 	memset(bwt->L2, 0, 5 * 4);
 	buf = (ubyte_t*)calloc(bwt->seq_len + 1, 1);
-	for (i = 0; i < bwt->seq_len; ++i) {
+	for (i = 0; i < (signed)bwt->seq_len; ++i) {
 		buf[i] = buf2[i>>2] >> ((3 - (i&3)) << 1) & 3;
 		++bwt->L2[1+buf[i]];
 	}
@@ -91,7 +91,7 @@ bwt_t *bwt_pac2bwt(const char *fn_pac, int use_is)
 #endif
 	}
 	bwt->bwt = (u_int32_t*)calloc(bwt->bwt_size, 4);
-	for (i = 0; i < bwt->seq_len; ++i)
+	for (i = 0; i < (signed)bwt->seq_len; ++i)
 		bwt->bwt[i>>4] |= buf[i] << ((15 - (i&15)) << 1);
 	free(buf);
 	return bwt;

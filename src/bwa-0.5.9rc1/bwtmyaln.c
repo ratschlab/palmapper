@@ -298,7 +298,7 @@ extern "C" void bwa_seed2genome_pos(uint64_t sa_pos, uint64_t *contig_id, uint64
 	
 	if (false && sa_pos==461542)
 	{
-		fprintf(stdout, "seq_id=%i, pos=%lu, n_aln=%i, multi=%i, strand=%i\n", seq_id, pos, p->n_aln, p->n_multi, p->strand) ; 
+		fprintf(stdout, "seq_id=%i, pos=%lu, n_aln=%i, multi=%i, strand=%i\n", seq_id, (long)pos, p->n_aln, p->n_multi, p->strand) ; 
 
 		p->sa = 461542;//461970 ;
 		p->c1 = 1 ;
@@ -314,7 +314,7 @@ extern "C" void bwa_seed2genome_pos(uint64_t sa_pos, uint64_t *contig_id, uint64
 		bns_coor_pac2real(bwt_bns, p->pos, len, &seq_id) ;
 		uint64_t pos = (int)(p->pos - bwt_bns->anns[seq_id].offset) ;
 
-		fprintf(stdout, "+++ seq_id=%i, pos=%lu, n_aln=%i, multi=%i, strand=%i\n", seq_id, pos, p->n_aln, p->n_multi, p->strand) ;
+		fprintf(stdout, "+++ seq_id=%i, pos=%lu, n_aln=%i, multi=%i, strand=%i\n", seq_id, (long)pos, p->n_aln, p->n_multi, p->strand) ;
 		//fprintf(stdout, "bwt->seq_len=%lld", (long long int)bwt_bwt[0]->seq_len) ;
 		//fprintf(stdout, "reverse_bwt->seq_len=%lld", (long long int)bwt_bwt[1]->seq_len) ;
 		
@@ -340,7 +340,7 @@ extern "C" void bwa_aln_my_core(const char *prefix, const char *read, gap_opt_t 
 	bwa_seq_t *seq = bwa_seed2genome_map(read, strlen(read), 0, &num, &k, &l) ;
 	//fprintf(stdout, "k=%lu, l=%lu\n", k, l) ;
 	
-	for (int i=0; i<num; i++)
+	for (int i=0; i<(signed)num; i++)
 	{
 		uint64_t contig_pos, contig_id ;
 		bwa_seed2genome_pos(k+i, &contig_id, &contig_pos, seq) ;

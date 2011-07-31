@@ -19,7 +19,7 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 }
 
 Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotatedjunctions)
-:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter), _junctionmap(junctionmap), _annotatedjunctions(annotatedjunctions)
+	:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _junctionmap(junctionmap), _annotatedjunctions(annotatedjunctions), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
 {
 	REDUNDANT = 0;
 
