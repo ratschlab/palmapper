@@ -148,6 +148,10 @@ Config::Config() {
 	non_consensus_search = false ;
 	non_consensus_search_gap=1 ;
 	non_consensus_search_discount=1 ;
+
+	MAP_VARIANTS = false ;
+	VARIANT_FILE_NAME = "" ;
+
 	// Number of additional matches you have to find in case of a non consensus search compared to consensus one (based on QMM)
 	MIN_NUM_MATCHES_PEN=2;
 	
@@ -1301,6 +1305,19 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			i++;
 			LEFTOVER_FILE_NAME.assign(argv[i]);
+		}
+
+		//variant file
+		if (strcmp(argv[i], "-V") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -V\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			VARIANT_FILE_NAME.assign(argv[i]);
+			MAP_VARIANTS = true ;
 		}
 
 		//verbose

@@ -169,6 +169,7 @@ public:
 	std::string ANNOTATED_SPLICE_SITES_FILE;
 	int SCORE_ANNOTATED_SPLICE_SITES ;
 
+
 	int REPORT_RESET;
 
 	int QPALMA_USE_MAP;
@@ -204,6 +205,9 @@ public:
 	int non_consensus_search_gap ;
 	float non_consensus_search_discount ;
 	int MIN_NUM_MATCHES_PEN;
+
+	bool MAP_VARIANTS ;
+	std::string VARIANT_FILE_NAME ;
 	
 	int INDEX_PRECACHE;
 	unsigned int FLANKING;

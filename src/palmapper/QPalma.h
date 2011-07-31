@@ -6,6 +6,7 @@
 #include <palmapper/dyn_prog/qpalma_dp.h>
 #include <palmapper/TopAlignments.h>
 #include <palmapper/JunctionMap.h>
+#include <palmapper/VariantMap.h>
 
 struct region_t {
 	int32_t start;
@@ -127,9 +128,9 @@ protected:
 	////////////////////
 
 public:
-	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions) const;
-	int capture_hits_2(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions) const;
-	int junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions) const;
+	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
+	int capture_hits_2(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
+	int junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln, bool remapping, JunctionMap &annotatedjunctions) const;
 	double score_unspliced(Read const &read, const char * read_anno, const char strand, const char ori) const;
@@ -150,7 +151,10 @@ protected:
 	void print_region(region_t *region, const char * bla)  ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
-	int perform_alignment_starter(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions) const;
+	std::vector<Variant> identify_variants(std::string dna, std::vector<int> positions, Chromosome const &contig_idx, VariantMap & variants) const ;
+
+	int perform_alignment_starter_variant(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, VariantMap & variants) const;
+	int perform_alignment_starter_single(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions) const;
 
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const;
 	int get_transcription_direction(int side,int orientation) const;

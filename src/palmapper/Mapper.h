@@ -52,7 +52,8 @@ public:
 		virtual void report(Result &result, JunctionMap &junctionmap) = 0;
 	};
 
-	Mapper(Genome const &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotatedjunctions);
+	Mapper(Genome const &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, 
+		   JunctionMap &junctionmap, JunctionMap &annotatedjunctions, VariantMap &variants);
 	~Mapper();
 	void setProgressChar(char c) {
 		_progressChar = c;
@@ -74,6 +75,7 @@ protected:
 	GenomeMaps &_genomeMaps ;
 	JunctionMap & _junctionmap;
 	JunctionMap & _annotatedjunctions;
+	VariantMap & _variants ;
 
 private:
 	QueryFile &_queryFile;

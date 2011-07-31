@@ -27,13 +27,18 @@ FILE *Util::openFile(char const *name, char const *mode) {
 	return ret;
 }
 
+#ifndef __APPLE__ 
+// this goes wrong with Mac's gcc
+
 void *operator new(size_t size) {
 	static std::bad_alloc ex;
 	void *ret = operator new(size, std::nothrow);
 	if (ret == NULL)
 		throw ex;
 	return ret;
-}
+	}
+
+#endif
 
 void fprintf(std::ostream *out, char const *format, ...) {
 	va_list ap;

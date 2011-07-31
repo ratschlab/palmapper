@@ -8,7 +8,7 @@ SVNVERSION = $(shell svnversion)
 CC = g++
 #CFLAGS = -Wall -ggdb -pg # debug 
 #CFLAGS = -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
-CFLAGS =  -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+CFLAGS = -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 #CFLAGS = -O9 -Wall -g -pg -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
@@ -36,6 +36,7 @@ LANG_OBJ = $(ObjDir)/lang/Thread.o
 PM_OBJ = $(ObjDir)/palmapper/GenomeMaps.o \
 	$(ObjDir)/palmapper/QPalma.o \
 	$(ObjDir)/palmapper/JunctionMap.o \
+	$(ObjDir)/palmapper/VariantMap.o \
 	$(ObjDir)/palmapper/align.o \
 	$(ObjDir)/palmapper/TopAlignments.o \
 	$(ObjDir)/palmapper/IntervalQuery.o \
