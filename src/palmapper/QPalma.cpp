@@ -1158,7 +1158,7 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 }
 
 
-int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_search,JunctionMap &annotatedjunctions) const
+int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_search,JunctionMap &annotatedjunctions, VariantMap & variants) const
 {
 	Read const &read(hits.getRead());
 
@@ -1665,7 +1665,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 	return 0;
 }
 
-int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search, JunctionMap &annotatedjunctions) const 
+int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search, JunctionMap &annotatedjunctions, VariantMap &variants) const 
 {
 	// Dominik marker
 	// std::vector<std::vector<region_t *> > long_regions_other[2] ;
@@ -1823,9 +1823,10 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						
 						if (transcription_direction >=0)
 						{
-							int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
-																current_positions, chr, '+', ori, hit_read_position,
-																corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported,false,annotatedjunctions);
+							int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
+																		current_positions, chr, '+', ori, hit_read_position,
+																		corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported,false,
+																		annotatedjunctions, variants);
 							if (ret < 0)
 							{
 								result.delete_regions();
@@ -1841,9 +1842,10 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 							//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",_read.lenght()-(hit_read_position+hit_len),
 							//      corres_long_regions[0]->end, hit_len);					  
 							//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-							int ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
-																current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
-																corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,annotatedjunctions);//end nucleotide in dna not included
+							int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
+																		current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+																		corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,
+																		annotatedjunctions, variants);//end nucleotide in dna not included
 							if (ret < 0)
 							{
 								result.delete_regions();
@@ -1929,9 +1931,10 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						
 				if (transcription_direction >=0)
 				{
-					int ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori],
-														current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
-														corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported,false,annotatedjunctions); 
+					int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori],
+																current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
+																corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported,false,
+																annotatedjunctions, variants); 
 					if (ret < 0)
 					{
 						result.delete_regions();
@@ -1946,10 +1949,11 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				{
 					//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),corres_long_regions[0]->end, hit_len);					  
 					// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-					int ret = perform_alignment_starter(result, hits, read_seq[1 - ori],
-														read_quality[1 - ori], current_seq,
-														current_regions, current_positions, chr, '-', 1-ori,read.length()-(hit_read_position+hit_len),
-														corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,annotatedjunctions);//end nucleotide in dna not included
+					int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori],
+																read_quality[1 - ori], current_seq,
+																current_regions, current_positions, chr, '-', 1-ori,read.length()-(hit_read_position+hit_len),
+																corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,
+																annotatedjunctions, variants);//end nucleotide in dna not included
 					if (ret < 0)
 					{
 						result.delete_regions();
@@ -2009,7 +2013,8 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 }
 
 
-int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions) const {
+int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions, VariantMap & variants) const 
+{
 
 	std::vector<std::vector<region_t *> > *long_regions = result.long_regions;
 	// if (nb_spliced_alignments > 0){
@@ -2231,19 +2236,20 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 						if (strand == '+')
 						{
-							ret = perform_alignment_starter(result, hits, read_seq[ori], read_quality[ori], 
-															current_seq, current_regions, current_positions, 
-															chr, '+', ori, hit_read_position, 
-															rstart /*arr[nregion]->start*/, 
-															hit_len, false, num_alignments_reported, true,
-															annotatedjunctions);
+							ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], 
+																	current_seq, current_regions, current_positions, 
+																	chr, '+', ori, hit_read_position, 
+																	rstart /*arr[nregion]->start*/, 
+																	hit_len, false, num_alignments_reported, true,
+																	annotatedjunctions, variants);
 						}
 						else
 						{
-							ret = perform_alignment_starter(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
-															current_seq, current_regions, current_positions, 
-															chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
-															rend /*arr[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, annotatedjunctions);
+							ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
+																	current_seq, current_regions, current_positions, 
+																	chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+																	rend /*arr[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
+																	annotatedjunctions, variants);
 						}
 						
 						if (ret < 0)
@@ -2277,13 +2283,205 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 	
 }
 
+std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int> positions, 
+									   Chromosome const &contig_idx, VariantMap & variants) const
+{
+	int start_pos = positions[0] ;
+	int end_pos = positions[positions.size()-1] ;
+	int chr=contig_idx.nr() ;
+	std::vector<int> map(end_pos-start_pos+1, -1) ; 
+	for (unsigned int i=0; i<positions.size(); i++)
+	{
+		assert(positions[i]-start_pos>=0) ;
+		assert(positions[i]-start_pos<=end_pos-start_pos) ;
+		if (dna[i]!='N')
+			map[positions[i]-start_pos] = i ;
+	}
 
- 
+	std::deque<Variant>::iterator it = my_lower_bound(variants.variantlist[chr].begin(), variants.variantlist[chr].end(), start_pos-100) ;
+	int num_found_variants = 0 ;
+	int num_found_SNP_variants = 0 ;
+	int num_checked_variants = 0 ;
+	std::vector<Variant> variant_list ;
+	
+	while (it != variants.variantlist[chr].end() && (*it).position <= end_pos)
+	{
+		bool found = false ;
+		std::vector<int> match_pos ;
+		
+		Variant v ;
+		v.position = -1 ;
+		
+		if ((*it).type == pt_SNP)
+		{
+			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
+			{
+				v=*it ;
+				v.position = map[(*it).position-start_pos] ;
+				if (dna[v.position]!='N')
+				{
+					//if (v.ref_str[0]!=dna[v.position])
+					//	fprintf(stdout, "%c \t %c (%i) \t %s \n", contig_idx[(*it).position], dna[v.position], v.position, v.ref_str.c_str()) ;
+					assert(contig_idx[(*it).position]==dna[v.position]) ;
+					assert(contig_idx[(*it).position]==v.ref_str[0]) ;
+					found = true ;
+				}
+			}
+		}
+		if ((*it).type == pt_insertion)
+		{
+			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
+			{
+				v=*it ;
+				v.position = map[(*it).position-start_pos] ;
+				found = true ;
+			}
+		}
+		if ((*it).type == pt_deletion || (*it).type == pt_substitution)
+		{
+			v=*it ;
+			v.position = -1 ;
+			v.ref_str = "" ;
+			unsigned int first_stretch = 0, last_not_ok = 0 ;
+			std::vector<int> deleted_positions  ;
+			for (int i=0; i<(*it).ref_len; i++)
+			{
+				if ((*it).position+i-start_pos<0)
+					continue ;
+				if ((signed)((*it).position+i-start_pos)>=(signed)(end_pos-start_pos))
+				{
+					last_not_ok = (*it).ref_len-1 ;
+					break ;
+				}
+				if (map[(*it).position+i-start_pos]>=0)
+				{
+					deleted_positions.push_back(map[(*it).position+i-start_pos]) ;
+					if (i==(signed)first_stretch) first_stretch++ ;
+				} else
+					last_not_ok = i ;
+			}
+			assert((*it).ref_len - 1 - last_not_ok>=0) ;
+			int last_stretch = (*it).ref_len - 1 - last_not_ok ;
+			
+			if (deleted_positions.size()>0 && (*it).type == pt_deletion)
+			{
+				v.position = deleted_positions[0] ;
+				v.ref_len = 0 ;
+				v.ref_str = "" ;
+				for (int i=deleted_positions[0]; i<=deleted_positions[deleted_positions.size()-1]; i++)
+				{
+					v.ref_len++ ;
+					v.ref_str += dna[i];
+				}
+				found = true ;
+				//fprintf(stdout, "%s\t%s\n", (*it).ref_str.c_str(), v.ref_str.c_str()) ;
+			}
+			if (deleted_positions.size()>0 && (*it).type == pt_substitution)
+			{
+				if (deleted_positions.size()==(unsigned)(*it).ref_len)
+				{
+					// use the full substitution
+					
+					v.ref_str = (*it).ref_str ;
+					v.position = deleted_positions[0] ;
+					found = true ;
+					//fprintf(stdout, "full subst: %s\t%s\t%s\n", (*it).ref_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
+				} 
+				else 
+				{
+					if ((signed)first_stretch>=(signed)last_stretch && first_stretch>0)
+					{
+						// only use the 5' end of the substitution
+						v.position = deleted_positions[0] ;
+						v.ref_len = 0 ;
+						v.ref_str = "" ;
+						v.variant_str = "" ;
+						for (unsigned int i=0; i<first_stretch; i++)
+						{
+							v.ref_len++ ;
+							v.ref_str += dna[deleted_positions[i]] ;
+							if (i<(*it).variant_str.size())
+								v.variant_str += (*it).variant_str[i] ;
+						}
+						found = true ;
+						//fprintf(stdout, "partial subst 5': %s -> %s\t%s -> %s\n", (*it).ref_str.c_str(), (*it).variant_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
+					} 
+					if ((signed)last_stretch>(signed)first_stretch && last_stretch>0)
+					{
+						// only use the 3' end of the substitution
+						v.position = deleted_positions[deleted_positions.size()-1]-last_stretch + 1 ; // +/- 1 ? 
+						v.ref_len = 0 ;
+						v.ref_str = "" ;
+						v.variant_str = "" ;
+						for (int i=0; i<last_stretch; i++)
+						{
+							v.ref_len++ ;
+							v.ref_str = dna[deleted_positions[deleted_positions.size() - i - 1]] + v.ref_str ;
+							if (i<(signed)(*it).variant_str.size())
+								v.variant_str = (*it).variant_str[(*it).variant_str.size() - i - 1] + v.variant_str;
+						}
+						found = true ;
+						//fprintf(stdout, "partial subst 3': %s -> %s\t%s -> %s\n", (*it).ref_str.c_str(), (*it).variant_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
+					}
+				}
+			}
+		}
+		
+		num_checked_variants++ ;
+		if (found)
+		{
+			num_found_variants++ ;
+			variant_list.push_back(v) ;
+			if ((*it).type == pt_SNP)
+				num_found_SNP_variants++ ;
+			
+			//fprintf(stdout,"%i\t%i\t%i\t%i\t%s\t%s\n",
+			//		(*it).type, chr,(*it).position,(*it).variant_len-(*it).ref_len,(*it).ref_str.c_str(), (*it).variant_str.c_str());
+		}
+		it++ ;
+	}
+	//fprintf(stdout, "%i\t%i\t%i found\n", num_found_SNP_variants, num_found_variants, num_checked_variants) ;
+	
+	return variant_list ;
+}
+
+int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings, 
+											  std::string read_string, std::string read_quality, 
+											  std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, 
+											  Chromosome const &contig_idx, char strand, int ori,
+											  int hit_read_position, int hit_dna_position, int hit_length, 
+											  bool non_consensus_search, int& num_alignments_reported, bool remapping, 
+											  JunctionMap &annotatedjunctions, VariantMap & variants) const
+{
+	if (!_config.MAP_VARIANTS)
+		return perform_alignment_starter_single(result, readMappings, 
+												read_string, read_quality, 
+												dna, current_regions, positions, 
+												contig_idx, strand, ori,
+												hit_read_position, hit_dna_position, hit_length, 
+												non_consensus_search, num_alignments_reported, remapping, annotatedjunctions) ;
+	else
+	{
+		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants) ;
+
+		fprintf(stdout, "not implemented yet\n") ;
+
+		return perform_alignment_starter_single(result, readMappings, 
+												read_string, read_quality, 
+												dna, current_regions, positions, 
+												contig_idx, strand, ori,
+												hit_read_position, hit_dna_position, hit_length, 
+												non_consensus_search, num_alignments_reported, remapping, annotatedjunctions) ;
+	}
+} 
 
 // TODO: dd remove relicts from multithreading
-int QPalma::perform_alignment_starter(Result &result, 
-									  Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, 
-									  Chromosome const &contig_idx, char strand, int ori,int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int& num_alignments_reported, bool remapping,JunctionMap &annotatedjunctions) const
+int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings, 
+									  std::string read_string, std::string read_quality, 
+									  std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, 
+									  Chromosome const &contig_idx, char strand, int ori,
+									  int hit_read_position, int hit_dna_position, int hit_length, 
+									  bool non_consensus_search, int& num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions) const
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -2291,7 +2489,6 @@ int QPalma::perform_alignment_starter(Result &result,
 
 		ALIGNMENT* non_consensus_alignment = NULL ;
 		ALIGNMENT* consensus_alignment = NULL ;
-
 
 		{
 			data = new struct perform_alignment_t ;
@@ -2325,9 +2522,8 @@ int QPalma::perform_alignment_starter(Result &result,
 			data->joined = true;
 			delete data ;
 		}
-
 		
-		if (non_consensus_search) // && !consensus_alignment)
+		if (non_consensus_search) 
 		{
 			data = new struct perform_alignment_t ;
 
@@ -2359,8 +2555,6 @@ int QPalma::perform_alignment_starter(Result &result,
 
 			delete data ;
 		}
-
-		
 		
 		if (consensus_alignment && (consensus_alignment->passed_filters || non_consensus_search))
 		{
@@ -2465,7 +2659,8 @@ int QPalma::perform_alignment_starter(Result &result,
 //}
 
 
-int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &current_regions, std::vector<int> &positions, 
+int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, 
+							  std::vector<region_t *> &current_regions, std::vector<int> &positions, 
 							  Chromosome const &contig_idx, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln, bool remapping, JunctionMap &annotatedjunctions) const
 // ori = read orientation
 // strand = dna strand/orientation
@@ -2490,7 +2685,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	//current_regions[0]->chromosome = contig_idx ;
 
 	if (verbosity>=1)
-		fprintf(stdout, "# [perform_alignment] performing alignment of read %s with %i regions and sequence of length %i, strand=%c\n", read.id(), (int)current_regions.size(), (int)dna.size(), strand) ;
+		fprintf(stdout, "# [perform_alignment] performing alignment of read %s with %i regions and sequence of length %i, strand=%c\n", 
+				read.id(), (int)current_regions.size(), (int)dna.size(), strand) ;
 
 	int nr_paths_p = 1;
 
@@ -3041,7 +3237,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
 							   MIN_NUM_MATCHES, remapping);
-
+	
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
 	_stats.qpalma_align_time += clock() - start_time;

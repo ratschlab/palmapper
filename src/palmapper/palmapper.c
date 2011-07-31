@@ -11,6 +11,7 @@
 #include <palmapper/FileReporter.h>
 #include <palmapper/Mapper.h>
 #include <palmapper/JunctionMap.h>
+#include <palmapper/VariantMap.h>
 //#include <wait.h>
 
 Config _config;
@@ -21,8 +22,8 @@ using namespace lang;
  
 class MapperThread : public Thread, public Mapper {
 public:
-MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotated_junctions)
-	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter,junctionmap,annotated_junctions) {}
+MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotated_junctions, VariantMap & variants)
+	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter,junctionmap,annotated_junctions, variants) {}
 	void run() {
 		map_reads();
 	}
@@ -87,6 +88,7 @@ int main(int argc, char *argv[])
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
 	JunctionMap junctionmap(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
 	JunctionMap annotated_junctions(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
+	VariantMap variants(genome);
 	
 	if ( _config.OUTPUT_FORMAT == OUTPUT_FORMAT_BAM)
 	{
@@ -103,6 +105,12 @@ int main(int argc, char *argv[])
 	
 	if (_config.SCORE_ANNOTATED_SPLICE_SITES){
 		int ret=annotated_junctions.init_from_gffs(_config.ANNOTATED_SPLICE_SITES_FILE);
+		if (ret!=0)
+			return -1;
+	}
+
+	if (_config.MAP_VARIANTS){
+		int ret=variants.init_from_sdis(_config.VARIANT_FILE_NAME);
 		if (ret!=0)
 			return -1;
 	}
@@ -188,7 +196,7 @@ int main(int argc, char *argv[])
 	MapperThread *threads[numThreads];
 	std::string threadIds(".+-:=!$'");
 	for (unsigned int i = 0; i < numThreads; ++i) {
-		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions);
+		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
 		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
 		printf("Starting thread %d\n", i);
 		threads[i]->launch();

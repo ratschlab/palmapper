@@ -18,8 +18,10 @@ void Mapper::map_reads_timing(int count_reads, float this_read)
 		fprintf(stdout, "\n") ;
 }
 
-Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotatedjunctions)
-	:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), _junctionmap(junctionmap), _annotatedjunctions(annotatedjunctions), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
+Mapper::Mapper(Genome const &genome_, GenomeMaps &genomemaps_, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, 
+			   JunctionMap &junctionmap, JunctionMap &annotatedjunctions, VariantMap & variants)
+	:	GENOME(genome_.LONGEST_CHROMOSOME), _genome(genome_), _genomeMaps(genomemaps_), 
+		_junctionmap(junctionmap), _annotatedjunctions(annotatedjunctions), _variants(variants), _queryFile(queryFile), _qpalma(qpalma), _reporter(reporter)
 {
 	REDUNDANT = 0;
 
@@ -325,8 +327,8 @@ restart:
 
 		read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
 
-		int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions);
-		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,1000,_annotatedjunctions);//hits._topAlignments.size() -nb_unspliced);
+		int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
+		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,1000,_annotatedjunctions, _variants);//hits._topAlignments.size() -nb_unspliced);
 	}
 
 	if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
@@ -340,7 +342,7 @@ restart:
 		bool trigger = false ;
 		if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
 			trigger = hits._topAlignments.size()==0 ||
-				qpalma->qpalma_filter(result._qpalma, hits._topAlignments.get_alignment(0), num_N,_annotatedjunctions)!=0 ;
+				qpalma->qpalma_filter(result._qpalma, hits._topAlignments.get_alignment(0), num_N, _annotatedjunctions)!=0 ;
 
 		if ( trigger )
 		{
@@ -357,13 +359,13 @@ restart:
 			  
 			  try
 			    {
-					int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions);
+					int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
 					
 					if (trigger  || FILTER_STAT)
-						ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions);
+						ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
 					
 					if (_config.MAP_JUNCTIONS)
-						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,hits._topAlignments.size() -nb_unspliced,_annotatedjunctions);
+						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,hits._topAlignments.size() -nb_unspliced,_annotatedjunctions, _variants);
 
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
