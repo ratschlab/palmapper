@@ -5,7 +5,7 @@
 #include <string>
 #include <time.h>
 #include <stdlib.h>
-#include <wait.h>
+//#include <wait.h>
 
 #include "palmapper.h"
 #include "print.h"

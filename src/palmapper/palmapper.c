@@ -11,7 +11,7 @@
 #include <palmapper/FileReporter.h>
 #include <palmapper/Mapper.h>
 #include <palmapper/JunctionMap.h>
-#include <wait.h>
+//#include <wait.h>
 
 Config _config;
 Statistics _stats;

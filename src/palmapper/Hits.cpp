@@ -328,7 +328,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 		{
 			char *seed=strdup(&SLOT_STR[reverse][SLOT_STR_POS[reverse]]) ;
 			seed[_config.INDEX_DEPTH]=0 ;
-			fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
+			fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, (long)sa_num, seed, reverse) ;
 			free(seed) ;
 			debug_show=true ;
 		}
@@ -445,7 +445,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 							{
 								char *seed=strdup(&SLOT_STR[reverse][SLOT_STR_POS[reverse]]) ;
 								seed[_config.INDEX_DEPTH]=0 ;
-								fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, reverse) ;
+								fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, (long)sa_num, seed, reverse) ;
 								free(seed) ;
 								debug_show=true ;
 							}
@@ -1574,7 +1574,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 					{
 						char *seed=strdup(&SLOT_STR[rev][SLOT_STR_POS[rev]]) ;
 						seed[_config.INDEX_DEPTH]=0 ;
-						fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, sa_num, seed, rev) ; 
+						fprintf(stdout, "index_entry.num=%i, sa_num=%lu, seq=%s, reverse=%i\n", (int)index_entry.num, (long)sa_num, seed, rev) ; 
 						free(seed) ;
 						debug_show=true ;
 					}
