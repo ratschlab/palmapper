@@ -76,7 +76,7 @@ void FileReporter::print(FILE *file, std::string &s){
 	if (s.length() == 0 )
 		return;
 	if (::fwrite(s.c_str(), 1, s.length(), file) != s.length()) {
-		fprintf(stderr, "Cound not wrote result\n");
+		fprintf(stderr, "Could not write results\n");
 		exit(1);
 	}
 	s.assign("");
