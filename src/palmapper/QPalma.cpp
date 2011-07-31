@@ -2464,7 +2464,7 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 	{
 		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants) ;
 
-		fprintf(stdout, "not implemented yet\n") ;
+		//fprintf(stdout, "not implemented yet\n") ;
 
 		return perform_alignment_starter_single(result, readMappings, 
 												read_string, read_quality, 
