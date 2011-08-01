@@ -3467,55 +3467,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	std::vector<SuperVariant> super_variant_list ;
 	if (_config.MAP_VARIANTS && variants.size()>0)
 	{
-		std::string mydna(100, ' ') ;
-		for (int i=0; i<100; i++)
-			mydna[i]='T' ;//dna[i] ;
-		std::vector<Variant> myvariants ;
-		Variant v ;
-		v.type = pt_substitution ;
-		v.position=10 ;
-		v.end_position = 15 ;
-		v.ref_str = "AAAAA" ;
-		v.variant_str = "GGGGGGGGGGGGGG" ;
-		v.ref_len = v.ref_str.size() ;
-		v.variant_len = v.variant_str.size() ;
-		v.id = 1 ;
-		myvariants.push_back(v) ;
-		v.position=13 ;
-		v.end_position = 23 ;
-		v.type = pt_insertion ;
-		v.ref_str = "" ;
-		v.variant_str="GGGGGGGGGG" ;
-		v.ref_len = v.ref_str.size() ;
-		v.variant_len = v.variant_str.size() ;
-		
-		v.id = 2 ;
-		myvariants.push_back(v) ;
-		fprintf(stdout, "mydna pre=%s\n", mydna.c_str()) ;
-		super_variant_list = create_super_sequence_from_variants(myvariants, mydna, acceptor, a_len, donor, d_len, hit_dna_converted) ;
-		fprintf(stdout, "mydna aft=%s\n", mydna.c_str()) ;
-		for (unsigned int i=0; i<super_variant_list.size(); i++)
-		{
-			if (super_variant_list[i].type==pt_SNP)
-			{
-				fprintf(stdout, "supervariant SNP: pos=%i %c->%c\n", super_variant_list[i].position, super_variant_list[i].SNP[0], super_variant_list[i].SNP[1]) ;
-			}
-			if (super_variant_list[i].type==pt_deletion)
-			{
-				fprintf(stdout, "          ") ;
-				for (int j=0; j<100; j++)
-				{
-					if (j>=super_variant_list[i].position && j<super_variant_list[i].end_position)
-						fprintf(stdout, "-") ;
-					else
-						fprintf(stdout, " ") ;
-				}
-				fprintf(stdout, "  %i\n", super_variant_list[i].variant_id) ;
-				//fprintf(stdout, "supervariant deletion: pos=%i -> %i\n", super_variant_list[i].position, super_variant_list[i].end_position) ;
-			}
-		}
-		//super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, hit_dna_converted) ;
-		return 0 ;
+		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, hit_dna_converted) ;
 	}
 
 	assert (hit_dna_converted >= 0);
@@ -3561,7 +3513,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	std::vector<FoundVariant> found_variants ;
 	if (_config.MAP_VARIANTS)
+	{
+		return 0 ;
+
 		found_variants = reconstruct_reference_alignment(variants, super_variant_list, dna, &s_align[0], s_len, &e_align[0], est_len_p) ;
+	}
 
 	std::vector<int> exons;
 	exons.clear();
