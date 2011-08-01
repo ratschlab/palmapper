@@ -2445,6 +2445,27 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	return variant_list ;
 }
 
+int insert_variants(std::vector<Variant> & variant_list, std::string & dna, std::vector<region_t *> & current_regions, std::vector<int> &positions, Chromosome const &contig_idx)
+{
+	fprintf(stdout, "not implemented yet: %lu variants\n", variant_list.size()) ;
+	int n_SNP=0 ;
+	for (unsigned int i=0; i<variant_list.size(); i++)
+	{
+		if (variant_list[i].type == pt_SNP)
+		{
+			assert(dna[variant_list[i].position] == variant_list[i].ref_str[0]) ;
+			char c = variant_list[i].variant_str[0] ;
+			if (c!='A' && c!='C' && c!='G' && c!='T')
+				c='N' ;
+			dna[variant_list[i].position] = c ;
+			n_SNP ++ ;
+		}
+	}
+	fprintf(stdout, "filled in %i SNPs\n", n_SNP) ;
+
+	return 0 ;
+}
+
 int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings, 
 											  std::string read_string, std::string read_quality, 
 											  std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, 
@@ -2464,7 +2485,11 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 	{
 		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants) ;
 
-		fprintf(stdout, "not implemented yet\n") ;
+		if (variant_list.size()>0)
+		{
+			insert_variants(variant_list, dna, current_regions, positions, contig_idx) ;
+		}
+		//else return 0 ;
 
 		return perform_alignment_starter_single(result, readMappings, 
 												read_string, read_quality, 
