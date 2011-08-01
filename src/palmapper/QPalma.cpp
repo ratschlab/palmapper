@@ -2319,6 +2319,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 			{
 				v=*it ;
 				v.position = map[(*it).position-start_pos] ;
+				v.end_position = v.position+v.ref_len ;
 				if (dna[v.position]!='N')
 				{
 					//if (v.ref_str[0]!=dna[v.position])
@@ -2335,6 +2336,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 			{
 				v=*it ;
 				v.position = map[(*it).position-start_pos] ;
+				v.end_position = v.position + v.ref_len ;
 				found = true ;
 			}
 		}
@@ -2386,6 +2388,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					
 					v.ref_str = (*it).ref_str ;
 					v.position = deleted_positions[0] ;
+					v.end_position = v.position+v.ref_len ;
 					found = true ;
 					//fprintf(stdout, "full subst: %s\t%s\t%s\n", (*it).ref_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
 				} 
@@ -2451,7 +2454,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 
 int insert_variants(std::vector<Variant> & variant_list, std::string & dna, std::vector<region_t *> & current_regions, std::vector<int> &positions, Chromosome const &contig_idx)
 {
-	fprintf(stdout, "not implemented yet: %lu variants\n", variant_list.size()) ;
+	//fprintf(stdout, "not implemented yet: %lu variants\n", variant_list.size()) ;
 	int n_SNP=0 ;
 	for (unsigned int i=0; i<variant_list.size(); i++)
 	{
@@ -2465,7 +2468,7 @@ int insert_variants(std::vector<Variant> & variant_list, std::string & dna, std:
 			n_SNP ++ ;
 		}
 	}
-	fprintf(stdout, "filled in %i SNPs\n", n_SNP) ;
+	fprintf(stdout, "filled in %i SNPs; %lu\n", n_SNP, variant_list.size()-n_SNP) ;
 
 	return 0 ;
 }
@@ -2784,7 +2787,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 		
 		if (variants[i].type == pt_substitution)
 		{
-			fprintf(stdout, "%i, %i\n", variants[i].position, variants[i].end_position) ;
+			//fprintf(stdout, "%i, %i\n", variants[i].position, variants[i].end_position) ;
 			
 			int idx_start=find_pos(pos_table, variants[i].position) ;
 			int idx_end=find_pos(pos_table, variants[i].end_position) ;
@@ -2819,7 +2822,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				pos_table[idx_start-1]->del_refs.push_back(pos_table[idx_end+1+num_N]) ;
 				pos_table[idx_start-1]->del_ids.push_back(variants[i].id) ;
 				// skipping the variant version
-				pos_table[idx_end]->del_refs.push_back(pos_table[idx_end+num_N+variants[i].variant_len]) ;
+				pos_table[idx_end]->del_refs.push_back(pos_table[idx_end+1+num_N+variants[i].variant_len]) ;
 				pos_table[idx_end]->del_ids.push_back(0) ;
 			}
 		}
@@ -3464,7 +3467,54 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	std::vector<SuperVariant> super_variant_list ;
 	if (_config.MAP_VARIANTS && variants.size()>0)
 	{
-		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, hit_dna_converted) ;
+		std::string mydna(100, ' ') ;
+		for (int i=0; i<100; i++)
+			mydna[i]='T' ;//dna[i] ;
+		std::vector<Variant> myvariants ;
+		Variant v ;
+		v.type = pt_substitution ;
+		v.position=10 ;
+		v.end_position = 15 ;
+		v.ref_str = "AAAAA" ;
+		v.variant_str = "GGGGGGGGGGGGGG" ;
+		v.ref_len = v.ref_str.size() ;
+		v.variant_len = v.variant_str.size() ;
+		v.id = 1 ;
+		myvariants.push_back(v) ;
+		v.position=13 ;
+		v.end_position = 23 ;
+		v.type = pt_insertion ;
+		v.ref_str = "" ;
+		v.variant_str="GGGGGGGGGG" ;
+		v.ref_len = v.ref_str.size() ;
+		v.variant_len = v.variant_str.size() ;
+		
+		v.id = 2 ;
+		myvariants.push_back(v) ;
+		fprintf(stdout, "mydna pre=%s\n", mydna.c_str()) ;
+		super_variant_list = create_super_sequence_from_variants(myvariants, mydna, acceptor, a_len, donor, d_len, hit_dna_converted) ;
+		fprintf(stdout, "mydna aft=%s\n", mydna.c_str()) ;
+		for (unsigned int i=0; i<super_variant_list.size(); i++)
+		{
+			if (super_variant_list[i].type==pt_SNP)
+			{
+				fprintf(stdout, "supervariant SNP: pos=%i %c->%c\n", super_variant_list[i].position, super_variant_list[i].SNP[0], super_variant_list[i].SNP[1]) ;
+			}
+			if (super_variant_list[i].type==pt_deletion)
+			{
+				fprintf(stdout, "          ") ;
+				for (int j=0; j<100; j++)
+				{
+					if (j>=super_variant_list[i].position && j<super_variant_list[i].end_position)
+						fprintf(stdout, "-") ;
+					else
+						fprintf(stdout, " ") ;
+				}
+				fprintf(stdout, "  %i\n", super_variant_list[i].variant_id) ;
+				//fprintf(stdout, "supervariant deletion: pos=%i -> %i\n", super_variant_list[i].position, super_variant_list[i].end_position) ;
+			}
+		}
+		//super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, hit_dna_converted) ;
 		return 0 ;
 	}
 
