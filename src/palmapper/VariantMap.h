@@ -19,10 +19,27 @@ struct variant_str {
 	int end_position ;
 	int ref_len ;
 	int variant_len ;
+	int id ;
 	enum polytype type ;
 	std::string ref_str, variant_str ;
 };
 typedef struct variant_str Variant;
+
+struct found_variant_str {
+	int read_position ;
+	int id ;
+	enum polytype type ;
+};
+typedef struct found_variant_str FoundVariant;
+
+struct super_variant_str {
+	int variant_id ;
+	int position ;
+	int end_position ;
+	char SNP[2] ;
+	enum polytype type ;
+};
+typedef struct super_variant_str SuperVariant ;
 
 class VariantMap
 {
