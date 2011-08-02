@@ -41,6 +41,25 @@ struct super_variant_str {
 };
 typedef struct super_variant_str SuperVariant ;
 
+inline void report_SNP_variant(std::vector<Variant> & variants, int chr, int dna_pos, char ref, char variant) 
+{
+	Variant v ;
+	v.type = pt_SNP ;
+	v.position = dna_pos ;
+	v.ref_len=1 ;
+	v.variant_len=1;
+	v.ref_str+=ref ;
+	v.variant_str+=variant ;
+}
+
+inline void report_del_variant(std::vector<Variant> & variants, int chr, int dna_pos, int len, std::string & ref_str) 
+{
+}
+
+inline void report_ins_variant(std::vector<Variant> & variants, int chr, int dna_pos, int len, std::string & variant_str) 
+{
+}
+
 class VariantMap
 {
 
@@ -72,6 +91,7 @@ public:
 			return false ;
 		return true ;
 	}
+
 
 protected:
 	
