@@ -3477,7 +3477,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores, hit_read, hit_dna_converted, hit_length, _config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping /*, super_variant_list*/);
+							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping, super_variant_list);
 	}
 	else
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
@@ -3488,7 +3488,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES, remapping  /*, super_variant_list*/);
+							   MIN_NUM_MATCHES, remapping, super_variant_list);
 	
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
@@ -3624,7 +3624,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				fprintf(stdout, "# %i. %i - %i\n", (int)i / 2, exons[i], exons[i + 1]);
 	    }
 		
-	    fprintf(stdout, "DNA: %d ", s_align[0]);
+	    /*fprintf(stdout, "DNA: %d ", s_align[0]);
 	      for (int i = 0; i < dna.length(); i++)
 	      fprintf(stdout, "%i ", s_align[i]);
 	      fprintf(stdout, "\n");
@@ -3632,7 +3632,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	      fprintf(stdout, "EST: ");
 	      for (int i = 0; i < est_len_p; i++)
 	      fprintf(stdout, "%i ", e_align[i]);
-	      fprintf(stdout, "\n");
+	      fprintf(stdout, "\n");*/
 
 		  int start_offset=0 ;
 		  while (s_align[start_offset]==4)
@@ -3687,8 +3687,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						//est_gap_start-=1 ;
 						est_gap=reverse(complement(est_gap)) ;
 					}
-					fprintf(stdout, "EST gap: %i:%i (%s)\n", positions[start_offset+est_gap_start], positions[start_offset+est_gap_end], est_gap.c_str()) ;
-					report_del_variant(align_variants, contig_idx.nr(), positions[start_offset+est_gap_start], est_gap.size(), est_gap) ;
+					fprintf(stdout, "deletion: %i:%i (%s)\n", positions[start_offset+est_gap_start], positions[start_offset+est_gap_end], est_gap.c_str()) ;
+					assert(abs(positions[start_offset+est_gap_end]-positions[start_offset+est_gap_start])==(int)est_gap.size()) ;
+					report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_start], est_gap.size(), est_gap) ;
 					est_gap_start=-1 ;
 					est_gap="" ;
 				}
@@ -3700,8 +3701,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						dna_gap=reverse(complement(dna_gap)) ;
 					}
 					
-					fprintf(stdout, "DNA gap: %i (%s)\n", positions[start_offset+dna_gap_start], dna_gap.c_str()) ;
-					report_ins_variant(align_variants, contig_idx.nr(), positions[start_offset+dna_gap_start], dna_gap.size(), dna_gap) ;
+					fprintf(stdout, "insertion: %i (%s)\n", positions[start_offset+dna_gap_start], dna_gap.c_str()) ;
+					report_ins_variant(align_variants, contig_idx, positions[start_offset+dna_gap_start], dna_gap.size(), dna_gap) ;
 					dna_gap_start=-1 ;
 					dna_gap="" ;
 				}
@@ -3735,9 +3736,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						alignment_mismatches++ ;
 						alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
 						assert(map[est_align[i]]==read_string[read_pos]) ;
+
+						if (_config.REPORT_VARIANTS)
+						{
+							fprintf(stdout, "SNP: %i (%c->%c)\n", positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]]) ;
+							report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]]) ;
+						}
 					}
-					if (_config.REPORT_VARIANTS)
-						report_SNP_variant(align_variants, contig_idx.nr(), positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]]) ;
 
 					read_pos++ ;
 				}
