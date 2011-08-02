@@ -61,7 +61,7 @@ void Alignment::getDNAEST(){}
 void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<int> &positions, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 							 bool remove_duplicate_scores, int hit_read, int hit_dna, int hit_len, int max_number_introns,  
-							 int max_gap, int max_mism, int max_edit_op, int min_match, bool remapping) {
+							 int max_gap, int max_mism, int max_edit_op, int min_match, bool remapping, std::vector<SuperVariant> super_variant_list) {
 
 	// printf("Entering myalign_fast...\n");
 	nr_paths = nr_paths_p;
@@ -126,7 +126,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 	int* max_score_positions = new int[nr_paths*2];
 
 	fast_fill_matrix(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, 
-					 donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping);
+					 donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping,super_variant_list);
 
 
 	/***************************************************************************/ 
