@@ -109,7 +109,7 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	int variantInt= check_char(dnaVariant);
 	fprintf(stdout,"%c-%i \n",dnaVariant,variantInt);
 	
-	int temp[4];
+	int temp[4]={0,0,0,0};
 	switch ( variantInt )
 	{		
 	case 1:
@@ -168,17 +168,17 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 		break;
 	}
 	
-	// for (int i=0; i<=4; i++){
-	// 	if (temp[i]==0)
-	// 		continue;
+	for (int i=0; i<=4; i++){
+		if (temp[i]==0)
+			continue;
 		
-	// 	if (currentMode == USE_QUALITY_SCORES){
-	// 		score = std::max(score,getScore(qualityScores,mlen,i,readInt,baseScore));
-	// 	}
-	// 	else{
-	// 		score = std::max(score,(matchmatrix[mlen* i +readInt]));
-	// 	}
-	// }
+		if (currentMode == USE_QUALITY_SCORES){
+			score = std::max(score,getScore(qualityScores,mlen,i+1,readInt,baseScore));
+		}
+		else{
+			score = std::max(score,(matchmatrix[mlen* (i+1) +readInt]));
+		}
+	}
 	return score;
 }
 
