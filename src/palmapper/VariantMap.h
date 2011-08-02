@@ -41,23 +41,43 @@ struct super_variant_str {
 };
 typedef struct super_variant_str SuperVariant ;
 
-inline void report_SNP_variant(std::vector<Variant> & variants, int chr, int dna_pos, char ref, char variant) 
+inline void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant) 
 {
 	Variant v ;
 	v.type = pt_SNP ;
 	v.position = dna_pos ;
+	v.end_position = dna_pos ;
 	v.ref_len=1 ;
 	v.variant_len=1;
 	v.ref_str+=ref ;
 	v.variant_str+=variant ;
+	variants.push_back(v) ;
 }
 
-inline void report_del_variant(std::vector<Variant> & variants, int chr, int dna_pos, int len, std::string & ref_str) 
+inline void report_del_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & ref_str) 
 {
+	Variant v ;
+	v.type = pt_deletion ;
+	v.position = dna_pos ;
+	v.end_position = dna_pos+ref_str.size() ;
+	v.ref_len=ref_str.size() ;
+	v.variant_len=0;
+	v.ref_str=ref_str ;
+	v.variant_str="" ;
+	variants.push_back(v) ;
 }
 
-inline void report_ins_variant(std::vector<Variant> & variants, int chr, int dna_pos, int len, std::string & variant_str) 
+inline void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str) 
 {
+	Variant v ;
+	v.type = pt_insertion ;
+	v.position = dna_pos ;
+	v.end_position = dna_pos ;
+	v.ref_len=0 ;
+	v.variant_len=variant_str.size();
+	v.ref_str="" ;
+	v.variant_str=variant_str ;
+	variants.push_back(v) ;
 }
 
 class VariantMap
