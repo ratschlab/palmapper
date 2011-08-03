@@ -75,7 +75,9 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 
 int check_char(char base);
 
-double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char dnaVariant, char estChar, double baseScore );
+void getSNPfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<char>& snps);
+void getDeletionsfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<int>& del);
+double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, std::vector<char> variants, int& dnaValue );
 
 double getScore(double *matchmatrix,int mlen, int dnaChar, int estChar);
 inline double getScore(struct penalty_struct* qualityScores, int mlen, int dnaChar, int estChar, double baseScore) 

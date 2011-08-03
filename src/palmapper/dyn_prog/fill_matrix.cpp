@@ -88,14 +88,42 @@ int char_map[133]={-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -
  * quality score.
  */
 
+//There is match if they are identical bases or one of the dna/read is a 'N'
+inline bool is_a_match(int dna, int read)
+{
+	if (dna==read)
+		return true;
+	if (dna==5 || read == 5)
+		return true;
+	return false;
+}
 
 
-double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char dnaVariant, char readChar, double baseScore )
+void getSNPfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<char>& snps)
+{
+	for (int i=0; i<(int)super_variants.size();i++){
+		if (super_variants[i].position == position && super_variants[i].type==pt_SNP)
+			snps.push_back(super_variants[i].SNP[1]);
+	}
+}
+
+void getDeletionsfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<int>& del)
+{
+
+	for (int i=0; i<(int)super_variants.size();i++){
+		if (super_variants[i].position == position && super_variants[i].type==pt_deletion)
+			del.push_back(super_variants[i].end_position);
+	}
+}
+
+
+double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, std::vector<char> variants, int &dnaValue )
 {
 	double score;
 	int dnaInt= check_char(dnaChar);
+	dnaValue=dnaInt;
 	int readInt = check_char(readChar);
-	fprintf(stdout,"%c-%i ---- %c-%i\n",dnaChar,dnaInt,readChar,readInt);
+	fprintf(stdout,"%c-%i ---- %c-%i (variant size: %i)\n",dnaChar,dnaInt,readChar,readInt,variants.size());
 	
 
 	if (currentMode == USE_QUALITY_SCORES){
@@ -105,78 +133,87 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 		score = (matchmatrix[mlen* dnaInt +readInt]);
 	}	
 
-   
-	int variantInt= check_char(dnaVariant);
-	fprintf(stdout,"%c-%i \n",dnaVariant,variantInt);
+	if (variants.size()==0)
+		return score;
 	
+	//Take variants into account and output the best score among the different possibilities (match first I guess)
 	int temp[4]={0,0,0,0};
-	switch ( variantInt )
-	{		
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-		temp[variantInt-1]=1;
-		break;
-	case 5:
-		for (int i=0; i<4; i++)
-			temp[i]=1;
-		break;
-	case 6:
-		temp[1]=1;
-		temp[2]=1;
-		temp[3]=1;
-		break;
-	case 7:
-		temp[0]=1;
-		temp[2]=1;
-		temp[3]=1;
-		break;
-	case 8:
-		temp[0]=1;
-		temp[1]=1;
-		temp[3]=1;
-		break;
-	case 9:
-		temp[2]=1;
-		temp[3]=1;
-		break;
-	case 10:
-		temp[0]=1;
-		temp[1]=1;
-		break;
-	case 11:
-		temp[0]=1;
-		temp[2]=1;
-		break;
-	case 12:
-		temp[1]=1;
-		temp[2]=1;
-		break;
-	case 13:
-		temp[0]=1;
-		temp[1]=1;
-		temp[2]=1;
-		break;
-	case 14:
-		temp[0]=1;
-		temp[3]=1;
-		break;
-	case 15:
-		temp[1]=1;
-		temp[3]=1;
-		break;
+	for (int j=0; j<(int)variants.size();j++){
+		int variantInt= check_char(variants[j]);
+	   
+		switch ( variantInt )
+		{		
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			temp[variantInt-1]=1;
+			break;
+		case 5:
+			for (int i=0; i<4; i++)
+				temp[i]=1;
+			break;
+		case 6:
+			temp[1]=1;
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 7:
+			temp[0]=1;
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 8:
+			temp[0]=1;
+			temp[1]=1;
+			temp[3]=1;
+			break;
+		case 9:
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 10:
+			temp[0]=1;
+			temp[1]=1;
+			break;
+		case 11:
+			temp[0]=1;
+			temp[2]=1;
+			break;
+		case 12:
+			temp[1]=1;
+			temp[2]=1;
+			break;
+		case 13:
+			temp[0]=1;
+			temp[1]=1;
+			temp[2]=1;
+			break;
+		case 14:
+			temp[0]=1;
+			temp[3]=1;
+			break;
+		case 15:
+			temp[1]=1;
+			temp[3]=1;
+			break;
+		}
 	}
+	double tmpscore=score;
 	
 	for (int i=0; i<=4; i++){
 		if (temp[i]==0)
 			continue;
 		
 		if (currentMode == USE_QUALITY_SCORES){
-			score = std::max(score,getScore(qualityScores,mlen,i+1,readInt,baseScore));
+			tmpscore = getScore(qualityScores,mlen,i+1,readInt,baseScore);
 		}
 		else{
-			score = std::max(score,(matchmatrix[mlen* (i+1) +readInt]));
+			tmpscore =(matchmatrix[mlen* (i+1) +readInt]);
+		}
+		if (tmpscore > score){
+			dnaValue=i+1;
+			score=tmpscore;	
 		}
 	}
 	return score;
@@ -450,8 +487,11 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 
 	//Init seed position score in matrices
 	//Best matrix
-	
-	((Prev_score*)matrices[0]+ max_gap)->value = getBestScoreWithVariants(currentMode, matchmatrix, qualityScores, mlen, dna[seed_dna], dna[seed_dna], read[seed_read], read_scores[seed_read]);
+	std::vector<char> snps;
+	int dnaInt;
+	getSNPfromVariants(super_variants,seed_dna,snps);
+	((Prev_score*)matrices[0]+ max_gap)->value = getBestScoreWithVariants(currentMode, matchmatrix, qualityScores, mlen, dna[seed_dna], read[seed_read], read_scores[seed_read], snps,dnaInt);
+	snps.clear();	
 	
 	// dnaChar=check_char(dna[seed_dna]) ;
 	// readChar = check_char(read[seed_read]) ;
@@ -613,6 +653,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 
 				if (currentMode == USE_QUALITY_SCORES)
 					baseScore = read_scores[i];
+				else
+					baseScore =0;
 				
 				// Best score of what it leaves to align
 				if (ni<i_len-1){
@@ -637,20 +679,17 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 					prevMism=((Prev_score*)actMatrix +matrix_prev_position)->num_mismatches;
 	
 					if (isnotminusinf(prevValue)){
+						getSNPfromVariants(super_variants,seed_dna,snps);
+						tempValue = prevValue + getBestScoreWithVariants(currentMode, matchmatrix, qualityScores, mlen, dna[j], read[i], baseScore, snps, dnaInt);
+						snps.clear();	
 
-						if (currentMode == USE_QUALITY_SCORES)
-							tempValue = prevValue + getScore(qualityScores,mlen,dnaChar,readChar,baseScore);
-						else
-							tempValue = prevValue +(matchmatrix[mlen* dnaChar +readChar]);
-
-						//Fill if tempValue is greater of equal to an existing spliced alignment
-						//If mismatch, does not have to rise above the number of allowed mismatches and edit operations 
-						if (isnotminusinf(tempValue) && (read[i]==dna[j] || (prevMism+1<=max_mism && prevMism+prevGaps+1<=max_edit_op)) && tempValue+putativeValue>globalValue){
+						bool isMatching = is_a_match(dnaInt,readChar);
+						if (isnotminusinf(tempValue) && (isMatching || (prevMism+1<=max_mism && prevMism+prevGaps+1<=max_edit_op)) && tempValue+putativeValue>globalValue){
 							((Prev_score*)actMatrix + matrix_position)->value = tempValue;
 							((Prev_score*)actMatrix + matrix_position)->prev_i = i+prev_shift; 
 							((Prev_score*)actMatrix + matrix_position)->prev_j = j+prev_shift; 
 							((Prev_score*)actMatrix + matrix_position)->prev_matrix_no = z;
-							if (read[i]==dna[j] || check_char(read[i])==5 || check_char(dna[j])==5) {
+							if (isMatching) {
 								((Prev_score*)actMatrix + matrix_position)->num_matches = ((Prev_score*)actMatrix +matrix_prev_position)->num_matches+1; 
 								((Prev_score*)actMatrix + matrix_position)->num_mismatches = prevMism;
 							}
