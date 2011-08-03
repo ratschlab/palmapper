@@ -279,6 +279,12 @@ int main(int argc, char *argv[])
 
 	if (_config.REPORT_JUNCTIONS)
 		junctionmap.report_to_gff(_config.REPORT_JUNCTIONS_FILE);
+
+	if (_config.REPORT_VARIANTS){
+		int ret=variants.report_to_sdi(_config.REPORT_VARIANTS_FILE);
+		if (ret!=0)
+			return -1;
+	}
 	
 	if (qpalma != NULL)
 		delete qpalma;

@@ -2,6 +2,7 @@
 
 #include <palmapper/Mapper.h>
 #include <palmapper/JunctionMap.h>
+#include <palmapper/VariantMap.h>
 
 class FileReporter : public Mapper::Reporter {
 	struct Entry {
@@ -24,7 +25,7 @@ public:
 		//fprintf(_sp_out, "#done\n") ;
 	}
 
-	void report(Mapper::Result &result, JunctionMap &junctionmap);
+	void report(Mapper::Result &result, JunctionMap &junctionmap, VariantMap& variants);
 
 private:
 	static int const _nrResults = 1024*10;

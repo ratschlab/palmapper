@@ -16,8 +16,6 @@
 #include <palmapper/TopAlignments.h>
 #include <palmapper/Util.h>
 
-
-
 TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
 	top_alignments(),
 	num_spliced_alignments(0),
@@ -52,7 +50,9 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	
 	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
 	
-	add_alignment_record(algn_hit, 1) ;
+	if (!_config.REPORT_VARIANTS)
+		add_alignment_record(algn_hit, 1) ;
+
 	return 1 ;
 }
 
@@ -801,8 +801,9 @@ void TopAlignments::sort_top_alignment_list()
 	}
 }
 
-void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end, JunctionMap &junctionmap) {
-
+void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end, 
+											 JunctionMap &junctionmap, VariantMap & variants) 
+{
 	if (top_alignments.empty() && ! _config.INCLUDE_UNMAPPED_READS_SAM)
 		return;
 
@@ -853,6 +854,13 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 												top_alignments[i]->read_id, 1) ;
 				}
 			}
+		}
+
+		if (_config.REPORT_VARIANTS)
+		{
+			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
+				for (unsigned j=0; j<top_alignments[i]->align_variants.size(); j++)
+					variants.insert_variant(top_alignments[i]->align_variants[j], top_alignments[i]->chromosome->nr()) ;
 		}
     }
 

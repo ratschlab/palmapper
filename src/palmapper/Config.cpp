@@ -81,6 +81,9 @@ Config::Config() {
 	MAP_JUNCTIONS_COVERAGE=2;
 
 	REPORT_VARIANTS=false ;
+	report_SNP_terminal_dist = 10 ;
+	report_indel_terminal_dist = 15 ;
+	REPORT_VARIANTS_FILE="/dev/stdout" ;
 
 	QPALMA_USE_MAP = 1 ;
 	QPALMA_USE_MAP_MAX_SIZE = 10000 ;
@@ -831,6 +834,20 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_JUNCTIONS_FILE=strdup(argv[i]) ;
 				REPORT_JUNCTIONS = 1 ;
 			}
+
+			//report junctions
+			if (strcmp(argv[i], "-report-variants") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-variants\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_VARIANTS_FILE=strdup(argv[i]) ;
+				REPORT_VARIANTS = true ;
+			}
+
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {

@@ -171,6 +171,10 @@ public:
 	int SCORE_ANNOTATED_SPLICE_SITES ;
 
 	bool REPORT_VARIANTS ;
+	int report_SNP_terminal_dist ;
+	int report_indel_terminal_dist ;
+	std::string REPORT_VARIANTS_FILE ;
+	
 
 	int REPORT_RESET;
 

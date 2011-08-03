@@ -27,10 +27,8 @@ VariantMap::~VariantMap()
 }
 
 
-void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str)
+void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id)
 {
-	lock() ;
-
 	enum polytype pt = pt_unknown ;
 	if (ref_len==1 && variant_len==1)
 		pt = pt_SNP ;
@@ -44,55 +42,50 @@ void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, 
 	Variant j;
 	int end = pos+ref_len ;
 
+	j.type = pt ;
+	j.position = pos ;
+	j.end_position=end ;
+	j.ref_len = ref_len ;
+	j.variant_len = variant_len ;
+	j.ref_str=ref_str ;
+	j.variant_str = variant_str ;
+	j.conf_count = conf_count ;
+	j.read_id = read_id ;
+	
+	insert_variant(j, chr) ;
+}
+
+void VariantMap::insert_variant(Variant & j, int chr)
+{
+	lock() ;
+
 	if (variantlist[chr].empty())
 	{
-		j.type = pt ;
-		j.position = pos ;
-		j.end_position=end ;
-		j.ref_len = ref_len ;
-		j.variant_len = variant_len ;
-		j.ref_str=ref_str ;
-		j.variant_str = variant_str ;
-
 		variantlist[chr].push_back(j);
 
 		unlock() ;
 		return;
 	}
 
-	std::deque<Variant>::iterator it = my_lower_bound(variantlist[chr].begin(), variantlist[chr].end(), pos) ;
+	std::deque<Variant>::iterator it = my_lower_bound(variantlist[chr].begin(), variantlist[chr].end(), j.position) ;
 	
 	for (; it!=variantlist[chr].end(); it++)
 	{
-		if (pos <  (*it).position)
+		if (j.position <  (*it).position)
 		{
-			j.type = pt ;
-			j.position = pos ;
-			j.end_position=end ;
-			j.ref_len = ref_len ;
-			j.variant_len = variant_len ;
-			j.ref_str=ref_str ;
-			j.variant_str = variant_str ;
-
-			variantlist[chr].insert(it,j);
+			variantlist[chr].insert(it, j);
 
 			unlock() ;
 			return;
 		}
-		if (pos ==  (*it).position)
+		if (j.position ==  (*it).position)
 		{
-			if (end <= (*it).end_position)
+			if (j.end_position <= (*it).end_position)
 			{
-				j.type = pt ;
-				j.position = pos ;
-				j.end_position=end ;
-				j.ref_len = ref_len ;
-				j.variant_len = variant_len ;
-				j.ref_str=ref_str ;
-				j.variant_str = variant_str ;
-				
 				if (!variant_identical(j, *it))
-					variantlist[chr].insert(it,j);
+					variantlist[chr].insert(it, j);
+				else
+					(*it).conf_count += j.conf_count ;
 
 				unlock() ;
 				return;
@@ -101,14 +94,6 @@ void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, 
 		continue;
 	}
 
-	j.type = pt ;
-	j.position = pos ;
-	j.end_position=end ;
-	j.ref_len = ref_len ;
-	j.variant_len = variant_len ;
-	j.ref_str=ref_str ;
-	j.variant_str = variant_str ;
-	
 	variantlist[chr].push_back(j);
 
 	unlock() ;
@@ -132,9 +117,9 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 		
 		Util::skip_comment_lines(fd) ;
 		
-		fgets(buf, 250000, fd) ;
+		fgets(buf, 250000, fd) ; 
 
-		//Scan sdi3 line
+		//Scan sdi line
 		int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;  
 		if (num<5)
 		{
@@ -176,7 +161,7 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 			variant_lines_checked++ ;
 		}
 			
-		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str);
+		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, "");
 		variant_lines++ ;
 	}		
 
@@ -207,8 +192,18 @@ int VariantMap::report_to_sdi(std::string &sdi_fname)
 		
 		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
 		{			
-			fprintf(fd,"%s\t%i\t%i\t%s\t%s\n",
-					chr,(*it).position,(*it).variant_len-(*it).ref_len,(*it).ref_str.c_str(), (*it).variant_str.c_str());
+			if ((*it).conf_count<2)
+				continue ;
+			
+			std::string ref_str = (*it).ref_str ;
+			if (ref_str.size()==0)
+				ref_str+='-' ;
+			std::string variant_str = (*it).variant_str ;
+			if (variant_str.size()==0)
+				variant_str+='-' ;
+			
+			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%s\n",
+					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).read_id.c_str());
 			nb_variants++;
 		}
 	}

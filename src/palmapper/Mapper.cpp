@@ -123,7 +123,7 @@ int Mapper::map_reads()
 			printf("%i..", count_reads) ;
 		map_read(result, start_time);
 		time3 += clock()-start_time ;
-		_reporter.report(result,_junctionmap);
+		_reporter.report(result,_junctionmap,_variants);
 		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 		{
 			last_timing_report = clock() ;
