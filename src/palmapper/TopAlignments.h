@@ -39,6 +39,7 @@ typedef struct alignment_t {
 	bool remapped ;
 	std::vector<FoundVariant> found_variants ;
 	std::vector<Variant> align_variants ;
+	std::vector<int> aligned_positions ;
 	
 	HIT* hit ;
 	int num ;

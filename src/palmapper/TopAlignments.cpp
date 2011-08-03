@@ -859,8 +859,11 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		if (_config.REPORT_VARIANTS)
 		{
 			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
+			{
 				for (unsigned j=0; j<top_alignments[i]->align_variants.size(); j++)
 					variants.insert_variant(top_alignments[i]->align_variants[j], top_alignments[i]->chromosome->nr()) ;
+				variants.report_non_variant(top_alignments[i]->chromosome, top_alignments[i]->aligned_positions, top_alignments[i]->exons) ;
+			}
 		}
     }
 
