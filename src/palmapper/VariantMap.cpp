@@ -27,6 +27,84 @@ VariantMap::~VariantMap()
 }
 
 
+void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons) 
+{
+	if (aligned_positions.size()==0)
+		return ;
+	int start_pos = aligned_positions[0] ;
+	int end_pos = aligned_positions[aligned_positions.size()-1] ;
+	if (start_pos>end_pos)
+	{
+		end_pos = aligned_positions[0] ;
+		start_pos = aligned_positions[aligned_positions.size()-1] ;
+	}
+	if (start_pos>exons[0])
+		start_pos = exons[0] ;
+	if (end_pos<exons[exons.size()-1])
+		end_pos = exons[exons.size()-1] ;
+	
+	std::vector<bool> map(end_pos-start_pos+1, false) ;
+
+	// mark aligned positions
+	for (unsigned int i=0; i<aligned_positions.size(); i++)
+		map[aligned_positions[i]-start_pos]=true ;
+	// mark region in vicinity of splice sites as "aligned"
+	/*for (unsigned int i=2; i<exons.size(); i+=2)
+	{
+		const int intron_region = 10 ;
+		
+		for (int j=exons[i-1]; j<exons[i]+1 && j<exons[i-1]+intron_region; j++)
+			map[j-start_pos] = true ;
+		for (int j=exons[i]; j>=exons[i-1] && j>exons[i]-intron_region; j--)
+			map[j-start_pos] = true ;
+			}*/
+
+	std::deque<Variant>::iterator it = my_lower_bound(variantlist[chr->nr()].begin(), variantlist[chr->nr()].end(), start_pos) ;
+	
+	for (; it!=variantlist[chr->nr()].end(); it++)
+	{
+		if ((*it).position>=end_pos)
+			break ;
+		if ((*it).position<start_pos)
+			continue ;
+		assert((*it).position>=start_pos && (*it).position<end_pos) ;
+		
+		// mark SNPs contraticting the alignment
+		if ((*it).type==pt_SNP && map[(*it).position-start_pos])
+			(*it).non_conf_count++ ;
+
+		// mark deletions and substitution contraticting the alignment
+		// we say its contraticting, the whole deleted/substituted region was "aligned"
+		if ((*it).type==pt_deletion || (*it).type==pt_substitution) 
+		{
+			bool all_aligned=true ;
+			
+			for (int i=(*it).position-start_pos; i<(*it).end_position-start_pos; i++)
+			{
+				if (i<0) 
+					continue ;
+				if (i >= end_pos-start_pos || !map[i])
+				{
+					all_aligned=false ;
+					break ;
+				}
+			}
+			//fprintf(stdout, "delsub %i: %i-%i (%i,%i), %i\n", (*it).type, (*it).position, (*it).end_position, (*it).ref_len, (*it).variant_len, all_aligned) ;
+			
+			if (all_aligned)
+				(*it).non_conf_count++ ;
+		}
+
+		// mark insertions contradicting the alignment
+		// we say that it is contradicting, if the adjacent positions are "aligned"
+		if ((*it).type==pt_insertion) 
+		{
+			if (map[(*it).position-start_pos] && (*it).position-start_pos+1<end_pos && map[(*it).position-start_pos+1])
+				(*it).non_conf_count++ ;
+				}
+	}
+}
+
 void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id)
 {
 	enum polytype pt = pt_unknown ;
@@ -50,6 +128,7 @@ void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, 
 	j.ref_str=ref_str ;
 	j.variant_str = variant_str ;
 	j.conf_count = conf_count ;
+	j.non_conf_count = 0 ;
 	j.read_id = read_id ;
 	
 	insert_variant(j, chr) ;
@@ -85,7 +164,10 @@ void VariantMap::insert_variant(Variant & j, int chr)
 				if (!variant_identical(j, *it))
 					variantlist[chr].insert(it, j);
 				else
+				{
 					(*it).conf_count += j.conf_count ;
+					(*it).non_conf_count += j.non_conf_count ;
+				}
 
 				unlock() ;
 				return;
@@ -117,7 +199,8 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 		
 		Util::skip_comment_lines(fd) ;
 		
-		fgets(buf, 250000, fd) ; 
+		if (fgets(buf, 250000, fd)==NULL)
+			break ; 
 
 		//Scan sdi line
 		int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;  
@@ -192,7 +275,7 @@ int VariantMap::report_to_sdi(std::string &sdi_fname)
 		
 		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
 		{			
-			if ((*it).conf_count<2)
+			if ((*it).conf_count<2 || (double)(*it).conf_count/(double)(*it).non_conf_count<0.2)
 				continue ;
 			
 			std::string ref_str = (*it).ref_str ;
@@ -202,8 +285,8 @@ int VariantMap::report_to_sdi(std::string &sdi_fname)
 			if (variant_str.size()==0)
 				variant_str+='-' ;
 			
-			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%s\n",
-					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).read_id.c_str());
+			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%s\n",
+					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).read_id.c_str());
 			nb_variants++;
 		}
 	}

@@ -3533,6 +3533,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	bool rescued_alignment=false;
 	std::vector<Variant> align_variants ;
+	std::vector<int> aligned_positions ;
 
 	//Alignment not found with less than _config.NUM_EDIT_OPS or _config.NUM_GAPS or _config.NUM_MISMATCHES
 	if (result_length<est_len_p)
@@ -3692,9 +3693,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						//fprintf(stdout, "deletion: %i:%i (%s)\n", positions[start_offset+est_gap_start], positions[start_offset+est_gap_end], est_gap.c_str()) ;
 						//assert(abs(positions[start_offset+est_gap_end]-positions[start_offset+est_gap_start])+1==(int)est_gap.size()) ;
 						if (positions[start_offset+est_gap_start]< positions[start_offset+est_gap_end])
-							report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_start], est_gap.size(), est_gap, read.id()) ;
+							VariantMap::report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_start], est_gap.size(), est_gap, read.id()) ;
 						else
-							report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_end], est_gap.size(), est_gap, read.id()) ;
+							VariantMap::report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_end], est_gap.size(), est_gap, read.id()) ;
 					}
 					est_gap_start=-1 ;
 					est_gap="" ;
@@ -3711,7 +3712,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						}
 						
 						//fprintf(stdout, "insertion: %i (%s)\n", positions[start_offset+dna_gap_start], dna_gap.c_str()) ;
-						report_ins_variant(align_variants, contig_idx, positions[start_offset+dna_gap_start], dna_gap.size(), dna_gap, read.id()) ;
+						VariantMap::report_ins_variant(align_variants, contig_idx, positions[start_offset+dna_gap_start], dna_gap.size(), dna_gap, read.id()) ;
 					}
 					dna_gap_start=-1 ;
 					dna_gap="" ;
@@ -3726,6 +3727,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 					read_anno.push_back(map[est_align[i]]) ;
 					if (map[est_align[i]]!='N')
 						assert(map[est_align[i]]==read_string[read_pos]) ;
+					
+					aligned_positions.push_back(positions[start_offset+dna_pos]) ;
+					
 					read_pos++ ;
 				}
 				else
@@ -3752,7 +3756,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							{
 								//fprintf(stdout, "SNP: %i (%c->%c)\n", positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]]) ;
 								if (strand=='+')
-									report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]], read.id()) ;
+									VariantMap::report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]], read.id()) ;
 								else
 								{
 									std::string dna_letter ;
@@ -3763,7 +3767,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 									est_letter+=map[est_align[i]] ;
 									est_letter=complement(est_letter) ;
 									
-									report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], dna_letter[0], est_letter[0], read.id()) ;
+									VariantMap::report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], dna_letter[0], est_letter[0], read.id()) ;
 								}
 							}
 					}
@@ -4041,6 +4045,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->remapped = remapping ;
 		aln->found_variants = found_variants ;
 		aln->align_variants = align_variants ;
+		aln->aligned_positions = aligned_positions ;
 		
 		aln->from_gm = 3;
 
