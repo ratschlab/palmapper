@@ -38,6 +38,7 @@ typedef struct alignment_t {
 	bool passed_filters;
 	bool remapped ;
 	std::vector<FoundVariant> found_variants ;
+	std::vector<Variant> align_variants ;
 	
 	HIT* hit ;
 	int num ;
@@ -71,7 +72,8 @@ public:
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
-	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end, JunctionMap &junctionmap) ;
+	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end, 
+								  JunctionMap &junctionmap, VariantMap & variants) ;
 
 	int print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_top_alignment_records_bedx(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP);

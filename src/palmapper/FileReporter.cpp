@@ -11,7 +11,8 @@ FileReporter::FileReporter(FILE *out, FILE *sp_out, FILE *left_overs) {
 	_lastResult = -1;
 }
 
-void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap) {
+void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, VariantMap & variants) 
+{
 //	fprintf(stdout,"Delivering result %i\n", result._orig.getNr());
 
 	int readNr = result._work.getNr();
@@ -20,7 +21,8 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap) {
 	std::stringstream leftOvers;
 
 	if (result._state == Mapper::ReadMapped || (result._state < Mapper::IgnoreResultBound && _config.INCLUDE_UNMAPPED_READS_SAM)){
-		result._readMappings.topAlignments().end_top_alignment_record(result._work, &out, &sp_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end,junctionmap);
+		result._readMappings.topAlignments().end_top_alignment_record(result._work, &out, &sp_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end,
+																	  junctionmap, variants);
 	} else {
 		if (result._state < Mapper::IgnoreResultBound && _config.LEFTOVER_FILE_NAME.length() > 0) {
 			char const *text = "";

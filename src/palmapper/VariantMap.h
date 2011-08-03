@@ -22,6 +22,8 @@ struct variant_str {
 	int id ;
 	enum polytype type ;
 	std::string ref_str, variant_str ;
+	std::string read_id ;
+	int conf_count ;
 };
 typedef struct variant_str Variant;
 
@@ -41,7 +43,7 @@ struct super_variant_str {
 };
 typedef struct super_variant_str SuperVariant ;
 
-inline void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant) 
+inline void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant, const std::string & read_id) 
 {
 	Variant v ;
 	v.type = pt_SNP ;
@@ -51,10 +53,12 @@ inline void report_SNP_variant(std::vector<Variant> & variants, const Chromosome
 	v.variant_len=1;
 	v.ref_str+=ref ;
 	v.variant_str+=variant ;
+	v.conf_count = 1 ;
+	v.read_id=read_id ;
 	variants.push_back(v) ;
 }
 
-inline void report_del_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & ref_str) 
+inline void report_del_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & ref_str, const std::string & read_id) 
 {
 	Variant v ;
 	v.type = pt_deletion ;
@@ -64,10 +68,12 @@ inline void report_del_variant(std::vector<Variant> & variants, const Chromosome
 	v.variant_len=0;
 	v.ref_str=ref_str ;
 	v.variant_str="" ;
+	v.conf_count = 1 ;
+	v.read_id=read_id ;
 	variants.push_back(v) ;
 }
 
-inline void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str) 
+inline void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str, const std::string & read_id) 
 {
 	Variant v ;
 	v.type = pt_insertion ;
@@ -77,6 +83,8 @@ inline void report_ins_variant(std::vector<Variant> & variants, const Chromosome
 	v.variant_len=variant_str.size();
 	v.ref_str="" ;
 	v.variant_str=variant_str ;
+	v.conf_count = 1 ;
+	v.read_id=read_id ;
 	variants.push_back(v) ;
 }
 
@@ -87,7 +95,8 @@ public:
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
 
-	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str);
+	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id);
+	void insert_variant(Variant & j, int chr) ;
 	int init_from_sdis(std::string &sdi_fname);
 	int report_to_sdi(std::string &sdi_fname);
 

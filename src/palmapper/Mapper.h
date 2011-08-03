@@ -6,6 +6,7 @@
 #include <palmapper/Read.h>
 #include <palmapper/TopAlignments.h>
 #include <palmapper/JunctionMap.h>
+#include <palmapper/VariantMap.h>
 
 class Mapper {
 
@@ -49,7 +50,7 @@ public:
 
 	class Reporter {
 	public:
-		virtual void report(Result &result, JunctionMap &junctionmap) = 0;
+		virtual void report(Result &result, JunctionMap &junctionmap, VariantMap & variants) = 0;
 	};
 
 	Mapper(Genome const &genome, GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, 
