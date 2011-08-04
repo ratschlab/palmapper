@@ -148,7 +148,16 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  
 			  dnanum = dnaInt; //check_char(dna[dstart]) ; 
 			  estnum = 0 ; //gap
-			  			  
+			  
+              //How to output the use of a SNP for a read gap?
+			  // if (snpvariant != -1){
+			  // 	  FoundVariant f;
+			  // 	  f.read_position = rstart;
+			  // 	  f.id=snpvariant;
+			  // 	  f.type=pt_SNP;
+			  // 	  vfound.push_back(f);
+			  // }			  			  
+
 			  if(currentMode == USE_QUALITY_SCORES)
 				  mparam[dnanum] ++ ;
 			  else
@@ -297,6 +306,15 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 	  
 			  dnanum = dnaInt; //check_char(dna[dstart]) ; 
 			  estnum = 0 ; //gap
+			  
+			  //How to output the use of a SNP for a read gap?
+			  // if (snpvariant != -1){
+			  // 	  FoundVariant f;
+			  // 	  f.read_position = rstart;
+			  // 	  f.id=snpvariant;
+			  // 	  f.type=pt_SNP;
+			  // 	  vfound.push_back(f);
+			  // }
 
 			  if(currentMode == USE_QUALITY_SCORES)
 				  mparam[dnanum] ++ ;
