@@ -14,7 +14,8 @@
 
 bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left, const std::vector<SeedElem*>& seed_matrix_right, int z, int est_len, int dna_len, int* result_length_ptr, 
 			char* est, char* dna, double* prb, int* s_align, int* e_align, int* mparam, double* alignmentscores, int* max_score_positions, 
-			penalty_struct* qparam, mode currentMode, double score_seed);
+					   penalty_struct* qparam, mode currentMode, double score_seed,std::vector<FoundVariant>& vfound);
+
 
 
 

@@ -92,6 +92,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 	double best_match=-ALMOST_INFINITY;
 	const int end_error=5;
 
+
 	for(int i=0+end_error; i < hit_len-end_error && hit_read+i<est_len_p && hit_dna+i<dna_len_p ;i++){
     
 		int i_pos=hit_read+i ;
@@ -114,7 +115,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 		}
 	}
   
-	// fprintf(stdout,"seed (%i-%i) %f\n",seed_i,seed_j,best_match);
+	//fprintf(stdout,"seed (%i-%i) %f\n",seed_i,seed_j,best_match);
 
 
 
@@ -193,7 +194,10 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 		//penalty_struct* qparam = qualityScoresAllPaths + (numPlifs*z);
 
 		//    printf("before call to fast_result_align...\n");
-		bool no_more_path = fast_result_align(seed_matrix_left,seed_matrix_right, z, est_len, dna_len, &result_length, est, dna, prb, s_align, e_align, mparam, alignmentscores, max_score_positions, qualityFeaturesAllPaths[z] , currentMode,best_match);
+		std::vector<FoundVariant> usedVariants;
+		
+		bool no_more_path = fast_result_align(seed_matrix_left,seed_matrix_right, z, est_len, dna_len, &result_length, est, dna, prb, s_align, e_align, mparam, alignmentscores, max_score_positions, qualityFeaturesAllPaths[z] , currentMode,best_match, usedVariants);
+		
 		//printf("after call to fast_result_align...\n");
 	
 		//printf("z is %d\n",z);
