@@ -24,6 +24,7 @@ struct prev_score { //24B
 	int num_mismatches;
 	int num_gaps;
 	int snp_id;
+	int snp_int;
 };
 typedef struct prev_score Prev_score;
 

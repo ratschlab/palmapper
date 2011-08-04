@@ -430,6 +430,7 @@ void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
 		temp_prevscore.num_mismatches=((Prev_score*)matrices[z+1]+matrix_position)->num_mismatches;
 		temp_prevscore.num_gaps=((Prev_score*)matrices[z+1]+matrix_position)->num_gaps;
 		temp_prevscore.snp_id=((Prev_score*)matrices[z+1]+matrix_position)->snp_id;
+		temp_prevscore.snp_int=((Prev_score*)matrices[z+1]+matrix_position)->snp_int;
 
 		((Prev_score*)matrices[z+1]+matrix_position)->value= ((Prev_score*)matrices[z]+matrix_position)->value;
 		((Prev_score*)matrices[z+1]+matrix_position)->prev_i= ((Prev_score*)matrices[z]+matrix_position)->prev_i;
@@ -439,7 +440,8 @@ void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
 		((Prev_score*)matrices[z+1]+matrix_position)->num_mismatches=((Prev_score*)matrices[z]+matrix_position)->num_mismatches;
 		((Prev_score*)matrices[z+1]+matrix_position)->num_gaps=((Prev_score*)matrices[z]+matrix_position)->num_gaps;
 		((Prev_score*)matrices[z+1]+matrix_position)->snp_id=((Prev_score*)matrices[z]+matrix_position)->snp_id;
-    
+		((Prev_score*)matrices[z+1]+matrix_position)->snp_int=((Prev_score*)matrices[z]+matrix_position)->snp_int;
+
 		((Prev_score*)matrices[z]+matrix_position)->value=temp_prevscore.value;
 		((Prev_score*)matrices[z]+matrix_position)->prev_i=temp_prevscore.prev_i;
 		((Prev_score*)matrices[z]+matrix_position)->prev_j=temp_prevscore.prev_j;
@@ -448,6 +450,7 @@ void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
 		((Prev_score*)matrices[z]+matrix_position)->num_mismatches=temp_prevscore.num_mismatches;
 		((Prev_score*)matrices[z]+matrix_position)->num_gaps=temp_prevscore.num_gaps;
 		((Prev_score*)matrices[z]+matrix_position)->snp_id=temp_prevscore.snp_id;
+		((Prev_score*)matrices[z]+matrix_position)->snp_int=temp_prevscore.snp_int;
 
 		z--;
 	}
@@ -631,6 +634,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	((Prev_score*)matrices[0]+ max_gap)->num_mismatches = 1-((Prev_score*)matrices[0]+ max_gap)->num_matches ;
 	((Prev_score*)matrices[0]+ max_gap)->num_gaps =0;
   	((Prev_score*)matrices[0]+ max_gap)->snp_id =snp_id;
+  	((Prev_score*)matrices[0]+ max_gap)->snp_int =dnaInt;
 	//Other matrices: score at -INF
 	for(int z=1; z<nr_paths_par;z++){
 		((Prev_score*)matrices[z]+ max_gap)->value = log(0.0); // -inf
@@ -640,7 +644,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 		((Prev_score*)matrices[z]+ max_gap)->num_matches = 0;
 		((Prev_score*)matrices[z]+ max_gap)->num_mismatches = 0;
 		((Prev_score*)matrices[z]+ max_gap)->num_gaps = 0;
-		((Prev_score*)matrices[0]+ max_gap)->snp_id =-1;
+		((Prev_score*)matrices[z]+ max_gap)->snp_id =-1;
+		((Prev_score*)matrices[z]+ max_gap)->snp_int =-1;
 	}
 
 	//Alignment from the seed with (seed_read, seed_dna) position
@@ -708,6 +713,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						((Prev_score*)matrices[z] + matrix_position)->num_mismatches = 0;
 						((Prev_score*)matrices[z] + matrix_position)->num_gaps = 0;
 						((Prev_score*)matrices[z] + matrix_position)->snp_id =-1;
+						((Prev_score*)matrices[z] + matrix_position)->snp_int =-1;
 					}
 					continue;
 				}
@@ -822,6 +828,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 							}	      
 							((Prev_score*)actMatrix + matrix_position)->num_gaps = prevGaps;
 							((Prev_score*)actMatrix + matrix_position)->snp_id = snp_id;
+							((Prev_score*)actMatrix + matrix_position)->snp_int = dnaInt;
 
 							//Last row to fill: check now if unspliced alignment is better
 							if(ni==i_len-1){
@@ -851,6 +858,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 							((Prev_score*)actMatrix + matrix_position)->num_mismatches = 0;
 							((Prev_score*)actMatrix + matrix_position)->num_gaps = 0;
 							((Prev_score*)actMatrix + matrix_position)->snp_id =-1;
+							((Prev_score*)actMatrix + matrix_position)->snp_int =-1;
 
 							num_unfilled++;
 						}
@@ -864,6 +872,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						((Prev_score*)actMatrix + matrix_position)->num_mismatches = 0;
 						((Prev_score*)actMatrix + matrix_position)->num_gaps = 0;
 						((Prev_score*)actMatrix + matrix_position)->snp_id =-1;
+						((Prev_score*)actMatrix + matrix_position)->snp_int =-1;
 						num_unfilled++;
 					}
 				}
@@ -1228,6 +1237,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-1)->num_mismatches = prevMism;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-1)->num_gaps = prevGaps+1;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-1)->snp_id =-1;
+									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-1)->snp_int =-1;
 									disabled_diagonal[nj-1]=false;
 									sort_best_paths(matrices,nr_paths_par,matrix_position-1);
 
@@ -1355,6 +1365,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->num_mismatches = prevMism;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->num_gaps = prevGaps+1;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->snp_id =snp_id;
+									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->snp_int =dnaInt;
 									disabled_diagonal[nj+1]=false;
 									sort_best_paths(matrices,nr_paths_par,matrix_position-row_len+1);
 
