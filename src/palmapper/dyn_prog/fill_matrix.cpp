@@ -242,6 +242,112 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	return score;
 }
 
+double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, std::vector<SuperVariant> super_variants, int position, int &dnaValue, int &snp_id )
+{
+	double score;
+	int dnaInt= check_char(dnaChar);
+	dnaValue=dnaInt;
+	snp_id=-1;
+	
+	if (currentMode == USE_QUALITY_SCORES){
+		score = matchmatrix[dnaInt];
+	}
+	else{
+		score = matchmatrix[mlen* dnaInt];
+	}	
+
+	if ((int)super_variants.size()==0)
+		return score;
+	
+	//Take variants into account and output the best score among the different possibilities (match first I guess)
+	int temp[4]={0,0,0,0};
+	for (int j=0; j<(int)super_variants.size();j++){
+		if (super_variants[j].position != position || super_variants[j].type!=pt_SNP)
+			continue;
+		int variantInt= check_char(super_variants[j].SNP[1]);
+		fprintf(stdout,"a variant for %i with %i (read=gap)\n",dnaInt,variantInt);
+		
+		switch ( variantInt )
+		{		
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			temp[variantInt-1]=1;
+			break;
+		case 5:
+			for (int i=0; i<4; i++)
+				temp[i]=1;
+			break;
+		case 6:
+			temp[1]=1;
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 7:
+			temp[0]=1;
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 8:
+			temp[0]=1;
+			temp[1]=1;
+			temp[3]=1;
+			break;
+		case 9:
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 10:
+			temp[0]=1;
+			temp[1]=1;
+			break;
+		case 11:
+			temp[0]=1;
+			temp[2]=1;
+			break;
+		case 12:
+			temp[1]=1;
+			temp[2]=1;
+			break;
+		case 13:
+			temp[0]=1;
+			temp[1]=1;
+			temp[2]=1;
+			break;
+		case 14:
+			temp[0]=1;
+			temp[3]=1;
+			break;
+		case 15:
+			temp[1]=1;
+			temp[3]=1;
+			break;
+		}
+
+		double tmpscore=score;
+	
+		for (int i=0; i<=4; i++){
+			if (temp[i]==0)
+				continue;
+			if (currentMode == USE_QUALITY_SCORES){
+				tmpscore = matchmatrix[i+1];
+			}
+			else{
+				tmpscore = matchmatrix[mlen* (i+1)];
+			}		
+			if (tmpscore > score){
+				dnaValue=i+1;
+				snp_id=j;
+				score=tmpscore;	
+			}
+		}
+	}
+	
+	return score;
+}
+
+
 
 void initScoreCache(struct penalty_struct* qualityScores, int mlen) 
 {
@@ -790,7 +896,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 							continue;
 						
 						//Maybe here look if the seed was already filled but not sure...
-						fprintf(stdout, "New fill matrix from deletion: %i-%i (id=%i)\n",j-prev_shift,jj,idsdeletions[d]);
+						fprintf(stdout, "New fill matrix from deletion: %i-%i (id=%i)\n",j-prev_shift,endpositions[d],idsdeletions[d]);
 						
 						prevMism=((Prev_score*)matrices[0] + matrix_position)->num_mismatches;
 						prevGaps=((Prev_score*)matrices[0] + matrix_position)->num_gaps;
@@ -807,7 +913,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 							for (int z=0; z<nr_paths_par;z++){								
 								double priorScore= ((Prev_score*)current_seed->matrices[z] +matrix_position)->value ; 	    
 								if(priorScore+seed_matrix[seed_index]->best_scores[zz] > current_seed->best_scores[nr_paths_par-1]){											
-									fprintf(stdout, "Found better score with deletion: %i-%i (id=%i)\n",j-prev_shift,jj,idsdeletions[d]);
+									//fprintf(stdout, "Found better score with deletion: %i-%i (id=%i) Previous:%i-%i Next:%i-%i\n",j-prev_shift,endpositions[d],idsdeletions[d],i,j,i-prev_shift,jj);
 									current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz];
 									current_seed->best_score_pos[nr_paths_par-1]->read_pos=i;
 									current_seed->best_score_pos[nr_paths_par-1]->dna_pos=j;
@@ -1144,6 +1250,61 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											globalValue= current_seed->best_scores[nr_paths_par-1];
 										}
 									}
+									
+									//Deletion variants from this position
+									//Some read still need to be aligned
+									if ((right_side && i-prev_shift <read_len) || (!right_side && i-prev_shift >=0)){
+										
+										//Search for deletions from next DNA position
+										std::vector<int> endpositions;
+										std::vector<int> idsdeletions;
+										idsdeletions = getDeletionsfromVariants(super_variants,j,right_side,endpositions);
+										for (int d=0; d<(int)idsdeletions.size();d++){	
+											
+											//Start DNA position for next seed is one after/before the end position of the deletion
+											int jj=endpositions[d] -prev_shift;  
+											
+											//Maybe here look if the seed was already filled but not sure...
+											fprintf(stdout, "New fill matrix from deletion (from dna gap): %i-%i (id=%i)\n",j,endpositions[d],idsdeletions[d]);
+											
+											prevMism=((Prev_score*)actMatrix + matrix_position-1)->num_mismatches;
+											prevGaps=((Prev_score*)actMatrix + matrix_position-1)->num_gaps;
+											int seed_index=seed_matrix.size();
+											fast_fill_side_unspliced_first(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
+																		   main_site_scores, comp_site_scores, comp_sites, i-prev_shift,
+																		   jj, best_match_scores, right_side,false,
+																		   max_number_introns,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
+																		   remapping,super_variants,idsdeletions[d]);
+											
+											
+											//Keep best scores						
+											for (int zz=0; zz<nr_paths_par;zz++){								
+												double priorScore= ((Prev_score*)actMatrix +matrix_position-1)->value ; 	    
+												if(priorScore+seed_matrix[seed_index]->best_scores[zz] > current_seed->best_scores[nr_paths_par-1]){											
+													//fprintf(stdout, "Found better score with deletion: %i-%i (id=%i) Previous:%i-%i Next:%i-%i\n",j-prev_shift,endpositions[d],idsdeletions[d],i,j,i-prev_shift,jj);
+													current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz];
+													current_seed->best_score_pos[nr_paths_par-1]->read_pos=i;
+													current_seed->best_score_pos[nr_paths_par-1]->dna_pos=j+prev_shift;
+													current_seed->best_score_pos[nr_paths_par-1]->num_gaps=prevGaps + seed_matrix[seed_index]->best_score_pos[zz]->num_gaps;
+													current_seed->best_score_pos[nr_paths_par-1]->num_mm=prevMism+ seed_matrix[seed_index]->best_score_pos[zz]->num_mm;
+													current_seed->best_score_pos[nr_paths_par-1]->num_introns=seed_matrix[seed_index]->best_score_pos[zz]->num_introns;					
+													current_seed->best_score_pos[nr_paths_par-1]->next_seed=seed_matrix[seed_index];
+													current_seed->best_score_pos[nr_paths_par-1]->path_number=zz;
+													current_seed->best_score_pos[nr_paths_par-1]->path_number_matrices=z;
+													current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore;
+													// Resort best_score_pos and best_scores
+													sort_best_scores(current_seed, nr_paths_par);
+												}
+												else{
+													break;
+												}
+											}
+											endpositions.clear();
+											idsdeletions.clear();
+										}
+										
+					
+									}/* END VARIANT DELETION */
 								}
 							}
 						}
@@ -1183,11 +1344,8 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 							//Gap possible according to the number of gaps and mismatches at matrix_prev_position
 							if (prevGaps<max_gap && prevGaps+prevMism<max_edit_op){
 	    
-								if (currentMode == USE_QUALITY_SCORES)
-									tempValue = prevValue + matchmatrix[dnaChar];
-								else
-									tempValue = prevValue + matchmatrix[mlen*dnaChar];   /* score(gap,DNA) */
-
+								tempValue = prevValue + getBestGapWithVariants(currentMode, matchmatrix, qualityScores, mlen, dna[j], super_variants,j, dnaInt,snp_id);
+								
 								if (isnotminusinf(tempValue)&& tempValue> ((Prev_score*)matrices[nr_paths_par-1] +matrix_position-row_len+1)->value && tempValue+putativeValue>globalValue){
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->value = tempValue;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->prev_i = i+prev_shift; /* predecessor */
@@ -1196,9 +1354,66 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->num_matches = 0;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->num_mismatches = prevMism;
 									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->num_gaps = prevGaps+1;
-									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->snp_id =-1;
+									((Prev_score*)matrices[nr_paths_par-1] + matrix_position-row_len+1)->snp_id =snp_id;
 									disabled_diagonal[nj+1]=false;
 									sort_best_paths(matrices,nr_paths_par,matrix_position-row_len+1);
+
+									//Deletion variants from this position
+									//Some read still need to be aligned
+									if ((right_side && j-prev_shift <dna_len) || (!right_side && j-prev_shift >=0)){
+										
+										//Search for deletions from next DNA position
+										std::vector<int> endpositions;
+										std::vector<int> idsdeletions;
+										idsdeletions = getDeletionsfromVariants(super_variants,j-prev_shift,right_side,endpositions);
+										for (int d=0; d<(int)idsdeletions.size();d++){	
+											
+											//Start DNA position for next seed is one after/before the end position of the deletion
+											int jj=endpositions[d] -prev_shift;  
+											
+											//Maybe here look if the seed was already filled but not sure...
+											fprintf(stdout, "New fill matrix from deletion (from read gap): %i-%i (id=%i)\n",j-prev_shift,endpositions[d],idsdeletions[d]);
+											
+											prevMism=((Prev_score*)actMatrix + matrix_position-row_len+1)->num_mismatches;
+											prevGaps=((Prev_score*)actMatrix + matrix_position-row_len+1)->num_gaps;
+											int seed_index=seed_matrix.size();
+											fast_fill_side_unspliced_first(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
+																		   main_site_scores, comp_site_scores, comp_sites, i,
+																		   jj, best_match_scores, right_side,false,
+																		   max_number_introns,max_gap-prevGaps,max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
+																		   remapping,super_variants,idsdeletions[d]);
+											
+											
+											//Keep best scores						
+											for (int zz=0; zz<nr_paths_par;zz++){								
+												double priorScore= ((Prev_score*)actMatrix +matrix_position-row_len+1)->value ; 	    
+												if(priorScore+seed_matrix[seed_index]->best_scores[zz] > current_seed->best_scores[nr_paths_par-1]){											
+													//fprintf(stdout, "Found better score with deletion: %i-%i (id=%i) Previous:%i-%i Next:%i-%i\n",j-prev_shift,endpositions[d],idsdeletions[d],i,j,i-prev_shift,jj);
+													current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz];
+													current_seed->best_score_pos[nr_paths_par-1]->read_pos=i+prev_shift;
+													current_seed->best_score_pos[nr_paths_par-1]->dna_pos=j;
+													current_seed->best_score_pos[nr_paths_par-1]->num_gaps=prevGaps + seed_matrix[seed_index]->best_score_pos[zz]->num_gaps;
+													current_seed->best_score_pos[nr_paths_par-1]->num_mm=prevMism+ seed_matrix[seed_index]->best_score_pos[zz]->num_mm;
+													current_seed->best_score_pos[nr_paths_par-1]->num_introns=seed_matrix[seed_index]->best_score_pos[zz]->num_introns;					
+													current_seed->best_score_pos[nr_paths_par-1]->next_seed=seed_matrix[seed_index];
+													current_seed->best_score_pos[nr_paths_par-1]->path_number=zz;
+													current_seed->best_score_pos[nr_paths_par-1]->path_number_matrices=z;
+													current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore;
+													// Resort best_score_pos and best_scores
+													sort_best_scores(current_seed, nr_paths_par);
+												}
+												else{
+													break;
+												}
+											}
+											endpositions.clear();
+											idsdeletions.clear();
+										}
+										
+										
+									}/* END VARIANT DELETION */
+									
+
 								}
 							}
 						}
@@ -1280,28 +1495,30 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	/*********************************************************************************************/
 	/*Left and right alignments */
 	/*********************************************************************************************/
-	//fprintf(stdout,"Left and right alignments from %i-%i...\n",seed_i,seed_j);
+	fprintf(stdout,"Left and right alignments from %i-%i...\n",seed_i,seed_j);
 
 	std::vector<int> comp_sites;
 	fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_right,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, donor,acceptor,comp_sites,seed_i, 
 								   seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping, super_variants,-1);
 //	fprintf(stdout,"%i right sides of the matrix filled...\n",seed_matrix_right.size());
-  
+	// for(int n=0;n<seed_matrix_right.size();n++){
+	// 	if (((SeedElem*)seed_matrix_right[n])!=NULL)
+	// 		fprintf(stdout,"seed position %i %i %f\n",((SeedElem*)seed_matrix_right[n])->read_pos,((SeedElem*)seed_matrix_right[n])->dna_pos,((SeedElem*)seed_matrix_right[n])->best_scores[0]);
+	// }
+ 
 	comp_sites.clear();
 	fast_fill_side_unspliced_first(nr_paths_par,seed_matrix_left,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, acceptor,donor,comp_sites,seed_i, 
 								   seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping, super_variants,-1);
 	comp_sites.clear();
 //	fprintf(stdout,"%i left sides of the matrix filled...\n",seed_matrix_left.size());
+  // for(int n=0;n<seed_matrix_left.size();n++){
+  //   if (((SeedElem*)seed_matrix_left[n])!=NULL)
+  //     fprintf(stdout,"seed position %i %i %f\n",((SeedElem*)seed_matrix_left[n])->read_pos,((SeedElem*)seed_matrix_left[n])->dna_pos,((SeedElem*)seed_matrix_left[n])->best_scores[0]);
+  // }
 
 //	fprintf(stdout,"Left and right alignments...END\n");
 
-
-//   for(int n=0;n<seed_matrix_left.size();n++){
-//     if (((SeedElem*)seed_matrix_left[n])!=NULL)
-//       fprintf(stdout,"seed position %i %i %f\n",((SeedElem*)seed_matrix_left[n])->read_pos,((SeedElem*)seed_matrix_left[n])->dna_pos,((SeedElem*)seed_matrix_left[n])->best_scores[0]);
-//   }
-
-
+ 
 	/*********************************************************************************************/
 	/* Find out the nr_paths_par best combinations */
 	/*********************************************************************************************/
@@ -1338,196 +1555,216 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	/* Display results */
 	/*********************************************************************************************/
 
-	// for (int z=0;z<nr_paths_par;z++){
+	for (int z=0;z<nr_paths_par;z++){
 
-	//   int z_path_left=max_score_positions[2*z] ; //path number for the left seed matrix
-	//   int z_path_right=max_score_positions[2*z+1] ; //path number for the right seed matrix
+	  int z_path_left=max_score_positions[2*z] ; //path number for the left seed matrix
+	  int z_path_right=max_score_positions[2*z+1] ; //path number for the right seed matrix
 
-	//   fprintf(stdout,"Align result for %i left matrix and %i right matrix \n",z_path_left,z_path_right);
+	  fprintf(stdout,"Align result for %i left matrix and %i right matrix \n",z_path_left,z_path_right);
   
-	//   if(seed_matrix_left[0]!=NULL && seed_matrix_right[0]!=NULL && 
-	//      seed_matrix_left[0]->best_scores[z_path_left]>-ALMOST_INFINITY && seed_matrix_right[0]->best_scores[z_path_right]>-ALMOST_INFINITY){
+	  if(seed_matrix_left[0]!=NULL && seed_matrix_right[0]!=NULL && 
+	     seed_matrix_left[0]->best_scores[z_path_left]>-ALMOST_INFINITY && seed_matrix_right[0]->best_scores[z_path_right]>-ALMOST_INFINITY){
 
-	//     fprintf(stdout,"score: %f\n",seed_matrix_left[0]->best_scores[z_path_left] + seed_matrix_right[0]->best_scores[z_path_right]);
-	//     fprintf(stdout, "seed score %f\n",getScore(qualityScores,MMATRIX_LEN,check_char(read[seed_i]),check_char(dna[seed_j]),read_scores[seed_i]));
+	    fprintf(stdout,"score: %f\n",seed_matrix_left[0]->best_scores[z_path_left] + seed_matrix_right[0]->best_scores[z_path_right]);
+	    fprintf(stdout, "seed score %f\n",getScore(qualityScores,MMATRIX_LEN,check_char(read[seed_i]),check_char(dna[seed_j]),read_scores[seed_i]));
 
-	//     SeedElem *next_seed=seed_matrix_left[0];
-	//     int zz=z_path_left;
+	    SeedElem *next_seed=seed_matrix_left[0];
+	    int zz=z_path_left;
 
-	//     int rstart;
-	//     int dstart;
+	    int rstart;
+	    int dstart;
     
-	//     std::vector<char> read_align;
-	//     std::vector<char> dna_align;
-	//     int max_gaps2;
+	    std::vector<char> read_align;
+	    std::vector<char> dna_align;
+	    int max_gaps2;
 
-	//     while (next_seed!=NULL){
-	// 	std::vector<char> read_align_temp;
-	// 	std::vector<char> dna_align_temp;      
-	// 	max_gaps2=next_seed->max_gaps;
-	// 	Prev_score** matrix=next_seed->matrices;
-	// 	rstart=next_seed->best_score_pos[zz]->read_pos;
-	// 	dstart=next_seed->best_score_pos[zz]->dna_pos;
-	// 	int rseed=next_seed->read_pos;
-	// 	int dseed=next_seed->dna_pos;
-	// 	int prev_z= next_seed->best_score_pos[zz]->path_number_matrices;
-      
-	// 	while(!(rstart==rseed+1 && dstart==dseed+1)){
-       
-	// 	  //fprintf(stdout,"%i-%i:%i-%i (%i)\n",rstart,dstart,rseed,dseed,prev_z);
-	// 	  int matrix_position= (rseed-rstart)*(max_gaps2*2+1)+(dseed-(rseed-rstart))-dstart+max_gaps2; 
-	// 	  int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
-	// 	  int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
-	// 	  prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
-	// 	  //fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
-	// 	  assert(rstart<=prev_i && dstart<=prev_j);
-	  
-	// 	  if (prev_i==rstart && prev_j==dstart+1){//read gap
-	// 	    dna_align_temp.push_back(dna[dstart]);
-	// 	    read_align_temp.push_back('-');	    
-	// 	  }
-
-
-	// 	  else if(prev_i==rstart+1 && prev_j==dstart){//dna gap
-	// 	    dna_align_temp.push_back('-');
-	// 	    read_align_temp.push_back(read[rstart]);
-	// 	  }
-
-
-	// 	  else if(prev_i==rstart+1 && prev_j==dstart+1){//match/mismatch
-	// 	    dna_align_temp.push_back(dna[dstart]);
-	// 	    read_align_temp.push_back(read[rstart]);
-	// 	  }
-
-	// 	  rstart=prev_i;
-	// 	  dstart=prev_j;
-	
-	// 	}
-	 
+	    while (next_seed!=NULL){
+			std::vector<char> read_align_temp;
+			std::vector<char> dna_align_temp;      
+			max_gaps2=next_seed->max_gaps;
+			Prev_score** matrix=next_seed->matrices;
+			rstart=next_seed->best_score_pos[zz]->read_pos;
+			dstart=next_seed->best_score_pos[zz]->dna_pos;
+			int rseed=next_seed->read_pos;
+			int dseed=next_seed->dna_pos;
+			int prev_z= next_seed->best_score_pos[zz]->path_number_matrices;
+			
+			while(!(rstart==rseed+1 && dstart==dseed+1)){
+				
+				//fprintf(stdout,"%i-%i:%i-%i (%i)\n",rstart,dstart,rseed,dseed,prev_z);
+				int matrix_position= (rseed-rstart)*(max_gaps2*2+1)+(dseed-(rseed-rstart))-dstart+max_gaps2; 
+				int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
+				int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
+				prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
+				//fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
+				assert(rstart<=prev_i && dstart<=prev_j);
+				
+				if (prev_i==rstart && prev_j==dstart+1){//read gap
+					dna_align_temp.push_back(dna[dstart]);
+					read_align_temp.push_back('-');	    
+				}
+				
+				
+				else if(prev_i==rstart+1 && prev_j==dstart){//dna gap
+					dna_align_temp.push_back('-');
+					read_align_temp.push_back(read[rstart]);
+				}
+				
+				
+				else if(prev_i==rstart+1 && prev_j==dstart+1){//match/mismatch
+					dna_align_temp.push_back(dna[dstart]);
+					read_align_temp.push_back(read[rstart]);
+				}
+				
+				rstart=prev_i;
+				dstart=prev_j;
+				
+			}
+			
      
-	// 	rstart=next_seed->best_score_pos[zz]->read_pos;
-	// 	dstart=next_seed->best_score_pos[zz]->dna_pos;
+			rstart=next_seed->best_score_pos[zz]->read_pos;
+			dstart=next_seed->best_score_pos[zz]->dna_pos;
 	
-	// 	int tmp=next_seed->best_score_pos[zz]->path_number;
-	//     	next_seed=next_seed->best_score_pos[zz]->next_seed;
-	// 	zz=tmp;
+			int tmp=next_seed->best_score_pos[zz]->path_number;
+	    	next_seed=next_seed->best_score_pos[zz]->next_seed;
+			zz=tmp;
 	
-	// 	std::vector<char>::reverse_iterator rit;
-	// 	for ( rit= dna_align_temp.rbegin() ; rit < dna_align_temp.rend(); ++rit )
-	// 	  dna_align.push_back(*rit);
-	// 	for ( rit= read_align_temp.rbegin() ; rit < read_align_temp.rend(); ++rit )
-	// 	  read_align.push_back(*rit);
+			std::vector<char>::reverse_iterator rit;
+			for ( rit= dna_align_temp.rbegin() ; rit < dna_align_temp.rend(); ++rit )
+				dna_align.push_back(*rit);
+			for ( rit= read_align_temp.rbegin() ; rit < read_align_temp.rend(); ++rit )
+				read_align.push_back(*rit);
+			
+			dna_align_temp.clear();
+			read_align_temp.clear();
 	
-	// 	dna_align_temp.clear();
-	// 	read_align_temp.clear();
-	
-	// 	if (next_seed!=NULL){
-	// 	  for(int n=dstart-1;n>=next_seed->dna_pos+1;n--){
-	// 	    dna_align.push_back(dna[n]);
-	// 	    read_align.push_back('*');
-	// 	  } 	   
-	// 	}
-	//     }
-    
-      
-	//     std::vector<char>::reverse_iterator rit;
-	//     fprintf(stdout,"DNA  ALIGN: ");
-	//     for ( rit= dna_align.rbegin() ; rit < dna_align.rend(); ++rit )
-	// 	fprintf(stdout,"%c",*rit);
-	//     fprintf(stdout,"\nREAD ALIGN: ");
-	//     for ( rit= read_align.rbegin() ; rit < read_align.rend(); ++rit )
-	// 	fprintf(stdout,"%c",*rit);
-	//     fprintf(stdout,"\n");
-      
-	//     dna_align.clear();
-	//     read_align.clear();
-      
-	//     next_seed=seed_matrix_right[0];
-	//     zz=z_path_right;
-
-	//     while (next_seed!=NULL){
-	// 	std::vector<char> read_align_temp;
-	// 	std::vector<char> dna_align_temp;      
-	// 	max_gaps2=next_seed->max_gaps;      
-	// 	Prev_score** matrix=next_seed->matrices;
-	// 	rstart=next_seed->best_score_pos[zz]->read_pos;
-	// 	dstart=next_seed->best_score_pos[zz]->dna_pos;
-	// 	int rseed=next_seed->read_pos;
-	// 	int dseed=next_seed->dna_pos;
-	// 	int prev_z= next_seed->best_score_pos[zz]->path_number_matrices;
-      
-	// 	while(!(rstart==rseed-1 && dstart==dseed-1)){
-	
-	// 	  int matrix_position= (rstart-rseed)*(max_gaps2*2+1)+dstart-(dseed+rstart-rseed)+max_gaps2;
-	// 	  //	fprintf(stdout,"(%i-%i),(%i,%i) %i\n",rstart,dstart,rseed,dseed,matrix_position);
-	// 	  int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
-	// 	  int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
-	// 	  prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
-	// 	  //fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
+			if (next_seed!=NULL){
+				if (next_seed->deletion_id==-1){
+					for(int n=dstart-1;n>=next_seed->dna_pos+1;n--){
+						dna_align.push_back(dna[n]);
+						read_align.push_back('*');
+					}
+				}
+				
+				else{
+					for(int n=dstart-1;n>=next_seed->dna_pos+1;n--){
+						dna_align.push_back(dna[n]);
+						read_align.push_back('d');
+					}
+				}
+				
+			} 	   
+		}
 	  
-	// 	  if (prev_i==rstart && prev_j==dstart-1){//read gap
-	// 	    dna_align_temp.push_back(dna[dstart]);
-	// 	    read_align_temp.push_back('-');
-	// 	  }
-	// 	  else if(prev_i==rstart-1 && prev_j==dstart){//dna gap
-	// 	    dna_align_temp.push_back('-');
-	// 	    read_align_temp.push_back(read[rstart]);
-	// 	  }
-	// 	  else if(prev_i==rstart-1 && prev_j==dstart-1){//match/mismatch
-	// 	    dna_align_temp.push_back(dna[dstart]);
-	// 	    read_align_temp.push_back(read[rstart]);
-	// 	  }
-
-	
-	// 	  rstart=prev_i;
-	// 	  dstart=prev_j;
-	// 	}
+   
+	    std::vector<char>::reverse_iterator rit;
+	    fprintf(stdout,"DNA  ALIGN: ");
+	    for ( rit= dna_align.rbegin() ; rit < dna_align.rend(); ++rit )
+			fprintf(stdout,"%c",*rit);
+	    fprintf(stdout,"\nREAD ALIGN: ");
+	    for ( rit= read_align.rbegin() ; rit < read_align.rend(); ++rit )
+			fprintf(stdout,"%c",*rit);
+	    fprintf(stdout,"\n");
       
-	
-	// 	rstart=next_seed->best_score_pos[zz]->read_pos;
-	// 	dstart=next_seed->best_score_pos[zz]->dna_pos;
+	    dna_align.clear();
+	    read_align.clear();
+      
+	    next_seed=seed_matrix_right[0];
+	    zz=z_path_right;
+		
+	    while (next_seed!=NULL){
+			std::vector<char> read_align_temp;
+			std::vector<char> dna_align_temp;      
+			max_gaps2=next_seed->max_gaps;      
+			Prev_score** matrix=next_seed->matrices;
+			rstart=next_seed->best_score_pos[zz]->read_pos;
+			dstart=next_seed->best_score_pos[zz]->dna_pos;
+			int rseed=next_seed->read_pos;
+			int dseed=next_seed->dna_pos;
+			int prev_z= next_seed->best_score_pos[zz]->path_number_matrices;
+			
+			while(!(rstart==rseed-1 && dstart==dseed-1)){
+				
+				int matrix_position= (rstart-rseed)*(max_gaps2*2+1)+dstart-(dseed+rstart-rseed)+max_gaps2;
+				//	fprintf(stdout,"(%i-%i),(%i,%i) %i\n",rstart,dstart,rseed,dseed,matrix_position);
+				int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
+				int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
+				prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
+				//fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
+				
+				if (prev_i==rstart && prev_j==dstart-1){//read gap
+					dna_align_temp.push_back(dna[dstart]);
+					read_align_temp.push_back('-');
+				}
+				else if(prev_i==rstart-1 && prev_j==dstart){//dna gap
+					dna_align_temp.push_back('-');
+					read_align_temp.push_back(read[rstart]);
+				}
+				else if(prev_i==rstart-1 && prev_j==dstart-1){//match/mismatch
+					dna_align_temp.push_back(dna[dstart]);
+					read_align_temp.push_back(read[rstart]);
+				}
+				
+				
+				rstart=prev_i;
+				dstart=prev_j;
+			}
+			
+			
+			rstart=next_seed->best_score_pos[zz]->read_pos;
+			dstart=next_seed->best_score_pos[zz]->dna_pos;
+			
+			int tmp=next_seed->best_score_pos[zz]->path_number;
+			next_seed=next_seed->best_score_pos[zz]->next_seed;
+			zz=tmp;
+			
+			
+			for ( rit= dna_align_temp.rbegin() ; rit < dna_align_temp.rend(); ++rit )
+				dna_align.push_back(*rit);
+			for ( rit= read_align_temp.rbegin() ; rit < read_align_temp.rend(); ++rit )
+				read_align.push_back(*rit);
+			
+			dna_align_temp.clear();
+			read_align_temp.clear();
+			
+			if (next_seed!=NULL){
+				if (next_seed->deletion_id==-1){
+					for(int n=dstart+1;n<=next_seed->dna_pos-1;n++){
+						dna_align.push_back(dna[n]);
+						read_align.push_back('*');
+					} 
+				}
+				else{
+					for(int n=dstart+1;n<=next_seed->dna_pos-1;n++){
+						dna_align.push_back(dna[n]);
+						read_align.push_back('d');
+					} 
+				}
+				
+				
+			}
+	    }
 
-	// 	int tmp=next_seed->best_score_pos[zz]->path_number;
-	// 	next_seed=next_seed->best_score_pos[zz]->next_seed;
-	// 	zz=tmp;
 
-
-	// 	for ( rit= dna_align_temp.rbegin() ; rit < dna_align_temp.rend(); ++rit )
-	// 	  dna_align.push_back(*rit);
-	// 	for ( rit= read_align_temp.rbegin() ; rit < read_align_temp.rend(); ++rit )
-	// 	  read_align.push_back(*rit);
-	
-	// 	dna_align_temp.clear();
-	// 	read_align_temp.clear();
-	      
-	// 	if (next_seed!=NULL){
-	// 	  for(int n=dstart+1;n<=next_seed->dna_pos-1;n++){
-	// 	    dna_align.push_back(dna[n]);
-	// 	    read_align.push_back('*');
-	// 	  } 
-	// 	}
-	//     }
-
-
-	//     std::vector<char>::iterator it;
-	//     fprintf(stdout,"DNA  ALIGN: ");
-	//     for ( it= dna_align.begin() ; it < dna_align.end(); it++ )
-	// 	fprintf(stdout,"%c",*it);
-	//     fprintf(stdout,"\nREAD ALIGN: ");
-	//     for ( it= read_align.begin() ; it < read_align.end(); it++ )
-	// 	fprintf(stdout,"%c",*it);
-	//     fprintf(stdout,"\n");
-	//     dna_align.clear();
-	//     read_align.clear();
-	//   }
-	// }
+	    std::vector<char>::iterator it;
+	    fprintf(stdout,"DNA  ALIGN: ");
+	    for ( it= dna_align.begin() ; it < dna_align.end(); it++ )
+			fprintf(stdout,"%c",*it);
+	    fprintf(stdout,"\nREAD ALIGN: ");
+	    for ( it= read_align.begin() ; it < read_align.end(); it++ )
+			fprintf(stdout,"%c",*it);
+	    fprintf(stdout,"\n");
+	    dna_align.clear();
+	    read_align.clear();
+	  }
+	}
   
-	// SeedElem* next_seed= seed_matrix_left[0];
-	// while(next_seed!=NULL){
-	//   fprintf(stdout,"seed %i-%i\n",next_seed->read_pos,next_seed->dna_pos);
-	//   next_seed=next_seed->best_score_pos[0]->next_seed;
-	// }
-
+	SeedElem* next_seed= seed_matrix_left[0];
+	while(next_seed!=NULL){
+		fprintf(stdout,"seed %i-%i\n",next_seed->read_pos,next_seed->dna_pos);
+		next_seed=next_seed->best_score_pos[0]->next_seed;
+	}
+	
 
 	/*********************************************************************************************/
 	/* Clean structures */

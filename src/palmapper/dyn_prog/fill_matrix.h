@@ -80,6 +80,7 @@ int check_char(char base);
 void getSNPfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<char>& snps);
 std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> super_variants, int position, bool right_side, std::vector<int>& endpositions);
 double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, std::vector<SuperVariant> super_variants, int position, int &dnaValue, int &snp_id );
+double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, std::vector<SuperVariant> super_variants, int position, int &dnaValue, int &snp_id );
 
 
 double getScore(double *matchmatrix,int mlen, int dnaChar, int estChar);
