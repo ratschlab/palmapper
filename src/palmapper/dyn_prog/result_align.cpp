@@ -76,8 +76,7 @@ void increaseFeatureCount(penalty_struct* qparam, int dnaChar, int estChar, doub
 
 
 bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std::vector<SeedElem*>& seed_matrix_right, int z, int est_len, int dna_len, int* result_length_ptr, 
-			char* est, char* dna, double* prb, int* s_align, int* e_align, int* mparam, double* alignmentscores, int* max_score_positions, 
-			penalty_struct* qparam, mode currentMode, double score_seed){  
+			char* est, char* dna, double* prb, int* s_align, int* e_align, int* mparam, double* alignmentscores, int* max_score_positions, penalty_struct* qparam, mode currentMode, double score_seed, std::vector<FoundVariant>& vfound){  
 
   const int mlen=6; // length of matchmatrix
 
@@ -136,6 +135,8 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 		  int matrix_position= (rseed-rstart)*(max_gap*2+1)+(dseed-(rseed-rstart))-dstart+max_gap; 
 		  int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
 		  int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
+		  int snpvariant=((Prev_score*)matrix[prev_z]+matrix_position)->snp_id;
+		  int dnaInt=((Prev_score*)matrix[prev_z]+matrix_position)->snp_int;
 		  prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
 		  //	fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
 		  assert(rstart<=prev_i && dstart<=prev_j);
@@ -145,9 +146,9 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  (*result_length_ptr)= (*result_length_ptr) + 1;
 			  s_align[dstart] = splice_state; 
 			  
-			  dnanum = check_char(dna[dstart]) ; 
+			  dnanum = dnaInt; //check_char(dna[dstart]) ; 
 			  estnum = 0 ; //gap
-			  
+			  			  
 			  if(currentMode == USE_QUALITY_SCORES)
 				  mparam[dnanum] ++ ;
 			  else
@@ -178,10 +179,16 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  s_align[dstart] = splice_state; 
 			  e_align[rstart] = est_state ; //1 or 2, depended
 			  
-			  dnanum = check_char(dna[dstart]); 
+			  dnanum = dnaInt; //check_char(dna[dstart]); 
 			  estnum = check_char(est[rstart]); 
 			  
-			  
+			  if (snpvariant != -1){
+				  FoundVariant f;
+				  f.read_position = rstart;
+				  f.id=snpvariant;
+				  f.type=pt_SNP;
+				  vfound.push_back(f);
+			  }
 			  if(currentMode == USE_QUALITY_SCORES){
 				  prbnum = prb[rstart];
 				  increaseFeatureCount(qparam,dnanum,estnum,prbnum);
@@ -207,26 +214,38 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
       if (next_seed!=NULL){
 		  //	  fprintf(stdout,"%i %i\n",dstart,next_seed->dna_pos-1);
 		  (*result_length_ptr) =  (*result_length_ptr) + (dstart-next_seed->dna_pos-1);
-		  
-		  if (est_state==1) //was exon labeled "1"
-			  est_state = 2; //new exon is labeled "2"
-		  else
-			  est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
-		  
-		  for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
-			  if (splice_state == 0) //coming from exon
-				  splice_state = 2; //first intron_state for left side: acceptor
+		  if (next_seed->deletion_id == -1){		  
+			  //Change exon label for read sequence
+			  if (est_state==1) //was exon labeled "1"
+				  est_state = 2; //new exon is labeled "2"
 			  else
-				  splice_state = 3; //intron
+				  est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
 			  
-			  if (n == next_seed->dna_pos+1) //last intron_state for left side: donor
-	    splice_state = 1;//donor
-			  
-			  s_align[n] = splice_state; 
+			  //DNA sequence
+			  for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
+				  if (splice_state == 0) //coming from exon
+					  splice_state = 2; //first intron_state for left side: acceptor
+				  else
+					  splice_state = 3; //intron
+				  
+				  if (n == next_seed->dna_pos+1) //last intron_state for left side: donor
+					  splice_state = 1;//donor
+				  
+				  s_align[n] = splice_state; 
+			  }
+			  splice_state = 0 ; //exon again
 		  }
-		  
-		  splice_state = 0 ; //exon again
-      }
+		  else{
+			  FoundVariant f;
+			  f.read_position = next_seed->read_pos;
+			  f.id=next_seed->deletion_id;
+			  f.type=pt_deletion;
+			  vfound.push_back(f);
+			  for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
+				  s_align[n] = 5; //Deletion variant
+			  }
+		  }
+	  }
     }
 
     //Left side not aligned
@@ -266,6 +285,8 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 		  //fprintf(stdout,"(%i-%i),(%i,%i) %i\n",rstart,dstart,rseed,dseed,matrix_position);
 		  int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
 		  int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
+		  int snpvariant=((Prev_score*)matrix[prev_z]+matrix_position)->snp_id;
+		  int dnaInt=((Prev_score*)matrix[prev_z]+matrix_position)->snp_int;
 		  prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
 		  //fprintf(stdout,"prev %i-%i:%i-%i (%i)\n",rstart,dstart,prev_i,prev_j, prev_z);
 	  
@@ -274,7 +295,7 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  (*result_length_ptr)= (*result_length_ptr) + 1;
 			  s_align[dstart] = splice_state; 
 	  
-			  dnanum = check_char(dna[dstart]) ; 
+			  dnanum = dnaInt; //check_char(dna[dstart]) ; 
 			  estnum = 0 ; //gap
 
 			  if(currentMode == USE_QUALITY_SCORES)
@@ -307,8 +328,16 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  s_align[dstart] = splice_state; 
 			  e_align[rstart] = est_state ; //1 or 2, depended
 	  
-			  dnanum = check_char(dna[dstart]); 
+			  dnanum = dnaInt; //check_char(dna[dstart]); 
 			  estnum = check_char(est[rstart]); 
+
+			  if (snpvariant != -1){
+				  FoundVariant f;
+				  f.read_position = rstart;
+				  f.id=snpvariant;
+				  f.type=pt_SNP;
+				  vfound.push_back(f);
+			  }
 	  
 			  if(currentMode == USE_QUALITY_SCORES){
 				  prbnum = prb[rstart];
@@ -323,7 +352,6 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 		  dstart=prev_j;
       }
       
-	
       rstart=next_seed->best_score_pos[zz]->read_pos;
       dstart=next_seed->best_score_pos[zz]->dna_pos;
 
@@ -334,28 +362,39 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
       //Spliced alignment
       if (next_seed!=NULL){
 		  (*result_length_ptr) =  (*result_length_ptr) + (next_seed->dna_pos-dstart-1);
-		  if (est_state==1) //was exon labeled "1"
-			  est_state = 2; //new exon is labeled "2"
-		  else
-			  est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
-	  
-		  for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
-			  if (splice_state == 0) //coming from exon
-				  splice_state = 1; //first intron_state for right side: donor
+		  if (next_seed->deletion_id == -1){		  
+			  if (est_state==1) //was exon labeled "1"
+				  est_state = 2; //new exon is labeled "2"
 			  else
-				  splice_state = 3; //intron
-	    
-			  if (n == next_seed->dna_pos-1) //last intron_state for right side: acceptor
-				  splice_state = 1;//acceptor
-	  
-			  s_align[n] = splice_state; 
+				  est_state = 1 ; //last exon was labeled "2", new exon is labeled "1"
+			  
+			  for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
+				  if (splice_state == 0) //coming from exon
+					  splice_state = 1; //first intron_state for right side: donor
+				  else
+					  splice_state = 3; //intron
+				  
+				  if (n == next_seed->dna_pos-1) //last intron_state for right side: acceptor
+					  splice_state = 1;//acceptor
+				  s_align[n] = splice_state; 
+			  }
+			  splice_state = 0 ; //exon again
 		  }
-
-		  splice_state = 0 ; //exon again
+		  
+		  else{
+			  FoundVariant f;
+			  f.read_position = rstart+1;
+			  f.id=next_seed->deletion_id;
+			  f.type=pt_deletion;
+			  vfound.push_back(f);
+			  for (int n=dstart+1;n<=next_seed->dna_pos-1;n--){
+				  s_align[n] = 5; //Deletion variant
+			  }
+		  }
       }
 
     }
-  
+	
     // Right side not aligned
     for (int dna_pos=dstart+1; dna_pos<dna_len; dna_pos++) {
 		s_align[dna_pos] = 4; 
