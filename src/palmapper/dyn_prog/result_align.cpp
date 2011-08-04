@@ -387,7 +387,7 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  f.id=next_seed->deletion_id;
 			  f.type=pt_deletion;
 			  vfound.push_back(f);
-			  for (int n=dstart+1;n<=next_seed->dna_pos-1;n--){
+			  for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
 				  s_align[n] = 5; //Deletion variant
 			  }
 		  }
