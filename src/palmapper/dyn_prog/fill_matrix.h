@@ -16,13 +16,14 @@
 #include <palmapper/VariantMap.h>
 
 struct prev_score { //24B
-  double value; //8
-  int prev_i; //4
-  int prev_j; //4
-  int prev_matrix_no;//4
-  int num_matches;
-  int num_mismatches;
-  int num_gaps;
+	double value; //8
+	int prev_i; //4
+	int prev_j; //4
+	int prev_matrix_no;//4
+	int num_matches;
+	int num_mismatches;
+	int num_gaps;
+	int snp_id;
 };
 typedef struct prev_score Prev_score;
 
@@ -50,6 +51,7 @@ struct seed_element{
 	double* best_scores;
 	double best_prev_score;
 	PosScore** best_score_pos;
+	int deletion_id;
 };
 typedef struct seed_element SeedElem;
 
@@ -76,8 +78,9 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 int check_char(char base);
 
 void getSNPfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<char>& snps);
-void getDeletionsfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<int>& del);
-double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, std::vector<char> variants, int& dnaValue );
+std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> super_variants, int position, bool right_side, std::vector<int>& endpositions);
+double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, std::vector<SuperVariant> super_variants, int position, int &dnaValue, int &snp_id );
+
 
 double getScore(double *matchmatrix,int mlen, int dnaChar, int estChar);
 inline double getScore(struct penalty_struct* qualityScores, int mlen, int dnaChar, int estChar, double baseScore) 
