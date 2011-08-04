@@ -57,10 +57,44 @@ void Alignment::getDNAEST(){}
    qualityScores -> 
    remove_duplicate_scores -> hack -> false
 */
+double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len, int &seed_i, int &seed_j, char* read, int read_len, char* dna, int d_len, struct penalty_struct* qualityScores, double* matchmatrix,int mm_len,double* prb)
+{
+	seed_i=hit_read; 
+	seed_j=hit_dna; 
+
+	double best_match=-ALMOST_INFINITY;
+	const int end_error=5;
+	
+
+	for(int i=0+end_error; i < hit_len-end_error && hit_read+i<read_len && hit_dna+i<d_len ;i++){
+    
+		int i_pos=hit_read+i ;
+		int j_pos=hit_dna+i ;
+		if (i_pos<0 || i_pos>=read_len)
+			continue ;
+		if (j_pos<0 || j_pos>=d_len)
+			continue ;
+	
+		double score;
+		if (use_quality_scores) 
+			score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(read[i_pos]),prb[i_pos]) ;
+		else
+			score=matchmatrix[mm_len*check_char(dna[j_pos])+check_char(read[i_pos])] ;
+
+		if (score>best_match){
+			best_match=score;
+			seed_i=i_pos;
+			seed_j=j_pos;
+		}
+	}
+	return best_match;
+	
+}
+
 //Add starting position for alignment according to a long hit (read and dna pos, len) and strand
 void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<int> &positions, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
-							 bool remove_duplicate_scores, int hit_read, int hit_dna, int hit_len, int max_number_introns,  
+							 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns,  
 							 int max_gap, int max_mism, int max_edit_op, int min_match, bool remapping, std::vector<SuperVariant> super_variant_list) {
 
 	// printf("Entering myalign_fast...\n");
@@ -89,33 +123,35 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 	int seed_i=hit_read; 
 	int seed_j=hit_dna; 
 
-	double best_match=-ALMOST_INFINITY;
-	const int end_error=5;
+	// double best_match=-ALMOST_INFINITY;
+	// const int end_error=5;
 
 
-	for(int i=0+end_error; i < hit_len-end_error && hit_read+i<est_len_p && hit_dna+i<dna_len_p ;i++){
+	// for(int i=0+end_error; i < hit_len-end_error && hit_read+i<est_len_p && hit_dna+i<dna_len_p ;i++){
     
-		int i_pos=hit_read+i ;
-		int j_pos=hit_dna+i ;
-		if (i_pos<0 || i_pos>=est_len_p)
-			continue ;
-		if (j_pos<0 || j_pos>=dna_len_p)
-			continue ;
+	// 	int i_pos=hit_read+i ;
+	// 	int j_pos=hit_dna+i ;
+	// 	if (i_pos<0 || i_pos>=est_len_p)
+	// 		continue ;
+	// 	if (j_pos<0 || j_pos>=dna_len_p)
+	// 		continue ;
 	
-		double score;
-		if (currentMode == USE_QUALITY_SCORES)
-			score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(est[i_pos]),prb[i_pos]) ;
-		else
-			score=matchmatrix[mm_len*check_char(dna[j_pos])+check_char(est[i_pos])] ;
+	// 	double score;
+	// 	if (currentMode == USE_QUALITY_SCORES)
+	// 		score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(est[i_pos]),prb[i_pos]) ;
+	// 	else
+	// 		score=matchmatrix[mm_len*check_char(dna[j_pos])+check_char(est[i_pos])] ;
 
-		if (score>best_match){
-			best_match=score;
-			seed_i=i_pos;
-			seed_j=j_pos;
-		}
-	}
+	// 	if (score>best_match){
+	// 		best_match=score;
+	// 		seed_i=i_pos;
+	// 		seed_j=j_pos;
+	// 	}
+	// }
   
-	//fprintf(stdout,"seed (%i-%i) %f\n",seed_i,seed_j,best_match);
+	// seed_i=hit_read; 
+	// seed_j=hit_dna; 
+	fprintf(stdout,"seed (%i-%i) %f\n",seed_i,seed_j,best_match);
 
 
 
