@@ -85,6 +85,9 @@ class Alignment {
       char * name;
       INT use_svm;
 	  int verbosity;
+	  
+	  std::vector<FoundVariant> fvariants;
+	  
 
    public:
       Alignment(int numQPlifs ,int numq, bool use_qscores, int _verbosity);
@@ -98,12 +101,13 @@ class Alignment {
       void myalign_fast(char strand, Chromosome const &chr,  std::vector<int> &positions, int nr_paths_p, char* dna, int dna_len_p, char* est, int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 			 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 			 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns, 
-						int max_gap, int max_mism, int max_edit_op, int min_match,bool remapping,std::vector<SuperVariant> super_variant_list);
+						int max_gap, int max_mism, int max_edit_op, int min_match,bool remapping,std::vector<SuperVariant> super_variant_list, bool variant_mapping);
 
       void getDNAEST();
       void getAlignmentResults(int* s_align, int* e_align,
 			       int* mmatrix_p, double* alignscores, double* qScores);
       int getResultLength() { return result_len; }
+	  std::vector<FoundVariant> getVariants() { return fvariants; }
       void getAlignmentArrays(int* dna_align, int* est_align);
       double scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double* matchmatrix, char strand) ;
 };

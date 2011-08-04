@@ -3504,7 +3504,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list);
+							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list,_config.MAP_VARIANTS);
 
 	}
 	else
@@ -3516,7 +3516,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores, seed_i, seed_j, best_match,_config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES, remapping, super_variant_list);
+							   MIN_NUM_MATCHES, remapping, super_variant_list,_config.MAP_VARIANTS);
 
 	
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -3536,7 +3536,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	alignment.getAlignmentResults(s_align, e_align, mmatrix_p, &alignscore, qScores);
 	int result_length = alignment.getResultLength();
 
-	std::vector<FoundVariant> found_variants ;
+	std::vector<FoundVariant> found_variants =alignment.getVariants();
+	// for (int i=0; i<found_variants.size();i++){
+	// 	fprintf(stdout,"variant used: read_pos:%i id:%i type:%i\n",found_variants[i].read_position, found_variants[i].id,found_variants[i].type);
+	// }
+	
 	if (_config.MAP_VARIANTS)
 	{
 		return 0 ;
