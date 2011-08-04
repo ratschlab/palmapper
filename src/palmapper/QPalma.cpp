@@ -17,7 +17,6 @@
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
-
 void get_annotated_splice_positions( std::vector<int> &pos, JunctionMap &annotatedjunctions,const char * type, int start, int end, int chr, char strand)
 {
 	// find a lower bound on the index with binary search
@@ -2734,6 +2733,9 @@ int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 	
 std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, int &hit_dna_pos) const 
 {
+
+	int seed_ref=hit_dna_pos;
+	
 	std::vector< struct pos_table_str *> pos_table(dna.size(), NULL) ;
 	for (unsigned int i=0; i<dna.size(); i++)
 	{
@@ -2846,10 +2848,11 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 	std::vector<bool> ref_map(pos_table.size(), false) ;
 
 	for (unsigned int i=0; i<pos_table.size(); i++)
-	{
+	{		
 		if (pos_table[i]->pos>=0)
 			ref_map[i]=true ;
-		if (hit_dna_pos == pos_table[i]->pos)
+		//Always compared to the reference
+		if (seed_ref == pos_table[i]->pos)
 			hit_dna_pos = i ;
 		pos_table[i]->pos = i ;	
 		acceptor[i] = pos_table[i]->acc ;
@@ -3469,10 +3472,19 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
     
     // create super-sequence and deletion list from variant list
+	int seed_i;
+	int seed_j;
+	double best_match=alignment.init_seed_position (hit_read, hit_dna_converted, hit_length, seed_i, seed_j, est,
+													est_len_p, (char*)dna.c_str(), (int) dna.length(), alignment_parameters->qualityPlifs, 
+							   alignment_parameters->matchmatrix, alignment_parameters->matchmatrix_dim[0]
+										  * alignment_parameters->matchmatrix_dim[1], prb);
+	
+	fprintf(stdout,"seed %i-%i\n",seed_i,seed_j);
+	
 	std::vector<SuperVariant> super_variant_list ;
 	if (_config.MAP_VARIANTS && variants.size()>0)
 	{
-		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, hit_dna_converted) ;
+		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, seed_j) ;
 	}
 
 	if (verbosity >= 3)
@@ -3481,6 +3493,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		fprintf(stdout, "# read: %s\n", read_string.c_str());
 	assert (hit_read >= 0);
 	assert (hit_dna_converted >= 0);
+	assert (seed_j >= 0);
 	if (non_consensus_search)
 	{
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
@@ -3489,7 +3502,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   alignment_parameters->matchmatrix_dim[0]
 							   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
-							   remove_duplicate_scores, hit_read, hit_dna_converted, hit_length, _config.SPLICED_MAX_INTRONS,
+							   remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
 							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list);
 
@@ -3501,7 +3514,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   alignment_parameters->matchmatrix_dim[0]
 							   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
-							   remove_duplicate_scores,hit_read,hit_dna_converted,hit_length,_config.SPLICED_MAX_INTRONS,
+							   remove_duplicate_scores, seed_i, seed_j, best_match,_config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
 							   MIN_NUM_MATCHES, remapping, super_variant_list);
 
