@@ -223,7 +223,7 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
       if (next_seed!=NULL){
 		  //	  fprintf(stdout,"%i %i\n",dstart,next_seed->dna_pos-1);
 		  (*result_length_ptr) =  (*result_length_ptr) + (dstart-next_seed->dna_pos-1);
-		  if (next_seed->deletion_id == -1){		  
+		  if (next_seed->deletion_id.empty()){		  
 			  //Change exon label for read sequence
 			  if (est_state==1) //was exon labeled "1"
 				  est_state = 2; //new exon is labeled "2"
@@ -245,11 +245,11 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  splice_state = 0 ; //exon again
 		  }
 		  else{
-			  FoundVariant f;
-			  f.read_position = next_seed->read_pos;
-			  f.id=next_seed->deletion_id;
-			  f.type=pt_deletion;
-			  vfound.push_back(f);
+			  // FoundVariant f;
+			  // f.read_position = next_seed->read_pos;
+			  // f.id=next_seed->deletion_id;
+			  // f.type=pt_deletion;
+			  // vfound.push_back(f);
 			  for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
 				  s_align[n] = 5; //Deletion variant
 			  }
@@ -380,7 +380,7 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
       //Spliced alignment
       if (next_seed!=NULL){
 		  (*result_length_ptr) =  (*result_length_ptr) + (next_seed->dna_pos-dstart-1);
-		  if (next_seed->deletion_id == -1){		  
+		  if (next_seed->deletion_id.empty()){		  
 			  if (est_state==1) //was exon labeled "1"
 				  est_state = 2; //new exon is labeled "2"
 			  else
@@ -400,11 +400,11 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 		  }
 		  
 		  else{
-			  FoundVariant f;
-			  f.read_position = rstart+1;
-			  f.id=next_seed->deletion_id;
-			  f.type=pt_deletion;
-			  vfound.push_back(f);
+			  // FoundVariant f;
+			  // f.read_position = rstart+1;
+			  // f.id=next_seed->deletion_id;
+			  // f.type=pt_deletion;
+			  // vfound.push_back(f);
 			  for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
 				  s_align[n] = 5; //Deletion variant
 			  }

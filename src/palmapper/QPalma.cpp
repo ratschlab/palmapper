@@ -2715,6 +2715,7 @@ struct pos_table_str
 	std::vector<pos_table_str *> del_refs ;
 	std::vector<int> del_ids ;
 	std::vector<Variant*> snps ;
+	std::vector<pos_table_str *> del_origs ;
 } ;
 
 int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
@@ -2728,6 +2729,22 @@ int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 	assert(0) ;
 	
 	return -1 ;
+}
+
+void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_end_p, struct pos_table_str * pos_table_new_end_p)
+{
+
+	for (int i=0; i<pos_table_previous_end_p->del_origs.size();i++){
+		struct pos_table_str * origin_p=pos_table_previous_end_p->del_origs[i];
+		
+		for (int j=0; j< origin_p->del_refs.size();j++){
+			if (origin_p->del_refs[j] == pos_table_previous_end_p){
+				origin_p->del_refs[j] = pos_table_new_end_p;	
+			}
+		}
+	}
+
+	pos_table_previous_end_p->del_origs.clear();
 }
 
 	
@@ -2755,6 +2772,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 			{
 				pos_table[variants[i].position-1]->del_refs.push_back(pos_table[variants[i].position + variants[i].ref_len]) ;
 				pos_table[variants[i].position-1]->del_ids.push_back(variants[i].id) ;
+				pos_table[variants[i].position + variants[i].ref_len]->del_origs.push_back(pos_table[variants[i].position -1]) ;
 				nbv_dels++ ;
 			} 
 			else
@@ -2775,10 +2793,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 			int idx=find_pos(pos_table, variants[i].position) ;
 			if (idx>0)
 			{
-				nbv_ins++ ;
-				pos_table[idx-1]->del_refs.push_back(pos_table[idx]) ;
-				pos_table[idx-1]->del_ids.push_back(0) ;
-				
+				nbv_ins++ ;				
 				for (int j=0; j<variants[i].variant_len; j++)
 				{
 					std::vector<struct pos_table_str*>::iterator it = pos_table.begin() + idx + j ;
@@ -2790,6 +2805,12 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 					
 					pos_table.insert(it, p) ;
 				}
+				change_pos_table_deletion_ends(pos_table[idx+variants[i].variant_len],pos_table[idx]);
+				pos_table[idx-1]->del_refs.push_back(pos_table[idx+variants[i].variant_len]) ;
+				pos_table[idx+variants[i].variant_len]->del_origs.push_back(pos_table[idx-1]) ;
+				pos_table[idx-1]->del_ids.push_back(variants[i].id) ; //TODO: why 0 instead of variant id -> I replaced it
+
+
 			}
 			else
 				fprintf(stdout, "dropped insertion of length %i at beginning or end of sequence\n", variants[i].variant_len) ;
@@ -2832,13 +2853,16 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				pos_table[idx_start-1]->del_refs.push_back(pos_table[idx_end+1+num_N]) ;
 				pos_table[idx_start-1]->del_ids.push_back(variants[i].id) ;
 				// skipping the variant version
+				change_pos_table_deletion_ends(pos_table[idx_end+1+num_N+variants[i].variant_len],pos_table[idx_end+1+num_N]); //because of insertion: change ends of former deletion back to before the insertion
 				pos_table[idx_end]->del_refs.push_back(pos_table[idx_end+1+num_N+variants[i].variant_len]) ;
-				pos_table[idx_end]->del_ids.push_back(0) ;
+				pos_table[idx_end]->del_ids.push_back(variants[i].id) ; //TODO: why 0 instead of variant id -> I replaced it
+				pos_table[idx_end+1+num_N+variants[i].variant_len]->del_origs.push_back(pos_table[idx_end]) ;
+
 			}
 		}
 	}
 	
-	dna = std::string(pos_table.size(), ' ') ; ;
+	dna = std::string(pos_table.size(), ' ') ;
 	delete[] acceptor ;
 	delete[] donor ;
 	acceptor=new double[pos_table.size()] ; 

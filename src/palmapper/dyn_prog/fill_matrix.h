@@ -52,7 +52,7 @@ struct seed_element{
 	double* best_scores;
 	double best_prev_score;
 	PosScore** best_score_pos;
-	int deletion_id;
+	std::vector<int> deletion_id;
 };
 typedef struct seed_element SeedElem;
 

@@ -356,7 +356,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 					read_align_temp.clear();
 					
 					if (next_seed!=NULL){
-						if (next_seed->deletion_id == -1){		  
+						if (next_seed->deletion_id.empty()){		  
 							for(int n=dstart-1;n>=next_seed->dna_pos+1;n--){
 								dna_align.push_back(check_char(dna[n]));
 								read_align.push_back(6);
@@ -456,7 +456,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 					read_align_temp.clear();
 	
 					if (next_seed!=NULL){
-						if (next_seed->deletion_id == -1){		  
+						if (next_seed->deletion_id.empty()){		  
 							for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
 								dna_align.push_back(check_char(dna[n]));
 								read_align.push_back(6);
