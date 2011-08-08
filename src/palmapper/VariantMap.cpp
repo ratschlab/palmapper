@@ -150,28 +150,18 @@ void VariantMap::insert_variant(Variant & j, int chr)
 	
 	for (; it!=variantlist[chr].end(); it++)
 	{
-		if (j.position <  (*it).position)
+		if (variant_cmp(j, *it)<0)
 		{
 			variantlist[chr].insert(it, j);
-
 			unlock() ;
 			return;
 		}
-		if (j.position ==  (*it).position)
+		if (variant_cmp(j, *it)==0)
 		{
-			if (j.end_position <= (*it).end_position)
-			{
-				if (!variant_identical(j, *it))
-					variantlist[chr].insert(it, j);
-				else
-				{
-					(*it).conf_count += j.conf_count ;
-					(*it).non_conf_count += j.non_conf_count ;
-				}
-
-				unlock() ;
-				return;
-			}
+			(*it).conf_count += j.conf_count ;
+			(*it).non_conf_count += j.non_conf_count ;
+			unlock() ;
+			return;
 		}
 		continue;
 	}
@@ -313,7 +303,8 @@ int VariantMap::init_from_sdis(std::string &sdi_fname)
 		int ret = init_from_sdi(filename);
 		if (ret!=0)
 			return ret;
-	   
+		check_variant_order() ;
+		
 		previousfound=found+1;
 		found=sdi_fname.find(",",found+1);
 	}
