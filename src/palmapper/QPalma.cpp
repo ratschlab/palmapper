@@ -590,6 +590,11 @@ int QPalma::read_matrix(FILE* fd, double *& matrix, char*& name, int dims[2]) {
 	return 0;
 }
 
+void QPalma::add_const_to_plif(struct penalty_struct & p, double INDEL_PENALTY)
+{
+	for (int i=0; i<p.len; i++)
+		p.penalties[i]+=INDEL_PENALTY ;
+}
 
 int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 							   struct penalty_struct &a, struct penalty_struct &d,
@@ -694,7 +699,6 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 			Util::skip_comment_lines(fd) ;
 			read_plif(fd, qualityPlifs[i]);
 		}
-
 		Util::skip_comment_lines(fd) ;
 		ret = read_matrix(fd, matchmatrix, matrix_name, dims);
 		if (ret < 0)
@@ -705,7 +709,81 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 		assert(strcmp(matrix_name, "mmatrix")==0);
 		free(matrix_name);
 		matrix_name=NULL ;
-	
+
+		if (_config.QPALMA_INDEL_PENALTY!=0.0)
+		{
+			fprintf(stdout, "adding %lf to indel penalties\n", _config.QPALMA_INDEL_PENALTY) ;
+			
+			add_const_to_plif(qualityPlifs[0], -_config.QPALMA_INDEL_PENALTY) ;
+			add_const_to_plif(qualityPlifs[6], -_config.QPALMA_INDEL_PENALTY) ;
+			add_const_to_plif(qualityPlifs[12], -_config.QPALMA_INDEL_PENALTY) ;
+			add_const_to_plif(qualityPlifs[18], -_config.QPALMA_INDEL_PENALTY) ;
+			add_const_to_plif(qualityPlifs[24], -_config.QPALMA_INDEL_PENALTY) ;
+			assert(dims[0]*dims[1]==6) ;
+			for (int i=0; i<6; i++)
+				matchmatrix[i] -= _config.QPALMA_INDEL_PENALTY ;
+		}
+		
+		if (!_config.NO_QPALMA_SCORE_FIX)
+		{
+			double s=0 ;
+
+			for (int i=0; i<6; i++)
+				s+=matchmatrix[i] ;
+			s+=qualityPlifs[0].penalties[qualityPlifs[0].len-1] ;
+			s+=qualityPlifs[6].penalties[qualityPlifs[6].len-1] ;
+			s+=qualityPlifs[12].penalties[qualityPlifs[12].len-1] ;
+			s+=qualityPlifs[18].penalties[qualityPlifs[18].len-1] ;
+			s+=qualityPlifs[24].penalties[qualityPlifs[24].len-1] ;
+			_config.GAP_SCORE = s/11 ;
+
+			s=0 ;
+			s+=qualityPlifs[0+1].penalties[qualityPlifs[0+1].len-1] ;
+			s+=qualityPlifs[6+2].penalties[qualityPlifs[6+2].len-1] ;
+			s+=qualityPlifs[12+3].penalties[qualityPlifs[12+3].len-1] ;
+			s+=qualityPlifs[18+4].penalties[qualityPlifs[18+4].len-1] ;
+			s+=qualityPlifs[24+5].penalties[qualityPlifs[24+5].len-1] ;
+			_config.M_SCORE = s/5 ;
+
+			s=0 ;
+			s+=qualityPlifs[0+2].penalties[qualityPlifs[0+2].len-1] ;
+			s+=qualityPlifs[0+3].penalties[qualityPlifs[0+3].len-1] ;
+			s+=qualityPlifs[0+4].penalties[qualityPlifs[0+4].len-1] ;
+			s+=qualityPlifs[0+5].penalties[qualityPlifs[0+5].len-1] ;
+
+			s+=qualityPlifs[6+1].penalties[qualityPlifs[6+1].len-1] ;
+			s+=qualityPlifs[6+3].penalties[qualityPlifs[6+3].len-1] ;
+			s+=qualityPlifs[6+4].penalties[qualityPlifs[6+4].len-1] ;
+			s+=qualityPlifs[6+5].penalties[qualityPlifs[6+5].len-1] ;
+
+			s+=qualityPlifs[12+1].penalties[qualityPlifs[12+1].len-1] ;
+			s+=qualityPlifs[12+2].penalties[qualityPlifs[12+2].len-1] ;
+			s+=qualityPlifs[12+4].penalties[qualityPlifs[12+4].len-1] ;
+			s+=qualityPlifs[12+5].penalties[qualityPlifs[12+5].len-1] ;
+
+			s+=qualityPlifs[18+1].penalties[qualityPlifs[18+1].len-1] ;
+			s+=qualityPlifs[18+2].penalties[qualityPlifs[18+2].len-1] ;
+			s+=qualityPlifs[18+3].penalties[qualityPlifs[18+3].len-1] ;
+			s+=qualityPlifs[18+5].penalties[qualityPlifs[18+5].len-1] ;
+
+			s+=qualityPlifs[24+1].penalties[qualityPlifs[24+1].len-1] ;
+			s+=qualityPlifs[24+2].penalties[qualityPlifs[24+2].len-1] ;
+			s+=qualityPlifs[24+3].penalties[qualityPlifs[24+3].len-1] ;
+			s+=qualityPlifs[24+4].penalties[qualityPlifs[24+4].len-1] ;
+			_config.MM_SCORE = s/20 ;
+
+			_config.MM_SCORE = _config.M_SCORE - _config.MM_SCORE ;
+			_config.GAP_SCORE = _config.M_SCORE - _config.GAP_SCORE ;
+			_config.M_SCORE = 0 ;
+
+			assert(_config.MM_SCORE>=0) ;
+			assert(_config.GAP_SCORE>=0) ;
+			if (_config.GAP_SCORE<_config.MM_SCORE)
+				fprintf(stdout, "Warning: QPALMA parameters specify unfavourable combination of scores for mismatches and gaps\n") ;
+			
+			fprintf(stdout, "GAP=%f, M=%f, MM=%f\n", _config.GAP_SCORE, _config.M_SCORE, _config.MM_SCORE) ;
+		}
+
 		double *quality_offset_matrix ;
 		int quality_offset_dims[2] ;
 		Util::skip_comment_lines(fd) ;
@@ -3703,7 +3781,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int hit_dna_converted = convert_dna_position(hit_dna, cum_length, current_regions);
 	if (strand=='-')
 		hit_dna_converted=(int)dna.length()-1-hit_dna_converted;
-
+	//fprintf(stdout, "hit_dna_converted=%i\n", hit_dna_converted) ;
     
     // create super-sequence and deletion list from variant list
 	int seed_i;

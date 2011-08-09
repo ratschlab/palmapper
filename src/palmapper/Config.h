@@ -206,6 +206,8 @@ public:
 	std::string DON_FILES;
 	int NO_SPLICE_PREDICTIONS;
 	bool NO_QPALMA;
+	double QPALMA_INDEL_PENALTY ;
+	bool NO_QPALMA_SCORE_FIX ;
 	
 	std::vector<const char*> ACC_CONSENSUS, DON_CONSENSUS, ACC_CONSENSUS_REV, DON_CONSENSUS_REV ;
 	bool non_consensus_search ;

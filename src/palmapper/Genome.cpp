@@ -500,6 +500,7 @@ void Genome::mmap_indices()
 				last_time = clock() ;
 			}
 		}
+		fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", 100.0) ;
         fprintf(stdout, "\n") ;
     }
 	return;
