@@ -151,7 +151,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
   
 	// seed_i=hit_read; 
 	// seed_j=hit_dna; 
-	fprintf(stdout,"seed (%i-%i) %f\n",seed_i,seed_j,best_match);
+	//fprintf(stdout,"seed (%i-%i) %f\n",seed_i,seed_j,best_match);
 
 
 
