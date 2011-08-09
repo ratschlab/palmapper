@@ -692,7 +692,7 @@ void TopAlignments::check_alignment(struct alignment_t * alignment)
  * it is sorted from in ascending (for type T) */
 void TopAlignments::qsort_top_alignments(alignment_t** output, int num) {
 	
-	if(num == 1)
+	if(num <= 1)
 		return;
 	
 

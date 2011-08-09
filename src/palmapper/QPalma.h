@@ -91,6 +91,7 @@ public:
 
 	int map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report) ;
 protected:
+	void add_const_to_plif(struct penalty_struct & p, double INDEL_PENALTY) ;
 	int init_spliced_align(const char *fname, struct penalty_struct &h,
 						   struct penalty_struct &a, struct penalty_struct &d,
 						   struct penalty_struct *&qualityPlifs, int &num_qualityPlifs,

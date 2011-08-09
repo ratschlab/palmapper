@@ -114,9 +114,9 @@ Config::Config() {
 	NUM_EDIT_OPS = DEFAULT_SETTING ;
 	NUM_MISMATCHES = DEFAULT_SETTING ;
 	NUM_GAPS = DEFAULT_SETTING ;
-	MM_SCORE = 4;
-	M_SCORE = 0;
-	GAP_SCORE = 5;
+	MM_SCORE = 4 ;
+	M_SCORE = 0 ;
+	GAP_SCORE = 5 ;
 	GAPS_MOST_RIGHT = 0;
 	OVERHANG_ALIGNMENT = 0;
 	SCORES_OUT = 1;
@@ -164,6 +164,8 @@ Config::Config() {
 	INCLUDE_UNMAPPED_READS_SAM=false;
 	
 	NO_QPALMA = false;
+	QPALMA_INDEL_PENALTY=0.0 ;
+	NO_QPALMA_SCORE_FIX = false ;
 	
     STRAND = -1 ;
 	PROTOCOL = PROTOCOL_UNSTRANDED ;
@@ -1192,6 +1194,26 @@ int Config::parseCommandLine(int argc, char *argv[])
 				QPALMA_MIN_NUM_MATCHES = tmp;
 			}
 
+			// How many matches are necessary for identifying a possible splice site in QPALMA recursive alignment algorithm?
+			if (strcmp(argv[i], "-qpalma-indel-penalty") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -qpalma-indel-penalty\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				double tmp = atof(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -qpalma-indel-penalty too small\n") ;
+					usage();
+					exit(1);
+				}
+				QPALMA_INDEL_PENALTY = tmp;
+			}
+
+
+
 			// how much distance to tolerate between a hit and an existing
 			// hit cluster
 			if (strcmp(argv[i], "-CT") == 0) {
@@ -1850,6 +1872,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				not_defined = 0;
 				NO_QPALMA = true;
 				
+			}
+			if (strcmp(argv[i], "-no-qpalma-score-fix") == 0) {
+				not_defined = 0;
+				NO_QPALMA_SCORE_FIX = true;
 			}
 
 			if (strcmp(argv[i], "-acc") == 0) {

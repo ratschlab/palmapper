@@ -1174,6 +1174,8 @@ int Hits::insert_into_scorelist(HIT* hit, char d)
 	}
 //printhit(_read,hit);
 	int interval = (hit->mismatches-hit->gaps) * _config.MM_SCORE + hit->gaps * _config.GAP_SCORE - (((int)_read.length())-hit->mismatches) * _config.M_SCORE;
+	assert(interval>=0) ;
+	
 	if (HITS_BY_SCORE[interval].num == 0) {
 		// first entry in list
 		HITS_BY_SCORE[interval].hitpointer = hit;
