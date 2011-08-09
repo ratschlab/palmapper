@@ -274,7 +274,7 @@ int QPalma::check_splice_files(std::string file_template)
 				}
 				if (buf>(int)genome->chromosome(chr-1).length())
 				{
-					fprintf(stderr, "splice site position (%i) greater than chromosome length (%i)\n", buf, genome->chromosome(chr-1).length()) ;
+					fprintf(stderr, "splice site position (%i,%s) greater than chromosome length (%i, %s)\n", buf, posname, genome->chromosome(chr-1).length(),genome->chromosome(chr-1).desc()) ;
 					return -1 ;
 				}
 				//else
@@ -3740,7 +3740,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
 							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list,_config.MAP_VARIANTS);
-
 	}
 	else
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
@@ -3752,7 +3751,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   remove_duplicate_scores, seed_i, seed_j, best_match,_config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
 							   MIN_NUM_MATCHES, remapping, super_variant_list,_config.MAP_VARIANTS);
-
 	
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;

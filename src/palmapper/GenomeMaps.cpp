@@ -745,17 +745,18 @@ int GenomeMaps::init_with_gff(std::string &gff_fname)
 	
 	while (!feof(fd))
 	{
-		char chr_name[1000], source[1000], type[1000], properties[1000], strand, tmp1, tmp2 ;
+		char chr_name[1000], source[1000], type[1000], properties[1000], strand, tmp1[1000], tmp2[1000] ;
 		int start, end ;
 
 		Util::skip_comment_lines(fd) ;
 		
-		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%c\t%c\t%c\t%1000s\n", chr_name, source, type, &start, &end, &tmp1, &strand, &tmp2, properties) ;  
+		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2, properties) ;  
 		if (num!=9)
 		{
 			if (feof(fd))
 				break ;
-			fprintf(stdout, "gff line only contained %i columns, aborting\n", num) ;
+			fprintf(stdout, "gff line in %s only contained %i columns, aborting\n", gff_fname.c_str(), num) ;
+			//exit(-1) ;
 		}
 		
 		if (strcmp(type, "exon")==0)

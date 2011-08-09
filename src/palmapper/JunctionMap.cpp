@@ -72,7 +72,7 @@ bool compare_exons(Exon ex1,Exon ex2)
 }
 
 
-JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_,std::vector<const char*> ACC_CONSENSUS_, std::vector<const char*> DON_CONSENSUS_, std::vector<const char*> ACC_CONSENSUS_REV_, std::vector<const char*> DON_CONSENSUS_REV_ )
+JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_, int anno_pseudo_coverage_, std::vector<const char*> ACC_CONSENSUS_, std::vector<const char*> DON_CONSENSUS_, std::vector<const char*> ACC_CONSENSUS_REV_, std::vector<const char*> DON_CONSENSUS_REV_ )
 {
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
@@ -80,6 +80,8 @@ JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_,std::vector<co
 	junctionlist = new std::deque<Junction>[nbchr];
 	
 	min_coverage=min_coverage_;
+	anno_pseudo_coverage = anno_pseudo_coverage_ ;
+	
 	ACC_CONSENSUS= ACC_CONSENSUS_;
 	ACC_CONSENSUS_REV= ACC_CONSENSUS_REV_;
 	DON_CONSENSUS= DON_CONSENSUS_;
@@ -165,6 +167,9 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 	lock() ;
 	//Sorted list by donor positions first and then acceptor positions
 	Junction j;
+
+	if (coverage<0) // annotation
+		coverage = anno_pseudo_coverage ;
 
 	//fprintf(stdout,"%c %i %i %i\n",strand, chr, start, end);
 	if (junctionlist[chr].empty())
@@ -289,7 +294,6 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 
 int JunctionMap::init_from_gff(std::string &gff_fname)
 {
-
 	fprintf(stdout, "initializing splice site junction list with GFF file %s\n", gff_fname.c_str()) ;
 
 	FILE * fd=Util::openFile(gff_fname.c_str(), "r") ;
@@ -307,18 +311,19 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 		
 	while (!feof(fd))
 	{
-		char chr_name[1000], source[1000], type[1000], properties[1000], strand, tmp1, tmp2 ;
+		char chr_name[1000], source[1000], type[1000], properties[1000], strand, tmp1[1000], tmp2[1000] ;
 		int start, end ;
 
 		Util::skip_comment_lines(fd) ;
 		
 		//Scan gff3 line
-		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%c\t%c\t%c\t%1000s\n", chr_name, source, type, &start, &end, &tmp1, &strand, &tmp2, properties) ;  
+		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2, properties) ;  
 		if (num!=9)
 		{
 			if (feof(fd))
 				break ;
-			fprintf(stdout, "gff line only contained %i columns, aborting\n", num) ;
+			fprintf(stdout, "gff line in file %s only contained %i columns, aborting\n", gff_fname.c_str(), num) ;
+			//exit(-1) ;
 		}
 		
 
@@ -467,7 +472,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 							bool consensus_intron= is_consensus_intron((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2);
 
 							//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
-							insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), 0);
+							insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), -1);
 							it_prev++;
 							it_next++;
 							
@@ -508,7 +513,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 			
 			//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
-			insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), 0);
+			insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), -1);
 			it_prev++;
 			it_next++;
 			
