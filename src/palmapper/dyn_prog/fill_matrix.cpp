@@ -10,7 +10,7 @@
 
 /*
   matchmatrix: columnwise
-  - A C G T N (dna)
+    - A C G T N (dna)
   - x x x x x x
   A x x x x x x	
   C x x x x x x
