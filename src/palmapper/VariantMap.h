@@ -4,6 +4,7 @@
 #include <deque>
 #include <string>
 #include <stdlib.h> 
+#include <assert.h>
 
 enum polytype
 {
@@ -78,6 +79,28 @@ public:
 		return true ;
 	}
 
+	int variant_cmp(const Variant &a, const Variant &b)
+	{
+		if (a.position<b.position)
+			return -1  ;
+		if (a.position>b.position)
+			return 1  ;
+		if (a.end_position<b.end_position)
+			return -1 ;
+		if (a.end_position>b.end_position)
+			return 1 ;
+		if (a.ref_str<b.ref_str)
+			return -1 ;
+		if (a.ref_str>b.ref_str)
+			return 1 ;
+		if (a.variant_str<b.variant_str)
+			return -1 ;
+		if (a.variant_str>b.variant_str)
+			return 1 ;
+		return 0 ;
+	}
+
+	
 	static void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant, const std::string & read_id) 
 	{
 		Variant v ;
@@ -127,6 +150,13 @@ public:
 	}
 	
 	void report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons) ;
+
+	void check_variant_order()
+	{
+		for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+			for (unsigned j=0; j<variantlist[i].size()-1; j++)
+				assert(variant_cmp(variantlist[i][j], variantlist[i][j+1])<0) ;
+	}
 
 protected:
 	
