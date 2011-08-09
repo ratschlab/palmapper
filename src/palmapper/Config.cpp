@@ -79,6 +79,7 @@ Config::Config() {
 	MAP_JUNCTIONS_FILE = std::string("") ;
 	MAP_JUNCTIONS=0;
 	MAP_JUNCTIONS_COVERAGE=2;
+	MAP_JUNCTIONS_PSEUDO_ANNO_COV=10 ;
 
 	REPORT_VARIANTS=false ;
 	report_SNP_terminal_dist = 10 ;

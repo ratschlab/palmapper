@@ -86,8 +86,8 @@ int main(int argc, char *argv[])
 
 	QueryFile queryFile(_config.QUERY_FILE_NAMES,_config.QUERY_FILE_STRANDS);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
-	JunctionMap junctionmap(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
-	JunctionMap annotated_junctions(genome,_config.MAP_JUNCTIONS_COVERAGE,_config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
+	JunctionMap junctionmap(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
+	JunctionMap annotated_junctions(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
 	VariantMap variants(genome);
 	
 	if ( _config.OUTPUT_FORMAT == OUTPUT_FORMAT_BAM)
