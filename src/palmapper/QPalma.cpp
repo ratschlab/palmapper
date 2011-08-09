@@ -17,6 +17,33 @@
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
+int map_back(char c)
+{
+	switch (c){
+	case 'A':
+	case 'a':
+		return 1;
+	case 'c':
+	case 'C':
+		return 2;
+	case 'g':
+	case 'G':
+		return 3;
+	case 't':
+	case 'T':
+		return 4;
+	case 'n':
+	case 'N':
+		return 5;
+	case '-':
+		return 0;
+	case '*':
+		return 6;
+	}
+	return 7;
+}
+
+
 void get_annotated_splice_positions( std::vector<int> &pos, JunctionMap &annotatedjunctions,const char * type, int start, int end, int chr, char strand)
 {
 	// find a lower bound on the index with binary search
@@ -2734,10 +2761,10 @@ int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_end_p, struct pos_table_str * pos_table_new_end_p)
 {
 
-	for (int i=0; i<pos_table_previous_end_p->del_origs.size();i++){
+	for (unsigned int i=0; i<pos_table_previous_end_p->del_origs.size();i++){
 		struct pos_table_str * origin_p=pos_table_previous_end_p->del_origs[i];
 		
-		for (int j=0; j< origin_p->del_refs.size();j++){
+		for (unsigned int j=0; j< origin_p->del_refs.size();j++){
 			if (origin_p->del_refs[j] == pos_table_previous_end_p){
 				origin_p->del_refs[j] = pos_table_new_end_p;	
 			}
@@ -2748,7 +2775,7 @@ void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_en
 }
 
 	
-std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, int &hit_dna_pos) const 
+std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, int &hit_dna_pos, std::vector<bool> &ref_map) const 
 {
 
 	int seed_ref=hit_dna_pos;
@@ -2869,7 +2896,8 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 	a_len = pos_table.size() ;
 	donor=new double[pos_table.size()] ; 
 	d_len = pos_table.size() ;
-	std::vector<bool> ref_map(pos_table.size(), false) ;
+	//std::vector<bool> ref_map(pos_table.size(), false) ;
+	ref_map.assign(pos_table.size(), false) ;
 
 	for (unsigned int i=0; i<pos_table.size(); i++)
 	{		
@@ -2930,13 +2958,195 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 	return super_variants ;
 }
 
-std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> &super_variant_list, std::string & dna, int * s_align, int & s_len, int * e_align, int & e_len) const 
+std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> super_variants,std::vector<FoundVariant> found_variants, std::string & dna, std::vector<bool> ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters) const
 {
-	std::vector<FoundVariant> found_variants ;
+	std::vector<FoundVariant> final_variants ;
 	
+	std::vector<char> dna_back;
+	std::vector<int> s_align_back;
+	std::vector<int> dna_align_back;
+	std::vector<int> read_align_back;
+	int align_ind=-1;
+	unsigned int i=0;
+	int result_tmp=result_length;
+	int max_intron_len=0;
+	int min_intron_len=100000;
+	int min_exon_len=e_len;
+	int alignment_mm=0;
+	int alignment_gaps=0;
 	
+	int len_current_exon=-1;
+	int len_current_intron=-1;
+	int num_exons=0;
 
-	return found_variants ;
+	while(i<dna.length()){
+
+		//Build reference sequence
+		if (ref_map[i])
+			dna_back.push_back(dna[i]);
+
+
+		if (s_align[i]==5)
+		{
+			align_ind++;
+			//Deletion on ref
+			if(ref_map[i]) {
+				s_align_back.push_back(0);
+				dna_align_back.push_back(dna_align[align_ind]);
+				read_align_back.push_back(0);
+			}
+			//Insertion on ref not taken
+			else{
+				result_length--;
+			}
+			i++;
+			continue;
+		}
+			
+		if (s_align[i]==0){
+			align_ind++;
+
+			if (len_current_intron != -1){
+				if (len_current_intron>max_intron_len)
+					max_intron_len=len_current_intron;
+				if (len_current_intron<min_intron_len)
+					min_intron_len=len_current_intron;
+				len_current_intron=-1;
+			}
+
+			if (len_current_exon ==-1)
+				len_current_exon++;
+			
+			if (dna_align[align_ind]!=read_align[align_ind] 
+				&& dna_align[align_ind] != 0 && read_align[align_ind] != 0){
+				alignment_mm++;
+			}
+			if (read_align[align_ind]==0){
+				alignment_gaps++;
+			}
+
+			len_current_exon++;
+			
+			
+			if(ref_map[i]){
+				s_align_back.push_back(0);
+				//SNP
+				if (map_back(dna[i])!= dna_align[align_ind]){
+					dna_align_back.push_back(map_back(dna[i]));
+				}
+				else{
+					dna_align_back.push_back(dna_align[align_ind]);
+				}
+				
+				
+				read_align_back.push_back(read_align[align_ind]);
+			}
+			//Insertion on ref used
+			else{
+				if(read_align[align_ind]!=0){
+					dna_align_back.push_back(0);
+					read_align_back.push_back(read_align[align_ind]);
+				}
+				else{
+					result_length--;
+				}
+				
+			}
+			//Gap on DNA from alignment: keep them
+			while(align_ind+1<result_tmp && dna_align[align_ind+1]==0){
+				alignment_gaps++;
+				dna_align_back.push_back(dna_align[align_ind+1]);
+				read_align_back.push_back(read_align[align_ind+1]);
+				align_ind++;
+			}
+
+			i++;
+			continue;
+		}
+
+		//1,2,3 for introns and 4 for unmapped
+		if(ref_map[i])
+			s_align_back.push_back(s_align[i]);
+
+		
+		if (len_current_exon!=-1){
+			num_exons++;
+			if(len_current_exon<min_exon_len)
+				min_exon_len=len_current_exon;
+			len_current_exon=-1;
+		}
+
+		if (s_align[i]!=4){
+			if (len_current_intron ==-1)
+				len_current_intron++;
+			len_current_intron++;
+			
+			align_ind++;
+			if (ref_map[i]){
+				dna_align_back.push_back(dna_align[align_ind]);
+				read_align_back.push_back(read_align[align_ind]);
+			}
+			else
+				result_length--;
+		}
+		
+		i++;
+
+	}
+	
+	if (len_current_exon!=-1){
+		num_exons++;
+		if (len_current_exon<min_exon_len)
+			min_exon_len=len_current_exon;
+		len_current_exon=-1;
+	}
+
+	delete[] s_align;
+	delete[] dna_align;
+	delete[] read_align;
+	s_align = new int[s_align_back.size()];
+	s_len=s_align_back.size();
+	dna_align = new int[dna_align_back.size()];
+	read_align = new int[read_align_back.size()];
+	dna = std::string(dna_back.size(), ' ') ;
+
+	for (unsigned int j=0; j<dna_back.size();j++){
+		dna[j]=dna_back[j];
+	}
+
+	//fprintf(stdout,"new s_align: ");
+	
+	for (unsigned int j=0; j<s_align_back.size();j++){
+		s_align[j]=s_align_back[j];
+		//	fprintf(stdout,"%i",s_align[j]);		
+	}
+//	fprintf(stdout,"\n");	
+//	fprintf(stdout,"new dna_align:  ");
+	
+	for (unsigned int j=0; j<dna_align_back.size();j++){
+		dna_align[j]=dna_align_back[j];
+//		fprintf(stdout,"%i",dna_align[j]);		
+	}
+//	fprintf(stdout,"\n");
+
+//	fprintf(stdout,"new read_align: ")	;
+	
+	for (unsigned int j=0; j<read_align_back.size();j++){
+		read_align[j]=read_align_back[j];
+//		fprintf(stdout,"%i",read_align[j]);		
+	}
+//	fprintf(stdout,"\n length=%i\n",result_length);	
+
+	s_align_back.clear();
+	dna_align_back.clear();
+	read_align_back.clear();
+		
+	alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && (alignment_mm <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mm+alignment_gaps <= _config.NUM_EDIT_OPS) &&(num_exons ==1 ||(num_exons >= 2 && (num_exons <= _config.SPLICED_MAX_INTRONS+1) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
+
+	fprintf(stdout,"Alignment with variants (valid=%i)has: %i mm %i gaps %i<=intron<=%i %i<=exon num_exon==%i\n",
+			alignment_passed_filters,alignment_mm,alignment_gaps,min_intron_len,max_intron_len,min_exon_len,num_exons);
+	
+	return final_variants ;
 }
 
 
@@ -3503,12 +3713,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   alignment_parameters->matchmatrix, alignment_parameters->matchmatrix_dim[0]
 										  * alignment_parameters->matchmatrix_dim[1], prb);
 	
-	fprintf(stdout,"seed %i-%i\n",seed_i,seed_j);
 	
 	std::vector<SuperVariant> super_variant_list ;
+	std::vector<bool> ref_map;
 	if (_config.MAP_VARIANTS && variants.size()>0)
 	{
-		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, seed_j) ;
+		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
 	}
 
 	if (verbosity >= 3)
@@ -3518,6 +3728,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	assert (hit_read >= 0);
 	assert (hit_dna_converted >= 0);
 	assert (seed_j >= 0);
+	
 	if (non_consensus_search)
 	{
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
@@ -3547,10 +3758,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	pthread_mutex_lock( &clock_mutex) ;
 	_stats.qpalma_align_time += clock() - start_time;
 	pthread_mutex_unlock( &clock_mutex) ;
-	
+
 	int s_len = dna.length() ;
-	int s_align[s_len];
-	int e_align[est_len_p] ;
+	int *s_align=NULL;
+	int *e_align=NULL ;
+	s_align=new int[s_len]; 
+	e_align=new int[est_len_p] ;
 
 	int mmatrix_p[alignment_parameters->matchmatrix_dim[0]
 				  * alignment_parameters->matchmatrix_dim[1]];
@@ -3559,17 +3772,24 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	alignment.getAlignmentResults(s_align, e_align, mmatrix_p, &alignscore, qScores);
 	int result_length = alignment.getResultLength();
+	int *dna_align=NULL;
+	int *est_align=NULL;
+	dna_align=new int[result_length];
+	est_align=new int[result_length];
+	alignment.getAlignmentArrays(dna_align, est_align);
 
 	std::vector<FoundVariant> found_variants =alignment.getVariants();
-	// for (int i=0; i<found_variants.size();i++){
-	// 	fprintf(stdout,"variant used: read_pos:%i id:%i type:%i\n",found_variants[i].read_position, found_variants[i].id,found_variants[i].type);
-	// }
+	std::vector<FoundVariant> final_variants;
+	bool alignment_variants_valid=true;
+
+	for (unsigned int i=0; i<found_variants.size();i++){
+		fprintf(stdout,"variant used: read_pos:%i id:%i type:%i\n",found_variants[i].read_position, found_variants[i].id,found_variants[i].type);
+	}
+	
 	
 	if (_config.MAP_VARIANTS)
 	{
-		return 0 ;
-
-		found_variants = reconstruct_reference_alignment(variants, super_variant_list, dna, &s_align[0], s_len, &e_align[0], est_len_p) ;
+		final_variants = reconstruct_reference_alignment(variants, super_variant_list, found_variants, dna, ref_map,s_align, s_len, e_align, est_len_p, dna_align,est_align,result_length,remapping,alignment_variants_valid) ;
 	}
 
 	std::vector<int> exons;
@@ -3698,12 +3918,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			  start_offset++ ;
 		  //fprintf(stdout, "start_offset=%i\n", start_offset) ;
 		  
-	    int dna_align[result_length];
-	    int est_align[result_length];
+		  //int dna_align[result_length];
+		  //int est_align[result_length];
 	    char dna_align_str[result_length + 1];
 	    char est_align_str[result_length + 1];
 	    
-	    alignment.getAlignmentArrays(dna_align, est_align);
+	    //alignment.getAlignmentArrays(dna_align, est_align);
 	    
 	    /*fprintf(stdout, "DNA: ");
 	      for (int i = 0; i < result_length; i++)
@@ -3989,9 +4209,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
 
-	bool alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && 
+	bool alignment_passed_filters= (_config.MAP_VARIANTS && alignment_variants_valid) || ((max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && 
 		(rescued_alignment || (alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
-		&&(exons.size()==2 ||( (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
+																						  &&(exons.size()==2 ||( (exons.size() >= 4 || rescued_alignment) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping)))) ;
 
 	bool non_consensus_alignment=false ;
 
@@ -4147,7 +4367,10 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	delete[] donor ;
 	delete[] est ;
 	delete[] prb ;
-
+	delete[] s_align;
+	delete[] e_align;
+	delete[] dna_align;
+	delete[] est_align;
 	return (int) isunspliced;
 }
 
