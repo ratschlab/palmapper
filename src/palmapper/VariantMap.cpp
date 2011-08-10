@@ -105,7 +105,7 @@ void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & a
 	}
 }
 
-void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id)
+void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id, int read_pos)
 {
 	enum polytype pt = pt_unknown ;
 	if (ref_len==1 && variant_len==1)
@@ -130,7 +130,8 @@ void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, 
 	j.conf_count = conf_count ;
 	j.non_conf_count = 0 ;
 	j.read_id = read_id ;
-	
+	j.read_pos= read_pos;
+	j.used_to_map=false;
 	insert_variant(j, chr) ;
 }
 
@@ -140,6 +141,7 @@ void VariantMap::insert_variant(Variant & j, int chr)
 
 	if (variantlist[chr].empty())
 	{
+		
 		variantlist[chr].push_back(j);
 
 		unlock() ;
@@ -158,8 +160,14 @@ void VariantMap::insert_variant(Variant & j, int chr)
 		}
 		if (variant_cmp(j, *it)==0)
 		{
-			(*it).conf_count += j.conf_count ;
-			(*it).non_conf_count += j.non_conf_count ;
+			if (j.used_to_map){
+				variantlist[chr].insert(it, j);
+			}
+			else{	
+				(*it).conf_count += j.conf_count ;
+				(*it).non_conf_count += j.non_conf_count ;
+			}
+			
 			unlock() ;
 			return;
 		}
@@ -234,7 +242,7 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 			variant_lines_checked++ ;
 		}
 			
-		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, "");
+		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, "",-1);
 		variant_lines++ ;
 	}		
 
@@ -246,7 +254,7 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 
 }
 
-int VariantMap::report_to_sdi(std::string &sdi_fname)
+int VariantMap::report_to_sdi(std::string &sdi_fname, bool used_to_map)
 {
 	lock() ;
 
@@ -265,7 +273,10 @@ int VariantMap::report_to_sdi(std::string &sdi_fname)
 		
 		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
 		{			
-			if ((*it).conf_count<2 || (double)(*it).conf_count/(double)(*it).non_conf_count<0.2)
+			if (used_to_map && ! (*it).used_to_map)
+				continue;
+			
+			if (((*it).conf_count<2 || (double)(*it).conf_count/(double)(*it).non_conf_count<0.2) && !used_to_map)
 				continue ;
 			
 			std::string ref_str = (*it).ref_str ;
@@ -275,8 +286,8 @@ int VariantMap::report_to_sdi(std::string &sdi_fname)
 			if (variant_str.size()==0)
 				variant_str+='-' ;
 			
-			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%s\n",
-					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).read_id.c_str());
+			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%s\t%i\n",
+					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).read_id.c_str(),(*it).read_pos+1);
 			nb_variants++;
 		}
 	}
