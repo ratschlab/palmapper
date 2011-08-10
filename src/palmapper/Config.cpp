@@ -196,6 +196,7 @@ int Config::applyDefaults(Genome * genome)
 
 	if (_personality == Palmapper)  {
 		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
+		if (read_length>0)
 		{
 			bool line_started=false ;
 			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
@@ -267,6 +268,16 @@ int Config::applyDefaults(Genome * genome)
 				fprintf(stdout, "* Automatically determined minimal segment length in spliced alignments based on read length (%int)\n",
 						SPLICED_MIN_SEGMENT_LENGTH) ;
 			}
+		}
+		else
+		{ // defaults if read length is not determinable
+			SPLICED_HIT_MIN_LENGTH_SHORT = 12 ;
+			SPLICED_HIT_MIN_LENGTH_LONG = 20 ;
+			SPLICED_HIT_MIN_LENGTH_COMB = 20 ;
+			SPLICED_MAX_INTRONS = 1 ;
+			NUM_EDIT_OPS = 2 ;
+			NUM_MISMATCHES = 2 ;
+			NUM_GAPS = 1  ;
 		}
 
 		if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT)
@@ -377,7 +388,7 @@ int Config::checkConfig()
 			exit(1) ;
 		}
 
-		if(SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
+		if(SPLICED_HITS && read_length>0 && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
 			fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
 			SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
 		}
