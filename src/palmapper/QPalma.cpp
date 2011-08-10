@@ -1910,56 +1910,58 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						assert(corres_long_regions.size()>0); // at least one long region as support of alignment
 						assert(corres_long_regions[0]->read_map!=NULL);
 					  
-						//Take the first long region  to start alignment
-						int hit_read_position = get_first_read_map(read, corres_long_regions[0]->read_map);
-						int hit_len= corres_long_regions[0]->end-corres_long_regions[0]->start;
-						if(ori==1){
-							hit_read_position = read.length()-hit_len-hit_read_position+1;
-						}
-						assert (hit_read_position>=0 && hit_len >0);
-						// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
-						// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, corres_long_regions[0]->start, hit_len);					  
-						// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
-						
-						bool isunspliced ;
 
+						//Iterate all long regions and start alignment
 						int transcription_direction = get_transcription_direction(_config.STRAND,ori);
-						
-						if (transcription_direction >=0)
-						{
-							//fprintf(stdout,	"1)hit read position %i\n",hit_read_position);					  
-							int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
-																		current_positions, chr, '+', ori, hit_read_position,
-																		corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported,false,
-																		annotatedjunctions, variants);
-							if (ret < 0)
+						for (unsigned int lr =0; lr<corres_long_regions.size();lr++){
+							
+							int hit_read_position = get_first_read_map(read, corres_long_regions[lr]->read_map);
+							int hit_len= corres_long_regions[lr]->end-corres_long_regions[lr]->start;
+							if(ori==1)
+								hit_read_position = read.length()-hit_len-hit_read_position+1;
+							assert (hit_read_position>=0 && hit_len >0);
+							// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
+							// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, corres_long_regions[lr]->start, hit_len);					  
+							// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+							
+							bool isunspliced ;
+							
+							if (transcription_direction >=0)
 							{
-								result.delete_regions();
-								delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-								return ret;
+								//fprintf(stdout,	"1)hit read position %i\n",hit_read_position);					  
+								int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
+																			current_positions, chr, '+', ori, hit_read_position,
+																			corres_long_regions[lr]->start, hit_len, non_consensus_search, num_alignments_reported,false,
+																			annotatedjunctions, variants);
+								if (ret < 0)
+								{
+									result.delete_regions();
+									delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+									return ret;
+								}
+								isunspliced = ret;
 							}
-							isunspliced = ret;
-						}
-					  
-						//if (!isunspliced) 
-						if (transcription_direction <=0)
-						{
-							// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),
-							//       corres_long_regions[0]->end, hit_len);					  
-							// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-							//fprintf(stdout,	"2)hit read position %i\n",read.length()-(hit_read_position+hit_len));					  
-							int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
-																		current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
-																		corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,
-																		annotatedjunctions, variants);//end nucleotide in dna not included
-							if (ret < 0)
+							
+							//if (!isunspliced) 
+							if (transcription_direction <=0)
 							{
-								result.delete_regions();
-								delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-								return ret;
-							}							
+								// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),
+								//       corres_long_regions[lr]->end, hit_len);					  
+								// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+								//fprintf(stdout,	"2)hit read position %i\n",read.length()-(hit_read_position+hit_len));					  
+								int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
+																			current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+																			corres_long_regions[lr]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,
+																			annotatedjunctions, variants);//end nucleotide in dna not included
+								if (ret < 0)
+								{
+									result.delete_regions();
+									delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+									return ret;
+								}							
+							}
 						}
-					  
+						
 					} else {
 						if (verbosity >= 2)
 							fprintf(stdout,	"# dropped region list covering only %i bases\n", num_read_map);
@@ -2020,59 +2022,60 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				assert(corres_long_regions.size()>0); // at least one long region as support of alignment
 				assert(corres_long_regions[0]->read_map!=NULL);
 
-				//Take the first long region  to start alignment
-				int hit_read_position = get_first_read_map(read, corres_long_regions[0]->read_map);
-				int hit_len= corres_long_regions[0]->end-corres_long_regions[0]->start;
-				if(ori==1){
-					hit_read_position = read.length()-hit_len-hit_read_position+1;
-				}
-				assert (hit_read_position>=0 && hit_len >0);
-
-				// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
-				// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
-				//    corres_long_regions[0]->start, hit_len);
-				// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					
-				
-
 				int transcription_direction = get_transcription_direction(_config.STRAND,ori);
-						
-				if (transcription_direction >=0)
-				{
-					//fprintf(stdout,	"3)hit read position %i\n",hit_read_position);					  
-					int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori],
-																current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
-																corres_long_regions[0]->start, hit_len, non_consensus_search, num_alignments_reported,false,
-																annotatedjunctions, variants); 
-					if (ret < 0)
-					{
-						result.delete_regions();
-						delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-						return ret;
-					}
-			
-					isunspliced = ret;
-				}
-				//if (!isunspliced) 
-				if (transcription_direction <=0)
-				{
-					// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),corres_long_regions[0]->end, hit_len);					  
-					// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-					//				fprintf(stdout,	"4)hit read position %i - read length %i\n",read.length()-(hit_read_position+hit_len), read.length());					  
-					int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori],
-																read_quality[1 - ori], current_seq,
-																current_regions, current_positions, chr, '-', 1-ori,read.length()-(hit_read_position+hit_len),
-																corres_long_regions[0]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,
-																annotatedjunctions, variants);//end nucleotide in dna not included
-					if (ret < 0)
-					{
-						result.delete_regions();
-						delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-						return ret;
-					}
-				}
-	  
-				hits.topAlignments().update_top_alignment_indice();
+				//Iterate over all long regions and launch alignment
+				for (unsigned int lr =0; lr<corres_long_regions.size();lr++){
 
+					int hit_read_position = get_first_read_map(read, corres_long_regions[lr]->read_map);
+					int hit_len= corres_long_regions[lr]->end-corres_long_regions[lr]->start;
+					if(ori==1){
+						hit_read_position = read.length()-hit_len-hit_read_position+1;
+					}
+					assert (hit_read_position>=0 && hit_len >0);
+					
+					// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
+					// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
+					//    corres_long_regions[lr]->start, hit_len);
+					// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					
+					
+					
+					if (transcription_direction >=0)
+					{
+						//fprintf(stdout,	"3)hit read position %i\n",hit_read_position);					  
+						int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori],
+																	current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
+																	corres_long_regions[lr]->start, hit_len, non_consensus_search, num_alignments_reported,false,
+																	annotatedjunctions, variants); 
+						if (ret < 0)
+						{
+							result.delete_regions();
+							delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+							return ret;
+						}
+						
+						isunspliced = ret;
+					}
+					//if (!isunspliced) 
+					if (transcription_direction <=0)
+					{
+						// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),corres_long_regions[lr]->end, hit_len);					  
+						// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+						//				fprintf(stdout,	"4)hit read position %i - read length %i\n",read.length()-(hit_read_position+hit_len), read.length());					  
+						int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori],
+																	read_quality[1 - ori], current_seq,
+																	current_regions, current_positions, chr, '-', 1-ori,read.length()-(hit_read_position+hit_len),
+																	corres_long_regions[lr]->end-1, hit_len, non_consensus_search, num_alignments_reported,false,
+																	annotatedjunctions, variants);//end nucleotide in dna not included
+						if (ret < 0)
+						{
+							result.delete_regions();
+							delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+							return ret;
+						}
+					}
+	  
+				}
+				hits.topAlignments().update_top_alignment_indice();			
 			} else {
 				if (verbosity >= 2)
 					fprintf(stdout,	"# dropped region list covering only %i bases\n", num_read_map);
