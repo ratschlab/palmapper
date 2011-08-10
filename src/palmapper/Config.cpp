@@ -1991,17 +1991,23 @@ int Config::parseCommandLine(int argc, char *argv[])
 			//Used protocol
 			if (strcmp(argv[i], "-protocol") == 0) {
 				not_defined = 0;
-				if (i + 1 > argc - 1 || (strcmp(argv[i + 1], "first") != 0 && strcmp(argv[i + 1], "second") != 0)) {
+				if (i + 1 > argc - 1 || (strcmp(argv[i + 1], "first") != 0 && strcmp(argv[i + 1], "second") != 0 && strcmp(argv[i + 1], "unstranded") != 0 && strcmp(argv[i + 1], "first-strand") != 0 && strcmp(argv[i + 1], "second-strand") != 0)) {
 					fprintf(stderr, "ERROR: Argument missing for option -protocol\nMust be [ first | second ]") ;
 					usage();
 					exit(1);
 				}
 				i++;
-				if (strcmp(argv[i], "first") == 0) {
+				if (strcmp(argv[i], "first") == 0 || strcmp(argv[i], "first-strand") == 0) {
 					PROTOCOL = PROTOCOL_FIRST ; // first
 				}
-				else {
-					PROTOCOL = PROTOCOL_SECOND ; // second
+				else 
+				{
+					if (strcmp(argv[i], "second") == 0 || strcmp(argv[i], "second-strand") == 0) {
+						PROTOCOL = PROTOCOL_SECOND ; // second
+					}
+					else{
+						PROTOCOL = PROTOCOL_UNSTRANDED ; // second
+					}
 				}
 			}
 
@@ -2078,7 +2084,7 @@ int Config::usage() {
 		printf("optional:\n");
 
 		printf(" -stranded STRING        strand specific experiment (left, right, plus, minus)\n");
-		printf(" -protocol STRING        protocol used to prepared RNA-seq data (first,second)\n");
+		printf(" -protocol STRING        protocol used to prepared RNA-seq data (first-strand, second-strand, unstranded)\n");
 		printf("                         examples: RNA ligation is first and dUTP protocol is second strand\n");
 		printf(" -f STRING               output format (\"shore\", \"bed\", \"bedx\", \"sam\", \"bam\", \"bamp\" or \"bamn\")[sam]\n");
 		printf(" -samtools STRING        explicit samtools path (used for bam output)\n");
