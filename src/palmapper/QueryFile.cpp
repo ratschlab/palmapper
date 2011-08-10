@@ -90,6 +90,8 @@ int QueryFile::determine_read_length(std::vector<std::string> const &filenames,s
 			break;
 		sum_read_length += r.length();
 	}
+	if (nr_read==0)
+		return -1 ;
 	return sum_read_length / nr_read;
 }
 
