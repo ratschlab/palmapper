@@ -157,7 +157,8 @@ Config::Config() {
 
 	MAP_VARIANTS = false ;
 	VARIANT_FILE_NAME = "" ;
-
+	USED_VARIANT_FILE_NAME = "";
+	
 	// Number of additional matches you have to find in case of a non consensus search compared to consensus one (based on QMM)
 	MIN_NUM_MATCHES_PEN=2;
 	
@@ -412,6 +413,13 @@ int Config::checkConfig()
 		fprintf(stderr,	"ERROR: -fixtrim and -fixtrim[right|left] options cannot be combined\n");
 		exit(1) ;
 	}
+
+
+	if (MAP_VARIANTS && OUT_FILE_NAME.length()>0){
+		USED_VARIANT_FILE_NAME.assign(OUT_FILE_NAME);
+		USED_VARIANT_FILE_NAME.append(".variants");
+	}
+	
 	
 	return 0 ;
 }
@@ -1359,6 +1367,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			i++;
 			VARIANT_FILE_NAME.assign(argv[i]);
+
 			MAP_VARIANTS = true ;
 		}
 
