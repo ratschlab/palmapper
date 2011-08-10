@@ -219,6 +219,8 @@ public:
 	std::string VARIANT_FILE_NAME ;
 	std::string USED_VARIANT_FILE_NAME;
 
+	int NO_GAP_END;
+	
 	int INDEX_PRECACHE;
 	unsigned int FLANKING;
 	int NUM_EDIT_OPS;

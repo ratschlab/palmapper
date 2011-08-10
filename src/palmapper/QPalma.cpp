@@ -3883,6 +3883,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	std::vector<bool> ref_map;
 	if (_config.MAP_VARIANTS && variants.size()>0)
 	{
+		
+		if (strand == '-'){
+			//reverse super variants coordinates and sequences
+			
+		}
+		
 		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
 	}
 
@@ -3904,7 +3910,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list,_config.MAP_VARIANTS);
+							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list,_config.MAP_VARIANTS, _config.NO_GAP_END);
 	}
 	else
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
@@ -3915,7 +3921,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores, seed_i, seed_j, best_match,_config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES, remapping, super_variant_list,_config.MAP_VARIANTS);
+							   MIN_NUM_MATCHES, remapping, super_variant_list,_config.MAP_VARIANTS, _config.NO_GAP_END);
 	
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
