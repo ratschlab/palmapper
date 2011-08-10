@@ -37,8 +37,8 @@ typedef struct alignment_t {
 	char from_gm ;
 	bool passed_filters;
 	bool remapped ;
-	std::vector<FoundVariant> found_variants ;
-	std::vector<Variant> align_variants ;
+	std::vector<Variant> found_variants ; //Existing variants used to obtain a better alignment than on the reference
+	std::vector<Variant> align_variants ; //Variants discovered from an alignment
 	std::vector<int> aligned_positions ;
 	
 	HIT* hit ;

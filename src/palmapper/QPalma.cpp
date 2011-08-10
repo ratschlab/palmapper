@@ -2550,6 +2550,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		if (found)
 		{
 			num_found_variants++ ;
+			v.id=num_found_variants;
 			variant_list.push_back(v) ;
 			if ((*it).type == pt_SNP)
 				num_found_SNP_variants++ ;
@@ -2960,7 +2961,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				// skipping the variant version
 				change_pos_table_deletion_ends(pos_table[idx_end+1+num_N+variants[i].variant_len],pos_table[idx_end+1+num_N]); //because of insertion: change ends of former deletion back to before the insertion
 				pos_table[idx_end]->del_refs.push_back(pos_table[idx_end+1+num_N+variants[i].variant_len]) ;
-				pos_table[idx_end]->del_ids.push_back(variants[i].id) ; //TODO: why 0 instead of variant id -> I replaced it
+				pos_table[idx_end]->del_ids.push_back(-1) ; //-1 because the id is already included in the first deletion
 				pos_table[idx_end+1+num_N+variants[i].variant_len]->del_origs.push_back(pos_table[idx_end]) ;
 
 			}
@@ -3036,9 +3037,37 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 	return super_variants ;
 }
 
-std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> super_variants,std::vector<FoundVariant> found_variants, std::string & dna, std::vector<bool> ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters) const
+bool getSuperVariant(std::vector<SuperVariant> super_variants, int super_seq_pos, SuperVariant & sv)
 {
-	std::vector<FoundVariant> final_variants ;
+	for (unsigned i=0;i<super_variants.size();i++){
+		if(super_variants[i].position == super_seq_pos){
+			sv=super_variants[i];
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void report_variant_at_read_pos(std::vector<Variant> & final_variants, std::vector<Variant> & variants, int id, int read_pos)
+{
+   	
+	for (unsigned i=0;i<variants.size();i++){
+		if(variants[i].id == id){
+			Variant v =variants[i];
+			v.read_pos=read_pos;
+			final_variants.push_back(v);
+			break;
+		}
+	}
+	
+   
+}
+
+
+std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> super_variants,std::vector<FoundVariant> found_variants, std::string & dna, std::vector<bool> ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters) const
+{
+	std::vector<Variant> final_variants ;
 	
 	std::vector<char> dna_back;
 	std::vector<int> s_align_back;
@@ -3056,6 +3085,15 @@ std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Va
 	int len_current_exon=-1;
 	int len_current_intron=-1;
 	int num_exons=0;
+	int current_variant_end=-1;
+	SuperVariant sv;
+	sv.end_position=-1;
+	sv.type=pt_unknown;
+	sv.variant_id=-1;
+	
+	bool is_variant=false;
+	int read_pos=-1;
+	
 
 	while(i<dna.length()){
 
@@ -3072,9 +3110,33 @@ std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Va
 				s_align_back.push_back(0);
 				dna_align_back.push_back(dna_align[align_ind]);
 				read_align_back.push_back(0);
+
+				//New deletion/substitution start
+				if (current_variant_end == -1){
+					
+					is_variant=getSuperVariant(super_variants,i,sv);
+					if(is_variant){
+						current_variant_end=sv.end_position;
+					}
+					else{
+						current_variant_end=-1;
+					}	
+				}
+				//End deletion on ref
+				if (current_variant_end == (int)i){
+					report_variant_at_read_pos(final_variants, variants, sv.variant_id, read_pos+1);
+					current_variant_end =-1;
+				}
+				
+				
 			}
-			//Insertion on ref not taken
+			//Insertion on ref not taken or N part of a imbalanced substitution
 			else{
+				//End imbalanced substitution
+				if (current_variant_end == (int)i){
+					report_variant_at_read_pos(final_variants, variants, sv.variant_id, read_pos+1);
+					current_variant_end =-1;
+				}
 				result_length--;
 			}
 			i++;
@@ -3083,6 +3145,11 @@ std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Va
 			
 		if (s_align[i]==0){
 			align_ind++;
+
+			if (read_align[align_ind]!=0){
+				read_pos++;
+			}
+			
 
 			if (len_current_intron != -1){
 				if (len_current_intron>max_intron_len)
@@ -3111,6 +3178,10 @@ std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Va
 				//SNP
 				if (map_back(dna[i])!= dna_align[align_ind]){
 					dna_align_back.push_back(map_back(dna[i]));
+					is_variant=getSuperVariant(super_variants,i,sv);
+					if(is_variant){
+						report_variant_at_read_pos(final_variants, variants, sv.variant_id, read_pos);
+					}
 				}
 				else{
 					dna_align_back.push_back(dna_align[align_ind]);
@@ -3121,6 +3192,17 @@ std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Va
 			}
 			//Insertion on ref used
 			else{
+				if (current_variant_end == -1){
+					is_variant=getSuperVariant(super_variants,i,sv);
+					if(is_variant){
+						report_variant_at_read_pos(final_variants, variants, sv.variant_id, read_pos);
+					}
+				}
+				if (current_variant_end == (int)i){
+					current_variant_end =-1;
+				}
+				
+
 				if(read_align[align_ind]!=0){
 					dna_align_back.push_back(0);
 					read_align_back.push_back(read_align[align_ind]);
@@ -3136,6 +3218,7 @@ std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Va
 				dna_align_back.push_back(dna_align[align_ind+1]);
 				read_align_back.push_back(read_align[align_ind+1]);
 				align_ind++;
+				read_pos++;
 			}
 
 			i++;
@@ -3223,10 +3306,14 @@ std::vector<FoundVariant> QPalma::reconstruct_reference_alignment(std::vector<Va
 
 	fprintf(stdout,"Alignment with variants (valid=%i)has: %i mm %i gaps %i<=intron<=%i %i<=exon num_exon==%i\n",
 			alignment_passed_filters,alignment_mm,alignment_gaps,min_intron_len,max_intron_len,min_exon_len,num_exons);
+
+	for (unsigned v=0; v<final_variants.size();v++){
+		fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i\n",final_variants[v].type,final_variants[v].position,final_variants[v].read_pos);
+	}
+	
 	
 	return final_variants ;
 }
-
 
 
 
@@ -3855,17 +3942,25 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	alignment.getAlignmentArrays(dna_align, est_align);
 
 	std::vector<FoundVariant> found_variants =alignment.getVariants();
-	std::vector<FoundVariant> final_variants;
+	std::vector<Variant> final_variants;
 	bool alignment_variants_valid=true;
 
-	for (unsigned int i=0; i<found_variants.size();i++){
-		fprintf(stdout,"variant used: read_pos:%i id:%i type:%i\n",found_variants[i].read_position, found_variants[i].id,found_variants[i].type);
-	}
+	// for (unsigned int i=0; i<found_variants.size();i++){
+	// 	fprintf(stdout,"variant used: read_pos:%i id:%i type:%i\n",found_variants[i].read_position, found_variants[i].id,found_variants[i].type);
+	// }
 	
 	
 	if (_config.MAP_VARIANTS)
 	{
 		final_variants = reconstruct_reference_alignment(variants, super_variant_list, found_variants, dna, ref_map,s_align, s_len, e_align, est_len_p, dna_align,est_align,result_length,remapping,alignment_variants_valid) ;
+		for (unsigned int i=0; i< final_variants.size();i++){
+			final_variants[i].read_id = read.id();
+			final_variants[i].used_to_map = true;
+		}
+		
+		// for (unsigned int v=0; v<final_variants.size();v++){
+		// 	fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s\n",final_variants[v].type,final_variants[v].position,final_variants[v].read_pos, (char *)final_variants[v].read_id.c_str());
+		// }
 	}
 
 	std::vector<int> exons;
@@ -4046,9 +4141,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						//fprintf(stdout, "deletion: %i:%i (%s)\n", positions[start_offset+est_gap_start], positions[start_offset+est_gap_end], est_gap.c_str()) ;
 						//assert(abs(positions[start_offset+est_gap_end]-positions[start_offset+est_gap_start])+1==(int)est_gap.size()) ;
 						if (positions[start_offset+est_gap_start]< positions[start_offset+est_gap_end])
-							VariantMap::report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_start], est_gap.size(), est_gap, read.id()) ;
+							VariantMap::report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_start], est_gap.size(), est_gap, read.id(),-1) ;
 						else
-							VariantMap::report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_end], est_gap.size(), est_gap, read.id()) ;
+							VariantMap::report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_end], est_gap.size(), est_gap, read.id(),-1) ;
 					}
 					est_gap_start=-1 ;
 					est_gap="" ;
@@ -4065,7 +4160,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						}
 						
 						//fprintf(stdout, "insertion: %i (%s)\n", positions[start_offset+dna_gap_start], dna_gap.c_str()) ;
-						VariantMap::report_ins_variant(align_variants, contig_idx, positions[start_offset+dna_gap_start], dna_gap.size(), dna_gap, read.id()) ;
+						VariantMap::report_ins_variant(align_variants, contig_idx, positions[start_offset+dna_gap_start], dna_gap.size(), dna_gap, read.id(),-1) ;
 					}
 					dna_gap_start=-1 ;
 					dna_gap="" ;
@@ -4109,7 +4204,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							{
 								//fprintf(stdout, "SNP: %i (%c->%c)\n", positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]]) ;
 								if (strand=='+')
-									VariantMap::report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]], read.id()) ;
+									VariantMap::report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]], read.id(),read_pos) ;
 								else
 								{
 									std::string dna_letter ;
@@ -4120,7 +4215,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 									est_letter+=map[est_align[i]] ;
 									est_letter=complement(est_letter) ;
 									
-									VariantMap::report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], dna_letter[0], est_letter[0], read.id()) ;
+									VariantMap::report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], dna_letter[0], est_letter[0], read.id(),read_pos) ;
 								}
 							}
 					}
@@ -4396,7 +4491,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->passed_filters=alignment_passed_filters ;
 		aln->non_consensus_alignment = non_consensus_alignment ; 
 		aln->remapped = remapping ;
-		aln->found_variants = found_variants ;
+		aln->found_variants = final_variants ;
 		aln->align_variants = align_variants ;
 		aln->aligned_positions = aligned_positions ;
 		
