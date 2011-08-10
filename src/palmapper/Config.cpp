@@ -158,6 +158,8 @@ Config::Config() {
 	MAP_VARIANTS = false ;
 	VARIANT_FILE_NAME = "" ;
 	USED_VARIANT_FILE_NAME = "";
+
+	NO_GAP_END =-1;
 	
 	// Number of additional matches you have to find in case of a non consensus search compared to consensus one (based on QMM)
 	MIN_NUM_MATCHES_PEN=2;
@@ -2003,7 +2005,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 			}
 
-
+			//fix read trimming left
+			if (strcmp(argv[i], "-no-gap-end") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -no-gap-end\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				NO_GAP_END = atoi(argv[i]) ;
+			}
+			
 			if (not_defined == 1) {
 				fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
 				usage();
