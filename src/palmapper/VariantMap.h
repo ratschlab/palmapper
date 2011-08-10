@@ -24,8 +24,10 @@ struct variant_str {
 	enum polytype type ;
 	std::string ref_str, variant_str ;
 	std::string read_id ;
+	int read_pos;
 	int conf_count ;
 	int non_conf_count ;
+	bool used_to_map;
 };
 typedef struct variant_str Variant;
 
@@ -53,10 +55,10 @@ public:
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
 
-	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id);
+	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id,int read_pos);
 	void insert_variant(Variant & j, int chr) ;
 	int init_from_sdis(std::string &sdi_fname);
-	int report_to_sdi(std::string &sdi_fname);
+	int report_to_sdi(std::string &sdi_fname, bool used_to_map);
 
 	std::deque<Variant> * variantlist ;
 
@@ -101,7 +103,7 @@ public:
 	}
 
 	
-	static void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant, const std::string & read_id) 
+	static void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant, const std::string & read_id, int read_pos) 
 	{
 		Variant v ;
 		v.type = pt_SNP ;
@@ -114,10 +116,28 @@ public:
 		v.conf_count = 1 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
+		v.read_pos=read_pos;
 		variants.push_back(v) ;
 	}
 	
-	static void report_del_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & ref_str, const std::string & read_id) 
+	static void report_sub_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len_ref, std::string & ref_str, int len_var, std::string & variant_str, const std::string & read_id, int read_pos)
+	{
+		Variant v ;
+		v.type = pt_deletion ;
+		v.position = dna_pos ;
+		v.end_position = dna_pos+ref_str.size() ;
+		v.ref_len=ref_str.size() ;
+		v.variant_len=variant_str.size();
+		v.ref_str=ref_str ;
+		v.variant_str=variant_str ;
+		v.conf_count = 1 ;
+		v.read_id=read_id ;
+		v.non_conf_count = 0 ;
+		v.read_pos=read_pos;
+		variants.push_back(v) ;
+	}
+
+	static void report_del_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & ref_str, const std::string & read_id, int read_pos)
 	{
 		Variant v ;
 		v.type = pt_deletion ;
@@ -130,10 +150,11 @@ public:
 		v.conf_count = 1 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
+		v.read_pos=read_pos;
 		variants.push_back(v) ;
 	}
 
-	static void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str, const std::string & read_id) 
+	static void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str, const std::string & read_id, int read_pos)
 	{
 		Variant v ;
 		v.type = pt_insertion ;
@@ -146,6 +167,7 @@ public:
 		v.conf_count = 1 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
+		v.read_pos=read_pos;
 		variants.push_back(v) ;
 	}
 	
