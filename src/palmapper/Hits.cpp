@@ -128,6 +128,33 @@ static inline std::string complement(std::string str) {
 		case 'T':
 			str[i] = 'A';
 			break;
+		case 'B':
+			str[i] = 'V';
+			break;
+		case 'D':
+			str[i] = 'H';
+			break;
+		case 'H':
+			str[i] = 'D';
+			break;
+		case 'K':
+			str[i] = 'M';
+			break;
+		case 'M':
+			str[i] = 'K';
+			break;
+		case 'R':
+			str[i] = 'Y';
+			break;
+		case 'S':
+			str[i] = 'S';
+			break;
+		case 'V':
+			str[i] = 'B';
+			break;
+		case 'Y':
+			str[i] = 'R';
+			break;
 		case '[':
 			str[i] = ']';
 			break;
