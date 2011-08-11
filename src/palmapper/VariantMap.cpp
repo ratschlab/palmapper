@@ -15,6 +15,8 @@ VariantMap::VariantMap(Genome const &genome_)
 	unsigned int nbchr = genome->nrChromosomes();
 	
 	variantlist = new std::deque<Variant>[nbchr];
+	next_variant_id =0;
+	limit_known_variants =-1;
 	
 	int ret = pthread_mutex_init(&variant_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
 	assert(ret==0) ;
@@ -142,6 +144,8 @@ void VariantMap::insert_variant(Variant & j, int chr)
 	if (variantlist[chr].empty())
 	{
 		
+		j.id=next_variant_id;
+		next_variant_id++;
 		variantlist[chr].push_back(j);
 
 		unlock() ;
@@ -161,6 +165,8 @@ void VariantMap::insert_variant(Variant & j, int chr)
 		if (variant_cmp(j, *it)==0)
 		{
 			if (j.used_to_map){
+				j.id=next_variant_id;
+				next_variant_id++;
 				variantlist[chr].insert(it, j);
 			}
 			else{	
@@ -174,6 +180,8 @@ void VariantMap::insert_variant(Variant & j, int chr)
 		continue;
 	}
 
+	j.id=next_variant_id;
+	next_variant_id++;
 	variantlist[chr].push_back(j);
 
 	unlock() ;
@@ -322,6 +330,8 @@ int VariantMap::init_from_sdis(std::string &sdi_fname)
 	
 	filename=sdi_fname.substr(previousfound);
 	int ret=init_from_sdi(filename);
+	limit_known_variants=next_variant_id-1;
+	
 	if (ret!=0)
 		return  ret;
 	

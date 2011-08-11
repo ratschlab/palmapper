@@ -51,7 +51,12 @@ typedef struct super_variant_str SuperVariant ;
 class VariantMap
 {
 
+private:
+	int next_variant_id;
+	int limit_known_variants;
+
 public:
+	std::deque<Variant> * variantlist ;
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
 
@@ -60,7 +65,7 @@ public:
 	int init_from_sdis(std::string &sdi_fname);
 	int report_to_sdi(std::string &sdi_fname, bool used_to_map);
 
-	std::deque<Variant> * variantlist ;
+
 
 	void lock() 
 	{ 
