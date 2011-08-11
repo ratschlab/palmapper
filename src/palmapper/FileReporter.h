@@ -9,12 +9,13 @@ class FileReporter : public Mapper::Reporter {
 		Entry() {_used= false;}
 		std::string _out;
 		std::string _sp_out;
+		std::string _variants_out;
 		std::string _left_overs;
 		bool _used;
 	};
 
 public:
-	FileReporter(FILE *out, FILE *sp_out, FILE *left_overs);
+	FileReporter(FILE *out, FILE *sp_out, 	FILE *_variants_out, FILE *left_overs);
 
 	void done() {
 		if (_out != stdout)
@@ -22,6 +23,9 @@ public:
 		//fprintf(_out, "#done\n") ;
 		if (_sp_out != NULL && _sp_out != stdout && _sp_out!=_out)
 			fprintf(_sp_out, "\n") ;
+		if (_variants_out != NULL && _variants_out != stdout)
+			fprintf(_variants_out, "\n") ;
+
 		//fprintf(_sp_out, "#done\n") ;
 	}
 
@@ -34,6 +38,7 @@ private:
 	lang::Signal _roomLeft;
 	FILE *_out;
 	FILE *_sp_out;
+	FILE *_variants_out;
 	FILE *_left_overs;
 	Entry _results[_nrResults];
 	volatile int _lastResult;

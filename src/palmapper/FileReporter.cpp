@@ -4,9 +4,10 @@
 #include <palmapper/FileReporter.h>
 #include <palmapper/print.h>
 
-FileReporter::FileReporter(FILE *out, FILE *sp_out, FILE *left_overs) {
+FileReporter::FileReporter(FILE *out, FILE *sp_out, FILE *variants_out, FILE *left_overs) {
 	_out = out;
 	_sp_out = sp_out;
+	_variants_out = variants_out;
 	_left_overs = left_overs;
 	_lastResult = -1;
 }
@@ -18,10 +19,11 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, Vari
 	int readNr = result._work.getNr();
 	std::stringstream out;
 	std::stringstream sp_out;
+	std::stringstream variants_out;
 	std::stringstream leftOvers;
 
 	if (result._state == Mapper::ReadMapped || (result._state < Mapper::IgnoreResultBound && _config.INCLUDE_UNMAPPED_READS_SAM)){
-		result._readMappings.topAlignments().end_top_alignment_record(result._work, &out, &sp_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end,
+		result._readMappings.topAlignments().end_top_alignment_record(result._work, &out, &sp_out, &variants_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end,
 																	  junctionmap, variants);
 	} else {
 		if (result._state < Mapper::IgnoreResultBound && _config.LEFTOVER_FILE_NAME.length() > 0) {
@@ -56,6 +58,8 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, Vari
 	e._out = out.str();
 	e._sp_out = sp_out.str();
 	e._left_overs = leftOvers.str();
+	e._variants_out = variants_out.str();
+	
 
 	for (int i = _lastResult + 1;  ; ++i) {
 		int pos = i % _nrResults;
@@ -66,6 +70,7 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, Vari
 		assert(en._used);
 		print(_out, en._out);
 		print(_sp_out, en._sp_out);
+		print(_variants_out, en._variants_out);
 		print(_left_overs, en._left_overs);
 		en._used = false;
 		_lastResult = i;

@@ -25,10 +25,11 @@ struct variant_str {
 	std::string ref_str, variant_str ;
 	std::string read_id ;
 	int read_pos;
+	int used_count ;
 	int conf_count ;
 	int non_conf_count ;
-	bool used_to_map;
 };
+
 typedef struct variant_str Variant;
 
 struct found_variant_str {
@@ -60,10 +61,10 @@ public:
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
 
-	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, const std::string & read_id,int read_pos);
+	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int used_count, const std::string & read_id,int read_pos);
 	void insert_variant(Variant & j, int chr) ;
 	int init_from_sdis(std::string &sdi_fname);
-	int report_to_sdi(std::string &sdi_fname, bool used_to_map);
+	int report_to_sdi(std::string &sdi_fname);
 
 
 
@@ -119,6 +120,7 @@ public:
 		v.ref_str+=ref ;
 		v.variant_str+=variant ;
 		v.conf_count = 1 ;
+		v.used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
@@ -136,6 +138,7 @@ public:
 		v.ref_str=ref_str ;
 		v.variant_str=variant_str ;
 		v.conf_count = 1 ;
+		v.used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
@@ -153,6 +156,7 @@ public:
 		v.ref_str=ref_str ;
 		v.variant_str="" ;
 		v.conf_count = 1 ;
+		v.used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
@@ -170,6 +174,7 @@ public:
 		v.ref_str="" ;
 		v.variant_str=variant_str ;
 		v.conf_count = 1 ;
+		v.used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;

@@ -3067,6 +3067,9 @@ void report_variant_at_read_pos(std::vector<Variant> & final_variants, std::vect
 		if(variants[i].id == id){
 			Variant v =variants[i];
 			v.read_pos=read_pos;
+			v.used_count=1;
+			v.conf_count=0;
+			v.non_conf_count=0;
 			final_variants.push_back(v);
 			break;
 		}
@@ -3975,7 +3978,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			
 			recover_variants_on_ref(final_variants[i],positions,strand,est_len_p);
 			final_variants[i].read_id = read.id();
-			final_variants[i].used_to_map = true;
 		}
 		
 		// for (unsigned int v=0; v<final_variants.size();v++){
