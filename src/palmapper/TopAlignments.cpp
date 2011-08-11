@@ -800,7 +800,7 @@ void TopAlignments::sort_top_alignment_list()
 	}
 }
 
-void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end, 
+void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, std::ostream *VARIANTS_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end, 
 											 JunctionMap &junctionmap, VariantMap & variants) 
 {
 	if (top_alignments.empty() && ! _config.INCLUDE_UNMAPPED_READS_SAM)
@@ -859,20 +859,24 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		{
 			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
 			{
-				for (unsigned j=0; j<top_alignments[i]->align_variants.size(); j++)
-					variants.insert_variant(top_alignments[i]->align_variants[j], top_alignments[i]->chromosome->nr()) ;
-				variants.report_non_variant(top_alignments[i]->chromosome, top_alignments[i]->aligned_positions, top_alignments[i]->exons) ;
+				if (_config.DISCOVER_VARIANTS){
+					for (unsigned j=0; j<top_alignments[i]->align_variants.size(); j++)
+						variants.insert_variant(top_alignments[i]->align_variants[j], top_alignments[i]->chromosome->nr()) ;
+					variants.report_non_variant(top_alignments[i]->chromosome, top_alignments[i]->aligned_positions, top_alignments[i]->exons) ;
+				}
+				if (_config.MAP_VARIANTS){
+					for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++)
+						variants.insert_variant(top_alignments[i]->found_variants[j], top_alignments[i]->chromosome->nr()) ;
+				}
+				
 			}
 		}
 		if (_config.MAP_VARIANTS)
 		{
 			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
 			{
-				//fprintf(stdout,"Report variants %i\n",top_alignments[i]->found_variants.size());
-				
-				for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++)
-					variants.insert_variant(top_alignments[i]->found_variants[j], top_alignments[i]->chromosome->nr()) ;
-		
+				fprintf(stdout,"Report variants %i\n",top_alignments[i]->found_variants.size());
+				print_top_alignment_variants(VARIANTS_FP,top_alignments[i]->found_variants,top_alignments[i]->chromosome->desc()) ;		
 			}
 		}
     }
@@ -1772,6 +1776,29 @@ int TopAlignments::close_bam_pipe(FILE * FP)
 	return -1 ;
 }
 
+//Variants used
+int TopAlignments::print_top_alignment_variants(std::ostream *OUT_FP, std::vector<Variant> v, const char * chr)
+{
+	std::ostream* MY_OUT_FP = OUT_FP ;
+	int num_variants=0;
+	
+	for (unsigned int i=0; i< v.size(); i++)
+	{			
+		std::string ref_str = v[i].ref_str ;
+		if (ref_str.size()==0)
+			ref_str+='-' ;
+		std::string variant_str = v[i].variant_str ;
+		if (variant_str.size()==0)
+			variant_str+='-' ;
+		
+
+		fprintf(MY_OUT_FP,"%s\t%i\t%i\t%s\t%s\t%s\t%i\n",
+				chr, v[i].position+1, v[i].variant_len-v[i].ref_len, ref_str.c_str(), variant_str.c_str(), v[i].read_id.c_str(),v[i].read_pos+1);
+		num_variants++;
+	}
+	return num_variants;
+	
+}
 
 // SAM format
 int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)

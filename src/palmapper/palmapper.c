@@ -83,9 +83,13 @@ int main(int argc, char *argv[])
 	}
     FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
 
+	FILE *VARIANTS_FP = NULL;
+	if (_config.MAP_VARIANTS && _config.USED_VARIANT_FILE_NAME.length()>0){
+		VARIANTS_FP= Util::openFile(_config.USED_VARIANT_FILE_NAME, "w") ;
+	}
 
 	QueryFile queryFile(_config.QUERY_FILE_NAMES,_config.QUERY_FILE_STRANDS);
-	FileReporter reporter(OUT_FP, SP_OUT_FP, LEFTOVER_FP);
+	FileReporter reporter(OUT_FP, SP_OUT_FP, VARIANTS_FP, LEFTOVER_FP);
 	JunctionMap junctionmap(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
 	JunctionMap annotated_junctions(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
 	VariantMap variants(genome);
@@ -239,6 +243,10 @@ int main(int argc, char *argv[])
 	if (_config.LEFTOVER_FILE_NAME.length() > 0) 
 		fclose(LEFTOVER_FP);
 
+	if (_config.MAP_VARIANTS && _config.USED_VARIANT_FILE_NAME.length()>0){
+		fclose(VARIANTS_FP);
+	}
+
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);
 //TODO:		printf("R E D U N D A N T : %d\n", mapper.REDUNDANT);
@@ -281,17 +289,11 @@ int main(int argc, char *argv[])
 		junctionmap.report_to_gff(_config.REPORT_JUNCTIONS_FILE);
 
 	if (_config.REPORT_VARIANTS){
-		int ret=variants.report_to_sdi(_config.REPORT_VARIANTS_FILE, false);
+		int ret=variants.report_to_sdi(_config.REPORT_VARIANTS_FILE);
 		if (ret!=0)
 			return -1;
 	}
 	
-	if (_config.MAP_VARIANTS && _config.USED_VARIANT_FILE_NAME.length()>0){
-		
-		int ret=variants.report_to_sdi(_config.USED_VARIANT_FILE_NAME, true);
-		if (ret!=0)
-			return -1;
-	}
 
 	if (qpalma != NULL)
 		delete qpalma;

@@ -73,7 +73,7 @@ public:
 	void clean_top_alignment_record()  ;
 	void start_top_alignment_record()  ;
 	void check_alignment(struct alignment_t * alignment) ;
-	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, int rtrim_cut, int polytrim_start, int polytrim_end, 
+	void end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP,std::ostream *VARIANTS_FP, int rtrim_cut, int polytrim_start, int polytrim_end, 
 								  JunctionMap &junctionmap, VariantMap & variants) ;
 
 	int print_top_alignment_records(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
@@ -81,7 +81,8 @@ public:
 	int print_top_alignment_records_shorebed(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
 	int print_alignment_shorebed(Read const &read, std::ostream *OUT_FP, alignment_t* align, unsigned int num)  ;
 	int print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP) ;
-
+	int print_top_alignment_variants(std::ostream *OUT_FP, std::vector<Variant> v, const char * chr);
+	
 	static void print_bam_header(Genome& genome, FILE *OUT_FP);
 	static FILE* open_bam_pipe(std::string & out_fname) ;
 	static int close_bam_pipe(FILE * FP) ;
