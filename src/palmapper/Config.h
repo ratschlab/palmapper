@@ -171,12 +171,6 @@ public:
 	std::string ANNOTATED_SPLICE_SITES_FILE;
 	int SCORE_ANNOTATED_SPLICE_SITES ;
 
-	bool REPORT_VARIANTS ;
-	int report_SNP_terminal_dist ;
-	int report_indel_terminal_dist ;
-	std::string REPORT_VARIANTS_FILE ;
-	
-
 	int REPORT_RESET;
 
 	int QPALMA_USE_MAP;
@@ -206,6 +200,7 @@ public:
 	std::string DON_FILES;
 	int NO_SPLICE_PREDICTIONS;
 	bool NO_QPALMA;
+	bool NO_GENOMEMAPPER ;
 	double QPALMA_INDEL_PENALTY ;
 	bool NO_QPALMA_SCORE_FIX ;
 	
@@ -216,8 +211,14 @@ public:
 	int MIN_NUM_MATCHES_PEN;
 
 	bool MAP_VARIANTS ;
+	bool DISCOVER_VARIANTS ;
 	std::string VARIANT_FILE_NAME ;
 	std::string USED_VARIANT_FILE_NAME;
+
+	bool REPORT_VARIANTS ;
+	int report_SNP_terminal_dist ;
+	int report_indel_terminal_dist ;
+	std::string REPORT_VARIANTS_FILE ;
 
 	int NO_GAP_END;
 	

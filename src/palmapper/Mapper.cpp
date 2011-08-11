@@ -325,7 +325,8 @@ restart:
 	{
 		hits._topAlignments.start_top_alignment_record();
 
-		read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+		if (!_config.NO_GENOMEMAPPER)
+			read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
 
 		int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
 		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,1000,_annotatedjunctions, _variants);//hits._topAlignments.size() -nb_unspliced);
@@ -335,9 +336,12 @@ restart:
 	{
 		hits._topAlignments.start_top_alignment_record();
 
-		read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
-		if (_config.VERBOSE>1)
-			printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
+		if (!_config.NO_GENOMEMAPPER)
+		{
+			read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+			if (_config.VERBOSE>1)
+				printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
+		}
 
 		bool trigger = false ;
 		if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)

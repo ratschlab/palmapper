@@ -281,15 +281,14 @@ int main(int argc, char *argv[])
 		junctionmap.report_to_gff(_config.REPORT_JUNCTIONS_FILE);
 
 	if (_config.REPORT_VARIANTS){
-		int ret=variants.report_to_sdi(_config.REPORT_VARIANTS_FILE,false);
+		int ret=variants.report_to_sdi(_config.REPORT_VARIANTS_FILE, false);
 		if (ret!=0)
 			return -1;
 	}
 	
-
 	if (_config.MAP_VARIANTS && _config.USED_VARIANT_FILE_NAME.length()>0){
 		
-		int ret=variants.report_to_sdi(_config.USED_VARIANT_FILE_NAME,true);
+		int ret=variants.report_to_sdi(_config.USED_VARIANT_FILE_NAME, true);
 		if (ret!=0)
 			return -1;
 	}

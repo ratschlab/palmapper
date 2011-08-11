@@ -2613,12 +2613,6 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 	{
 		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants) ;
 
-		//if (variant_list.size()>0)
-		//{
-		//	insert_variants(variant_list, dna, current_regions, positions, contig_idx) ;
-		//}
-		//else return 0 ;
-
 		return perform_alignment_starter_single(result, readMappings, 
 												read_string, read_quality, 
 												dna, current_regions, positions, 
@@ -3878,8 +3872,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int seed_j;
 	double best_match=alignment.init_seed_position (hit_read, hit_dna_converted, hit_length, seed_i, seed_j, est,
 													est_len_p, (char*)dna.c_str(), (int) dna.length(), alignment_parameters->qualityPlifs, 
-							   alignment_parameters->matchmatrix, alignment_parameters->matchmatrix_dim[0]
-										  * alignment_parameters->matchmatrix_dim[1], prb);
+													alignment_parameters->matchmatrix, alignment_parameters->matchmatrix_dim[0]
+													* alignment_parameters->matchmatrix_dim[1], prb);
 	
 	
 	std::vector<SuperVariant> super_variant_list ;
@@ -3899,6 +3893,12 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		fprintf(stdout, "# dna: %s\n", dna.c_str());
 	if (verbosity >= 3)
 		fprintf(stdout, "# read: %s\n", read_string.c_str());
+	if (hit_read<0)
+	{
+		fprintf(stdout, "hit_read=%i setting to 0 to recover\n", hit_read) ;
+		hit_read = 0 ;
+	}
+	
 	assert (hit_read >= 0);
 	assert (hit_dna_converted >= 0);
 	assert (seed_j >= 0);
@@ -3913,7 +3913,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list,_config.MAP_VARIANTS, _config.NO_GAP_END);
+							   MIN_NUM_MATCHES+ _config.MIN_NUM_MATCHES_PEN, remapping , super_variant_list, 
+							   _config.MAP_VARIANTS, _config.NO_GAP_END);
 	}
 	else
 		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
@@ -3924,7 +3925,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   acceptor, a_len, alignment_parameters->qualityPlifs,
 							   remove_duplicate_scores, seed_i, seed_j, best_match,_config.SPLICED_MAX_INTRONS,
 							   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
-							   MIN_NUM_MATCHES, remapping, super_variant_list,_config.MAP_VARIANTS, _config.NO_GAP_END);
+							   MIN_NUM_MATCHES, remapping, super_variant_list,
+							   _config.MAP_VARIANTS, _config.NO_GAP_END);
 	
 	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
@@ -4136,7 +4138,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			assert(est_align[i]>=0 && est_align[i]<=6);
 			est_align_str[i] = map[est_align[i]];
 
-			if (_config.REPORT_VARIANTS)
+			if (_config.DISCOVER_VARIANTS)
 			{
 				if ( est_align[i] !=0 && est_gap_start!=-1)
 				{
@@ -4208,7 +4210,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 						alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
 						assert(map[est_align[i]]==read_string[read_pos]) ;
 
-						if (_config.REPORT_VARIANTS)
+						if (_config.DISCOVER_VARIANTS)
 							if (read_pos>=_config.report_SNP_terminal_dist && (int)read_string.length()-read_pos>=_config.report_SNP_terminal_dist)
 							{
 								//fprintf(stdout, "SNP: %i (%c->%c)\n", positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]]) ;
@@ -4236,7 +4238,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			}
 			else if ( est_align[i]==0 )
 			{
-				if (_config.REPORT_VARIANTS)
+				if (_config.DISCOVER_VARIANTS)
 				{
 					if (est_gap_start==-1)
 						est_gap_start = dna_pos ;
@@ -4265,7 +4267,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			}
 			else if ( dna_align[i]==0)
 			{
-				if (_config.REPORT_VARIANTS)
+				if (_config.DISCOVER_VARIANTS)
 				{
 					if (dna_gap_start==-1)
 						dna_gap_start = dna_pos ;

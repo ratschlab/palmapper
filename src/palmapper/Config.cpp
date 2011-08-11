@@ -81,11 +81,6 @@ Config::Config() {
 	MAP_JUNCTIONS_COVERAGE=2;
 	MAP_JUNCTIONS_PSEUDO_ANNO_COV=10 ;
 
-	REPORT_VARIANTS=false ;
-	report_SNP_terminal_dist = 10 ;
-	report_indel_terminal_dist = 15 ;
-	REPORT_VARIANTS_FILE="/dev/stdout" ;
-
 	QPALMA_USE_MAP = 1 ;
 	QPALMA_USE_MAP_MAX_SIZE = 10000 ;
 	QPALMA_USE_SPLICE_SITES = 0 ;
@@ -158,6 +153,11 @@ Config::Config() {
 	MAP_VARIANTS = false ;
 	VARIANT_FILE_NAME = "" ;
 	USED_VARIANT_FILE_NAME = "";
+	DISCOVER_VARIANTS=false ;
+	REPORT_VARIANTS=false ;
+	report_SNP_terminal_dist = 10 ;
+	report_indel_terminal_dist = 15 ;
+	REPORT_VARIANTS_FILE="/dev/stdout" ;
 
 	NO_GAP_END =-1;
 	
@@ -167,6 +167,7 @@ Config::Config() {
 	INCLUDE_UNMAPPED_READS_SAM=false;
 	
 	NO_QPALMA = false;
+	NO_GENOMEMAPPER = false ;
 	QPALMA_INDEL_PENALTY=0.0 ;
 	NO_QPALMA_SCORE_FIX = false ;
 	
@@ -323,6 +324,13 @@ int Config::applyDefaults(Genome * genome)
 				fprintf(stdout, "* Selecting SAM output format\n") ;
 			}
 		}
+
+		if (MAP_VARIANTS || NO_GAP_END>=0)
+		{
+			fprintf(stdout, "* Disabling GenomeMapper alignments\n") ;
+			NO_GENOMEMAPPER=true ;
+		}
+		
 	} else {
 
 		if (OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) OUTPUT_FORMAT = OUTPUT_FORMAT_SHORE;
@@ -871,6 +879,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_VARIANTS_FILE=strdup(argv[i]) ;
 				REPORT_VARIANTS = true ;
 			}
+			if (strcmp(argv[i], "-discover-variants") == 0) {
+				not_defined = 0;
+				DISCOVER_VARIANTS = true;
+			}
 
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
 				not_defined = 0;
@@ -1371,10 +1383,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//variant file
-		if (strcmp(argv[i], "-V") == 0) {
+		if (strcmp(argv[i], "-use-variants") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -V\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option -use-variants\n") ;
 				usage();
 				exit(1);
 			}
@@ -1895,6 +1907,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				NO_QPALMA = true;
 				
 			}
+			if (strcmp(argv[i], "-no-genomemapper") == 0) {
+				not_defined = 0;
+				NO_GENOMEMAPPER = true;
+				
+			}
 			if (strcmp(argv[i], "-no-qpalma-score-fix") == 0) {
 				not_defined = 0;
 				NO_QPALMA_SCORE_FIX = true;
@@ -2021,6 +2038,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				i++;
 				NO_GAP_END = atoi(argv[i]) ;
+				NO_GENOMEMAPPER = true ;
 			}
 			
 			if (not_defined == 1) {
