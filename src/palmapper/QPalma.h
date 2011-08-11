@@ -151,6 +151,7 @@ protected:
 	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) const;
 	int convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions) const;
 	void convert_variants(std::vector<Variant> &variants, int dna_len) const;
+	void recover_variants_on_ref(Variant &variant,std::vector<int> positions,char strand,int read_len) const;
 	int get_first_read_map(Read const &read, bool* read_map) const;
 	void print_hit(HIT *hit) ;
 	void print_region(region_t *region, const char * bla)  ;
