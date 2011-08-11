@@ -867,7 +867,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_JUNCTIONS = 1 ;
 			}
 
-			//report junctions
+			//Report variants 
 			if (strcmp(argv[i], "-report-variants") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -879,9 +879,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_VARIANTS_FILE=strdup(argv[i]) ;
 				REPORT_VARIANTS = true ;
 			}
+
+			//Enable to discover new variants
 			if (strcmp(argv[i], "-discover-variants") == 0) {
 				not_defined = 0;
 				DISCOVER_VARIANTS = true;
+			}
+
+			//Variant filename with variants to use for alignments
+			if (strcmp(argv[i], "-use-variants") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -use-variants\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				VARIANT_FILE_NAME.assign(argv[i]);
+				MAP_VARIANTS = true ;
 			}
 
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
@@ -1382,19 +1397,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 			LEFTOVER_FILE_NAME.assign(argv[i]);
 		}
 
-		//variant file
-		if (strcmp(argv[i], "-use-variants") == 0) {
-			not_defined = 0;
-			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -use-variants\n") ;
-				usage();
-				exit(1);
-			}
-			i++;
-			VARIANT_FILE_NAME.assign(argv[i]);
-
-			MAP_VARIANTS = true ;
-		}
 
 		//verbose
 		if (strcmp(argv[i], "-v") == 0) {
@@ -2167,9 +2169,15 @@ int Config::usage() {
 		printf(" -don-consensus STRING                 defines consensus sequences for donor sites (separated by \",\") [GT,GC]\n");
 		printf(" -no-ss-pred                           indicates that no splice site predictions should be used and only scores positions corresponding to consensus sequences for acceptors and donors\n");
 		printf(" -non-consensus-search                 switch on spliced alignments with non consensus sequences as plausible splice sites\n");
-		printf(" -score-annotated-splice-sites STRING[,STRING,..,STRING]  set score of annotated splice sites from gff3 files to 1\n");
+		printf(" -score-annotated-splice-sites STRING[,STRING,..,STRING]  set score of annotated splice sites from gff3 files to 1\n\n");
+
 		printf(" -junction-remapping STRING[,STRING,..,STRING]  enables remapping of unmapped or unspliced reads against the junction list provided in gff3 files\n");
-		printf(" -junction-remapping-coverage INT      minimum alignment support to take into account a junction\n\n");
+		printf(" -junction-remapping-coverage INT      minimum alignment support to take into account a junction\n");
+		printf(" -report-junctions STRING              report splice site junctions in gff3 format\n\n");
+
+		printf(" -use-variants STRING                  Use variants provided in a sdi or maf or samtools file to map reads against\n");
+		printf(" -discover-variants                    Switch on the discovery of new variant sequences (deletion, insertion, SNP)\n");
+		printf(" -report-variants STRING               report variants (used and discovered)\n\n");
 
 		printf(" -filter-splice-sites-top-perc FLOAT   trigger spliced alignments, if read covers top percentile splice site (between 0 and 1) [0.01]\n");
 		printf(" -filter-splice-region INT             extension of the read region up- and downstream for triggeringspliced alignments by presence of splice sites [5]\n");
@@ -2205,7 +2213,6 @@ int Config::usage() {
 		printf(" -report-gff-init STRING               initialize map with exons from GFF file\n");
 		printf(" -report-coverage-map STRING           report genome coverage in map format\n");
 		printf(" -report-coverage-wig STRING           report genome coverage in wiggle format\n\n");
-		printf(" -report-junctions STRING              report splice site junctions in gff3 format\n\n");
 		//printf(" -qpalma-use-map                       use map for qpalma alignments\n");
 		//printf(" -e         report edit operations (alignment scores)\n");
 
