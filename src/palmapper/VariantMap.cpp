@@ -153,7 +153,9 @@ void VariantMap::insert_variant(Variant & j, int chr)
 		return;
 	}
 
-	std::deque<Variant>::iterator it = my_lower_bound(variantlist[chr].begin(), variantlist[chr].end(), j.position) ;
+	std::deque<Variant>::iterator it = my_lower_bound(variantlist[chr].begin(), variantlist[chr].end(), j.position);
+	if (it !=variantlist[chr].begin())
+		it--;
 	
 	for (; it!=variantlist[chr].end(); it++)
 	{

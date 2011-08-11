@@ -114,7 +114,7 @@ public:
 		Variant v ;
 		v.type = pt_SNP ;
 		v.position = dna_pos ;
-		v.end_position = dna_pos ;
+		v.end_position = dna_pos+1 ;
 		v.ref_len=1 ;
 		v.variant_len=1;
 		v.ref_str+=ref ;
