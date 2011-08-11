@@ -1198,13 +1198,28 @@ int QPalma::convert_dna_position(int real_position, size_t* cum_length, const st
 	for (size_t j = 0; j < current_regions.size(); j++)
 		if (real_position >= current_regions[j]->start && real_position< current_regions[j]->end)
 			return real_position - current_regions[j]->start + cum_length[j];
-
-	//   for (int i=0;i<positions.size();i++){
-//       if (positions[i]==real_position)
-// 	return i;
-//     }
   
 	return -1;
+}
+
+void QPalma::convert_variants(std::vector<Variant> &variants, int dna_len) const
+{
+	for (unsigned int i = 0; i < variants.size(); i++){
+		if (variants[i].type == pt_insertion){
+			int start_tmp=variants[i].position;
+			variants[i].position=dna_len-variants[i].end_position;
+			variants[i].end_position=dna_len-start_tmp;
+			variants[i].ref_str=reverse(complement(variants[i].ref_str));
+			variants[i].variant_str=reverse(complement(variants[i].variant_str));
+		}
+		else{
+			int start_tmp=variants[i].position;
+			variants[i].position=dna_len-(variants[i].end_position+1);
+			variants[i].end_position=dna_len-(start_tmp+1);
+			variants[i].ref_str=reverse(complement(variants[i].ref_str));
+			variants[i].variant_str=reverse(complement(variants[i].variant_str));
+		}
+	}
 }
 
 int QPalma::get_first_read_map(Read const &read, bool* read_map) const
@@ -2553,7 +2568,6 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		if (found)
 		{
 			num_found_variants++ ;
-			v.id=num_found_variants;
 			variant_list.push_back(v) ;
 			if ((*it).type == pt_SNP)
 				num_found_SNP_variants++ ;
@@ -3565,37 +3579,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				}
 				iq.getResults(don_pos, don_index, don_score);
 				iq.cleanup();
-		
-		
-
-// 	  /* write acceptor and donor predictions into tables */
-// 	  if (strand=='+') // only necessary for + strand
-// 	    for (int i=0; i<acc_size; i++)
-// 	      {
-// 		//fprintf(stdout,"%i ",acc_pos[i]);
-// 		//if (strand=='+') // only necessary for + strand
-// 		acc_pos[i]-=2 ; // 1-based -> 0-based  and shift by 1
-// 		for (size_t j=0; j<current_regions.size(); j++)
-// 		  if (acc_pos[i]>=current_regions[j]->start && acc_pos[i]<current_regions[j]->end){
-// 		    acceptor[ acc_pos[i] - current_regions[j]->start + cum_length[j] ] = acc_score[i] ;
-// 		  }
-// 	      }
-// 	  else
-// 	    for (int i=0; i<acc_size; i++)
-// 	      {
-// 		//		fprintf(stdout,"%i ",acc_pos[i]);
-// 		for (size_t j=0; j<current_regions.size(); j++)
-// 		  if (acc_pos[i]>=current_regions[j]->start && acc_pos[i]<current_regions[j]->end)
-// 		    acceptor[ acc_pos[i] - current_regions[j]->start + cum_length[j] ] = acc_score[i] ;
-// 	      }
-// 	  //	  fprintf(stdout,"\n");
-		
-// 	  for (int i = 0; i < don_size; i++) {
-// 	    don_pos[i] -= 1; // 1-based -> 0-based
-// 	    for (size_t j = 0; j < current_regions.size(); j++)
-// 	      if (don_pos[i] >= current_regions[j]->start && don_pos[i]  < current_regions[j]->end)
-// 		donor[don_pos[i] - current_regions[j]->start + cum_length[j]] = don_score[i];
-// 	  }
 
 
 				size_t j;
@@ -3677,31 +3660,24 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 				//Get splice sites for different intervals				
 				for (int i = 0; i < num_intervals; i++) {
-					//fprintf(stdout,"Get splice sites for region %i\n",i);
 					get_annotated_splice_sites(acc_pos_vec,don_pos_vec,annotatedjunctions,current_regions[i]->start,current_regions[i]->end,contig_idx.nr(),strand);
-					//fprintf(stdout,"Get splice sites for region %i ---- DONE\n",i);
+
 					//Transform coordinates
 					if (strand=='+'){
 						for (int k=0; k<(int)acc_pos_vec.size(); k++){
-							//fprintf(stdout,"(%i %i %i %i)\n",acc_pos_vec[k],current_regions[i]->start,current_regions[i]->end,i);
 							acceptor[ acc_pos_vec[k] - current_regions[i]->start + cum_length[i]] = 1.0 ;  
-							//fprintf(stdout,"acceptor=%c|%c%c|%c\n",dna[acc_pos_vec[k] - current_regions[i]->start + cum_length[i]-2],dna[acc_pos_vec[k] - current_regions[i]->start + cum_length[i]-1],dna[acc_pos_vec[k] - current_regions[i]->start + cum_length[i]],dna[acc_pos_vec[k] - current_regions[i]->start + cum_length[i]+1]);
-							
 						}
 						for (int k=0; k<(int)don_pos_vec.size(); k++) {
 							donor[don_pos_vec[k] - current_regions[i]->start + cum_length[i]]= 1.0;
-							//fprintf(stdout,"donor=%c|%c%c|%c\n",dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]-1],dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]],dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]+1],dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]+2]);
 						}
 					}
 
 					else{
-						
 						for (int k=0; k<(int)acc_pos_vec.size(); k++){
 							acceptor[a_len-1-(acc_pos_vec[k] - current_regions[i]->start + cum_length[i])] = 1.0 ;
 						}
 						for (int k=0; k<(int)don_pos_vec.size(); k++) {
 							donor[d_len-1 -(don_pos_vec[k] - current_regions[i]->start + cum_length[i])]= 1.0;
-							//fprintf(stdout,"donor=%c|%c%c|%c\n",dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]-2],dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]-1],dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]],dna[don_pos_vec[k] - current_regions[i]->start + cum_length[i]+1]);
 						}
 					}
 					
@@ -3716,11 +3692,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (strand=='-')
 	{
 		dna = reverse(complement(dna)) ;
-		//reverse(donor, d_len) ;
-		//reverse(acceptor, a_len) ;
-		//for (int i=0; i<positions.size(); i++)
-		//fprintf(stdout, "%i:%i ", i, positions[i]) ;
-		//fprintf(stdout, "\n") ;
 		positions = reverse(positions);
 	}
 	/*if (verbosity>=2)
@@ -3883,7 +3854,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		
 		if (strand == '-'){
 			//reverse super variants coordinates and sequences
-			
+			convert_variants(variants,(int)dna.length());
 		}
 		
 		super_variant_list = create_super_sequence_from_variants(variants, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
