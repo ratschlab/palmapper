@@ -158,6 +158,8 @@ void VariantMap::insert_variant(Variant & j, int chr)
 	{
 		if (variant_cmp(j, *it)<0)
 		{
+			j.id=next_variant_id;
+			next_variant_id++;
 			variantlist[chr].insert(it, j);
 			unlock() ;
 			return;
