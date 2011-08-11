@@ -50,8 +50,7 @@ u_int8_t TopAlignments::report_unspliced_hit(Read const &read, HIT *hit, int num
 	
 	//if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
 	
-	if (!_config.REPORT_VARIANTS)
-		add_alignment_record(algn_hit, 1) ;
+	add_alignment_record(algn_hit, 1) ;
 
 	return 1 ;
 }

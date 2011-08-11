@@ -485,7 +485,7 @@ void Genome::mmap_indices()
 
 	INDEX_FWD_MMAP = (STORAGE_ENTRY *)fwd;
 
-    if (_config.INDEX_PRECACHE)
+    /*if (_config.INDEX_PRECACHE)
     {
         STORAGE_ENTRY buffer[1024] ;
 
@@ -502,7 +502,7 @@ void Genome::mmap_indices()
 		}
 		fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", 100.0) ;
         fprintf(stdout, "\n") ;
-    }
+		}*/
 	return;
 }
 
@@ -516,7 +516,9 @@ int Genome::mmap_full_file(const char *path, void **map, size_t * size_p)
 	// Set modus
 	open_mode = O_RDONLY;
 	mmap_prot = PROT_READ;
-	mmap_flags = MAP_SHARED;
+	mmap_flags = MAP_SHARED ;
+	if (_config.INDEX_PRECACHE)
+		mmap_flags |= MAP_POPULATE ;
 
 	// Open file to get file size
 	ret = open(path, open_mode, 0);
