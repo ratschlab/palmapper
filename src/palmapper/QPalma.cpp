@@ -2572,8 +2572,8 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 			if ((*it).type == pt_SNP)
 				num_found_SNP_variants++ ;
 			
-			//fprintf(stdout,"%i\t%i\t%i\t%i\t%s\t%s\n",
-			//		(*it).type, chr,(*it).position,(*it).variant_len-(*it).ref_len,(*it).ref_str.c_str(), (*it).variant_str.c_str());
+//			fprintf(stdout,"%i\t%i\t%i\t%i\t%i\t%s\t%s\n",
+//					(*it).id,(*it).type, chr,(*it).position,(*it).variant_len-(*it).ref_len,(*it).ref_str.c_str(), (*it).variant_str.c_str());
 		}
 		it++ ;
 	}
@@ -3075,6 +3075,41 @@ void report_variant_at_read_pos(std::vector<Variant> & final_variants, std::vect
    
 }
 
+		
+
+
+void QPalma::recover_variants_on_ref(Variant &variant,std::vector<int> positions,char strand, int read_len) const
+{
+	
+	if (strand =='+'){
+		//Get directly original positions
+		variant.position=positions[variant.position];
+		variant.end_position=positions[variant.end_position];
+	}
+	else{	
+		//Give sequences according to positive strand
+		variant.ref_str=reverse(complement(variant.ref_str));
+		variant.variant_str=reverse(complement(variant.variant_str));
+		//Give position on read oriented according to positive strand (like in SAM output)
+		variant.read_pos=read_len-1-variant.read_pos;
+		
+		//Get original positions: switch start and end
+		//Particular case for insertion where start=end and insertion is before the given position
+		//insertion before 3 on +: 1 2 | 3 <=> 3 | 2 1 insertion before 2 on -
+		if (variant.type == pt_insertion){
+			int start_v=positions[variant.position-1];
+			int end_v=positions[variant.end_position-1];
+			variant.position=end_v;
+			variant.end_position=start_v;
+		}
+		else{
+			int start_v=positions[variant.position];
+			int end_v=positions[variant.end_position];
+			variant.position=end_v;
+			variant.end_position=start_v;
+		}
+	}
+}
 
 std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> super_variants,std::vector<FoundVariant> found_variants, std::string & dna, std::vector<bool> ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters) const
 {
@@ -3935,7 +3970,10 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (_config.MAP_VARIANTS)
 	{
 		final_variants = reconstruct_reference_alignment(variants, super_variant_list, found_variants, dna, ref_map,s_align, s_len, e_align, est_len_p, dna_align,est_align,result_length,remapping,alignment_variants_valid) ;
+		
 		for (unsigned int i=0; i< final_variants.size();i++){
+			
+			recover_variants_on_ref(final_variants[i],positions,strand,est_len_p);
 			final_variants[i].read_id = read.id();
 			final_variants[i].used_to_map = true;
 		}
@@ -3991,7 +4029,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				intron_location=remapping && s_align[i]==0 && 
 					((strand=='+' && positions[i-1]+1 != positions[i]) || 
 					 (strand=='-' && positions[i-1] != positions[i]+1)) ;
-				//fprintf(stdout, "pos[%i]=%i   pos[%i]=%i  s_align=%i strand=%c\n", (int)i-1, (int)positions[i-1], (int)i, (int)positions[i], s_align[i],strand) ;
 				if (verbosity>=4)
 					fprintf(stdout, "pos[%i]=%i   pos[%i]=%i  valid=%i\n", (int)i-1, (int)positions[i-1], (int)i, (int)positions[i], alignment_valid) ;
 			}
@@ -4100,7 +4137,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		int dna_gap_start = -1 ;
 		std::string dna_gap = "" ;
 		std::string est_gap = "" ;
-		
 	    for (int i = 0; i < result_length; i++) 
 		{
 			assert(dna_align[i]>=0 && dna_align[i]<=6);
