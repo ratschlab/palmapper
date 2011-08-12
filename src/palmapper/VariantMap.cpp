@@ -388,7 +388,7 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 		if (variant_seq.length() != ref_align.length())
 			continue;
 		int ref_position=-1;
-		fprintf(stdout, "%s\n%s\n",(char*)ref_align.c_str(), (char*)variant_seq.c_str()) ;
+		//fprintf(stdout, "%s\n%s\n",(char*)ref_align.c_str(), (char*)variant_seq.c_str()) ;
 		for (unsigned j=0;j<ref_align.length();j++){
 
 			//Gap on both sequences
