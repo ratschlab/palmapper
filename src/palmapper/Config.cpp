@@ -158,7 +158,9 @@ Config::Config() {
 	report_SNP_terminal_dist = 10 ;
 	report_indel_terminal_dist = 15 ;
 	REPORT_VARIANTS_FILE="/dev/stdout" ;
-
+	MAF_REF_NAME="";
+	MAP_VARIANTS_EXT=unknown;
+	
 	NO_GAP_END =-1;
 	
 	// Number of additional matches you have to find in case of a non consensus search compared to consensus one (based on QMM)
@@ -435,12 +437,17 @@ int Config::checkConfig()
 		exit(1) ;
 	}
 
-
-	if (MAP_VARIANTS && OUT_FILE_NAME.length()>0){
-		USED_VARIANT_FILE_NAME.assign(OUT_FILE_NAME);
-		USED_VARIANT_FILE_NAME.append(".variants");
+	if (MAP_VARIANTS){	
+		if( MAP_VARIANTS_EXT==unknown){
+			fprintf(stderr,	"ERROR: Variant input %s has an unknown format\n",(char*)VARIANT_FILE_NAME.c_str());
+			exit(1) ;
+		}
+		if(MAP_VARIANTS_EXT==maf && MAF_REF_NAME.length()<=0){
+			fprintf(stderr,	"ERROR: Need reference genome name (with -maf-ref option) to initialize variants from the maf file %s\n",(char*)VARIANT_FILE_NAME.c_str());
+			exit(1) ;
+		}
+		
 	}
-	
 	
 	return 0 ;
 }
@@ -897,6 +904,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				VARIANT_FILE_NAME.assign(argv[i]);
 				MAP_VARIANTS = true ;
+			}
+
+			if (strcmp(argv[i], "-maf-ref") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -maf-refn") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAF_REF_NAME.assign(argv[i]);
 			}
 
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
@@ -2056,6 +2074,30 @@ int Config::parseCommandLine(int argc, char *argv[])
 	postprocess_query_filenames(Q1_QUERY_FILE_NAMES, 1) ;
 	postprocess_query_filenames(Q2_QUERY_FILE_NAMES, 0) ;
 
+
+
+	//Map using variants
+	//Initialize filename
+	if (MAP_VARIANTS && OUT_FILE_NAME.length()>0){
+		USED_VARIANT_FILE_NAME.assign(OUT_FILE_NAME);
+		USED_VARIANT_FILE_NAME.append(".variants");
+	}
+
+	//Get file extension
+	if (MAP_VARIANTS){
+		unsigned int pos_ext=VARIANT_FILE_NAME.rfind('.');
+		MAP_VARIANTS_EXT=unknown;
+		if (pos_ext != std::string::npos){
+			std::string extension(VARIANT_FILE_NAME.substr(pos_ext+1));
+			if (extension.compare("sdi")==0 ||extension.compare("SDI")==0)
+				MAP_VARIANTS_EXT=sdi;
+			if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
+				MAP_VARIANTS_EXT=maf;
+		}
+	}
+	
+
+
 	if (has_index == 0 || QUERY_FILE_NAMES.size() == 0 || has_genome == 0) {
 		usage();
 		exit(1);
@@ -2176,6 +2218,7 @@ int Config::usage() {
 		printf(" -report-junctions STRING              report splice site junctions in gff3 format\n\n");
 
 		printf(" -use-variants STRING                  Use variants provided in a sdi or maf or samtools file to map reads against\n");
+		printf(" -maf-ref STRING                       Name of the reference genome as it appears in multiple alignments for MAF file given with -use-variants option\n");
 		printf(" -discover-variants                    Switch on the discovery of new variant sequences (deletion, insertion, SNP)\n");
 		printf(" -report-variants STRING               report variants (used and discovered)\n\n");
 

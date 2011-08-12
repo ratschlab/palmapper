@@ -60,10 +60,11 @@ public:
 	std::deque<Variant> * variantlist ;
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
-
+	int insert_variants_from_multiple_alignments(std::string ref_align,int ref_len, std::vector<std::string> variant_align,int start_position,int chr_idx, char strand);
 	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int used_count, const std::string & read_id,int read_pos);
 	void insert_variant(Variant & j, int chr) ;
 	int init_from_sdis(std::string &sdi_fname);
+	int init_from_mafs(std::string &maf_fname,std::string &ref_name);
 	int report_to_sdi(std::string &sdi_fname);
 
 
@@ -193,6 +194,7 @@ public:
 protected:
 	
 	int init_from_sdi(std::string &gff_fname);
+	int init_from_maf(std::string &gff_fname,std::string &ref_genome);
 
 	Genome const *genome;
 
