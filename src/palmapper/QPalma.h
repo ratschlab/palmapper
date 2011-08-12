@@ -185,6 +185,7 @@ protected:
 		assert(0);
 	};
 
+public:
 	static inline std::string reverse(std::string str)
 	{
 		for (int i = 0; i < (int)str.length() / 2; i++) 
@@ -197,6 +198,7 @@ protected:
 		return str;
 	}
 	
+protected:
 	static inline std::vector<int> reverse(std::vector<int> vec)
 	{
 		for (int i = 0; i < (int)vec.size() / 2; i++) 
@@ -217,7 +219,8 @@ protected:
 			vec[len - i - 1] = c;
 		}
 	}
-	
+
+public:	
 	static inline char complement(char c) 
 	{
 	  switch (c) {
