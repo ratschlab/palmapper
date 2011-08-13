@@ -15,6 +15,9 @@ struct region_t {
 	bool from_map ;
 	char orientation ;
 	bool* read_map ;
+	short int read_pos ;
+	short int hit_len ;
+	
 	//int32_t chromosome ;
 	//char strand ;
 };

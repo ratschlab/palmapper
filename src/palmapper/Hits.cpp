@@ -706,6 +706,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 										if (!reverse) hit->end++;
 										else hit->start--;
 										if (read_num == num) printhit(_read, hit);
+										assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
 									}
 								}
 
@@ -772,8 +773,10 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 													assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
 													if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
 												}
-												hit->end = hit->end + _config.INDEX_DEPTH + 1;
-												//hit->end = genome_pos + INDEX_DEPTH;
+												//hit->end = hit->end + _config.INDEX_DEPTH + 1;
+												hit->end = genome_pos + INDEX_DEPTH;
+												
+												assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
 											}
 											else {
 												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos+INDEX_DEPTH,readpos-2,-1, conversion)) {
@@ -828,6 +831,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 						hit->start = genome_pos+1;	// +1 weg
 
 						hit->conversion = conversion;
+
+						assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
 
 						if (read_num == num) { printf("new hit: "); printhit(_read,hit); printf("\n"); }
 
@@ -977,6 +982,9 @@ int Hits::browse_hits()
 			{
 			
 				hitlength = hit->end - hit->start + 1;
+
+				assert(hit->readpos + hitlength <= (int)_read.length()+1) ;
+				//assert(hit->readpos + hit->end - hit->start + 1 <= (int)_read.length()+1) ;
 				
 				if (_config.STATISTICS) 
 					_stats.HITS_PER_READ++;
@@ -1178,8 +1186,6 @@ int Hits::browse_hits()
 
 		}
 	}
-	//fprintf(stdout, "normal exit\n") ;
-	//printhits() ;
 	
 	return 1;
 }
