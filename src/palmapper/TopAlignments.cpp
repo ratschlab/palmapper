@@ -855,27 +855,28 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 			}
 		}
 
-		if (_config.REPORT_VARIANTS)
+		if (_config.DISCOVER_VARIANTS || _config.USE_VARIANTS)
 		{
 			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
 			{
-				if (_config.DISCOVER_VARIANTS){
+				if (_config.DISCOVER_VARIANTS)
+				{
 					for (unsigned j=0; j<top_alignments[i]->align_variants.size(); j++)
 						variants.insert_variant(top_alignments[i]->align_variants[j], top_alignments[i]->chromosome->nr()) ;
-					variants.report_non_variant(top_alignments[i]->chromosome, top_alignments[i]->aligned_positions, top_alignments[i]->exons) ;
+					variants.report_non_variant(top_alignments[i]->chromosome, top_alignments[i]->aligned_positions, top_alignments[i]->exons, _config.NO_GAP_END) ; 
 				}
-				if (_config.MAP_VARIANTS){
+				if (_config.USE_VARIANTS)
+				{
 					for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++)
 						variants.insert_variant(top_alignments[i]->found_variants[j], top_alignments[i]->chromosome->nr()) ;
 				}
-				
 			}
 		}
-		if (_config.MAP_VARIANTS)
+		if (_config.REPORT_USED_VARIANTS)
 		{
 			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
 			{
-				fprintf(stdout,"Report variants %i\n",top_alignments[i]->found_variants.size());
+				fprintf(stdout,"Report variants %ld\n", top_alignments[i]->found_variants.size());
 				print_top_alignment_variants(VARIANTS_FP,top_alignments[i]->found_variants,top_alignments[i]->chromosome->desc()) ;		
 			}
 		}
@@ -893,7 +894,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 
 	std::vector<alignment_t *>::iterator it;
 
-	if (alignment == NULL)
+	if (alignment == NULL) 
 		return NULL;
 	assert(num_alignments>0);
 
