@@ -234,7 +234,7 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 				{
 					if ((*it).consensus!=consensus)
 					{
-						fprintf(stderr, "WARNING: consensus mismatch:\n%s:\t%i-%i %c %i %i %i\n%s:\t%i-%i %c %i %i %i\n", 
+						fprintf(stderr, "ERROR: consensus mismatch:\n%s:\t%i-%i %c %i %i %i\n%s:\t%i-%i %c %i %i %i\n", 
 								(*it).read_id.c_str(), (*it).start, (*it).end, (*it).strand, (*it).coverage, (*it).consensus, (*it).junction_qual,
 								read_id, start, end, strand, coverage, consensus, junction_qual) ;
 

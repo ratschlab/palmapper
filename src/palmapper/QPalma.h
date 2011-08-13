@@ -135,14 +135,31 @@ public:
 	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int capture_hits_2(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions, VariantMap & variants) const;
-	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
-						  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln, 
-						  bool remapping, JunctionMap &annotatedjunctions, const VariantMap& variants, std::vector<Variant> & variant_list) const;
+
+	void perform_alignment_wrapper1(QPalma::perform_alignment_t *data) const ;
+	template<int verbosity, bool discover_variants>
+		void perform_alignment_wrapper2(QPalma::perform_alignment_t *data) const ;
+	
+	template<int myverbosity, bool discover_variants, bool remapping> 
+		int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
+							  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln, 
+							  JunctionMap &annotatedjunctions, const VariantMap& variants, std::vector<Variant> & variant_list) const;
+
 	double score_unspliced(Read const &read, const char * read_anno, const char strand, const char ori) const;
 	//void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
 	
 protected:
 	
+	bool determine_exons(std::vector<int> & exons, const std::string & dna, const std::vector<int> &positions, bool remapping, char strand, const int *s_align, const int *e_align, 
+						 int & min_exon_len, int & max_intron_len, int & min_intron_len) const ;
+	template<int myverbosity, bool discover_variants> 
+		void determine_read_variants(Chromosome const &contig_idx, const int * s_align, const int* e_align, const int *dna_align, const int *est_align, const std::vector<int> & positions, 
+									 const VariantMap & variants, std::vector<Variant> & align_variants, std::vector<int> & aligned_positions,
+									 Read const & read, const std::string & read_string, const std::string & read_quality, std::string &read_anno, 
+									 int est_len_p, int result_length, char strand, int ori,
+									 int &alignment_matches, int &alignment_gaps, int &alignment_mismatches, int &alignment_qual_mismatches) const ;
+	
+
 	int get_splicesite_positions(std::string file_template, const char *type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
 								 std::vector<int> &positions) const;
 	
@@ -316,4 +333,5 @@ protected:
 	
 	Genome * genome ;
 	GenomeMaps* genomemaps ;
+
 } ;

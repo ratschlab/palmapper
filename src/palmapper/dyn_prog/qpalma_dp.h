@@ -74,6 +74,8 @@ class Alignment {
       uint32_t alignmentscores_size ;
       uint32_t numPathsPlifs ;
 
+	  int verbosity ;
+	  
       INT len;
       REAL *limits;
       REAL *penalties;
@@ -84,13 +86,12 @@ class Alignment {
       INT id;
       char * name;
       INT use_svm;
-	  int verbosity;
 	  
 	  std::vector<FoundVariant> fvariants;
 	  
 
    public:
-      Alignment(int numQPlifs ,int numq, bool use_qscores, int _verbosity);
+      Alignment(int numQPlifs ,int numq, bool use_qscores, int verbosity_);
       ~Alignment() {
 		  cleanup() ;
       }

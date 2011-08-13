@@ -57,6 +57,7 @@ private:
 	int next_variant_id;
 	int known_variants_limit;
 	bool validate_variants ;
+	bool exit_on_validation_error ;
 	
 public:
 	std::deque<Variant> * variantlist ;
@@ -65,10 +66,10 @@ public:
 	int insert_variants_from_multiple_alignments(std::string ref_align,int ref_len, std::vector<std::string> variant_align,int start_position,int chr_idx, char strand);
 	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int used_count, 
 						const std::string & read_id, int read_pos, int read_len);
-	void validate_variant(Variant & j, int chr) const ;
+	bool validate_variant(Variant & j, int chr, const char *flank="NN") const ;
 	void insert_variant(Variant & j, int chr) ;
 	int init_from_files(std::string &sdi_fname);
-	int report_to_sdi(std::string &sdi_fname);
+	int report_to_sdi(const std::string &sdi_fname) const;
 
 	void lock() 
 	{ 
@@ -89,7 +90,7 @@ public:
 		return true ;
 	}
 
-	int variant_cmp(const Variant &a, const Variant &b)
+	int variant_cmp(const Variant &a, const Variant &b) const
 	{
 		if (a.position<b.position)
 			return -1  ;
@@ -129,7 +130,8 @@ public:
 		v.read_len=read_len;
 		
 		if (validate_variants)
-			validate_variant(v, chr.nr()) ;
+			if (!validate_variant(v, chr.nr()))
+				return ;
 
 		variants.push_back(v) ;
 	}
@@ -152,7 +154,8 @@ public:
 		v.read_len=read_len;
 
 		if (validate_variants)
-			validate_variant(v, chr.nr()) ;
+			if (!validate_variant(v, chr.nr()))
+				return ;
 
 		variants.push_back(v) ;
 	}
@@ -175,12 +178,14 @@ public:
 		v.read_len=read_len;
 
 		if (validate_variants)
-			validate_variant(v, chr.nr()) ;
+			if (!validate_variant(v, chr.nr()))
+				return ;
 
 		variants.push_back(v) ;
 	}
 
-	void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str, const std::string & read_id, int read_pos, int read_len) const
+	void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str, const std::string & read_id, 
+							int read_pos, int read_len, const char* flank) const
 	{
 		Variant v ;
 		v.type = pt_insertion ;
@@ -198,18 +203,24 @@ public:
 		v.read_len=read_len;
 
 		if (validate_variants)
-			validate_variant(v, chr.nr()) ;
+			if (!validate_variant(v, chr.nr(), flank))
+				return ;
 
 		variants.push_back(v) ;
 	}
 	
 	void report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons, int no_gap_end) ;
 
-	void check_variant_order()
+	void check_variant_order() const
 	{
-		for (unsigned int i=0; i<genome->nrChromosomes(); i++)
-			for (unsigned j=0; j<variantlist[i].size()-1; j++)
-				assert(variant_cmp(variantlist[i][j], variantlist[i][j+1])<0) ;
+		for (int i=0; i<(int)genome->nrChromosomes(); i++)
+			for (int j=0; j<(int)(variantlist[i].size()-1); j++)
+			{
+				if (variant_cmp(variantlist[i][j], variantlist[i][j+1])>=0) 
+				{
+					fprintf(stdout, "ERROR: wrong order %i/%i-%i\n", i, j, j+1) ;
+				}
+			}
 	}
 
 protected:
