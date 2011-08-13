@@ -17,6 +17,8 @@
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
+static const bool perform_extra_checks = true ;
+
 int map_back(char c)
 {
 	switch (c){
@@ -1689,8 +1691,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 			for (int i = 0; i < (int)nbr_regions; i++)
 				regions[ori][chrN][i] = arr[i];
       
-			for (int i = 0; i + 1 < (int)nbr_regions; i++)
-				assert(regions[ori][chrN][i]->start<=regions[ori][chrN][i+1]->start);
+			if (perform_extra_checks)
+				for (int i = 0; i + 1 < (int)nbr_regions; i++)
+					assert(regions[ori][chrN][i]->start<=regions[ori][chrN][i+1]->start);
       
 			//for (int i=0; i<nbr_regions; i++)
 			//	arr[i]=NULL ;
@@ -1787,7 +1790,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 		for (size_t chrN = 0; chrN < regions[ori].size(); chrN++)
 			for (size_t tmp = 0; tmp < regions[ori][chrN].size(); tmp++)
 			{
-				assert(regions[ori][chrN][tmp]->end>regions[ori][chrN][tmp]->start) ;
+				if (perform_extra_checks)
+					assert(regions[ori][chrN][tmp]->end>regions[ori][chrN][tmp]->start) ;
 				if (!regions[ori][chrN][tmp]->erased)
 					num_merged++;
 			}
@@ -1886,7 +1890,8 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 			current_regions.push_back(regions[ori][chrN][start_region]);
 			std::string current_seq = str;
 		  
-			assert(regions[ori][chrN][start_region]->end >= regions[ori][chrN][start_region]->start) ;
+			if (perform_extra_checks)
+				assert(regions[ori][chrN][start_region]->end >= regions[ori][chrN][start_region]->start) ;
 			for (int p = 0; p < regions[ori][chrN][start_region]->end - regions[ori][chrN][start_region]->start; p++) 
 			{
 				current_positions.push_back(regions[ori][chrN][start_region]->start + p);
@@ -1935,28 +1940,34 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						std::vector<region_t*> corres_long_regions;
 						corres_long_regions.clear();
 						recover_long_regions(read, corres_long_regions, long_regions[ori][chrN], current_regions);
-						assert(corres_long_regions.size()>0); // at least one long region as support of alignment
-						assert(corres_long_regions[0]->read_map!=NULL);
-					  
+						if (perform_extra_checks)
+						{
+							assert(corres_long_regions.size()>0); // at least one long region as support of alignment
+							assert(corres_long_regions[0]->read_map!=NULL);
+						}
 
 						//Iterate all long regions and start alignment
 						int transcription_direction = get_transcription_direction(_config.STRAND, ori) ;
 						for (unsigned int lr =0; lr<corres_long_regions.size();lr++){
 							
 							int hit_read_position = get_first_read_map(read, corres_long_regions[lr]->read_map);
-							assert( hit_read_position == corres_long_regions[lr]->read_pos ) ;
+							if (perform_extra_checks)
+								assert( hit_read_position == corres_long_regions[lr]->read_pos ) ;
 
-							int this_num_read_map = 0;
-							for (size_t i = 0; i < read.length(); i++)
-								if (corres_long_regions[lr]->read_map[i])
-									this_num_read_map++;
-							
 							int hit_len= corres_long_regions[lr]->end-corres_long_regions[lr]->start;
-							assert(this_num_read_map==hit_len) ;
+							if (perform_extra_checks)
+							{
+								int this_num_read_map = 0;
+								for (size_t i = 0; i < read.length(); i++)
+									if (corres_long_regions[lr]->read_map[i])
+										this_num_read_map++;
+								assert(this_num_read_map==hit_len) ;
+							}
 
 							if(ori==1)
 								hit_read_position = read.length()-hit_len-hit_read_position+1;
-							assert (hit_read_position>=0 && hit_len >0);
+							if (perform_extra_checks)
+								assert (hit_read_position>=0 && hit_len >0);
 							// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
 							// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, corres_long_regions[lr]->start, hit_len);					  
 							// fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
@@ -1965,7 +1976,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 							
 							if (transcription_direction >=0)
 							{
-								fprintf(stdout,	"1)hit read position %i\n",hit_read_position);					  
+								//fprintf(stdout,	"1)hit read position %i\n",hit_read_position);					  
 								int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], current_seq, current_regions,
 																			current_positions, chr, '+', ori, hit_read_position,
 																			corres_long_regions[lr]->start, hit_len, non_consensus_search, num_alignments_reported,false,
@@ -1981,10 +1992,10 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 							
 							if (transcription_direction <=0)
 							{
-								fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),
-								       corres_long_regions[lr]->end, hit_len);					  
-								fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
-								fprintf(stdout,	"2)hit read position %i\n", read.length()-(hit_read_position+hit_len));					  
+								//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",read.length()-(hit_read_position+hit_len),
+								//      corres_long_regions[lr]->end, hit_len);					  
+								//fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());					  
+								//fprintf(stdout,	"2)hit read position %i\n", read.length()-(hit_read_position+hit_len));					  
 
 								int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
 																			current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
@@ -2057,28 +2068,35 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				corres_long_regions.clear();
 				//fprintf(stdout,"chr length %i\n",genome->chromosome(chrN).length());
 				recover_long_regions(read, corres_long_regions, long_regions[ori][chrN], current_regions);
-				assert(corres_long_regions.size()>0); // at least one long region as support of alignment
-				assert(corres_long_regions[0]->read_map!=NULL);
+				if (perform_extra_checks)
+				{
+					assert(corres_long_regions.size()>0); // at least one long region as support of alignment
+					assert(corres_long_regions[0]->read_map!=NULL);
+				}
 
 				int transcription_direction = get_transcription_direction(_config.STRAND,ori);
 				//Iterate over all long regions and launch alignment
 				for (unsigned int lr =0; lr<corres_long_regions.size();lr++){
 
 					int hit_read_position = get_first_read_map(read, corres_long_regions[lr]->read_map);
-					assert( hit_read_position == corres_long_regions[lr]->read_pos ) ;
-
-					int this_num_read_map = 0;
-					for (size_t i = 0; i < read.length(); i++)
-						if (corres_long_regions[lr]->read_map[i])
-							this_num_read_map++;
+					if (perform_extra_checks)
+						assert( hit_read_position == corres_long_regions[lr]->read_pos ) ;
 
 					int hit_len= corres_long_regions[lr]->end-corres_long_regions[lr]->start;
-					assert(this_num_read_map == hit_len) ;
+					if (perform_extra_checks)
+					{
+						int this_num_read_map = 0;
+						for (size_t i = 0; i < read.length(); i++)
+							if (corres_long_regions[lr]->read_map[i])
+								this_num_read_map++;
+						assert(this_num_read_map == hit_len) ;
+					}
 					
 					if(ori==1){
 						hit_read_position = read.length()-hit_len-hit_read_position+1;
 					}
-					assert (hit_read_position>=0 && hit_len >0);
+					if (perform_extra_checks)
+						assert (hit_read_position>=0 && hit_len >0);
 					
 					// fprintf(stdout,"read id %s curr len %i\n",read.id(), current_positions.size());
 					// fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, 
@@ -2088,7 +2106,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 					
 					if (transcription_direction >=0)
 					{
-						fprintf(stdout,	"3)hit read position %i\n",hit_read_position);					  
+						//fprintf(stdout,	"3)hit read position %i\n",hit_read_position);					  
 						int ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori],
 																	current_seq, current_regions, current_positions, chr, '+', ori,hit_read_position,
 																	corres_long_regions[lr]->start, hit_len, non_consensus_search, num_alignments_reported,false,
@@ -2105,9 +2123,9 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 					//if (!isunspliced) 
 					if (transcription_direction <=0)
 					{
-						fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n", read.length()-(hit_read_position+hit_len), corres_long_regions[lr]->end, hit_len);
-						fprintf(stdout,	"# Number of current regions %i\n", (int)current_regions.size());					  
-						fprintf(stdout,	"4)hit read position %i; read length %i\n", read.length()-(hit_read_position+hit_len), read.length());					  
+						//fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n", read.length()-(hit_read_position+hit_len), corres_long_regions[lr]->end, hit_len);
+						//fprintf(stdout,	"# Number of current regions %i\n", (int)current_regions.size());					  
+						//fprintf(stdout,	"4)hit read position %i; read length %i\n", read.length()-(hit_read_position+hit_len), read.length());					  
 
 						int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori],
 																	read_quality[1 - ori], current_seq,
@@ -2121,7 +2139,6 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 							return ret;
 						}
 					}
-	  
 				}
 				hits.topAlignments().update_top_alignment_indice();			
 			} else {
@@ -2431,7 +2448,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 							hit_read_position = read.length()-hit_len-hit_read_position +1;
 						}
 
-						assert (hit_read_position>=0 && hit_len >0);
+						if (perform_extra_checks)
+							assert (hit_read_position>=0 && hit_len >0);
 						if (verbosity>3)
 						{
 							fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
@@ -2447,7 +2465,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 						if (strand == '+')
 						{
-							fprintf(stdout,	"5)hit read position %i\n",hit_read_position);					  
+							//fprintf(stdout,	"5)hit read position %i\n",hit_read_position);					  
 							ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], 
 																	current_seq, current_regions, current_positions, 
 																	chr, '+', ori, hit_read_position, 
@@ -2457,7 +2475,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						}
 						else
 						{
-							assert (read.length()-(hit_read_position+hit_len)>=0);
+							if (perform_extra_checks)
+								assert (read.length()-(hit_read_position+hit_len)>=0);
 							
 							ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
 																	current_seq, current_regions, current_positions, 
@@ -2506,8 +2525,11 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	std::vector<int> map(end_pos-start_pos+1, -1) ; 
 	for (unsigned int i=0; i<positions.size(); i++)
 	{
-		assert(positions[i]-start_pos>=0) ;
-		assert(positions[i]-start_pos<=end_pos-start_pos) ;
+		if (perform_extra_checks)
+		{		
+			assert(positions[i]-start_pos>=0) ;
+			assert(positions[i]-start_pos<=end_pos-start_pos) ;
+		}
 		if (dna[i]!='N')
 			map[positions[i]-start_pos] = i ;
 	}
@@ -2537,8 +2559,11 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 				{
 					//if (v.ref_str[0]!=dna[v.position])
 					//	fprintf(stdout, "%c \t %c (%i) \t %s \n", contig_idx[(*it).position], dna[v.position], v.position, v.ref_str.c_str()) ;
-					assert(contig_idx[(*it).position]==dna[v.position]) ;
-					assert(contig_idx[(*it).position]==v.ref_str[0]) ;
+					if (perform_extra_checks)
+					{
+						assert(contig_idx[(*it).position]==dna[v.position]) ;
+						assert(contig_idx[(*it).position]==v.ref_str[0]) ;
+					}
 					found = true ;
 				}
 			}
@@ -2576,7 +2601,8 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 				} else
 					last_not_ok = i ;
 			}
-			assert((*it).ref_len - 1 - last_not_ok>=0) ;
+			if (perform_extra_checks)
+				assert((*it).ref_len - 1 - last_not_ok>=0) ;
 			int last_stretch = (*it).ref_len - 1 - last_not_ok ;
 			
 			if (deleted_positions.size()>0 && (*it).type == pt_deletion)
@@ -2673,7 +2699,8 @@ int insert_variants(std::vector<Variant> & variant_list, std::string & dna, std:
 	{
 		if (variant_list[i].type == pt_SNP)
 		{
-			assert(dna[variant_list[i].position] == variant_list[i].ref_str[0]) ;
+			if (perform_extra_checks)
+				assert(dna[variant_list[i].position] == variant_list[i].ref_str[0]) ;
 			char c = variant_list[i].variant_str[0] ;
 			if (c!='A' && c!='C' && c!='G' && c!='T')
 				c='N' ;
@@ -3514,10 +3541,12 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 	
 	for (int i = 0; i < result_length; i++) 
 	{
-		assert(dna_align[i]>=0 && dna_align[i]<=6);
+		if (perform_extra_checks)
+			assert(dna_align[i]>=0 && dna_align[i]<=6);
 		dna_align_str[i] = map[dna_align[i]];
 		
-		assert(est_align[i]>=0 && est_align[i]<=6);
+		if (perform_extra_checks)
+			assert(est_align[i]>=0 && est_align[i]<=6);
 		est_align_str[i] = map[est_align[i]];
 		
 		if (myverbosity>=3)
@@ -3590,7 +3619,7 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 			if (est_align[i]==dna_align[i])
 			{
 				read_anno.push_back(map[est_align[i]]) ;
-				if (map[est_align[i]]!='N')
+				if (perform_extra_checks && map[est_align[i]]!='N')
 					assert(map[est_align[i]]==read_string[read_pos]) ;
 				
 				aligned_positions.push_back(positions[start_offset+dna_pos]) ;
@@ -3614,7 +3643,8 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 				{ 
 					alignment_mismatches++ ;
 					alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
-					assert(map[est_align[i]]==read_string[read_pos]) ;
+					if (perform_extra_checks)
+						assert(map[est_align[i]]==read_string[read_pos]) ;
 					
 					if (discover_variants)
 						if (read_pos>=_config.REPORT_SNP_TERMINAL_DIST && (int)read_string.length()-read_pos>=_config.REPORT_SNP_TERMINAL_DIST)
@@ -3700,7 +3730,7 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 			alignment_gaps++;
 			if (map[est_align[i]]!='N')
 				alignment_qual_mismatches += read_quality[read_pos]-read.get_quality_offset() ; 
-			if (map[est_align[i]]!='N')
+			if (perform_extra_checks && map[est_align[i]]!='N')
 				assert(map[est_align[i]]==read_string[read_pos]) ;
 			read_pos++ ;
 		} 
@@ -3712,7 +3742,8 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 			assert(0) ;
 		}
 	}
-	assert(read_pos==(int)read.length()) ;
+	if (perform_extra_checks)
+		assert(read_pos==(int)read.length()) ;
 	dna_align_str[result_length] = 0;
 	est_align_str[result_length] = 0;
 	
@@ -3878,7 +3909,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 
 	
-	assert(cum_length[num_intervals]==dna.length());
+	if (perform_extra_checks)
+		assert(cum_length[num_intervals]==dna.length());
 
 
 	if (!_config.NO_SPLICE_PREDICTIONS)
