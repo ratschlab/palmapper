@@ -217,17 +217,18 @@ public:
 	float non_consensus_search_discount ;
 	int MIN_NUM_MATCHES_PEN;
 
-	bool MAP_VARIANTS ;
+	bool USE_VARIANTS ;
 	bool DISCOVER_VARIANTS ;
-	std::string VARIANT_FILE_NAME ;
-	std::string USED_VARIANT_FILE_NAME;
-	std::string MAF_REF_NAME;
-	VariantInputEnum MAP_VARIANTS_EXT;
-
 	bool REPORT_VARIANTS ;
-	int report_SNP_terminal_dist ;
-	int report_indel_terminal_dist ;
-	std::string REPORT_VARIANTS_FILE ;
+	bool REPORT_USED_VARIANTS ;
+	
+	std::string USE_VARIANT_FILE_NAME ;
+	std::string REPORT_USED_VARIANT_FILE_NAME;
+	std::string MAF_REF_NAME;
+	std::string REPORT_VARIANTS_FILE_NAME ;
+
+	int REPORT_SNP_TERMINAL_DIST ;
+	int REPORT_INDEL_TERMINAL_DIST ;
 	
 	int NO_GAP_END;
 	
