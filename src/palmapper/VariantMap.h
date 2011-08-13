@@ -18,16 +18,17 @@ enum polytype
 struct variant_str {
 	int position ;
 	int end_position ;
-	int ref_len ;
-	int variant_len ;
+	short int ref_len ;
+	short int variant_len ;
 	int id ;
 	enum polytype type ;
 	std::string ref_str, variant_str ;
 	std::string read_id ;
-	int read_pos;
-	int used_count ;
-	int conf_count ;
-	int non_conf_count ;
+	short int read_pos;
+	short int read_len;
+	short unsigned int used_count ;
+	short unsigned int conf_count ;
+	short unsigned int non_conf_count ;
 };
 
 typedef struct variant_str Variant;
@@ -54,20 +55,20 @@ class VariantMap
 
 private:
 	int next_variant_id;
-	int limit_known_variants;
-
+	int known_variants_limit;
+	bool validate_variants ;
+	
 public:
 	std::deque<Variant> * variantlist ;
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
 	int insert_variants_from_multiple_alignments(std::string ref_align,int ref_len, std::vector<std::string> variant_align,int start_position,int chr_idx, char strand);
-	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int used_count, const std::string & read_id,int read_pos);
+	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int used_count, 
+						const std::string & read_id, int read_pos, int read_len);
+	void validate_variant(Variant & j, int chr) const ;
 	void insert_variant(Variant & j, int chr) ;
-	int init_from_sdis(std::string &sdi_fname);
-	int init_from_mafs(std::string &maf_fname,std::string &ref_name);
+	int init_from_files(std::string &sdi_fname);
 	int report_to_sdi(std::string &sdi_fname);
-
-
 
 	void lock() 
 	{ 
@@ -110,7 +111,7 @@ public:
 	}
 
 	
-	static void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant, const std::string & read_id, int read_pos) 
+	void report_SNP_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, char ref, char variant, const std::string & read_id, int read_pos, int read_len) const
 	{
 		Variant v ;
 		v.type = pt_SNP ;
@@ -125,10 +126,15 @@ public:
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
+		v.read_len=read_len;
+		
+		if (validate_variants)
+			validate_variant(v, chr.nr()) ;
+
 		variants.push_back(v) ;
 	}
 	
-	static void report_sub_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len_ref, std::string & ref_str, int len_var, std::string & variant_str, const std::string & read_id, int read_pos)
+	void report_sub_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len_ref, std::string & ref_str, int len_var, std::string & variant_str, const std::string & read_id, int read_pos, int read_len) const
 	{
 		Variant v ;
 		v.type = pt_deletion ;
@@ -143,10 +149,15 @@ public:
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
+		v.read_len=read_len;
+
+		if (validate_variants)
+			validate_variant(v, chr.nr()) ;
+
 		variants.push_back(v) ;
 	}
 
-	static void report_del_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & ref_str, const std::string & read_id, int read_pos)
+	void report_del_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & ref_str, const std::string & read_id, int read_pos, int read_len) const
 	{
 		Variant v ;
 		v.type = pt_deletion ;
@@ -161,10 +172,15 @@ public:
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
+		v.read_len=read_len;
+
+		if (validate_variants)
+			validate_variant(v, chr.nr()) ;
+
 		variants.push_back(v) ;
 	}
 
-	static void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str, const std::string & read_id, int read_pos)
+	void report_ins_variant(std::vector<Variant> & variants, const Chromosome & chr, int dna_pos, int len, std::string & variant_str, const std::string & read_id, int read_pos, int read_len) const
 	{
 		Variant v ;
 		v.type = pt_insertion ;
@@ -179,10 +195,15 @@ public:
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
+		v.read_len=read_len;
+
+		if (validate_variants)
+			validate_variant(v, chr.nr()) ;
+
 		variants.push_back(v) ;
 	}
 	
-	void report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons) ;
+	void report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons, int no_gap_end) ;
 
 	void check_variant_order()
 	{
