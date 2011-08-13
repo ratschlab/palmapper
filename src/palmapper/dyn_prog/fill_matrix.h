@@ -70,17 +70,25 @@ struct splice_pos{
 //extern void print_align(Pre_score* matrix, int length_est,  int length_dna, Align_pair* vektor, int result_length, int print_matrix);
 
 void clean_seed_matrix_vector(std::vector<SeedElem *>& matrix, int nr_paths);
+
+template<bool use_variants>
 void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
-		      double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
-		       std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
-					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping, std::vector<SuperVariant> super_variants,int no_gap_end);
+					  double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
+					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
+					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping, std::vector<SuperVariant> & super_variants,int no_gap_end);
 
 
 int check_char(char base);
 
 void getSNPfromVariants( std::vector<SuperVariant> super_variants, int position,std::vector<char>& snps);
+
+template<bool use_variants>
 std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> super_variants, int position, bool right_side, std::vector<int>& endpositions);
+
+template<bool use_variants>
 double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, std::vector<SuperVariant> super_variants, int position, int &dnaValue, int &snp_id );
+
+template<bool use_variants>
 double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, std::vector<SuperVariant> super_variants, int position, int &dnaValue, int &snp_id );
 
 

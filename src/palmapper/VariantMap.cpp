@@ -18,10 +18,11 @@ VariantMap::VariantMap(Genome const &genome_)
 	next_variant_id =0;
 	known_variants_limit =-1;
 	
-	int ret = pthread_mutex_init(&variant_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
+	int ret = pthread_mutex_init(&variant_mutex, NULL) ;
 	assert(ret==0) ;
 
 	validate_variants=true ;
+	exit_on_validation_error=true ;
 }
 
 VariantMap::~VariantMap()
@@ -150,12 +151,12 @@ inline int min(int a, int b)
 	return b ;
 }
 
-void VariantMap::validate_variant(Variant & j, int chr) const
+bool VariantMap::validate_variant(Variant & j, int chr, const char *flank) const
 {
 	if (j.ref_len>0)
 	{
 		std::string genome_str = "" ;
-		for (int i=-3; i<j.ref_len+3; i++)
+		for (int i=-6; i<j.ref_len+6; i++)
 		{
 			if (i==0 || i==j.ref_len)
 				genome_str+='|' ;
@@ -167,23 +168,64 @@ void VariantMap::validate_variant(Variant & j, int chr) const
 			if (genome->chromosome(chr)[j.position+i-1]!=j.ref_str[i] && 
 				j.ref_str[i]!='N' && j.ref_str[i]!='Y' && j.ref_str[i]!='W' && j.ref_str[i]!='K' && j.ref_str[i]!='S' && j.ref_str[i]!='M' && j.ref_str[i]!='R' && j.ref_str[i]!='D')
 			{
-				fprintf(stdout, "ERROR: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i-1], j.ref_str[i], j.ref_str.c_str()) ;
+				FILE* of = stdout ;
+				if (exit_on_validation_error)
+				{
+					of=stderr ;
+					fprintf(of, "ERROR: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i-1], j.ref_str[i], j.variant_str.c_str()) ;
+				}
+				else
+					fprintf(of, "WARNING: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i-1], j.ref_str[i], j.variant_str.c_str()) ;
 				if (j.type==pt_SNP)
-					fprintf(stdout, "SNP\t%s\t%i\t%c\t%c\t%s\n", genome->chromosome(chr).desc(), j.position, j.ref_str[0], j.variant_str[0], genome_str.c_str()) ;
+					fprintf(of, "SNP\t%s\t%i\t%c\t%c\t%s\n", genome->chromosome(chr).desc(), j.position, j.ref_str[0], j.variant_str[0], genome_str.c_str()) ;
 				if (j.type==pt_deletion)
-					fprintf(stdout, "Deletion\t%s\t%i\t%i\t%s\t%s\n", genome->chromosome(chr).desc(), j.position, j.end_position, j.ref_str.c_str(), genome_str.c_str()) ;
-				
-				exit(-1) ;
+					fprintf(of, "Deletion\t%s\t%i\t%i\t%s\t%s\n", genome->chromosome(chr).desc(), j.position, j.end_position, j.ref_str.c_str(), genome_str.c_str()) ;
+			
+				if (exit_on_validation_error)
+				{
+					fprintf(of, "writing current variants to variants.tmp\n") ;
+					report_to_sdi(std::string("variants.tmp")) ;
+					
+					exit(-1) ;
+				}
+				else
+					return false ;
 			}
 		}
 	}
+	if (flank!=NULL && flank[0]!='N' and flank[1]!='N')
+	{
+		std::string genome_str = "" ;
+		for (int i=-4; i<4; i++)
+		{
+			if (i==0)
+				genome_str+='|' ;
+			genome_str+=genome->chromosome(chr)[j.position+i-1] ;
+		}
+		if (genome_str[3]!=flank[0] || genome_str[5]!=flank[1])
+		{
+			if (exit_on_validation_error)
+			{
+				fprintf(stderr, "ERROR: flanking region does not match: %s %s\n", flank, genome_str.c_str()) ;
+				fprintf(stderr, "writing current variants to variants.tmp\n") ;
+				report_to_sdi(std::string("variants.tmp")) ;
+				exit(-1) ;
+			} else
+			{
+				fprintf(stdout, "WARNING: flanking region does not match: %s %s\n", flank, genome_str.c_str()) ;
+				return false ;
+			}
+		}
+	}
+	return true ;
 }
 
 
 void VariantMap::insert_variant(Variant & j, int chr)
 {
-	//if (validate_variants)
-	//	validate_variant(j, chr) ;
+	if (validate_variants)
+		if (!validate_variant(j, chr, "NN"))
+			return ;
 
 	lock() ;
 
@@ -295,8 +337,13 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 				if (genome->chromosome(chr_idx)[position+i-1]!=ref_str[i] && 
 					ref_str[i]!='N' && ref_str[i]!='Y' && ref_str[i]!='W' && ref_str[i]!='K' && ref_str[i]!='S' && ref_str[i]!='M' && ref_str[i]!='R' && ref_str[i]!='D')
 				{
-					fprintf(stdout, "ERROR: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\n%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
-					exit(-1) ;
+					if (exit_on_validation_error)
+					{
+						fprintf(stderr, "ERROR: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\n%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
+						exit(-1) ;
+					}
+					else
+						fprintf(stdout, "ERROR: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\n%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
 				}
 			}
 			variant_lines_checked++ ;
@@ -314,10 +361,8 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 
 }
 
-int VariantMap::report_to_sdi(std::string &sdi_fname)
+int VariantMap::report_to_sdi(const std::string &sdi_fname) const
 {
-	lock() ;
-
 	int nb_variants=0;
 	
 	fprintf(stdout, "report genome list in SDI file %s\n", sdi_fname.c_str()) ;
@@ -351,8 +396,6 @@ int VariantMap::report_to_sdi(std::string &sdi_fname)
 	}
 	fclose(fd) ;
 	fprintf(stdout, "reported %i variants\n", nb_variants) ;	
-
-	unlock() ;
 
 	check_variant_order() ;
 	

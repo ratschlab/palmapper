@@ -4,13 +4,15 @@
 #include "qpalma_dp.h"
 
 #include <cstring>
+#include "fill_matrix.h"
 
 using namespace std;
+
 
 /*[splice_align, est_align, weightMatch, alignmentscores, dnaest] = ...
   myalign([nr_paths], dna, est, {h}, matchmatrix, donor, acceptor, remove_duplicate_scores, ...
   min_match) */
-Alignment::Alignment(int numQPlifs, int numq, bool use_qscores, int _verbosity) {
+Alignment::Alignment(int numQPlifs, int numq, bool use_qscores, int verbosity_) {
       len = 0;
       limits = 0;
       penalties = 0;
@@ -23,7 +25,7 @@ Alignment::Alignment(int numQPlifs, int numq, bool use_qscores, int _verbosity) 
       use_svm = 0;
 	  DNA_ARRAY = NULL ;
 	  EST_ARRAY = NULL ;
-	  verbosity=_verbosity ;
+	  verbosity=verbosity_ ;
 
       // set ptrs to zero first
       splice_align         = 0;
@@ -43,6 +45,7 @@ Alignment::Alignment(int numQPlifs, int numq, bool use_qscores, int _verbosity) 
       assert( numPlifs >= 0 );
 }
 
+
 void Alignment::getDNAEST(){}
 
 /* 
@@ -57,6 +60,8 @@ void Alignment::getDNAEST(){}
    qualityScores -> 
    remove_duplicate_scores -> hack -> false
 */
+
+
 double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len, int &seed_i, int &seed_j, char* read, int read_len, char* dna, int d_len, struct penalty_struct* qualityScores, double* matchmatrix,int mm_len,double* prb)
 {
 	seed_i=hit_read; 
@@ -92,6 +97,7 @@ double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len, in
 }
 
 //Add starting position for alignment according to a long hit (read and dna pos, len) and strand
+
 void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<int> &positions, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 							 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns,  
@@ -162,8 +168,14 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 	std::vector<SeedElem *> seed_matrix_right;
 	int* max_score_positions = new int[nr_paths*2];
 
-	fast_fill_matrix(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, 
-					 donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping,super_variant_list,no_gap_end);
+	if (super_variant_list.size()>0)
+		fast_fill_matrix<true>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, 
+							   donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,
+							   currentMode,remapping,super_variant_list,no_gap_end);
+	else
+		fast_fill_matrix<false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, 
+								donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,
+								currentMode,remapping,super_variant_list,no_gap_end);
 
 
 	/***************************************************************************/ 
@@ -508,6 +520,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 }
 
 
+
 void Alignment::cleanup() 
 {
 	if (qualityFeaturesAllPaths)
@@ -557,6 +570,7 @@ void Alignment::cleanup()
 
 }
 
+
 void Alignment::getAlignmentResults(int* s_align, int* e_align,
       int* mmatrix_p, double* alignscores, double* qScores) {
 
@@ -595,6 +609,7 @@ void Alignment::getAlignmentResults(int* s_align, int* e_align,
    }
    //printf("Leaving getAlignmentResults...\n");
 }
+
 
 double Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double * matchmatrix, char strand) 
 {
@@ -658,6 +673,7 @@ double Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, 
 	
 	return score ;
 }
+
 
 void Alignment::getAlignmentArrays(int* dna_align, int* read_align) {
 

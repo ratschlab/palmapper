@@ -761,6 +761,7 @@ void TopAlignments::sort_top_alignment_list()
 		catch (std::bad_alloc&)
 		{
 			fprintf(stderr, "[sort_top_alignment_list] ERROR Could not allocate memory\n");
+			assert(0) ;
 		}
 		
 		for (int i = 0; i < (int)nbr_aligments; i++)
@@ -1755,7 +1756,7 @@ FILE* TopAlignments::open_bam_pipe(std::string & out_fname)
 					exit(-1) ;
 				}
 			}
-		fprintf(stderr, "samtools pipe status %i", status) ;
+		//fprintf(stderr, "samtools pipe status %i", status) ;
 	}
 	OUT_FP = popen(command.c_str(), "w") ;
 	return OUT_FP ;
@@ -2125,7 +2126,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		//if (cum_size + indel_offset + polytrim_cut_start + polytrim_cut_end != curr_read->length()) 
 		if (exon_size + insertions - deletions != curr_read->length()-polytrim_cut_start-polytrim_cut_end){
 			
-			fprintf(stdout, "WARNING - block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", exon_size + insertions - deletions, curr_read->length(), curr_read->data(), curr_align->read_id) ;
+			fprintf(stdout, "WARNING: block sum does not match readlength: block_sum=%i, readlength=%i, read=%s, read_id=%s \n", exon_size + insertions - deletions, curr_read->length(), curr_read->data(), curr_align->read_id) ;
 			//fprintf(stderr, " cigar: %s\nexon %i, insert %i, deletion %i, trim_start %i, trim_end %i, read_length %i\n read %s\n read anno %s\n\n", cigar, exon_size,insertions,deletions, curr_align->polytrim_cut_start, curr_align->polytrim_cut_end, curr_read->length(), curr_read->data(),curr_align->read_anno) ;
 		}
 		//assert(cum_size + indel_offset + curr_align->polytrim_cut_start + curr_align->polytrim_cut_end == curr_read->length()) ;
