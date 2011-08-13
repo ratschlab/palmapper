@@ -78,7 +78,8 @@ public:
 		bool non_consensus_search ;
 		bool remapping;
 		JunctionMap *annotatedjunctions;
-		std::vector<Variant> *variants ;
+		const VariantMap *variants ;
+		std::vector<Variant> *variant_list ;
 		
 		ALIGNMENT* aln;
 	} ;
@@ -136,7 +137,7 @@ public:
 	int junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, std::vector<region_t *> &regions, std::vector<int> &positions,
 						  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln, 
-						  bool remapping, JunctionMap &annotatedjunctions, std::vector<Variant> & variants) const;
+						  bool remapping, JunctionMap &annotatedjunctions, const VariantMap& variants, std::vector<Variant> & variant_list) const;
 	double score_unspliced(Read const &read, const char * read_anno, const char strand, const char ori) const;
 	//void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
 	
@@ -160,7 +161,7 @@ protected:
 	std::vector<Variant> identify_variants(std::string dna, std::vector<int> positions, Chromosome const &contig_idx, VariantMap & variants) const ;
 
 	int perform_alignment_starter_variant(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, VariantMap & variants) const;
-	int perform_alignment_starter_single(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, std::vector<Variant> & variant_list) const;
+	int perform_alignment_starter_single(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list) const;
 
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const;
 	int get_transcription_direction(int side,int orientation) const;
