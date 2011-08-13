@@ -14,6 +14,8 @@
 
 #include <iostream>
 
+static const bool perform_extra_checks = true ;
+
 template int Hits::map_short_read<bwt>(Read& read, unsigned int num) ;
 template int Hits::map_short_read<array>(Read& read, unsigned int num) ;
 template int Hits::map_short_read<debug>(Read& read, unsigned int num) ;
@@ -706,7 +708,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 										if (!reverse) hit->end++;
 										else hit->start--;
 										if (read_num == num) printhit(_read, hit);
-										assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
+										if (perform_extra_checks)
+											assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
 									}
 								}
 
@@ -768,23 +771,28 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos-1,readpos-2,1,conversion)) {
 													hit->edit_op[hit->mismatches].pos = readpos - 1;
 													hit->edit_op[hit->mismatches].mm = 1;
-													assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
+													if (perform_extra_checks)
+														assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
 													hit->mismatches++;
-													assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
+													if (perform_extra_checks)
+														assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
 													if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
 												}
-												//hit->end = hit->end + _config.INDEX_DEPTH + 1;
+												//hit->end = hit->end + _config.INDEX_DEPTH + 1; // this version leads to the assertion below
 												hit->end = genome_pos + INDEX_DEPTH;
 												
-												assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
+												if (perform_extra_checks)
+													assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
 											}
 											else {
 												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos+INDEX_DEPTH,readpos-2,-1, conversion)) {
 													hit->edit_op[hit->mismatches].pos = ((int)_read.length()) - readpos + 2;
 													hit->edit_op[hit->mismatches].mm = 1;
-													assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
+													if (perform_extra_checks)
+														assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
 													hit->mismatches++;
-													assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
+													if (perform_extra_checks)
+														assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
 													if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
 												}
 												hit->start = genome_pos+1;
@@ -798,7 +806,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					}
 				}
 				
-				if (hit)
+				if (hit && perform_extra_checks)
 				{
 					assert((int)hit->start-(int)hit->end<10000) ;
 					assert((int)hit->end-(int)hit->start<10000) ;
@@ -832,7 +840,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 						hit->conversion = conversion;
 
-						assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
+						if (perform_extra_checks)
+							assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
 
 						if (read_num == num) { printf("new hit: "); printhit(_read,hit); printf("\n"); }
 
@@ -983,7 +992,8 @@ int Hits::browse_hits()
 			
 				hitlength = hit->end - hit->start + 1;
 
-				assert(hit->readpos + hitlength <= (int)_read.length()+1) ;
+				if (perform_extra_checks)
+					assert(hit->readpos + hitlength <= (int)_read.length()+1) ;
 				//assert(hit->readpos + hit->end - hit->start + 1 <= (int)_read.length()+1) ;
 				
 				if (_config.STATISTICS) 
@@ -1816,7 +1826,8 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 										hit->edit_op[j].mm = 1;
 										if (hit->orientation == '+') hit->edit_op[j].pos = mmpos[j];
 										else			     hit->edit_op[j].pos = ((int)read.length()) - mmpos[j] + 1;
-										assert(hit->edit_op[j].pos >= -((int)read.length()) && hit->edit_op[j].pos<=(int)read.length()) ;
+										if (perform_extra_checks)
+											assert(hit->edit_op[j].pos >= -((int)read.length()) && hit->edit_op[j].pos<=(int)read.length()) ;
 										hit->mismatches++;
 										mm = 1;
 									}
@@ -2102,7 +2113,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
 	memcpy(edit_op, hit->edit_op, mismatches * sizeof(EDIT_OPS));
 
-	assert(readpos>=0 && readpos<(int)_read.length()) ;
+	if (perform_extra_checks)
+		assert(readpos>=0 && readpos<(int)_read.length()) ;
 
 	int hitlength = end - start + 1;
 	int afterhit_len = _read.length() - readpos - hitlength + 1;
@@ -2138,7 +2150,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				}
 				
 				mismatches++;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 			
 			if (mismatches > _config.NUM_EDIT_OPS)
@@ -2167,7 +2180,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				}
 				
 				mismatches++;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 			
 			if (mismatches > _config.NUM_EDIT_OPS)
@@ -2197,7 +2211,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				}
 
 				mismatches++;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 
 			if (	(orientation == '-')
@@ -2213,7 +2228,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				}
 
 				mismatches++;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
  
 			if (mismatches > _numEditOps) {
@@ -2240,7 +2256,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				}
 				
 				mismatches++;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 
 			
@@ -2258,7 +2275,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				}
 
 				mismatches++;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 			
 			if (mismatches > _numEditOps)
@@ -2274,7 +2292,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 
 	if (mismatches <= _config.NUM_MISMATCHES) {	// there can't be gaps
 
-		assert(mismatches<=Config::MAX_EDIT_OPS) ;
+		if (perform_extra_checks)
+			assert(mismatches<=Config::MAX_EDIT_OPS) ;
 
 		// write in hit-structure:
 		hit->mismatches = mismatches;
@@ -2284,9 +2303,11 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 		// this version leads to seg faults later on ... quite unclear why
 		for (int ii=0; ii<mismatches; ii++)
 		{			
-			assert(edit_op[ii].pos>=-((int)_read.length()) && edit_op[ii].pos<=((int)_read.length())) ;
+			if (perform_extra_checks)
+				assert(edit_op[ii].pos>=-((int)_read.length()) && edit_op[ii].pos<=((int)_read.length())) ;
 			hit->edit_op[ii]=edit_op[ii] ;
-			assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
+			if (perform_extra_checks)
+				assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
 		}
 
 		update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
@@ -2314,7 +2335,8 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 	{
 		mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
 		if (mismatches < 0) return 0;
-		assert(mismatches<=Config::MAX_EDIT_OPS) ;
+		if (perform_extra_checks)
+			assert(mismatches<=Config::MAX_EDIT_OPS) ;
 		update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 		return 1;
@@ -2350,13 +2372,15 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 			// perform alignment
 			k1_aligned = kbound_overhang_alignment(_read, hit, offset, 0, start, end, readpos, chromosome, orientation, mismatches);
 			mismatches = hit->mismatches;
-			assert(mismatches<=Config::MAX_EDIT_OPS) ;
+			if (perform_extra_checks)
+				assert(mismatches<=Config::MAX_EDIT_OPS) ;
 
 			// there are gaps on best path in alignment -> perform whole global alignment
 			if (k1_aligned == 0) {
 				mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
 				if (mismatches < 0) return 0;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 				update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 				return 1;
 			}
@@ -2383,7 +2407,8 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 			if (mismatches < _numEditOps || (_config.NOT_MAXIMAL_HITS && mismatches <= _numEditOps)) {
 				k1_aligned = kbound_overhang_alignment(_read, hit, offset, readpos+hitlength-1, start, end, readpos, chromosome, orientation, mismatches);
 				mismatches = hit->mismatches;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 			else {
 				return 0;
@@ -2393,7 +2418,8 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 			if (k1_aligned == 0) {
 				mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
 				if (mismatches < 0) return 0;
-				assert(mismatches<=Config::MAX_EDIT_OPS) ;
+				if (perform_extra_checks)
+					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 				update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 				return 1;
@@ -2726,7 +2752,8 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 								hit->edit_op[j].mm = 1;
 								if (hit->orientation == '+') hit->edit_op[j].pos = mmpos[j];
 								else			     hit->edit_op[j].pos = ((int)read.length()) - mmpos[j] + 1;
-								assert(hit->edit_op[j].pos >= -((int)read.length()) && hit->edit_op[j].pos<=(int)read.length()) ;
+								if (perform_extra_checks)
+									assert(hit->edit_op[j].pos >= -((int)read.length()) && hit->edit_op[j].pos<=(int)read.length()) ;
 								hit->mismatches++;
 								mm = 1;
 							}
