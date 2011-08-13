@@ -150,16 +150,17 @@ Config::Config() {
 	non_consensus_search_gap=1 ;
 	non_consensus_search_discount=1 ;
 
-	MAP_VARIANTS = false ;
-	VARIANT_FILE_NAME = "" ;
-	USED_VARIANT_FILE_NAME = "";
+	USE_VARIANTS = false ;
 	DISCOVER_VARIANTS=false ;
 	REPORT_VARIANTS=false ;
-	report_SNP_terminal_dist = 10 ;
-	report_indel_terminal_dist = 15 ;
-	REPORT_VARIANTS_FILE="/dev/stdout" ;
+	REPORT_USED_VARIANTS=false ;
+
+	USE_VARIANT_FILE_NAME = "" ;
+	REPORT_USED_VARIANT_FILE_NAME = "";
+	REPORT_VARIANTS_FILE_NAME="" ;
 	MAF_REF_NAME="";
-	MAP_VARIANTS_EXT=unknown;
+	REPORT_SNP_TERMINAL_DIST = 10 ;
+	REPORT_INDEL_TERMINAL_DIST = 15 ;
 	
 	NO_GAP_END =-1;
 	
@@ -327,7 +328,7 @@ int Config::applyDefaults(Genome * genome)
 			}
 		}
 
-		if (MAP_VARIANTS || NO_GAP_END>=0)
+		if (USE_VARIANTS || NO_GAP_END>=0)
 		{
 			fprintf(stdout, "* Disabling GenomeMapper alignments\n") ;
 			NO_GENOMEMAPPER=true ;
@@ -437,18 +438,6 @@ int Config::checkConfig()
 		exit(1) ;
 	}
 
-	if (MAP_VARIANTS){	
-		if( MAP_VARIANTS_EXT==unknown){
-			fprintf(stderr,	"ERROR: Variant input %s has an unknown format\n",(char*)VARIANT_FILE_NAME.c_str());
-			exit(1) ;
-		}
-		if(MAP_VARIANTS_EXT==maf && MAF_REF_NAME.length()<=0){
-			fprintf(stderr,	"ERROR: Need reference genome name (with -maf-ref option) to initialize variants from the maf file %s\n",(char*)VARIANT_FILE_NAME.c_str());
-			exit(1) ;
-		}
-		
-	}
-	
 	return 0 ;
 }
 
@@ -883,7 +872,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 					exit(1);
 				}
 				i++;
-				REPORT_VARIANTS_FILE=strdup(argv[i]) ;
+				REPORT_VARIANTS_FILE_NAME=strdup(argv[i]) ;
 				REPORT_VARIANTS = true ;
 			}
 
@@ -902,8 +891,20 @@ int Config::parseCommandLine(int argc, char *argv[])
 					exit(1);
 				}
 				i++;
-				VARIANT_FILE_NAME.assign(argv[i]);
-				MAP_VARIANTS = true ;
+				USE_VARIANT_FILE_NAME.assign(argv[i]);
+				USE_VARIANTS = true ;
+			}
+
+			if (strcmp(argv[i], "-report-used-variants") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -report-use-variants\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_USED_VARIANT_FILE_NAME.assign(argv[i]);
+				REPORT_USED_VARIANTS=true ;
 			}
 
 			if (strcmp(argv[i], "-maf-ref") == 0) {
@@ -2073,30 +2074,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 	postprocess_query_filenames(Q_QUERY_FILE_NAMES, STRAND) ;
 	postprocess_query_filenames(Q1_QUERY_FILE_NAMES, 1) ;
 	postprocess_query_filenames(Q2_QUERY_FILE_NAMES, 0) ;
-
-
-
-	//Map using variants
-	//Initialize filename
-	if (MAP_VARIANTS && OUT_FILE_NAME.length()>0){
-		USED_VARIANT_FILE_NAME.assign(OUT_FILE_NAME);
-		USED_VARIANT_FILE_NAME.append(".variants");
-	}
-
-	//Get file extension
-	if (MAP_VARIANTS){
-		unsigned int pos_ext=VARIANT_FILE_NAME.rfind('.');
-		MAP_VARIANTS_EXT=unknown;
-		if (pos_ext != std::string::npos){
-			std::string extension(VARIANT_FILE_NAME.substr(pos_ext+1));
-			if (extension.compare("sdi")==0 ||extension.compare("SDI")==0)
-				MAP_VARIANTS_EXT=sdi;
-			if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
-				MAP_VARIANTS_EXT=maf;
-		}
-	}
-	
-
 
 	if (has_index == 0 || QUERY_FILE_NAMES.size() == 0 || has_genome == 0) {
 		usage();
