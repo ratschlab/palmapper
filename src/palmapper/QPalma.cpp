@@ -2929,7 +2929,8 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				nbv_dels++ ;
 			} 
 			else
-				fprintf(stdout, "dropped deletion of length %i at beginning or end of sequence\n", variants[i].ref_len) ;
+				if (verbosity>=2)
+					fprintf(stdout, "dropped deletion of length %i at beginning or end of sequence\n", variants[i].ref_len) ;
 		}
 		
 		if (variants[i].type == pt_SNP)
@@ -3079,7 +3080,9 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 		delete pos_table[i] ;
 		pos_table[i]=NULL ;
 	}
-	fprintf(stdout, "found %lu supervariants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", super_variants.size(), nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
+
+	if (verbosity>=2)
+		fprintf(stdout, "found %lu supervariants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", super_variants.size(), nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
 
 	return super_variants ;
 }
@@ -3180,12 +3183,11 @@ std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant
 	int read_pos=-1;
 	
 
-	while(i<dna.length()){
-
+	while(i<dna.length())
+	{
 		//Build reference sequence
 		if (ref_map[i])
 			dna_back.push_back(dna[i]);
-
 
 		if (s_align[i]==5)
 		{
@@ -3340,7 +3342,8 @@ std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant
 
 	}
 	
-	if (len_current_exon!=-1){
+	if (len_current_exon!=-1)
+	{
 		num_exons++;
 		if (len_current_exon<min_exon_len)
 			min_exon_len=len_current_exon;
@@ -3389,13 +3392,15 @@ std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant
 		
 	alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && (alignment_mm <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mm+alignment_gaps <= _config.NUM_EDIT_OPS) &&(num_exons ==1 ||(num_exons >= 2 && (num_exons <= _config.SPLICED_MAX_INTRONS+1) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
 
-	fprintf(stdout,"Alignment with variants (valid=%i)has: %i mm %i gaps %i<=intron<=%i %i<=exon num_exon==%i\n",
-			alignment_passed_filters,alignment_mm,alignment_gaps,min_intron_len,max_intron_len,min_exon_len,num_exons);
-
-	for (unsigned v=0; v<final_variants.size();v++){
-		fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i\n",final_variants[v].type,final_variants[v].position,final_variants[v].read_pos);
+	if (verbosity>=2)
+	{
+		fprintf(stdout,"Alignment with variants (valid=%i)has: %i mm %i gaps %i<=intron<=%i %i<=exon num_exon==%i\n",
+				alignment_passed_filters,alignment_mm,alignment_gaps,min_intron_len,max_intron_len,min_exon_len,num_exons);
+		
+		for (unsigned v=0; v<final_variants.size();v++){
+			fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i\n",final_variants[v].type,final_variants[v].position,final_variants[v].read_pos);
+		}
 	}
-	
 	
 	return final_variants ;
 }
@@ -3471,7 +3476,10 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 	}
 	
 	assert(exon_start==-1) ;
-	assert(exons.size()>0) ;
+
+	if (exons.size()==0)
+		alignment_valid=false ;
+	
 	if (verbosity>=2)
 		fprintf(stdout, "alignment valid=%i (0 means that exons went over block boundaries)\n", alignment_valid) ;
 
@@ -4279,10 +4287,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		
 		if (strand == '-'){
 			//reverse super variants coordinates and sequences
-			convert_variants(variant_list,(int)dna.length());
+			convert_variants(variant_list ,(int)dna.length());
 		}
 		
 		super_variant_list = create_super_sequence_from_variants(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
+
+		if (variant_list.size()==0)
+			assert(super_variant_list.size()==0) ;
 	}
 
 	if (myverbosity >= 3)
@@ -4362,15 +4373,21 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	{
 		final_variants = reconstruct_reference_alignment(variant_list, super_variant_list, found_variants, dna, ref_map,s_align, s_len, e_align, est_len_p, 
 														 dna_align, est_align, result_length, remapping, alignment_variants_valid) ;
+		if (super_variant_list.size()==0)
+			assert(final_variants.size()==0) ;
 		
-		for (unsigned int i=0; i< final_variants.size();i++){
+		for (unsigned int i=0; i< final_variants.size();i++)
+		{
 			
-			recover_variants_on_ref(final_variants[i],positions,strand,est_len_p);
+			recover_variants_on_ref(final_variants[i], positions, strand, est_len_p);
 			final_variants[i].read_id = read.id();
 		}
 		
-		for (unsigned int v=0; v<final_variants.size();v++){
-			fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s\n",final_variants[v].type,final_variants[v].position,final_variants[v].read_pos, (char *)final_variants[v].read_id.c_str());
+		if (verbosity>=2)
+		{
+			for (unsigned int v=0; v<final_variants.size();v++){
+				fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s\n",final_variants[v].type,final_variants[v].position,final_variants[v].read_pos, (char *)final_variants[v].read_id.c_str());
+			}
 		}
 	}
 
@@ -4421,7 +4438,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
 
-	bool alignment_passed_filters= (!_config.USE_VARIANTS || alignment_variants_valid) &&
+	bool alignment_passed_filters= //(!_config.USE_VARIANTS || alignment_variants_valid) && // what is this good for? GR
 		((max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && 
 		 ((alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
 		 &&(exons.size()==2 ||( (exons.size() >= 4) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && 
@@ -4503,7 +4520,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 					non_consensus_intron=true ;
 					non_consensus_alignment=true ;
 				}
-				if (!non_consensus_search && !remapping)
+				if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
 					assert(!non_consensus_intron) ;
 			}
 		    else
@@ -4532,7 +4549,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 					non_consensus_intron=true ;
 					non_consensus_alignment=true ;
 				}
-				if (!non_consensus_search && !remapping)
+				if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
 					assert(!non_consensus_intron) ;
 
 			}

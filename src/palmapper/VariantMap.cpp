@@ -22,7 +22,7 @@ VariantMap::VariantMap(Genome const &genome_)
 	int ret = pthread_mutex_init(&variant_mutex, NULL) ;
 	assert(ret==0) ;
 
-	validate_variants=true ;
+	validate_variants=false ;
 	exit_on_validation_error=true ;
 	insert_unsorted=false ;
 	max_variant_len=50 ;
@@ -34,6 +34,47 @@ VariantMap::~VariantMap()
 	delete[] variantlist;	
 }
 
+void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources) 
+{
+	fprintf(stdout, "Filtering variants, requiring\n* %i as minimum confirmation count\n* %1.2f as the ratio of confirmed vs. non-confirmed\nAdditionally accepting %ld specific sources\n", min_conf_count, max_nonconf_ratio, accept_sources.size()) ;
+	
+	int nbchr = genome->nrChromosomes();
+	int N=0, T=0;
+	 
+	for (int i=0; i<nbchr; i++) 
+	{
+		int n=0,t=0 ;
+		
+		std::deque<Variant> filtered ;
+		for (unsigned int j=0; j<variantlist[i].size(); j++)
+		{
+			n++ ;
+			bool take=false ;
+			if (variantlist[i][j].conf_count>=min_conf_count)
+				take = true ;
+
+			if (((double)variantlist[i][j].non_conf_count/(double)variantlist[i][j].conf_count)>max_nonconf_ratio)
+				take = false ;
+			
+			if (!take)
+			{
+				for (unsigned int k=0; k<accept_sources.size(); k++)
+					if (accept_sources[k]==variantlist[i][j].read_id)
+						take = true ;
+			}
+			if (take)
+			{
+				t++ ;
+				filtered.push_back(variantlist[i][j]) ;
+			}
+		}
+		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants\n", genome->chromosome(i).desc(), n, t) ;
+		variantlist[i]=filtered ;
+		N+=n ;
+		T+=t ;
+	}
+	fprintf(stdout, "All: analyzed %i variants, accepted %i variants\n", N, T) ;
+}
 
 void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons, int no_gap_end) 
 {
@@ -317,7 +358,7 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count, 
 						 source_id, &read_pos, &read_len, prop);
 		//fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
-		strcpy(source_id, "") ;
+		//strcpy(source_id, "") ;
 		
 		if (num<5)
 		{
@@ -365,7 +406,14 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 		}
 			
 		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count, source_id, read_pos-1, read_len);
+
 		variant_lines++ ;
+
+		if (variant_lines%10000==0)
+		{
+			long pos = ftell(fd) ;
+			fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r", variant_lines, pos/1024/1024) ; 
+		}
 	}		
 
 	fclose(fd) ;

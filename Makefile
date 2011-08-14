@@ -77,6 +77,9 @@ src/bwa/bwa: src/bwa/libbwa.a
 bwa: src/bwa/bwa
 	ln -sf src/bwa/bwa
 
+palmapperX: src/bwa/libbwa.a bwa $(PM_OBJ) src/palmapper/*.h 
+	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -o palmapperX
+
 palmapper: src/bwa/libbwa.a bwa $(PM_OBJ) src/palmapper/*.h 
 	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -o palmapper
 	ln -sf palmapper genomemapper

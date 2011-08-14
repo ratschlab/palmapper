@@ -154,11 +154,16 @@ Config::Config() {
 	DISCOVER_VARIANTS=false ;
 	REPORT_VARIANTS=false ;
 	REPORT_USED_VARIANTS=false ;
-
+	FILTER_VARIANTS=false ;
+	
 	USE_VARIANT_FILE_NAME = "" ;
 	REPORT_USED_VARIANT_FILE_NAME = "";
 	REPORT_VARIANTS_FILE_NAME="" ;
 	MAF_REF_NAME="";
+
+	FILTER_VARIANT_MINCONFCOUNT=0 ;
+	FILTER_VARIANT_MAXNONCONFRATIO=10.0 ;
+	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	REPORT_SNP_TERMINAL_DIST = 10 ;
 	REPORT_INDEL_TERMINAL_DIST = 15 ;
 	
@@ -941,6 +946,32 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				MAP_JUNCTIONS_COVERAGE=atoi(argv[i]) ;
 				assert(MAP_JUNCTIONS_COVERAGE>=0) ;
+			}
+
+			if (strcmp(argv[i], "-filter-variants-minconf") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-variants-minconf\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_VARIANT_MINCONFCOUNT=atoi(argv[i]) ;
+				assert(FILTER_VARIANT_MINCONFCOUNT>=0) ;
+				FILTER_VARIANTS=true ;
+			}
+
+			if (strcmp(argv[i], "-filter-variants-maxnonconfratio") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-variants-maxnonconfratio\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_VARIANT_MAXNONCONFRATIO=atof(argv[i]) ;
+				assert(FILTER_VARIANT_MAXNONCONFRATIO>=0) ;
+				FILTER_VARIANTS=true ;
 			}
 
 			//report repetitive seeds

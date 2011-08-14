@@ -286,7 +286,7 @@ double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_str
 		if (super_variants[j].position != position || super_variants[j].type!=pt_SNP)
 			continue;
 		int variantInt= check_char(super_variants[j].SNP[1]);
-		fprintf(stdout,"a variant for %i with %i (read=gap)\n",dnaInt,variantInt);
+		//fprintf(stdout,"a variant for %i with %i (read=gap)\n",dnaInt,variantInt);
 		
 		switch ( variantInt )
 		{		
