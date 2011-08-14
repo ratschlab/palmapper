@@ -77,8 +77,6 @@ void get_annotated_splice_positions( std::vector<int> &pos, JunctionMap &annotat
 	}
 	
 	annotatedjunctions.unlock();
-	
-	
 }
 
 void get_annotated_splice_sites(std::vector<int> &acc_pos, std::vector<int> &don_pos, JunctionMap &annotatedjunctions, int start, int end, int chr, char strand)
@@ -3573,10 +3571,10 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 						fprintf(stdout, "deletion: %i:%i (%s) %c/%i\n%s %i\n", positions[start_offset+est_gap_start], positions[start_offset+est_gap_end], est_gap.c_str(), strand, ori, read_anno.c_str(), read_pos) ;
 					//assert(abs(positions[start_offset+est_gap_end]-positions[start_offset+est_gap_start])+1==(int)est_gap.size()) ;
 					if (positions[start_offset+est_gap_start] < positions[start_offset+est_gap_end])
-						variants.report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_start]+1, est_gap.size(), est_gap, read.id(),
+						variants.report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_start], est_gap.size(), est_gap, read.id(),
 													ori==0?read_pos:est_len_p-1-read_pos, est_len_p) ;
 					else
-						variants.report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_end]+1, est_gap.size(), est_gap, read.id(),
+						variants.report_del_variant(align_variants, contig_idx, positions[start_offset+est_gap_end], est_gap.size(), est_gap, read.id(),
 													ori==0?read_pos:est_len_p-1-read_pos, est_len_p) ;
 				}
 				est_gap_start=-1 ;
@@ -3605,7 +3603,7 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 					if (myverbosity>=2)
 						fprintf(stdout, "insertion: %i (%s) %c/%i %i (%i) flank=%s\n%s %i\n", positions[start_offset+dna_gap_start], dna_gap.c_str(), strand, ori, 
 								i, dna_pos, flank.c_str(), read_anno.c_str(), read_pos) ;
-					variants.report_ins_variant(align_variants, contig_idx, positions[start_offset+dna_gap_start], dna_gap.size(), dna_gap, read.id(),
+					variants.report_ins_variant(align_variants, contig_idx, positions[start_offset+dna_gap_start]-1, dna_gap.size(), dna_gap, read.id(),
 												ori==0?read_pos:est_len_p-1-read_pos, est_len_p, flank.c_str()) ;
 				}
 				dna_gap_start=-1 ;
@@ -3652,7 +3650,7 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 							if (myverbosity>=2)
 								fprintf(stdout, "SNP: %i (%c->%c) %c/%i\n%s %i\n", positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]], strand, ori, read_anno.c_str(), read_pos) ; 
 							if (strand=='+')
-								variants.report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos]+1, map[dna_align[i]], map[est_align[i]], read.id(),
+								variants.report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], map[dna_align[i]], map[est_align[i]], read.id(),
 															ori==0?read_pos:est_len_p-1-read_pos, est_len_p) ;
 							else
 							{
@@ -3664,7 +3662,7 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 								est_letter+=map[est_align[i]] ;
 								est_letter=complement(est_letter) ;
 								
-								variants.report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos]+1, dna_letter[0], est_letter[0], read.id(),
+								variants.report_SNP_variant(align_variants, contig_idx, positions[start_offset+dna_pos], dna_letter[0], est_letter[0], read.id(),
 															ori==0?read_pos:est_len_p-1-read_pos, est_len_p) ;
 							}
 						}

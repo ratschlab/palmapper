@@ -8,6 +8,7 @@
 #include <palmapper/Util.h>
 #include <pthread.h>
 #include <palmapper/QPalma.h>
+#include <algorithm>
 
 VariantMap::VariantMap(Genome const &genome_)
 {
@@ -23,6 +24,9 @@ VariantMap::VariantMap(Genome const &genome_)
 
 	validate_variants=true ;
 	exit_on_validation_error=true ;
+	insert_unsorted=false ;
+	max_variant_len=100 ;
+	
 }
 
 VariantMap::~VariantMap()
@@ -112,7 +116,8 @@ void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & a
 	}
 }
 
-void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int used_count, const std::string & read_id, int read_pos, int read_len)
+void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count, 
+								const std::string & read_id, int read_pos, int read_len, const char* flank)
 {
 	enum polytype pt = pt_unknown ;
 	if (ref_len==1 && variant_len==1)
@@ -135,13 +140,13 @@ void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, 
 	j.ref_str=ref_str ;
 	j.variant_str = variant_str ;
 	j.conf_count = conf_count ;
-	j.non_conf_count = 0 ;
+	j.non_conf_count = non_conf_count ;
 	j.used_count = used_count ;
 	j.read_id = read_id ;
 	j.read_pos= read_pos;
 	j.read_len= read_len;
 	
-	insert_variant(j, chr) ;
+	insert_variant(j, chr, flank) ;
 }
 
 inline int min(int a, int b)
@@ -160,22 +165,22 @@ bool VariantMap::validate_variant(Variant & j, int chr, const char *flank) const
 		{
 			if (i==0 || i==j.ref_len)
 				genome_str+='|' ;
-			genome_str+=genome->chromosome(chr)[j.position+i-1] ;
+			genome_str+=genome->chromosome(chr)[j.position+i] ;
 		}
 
 		for (int i=0; i<j.ref_len; i++)
 		{
-			if (genome->chromosome(chr)[j.position+i-1]!=j.ref_str[i] && 
+			if (genome->chromosome(chr)[j.position+i]!=j.ref_str[i] && 
 				j.ref_str[i]!='N' && j.ref_str[i]!='Y' && j.ref_str[i]!='W' && j.ref_str[i]!='K' && j.ref_str[i]!='S' && j.ref_str[i]!='M' && j.ref_str[i]!='R' && j.ref_str[i]!='D')
 			{
 				FILE* of = stdout ;
 				if (exit_on_validation_error)
 				{
 					of=stderr ;
-					fprintf(of, "ERROR: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i-1], j.ref_str[i], j.variant_str.c_str()) ;
+					fprintf(of, "ERROR: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i], j.ref_str[i], j.variant_str.c_str()) ;
 				}
 				else
-					fprintf(of, "WARNING: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i-1], j.ref_str[i], j.variant_str.c_str()) ;
+					fprintf(of, "WARNING: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i], j.ref_str[i], j.variant_str.c_str()) ;
 				if (j.type==pt_SNP)
 					fprintf(of, "SNP\t%s\t%i\t%c\t%c\t%s\n", genome->chromosome(chr).desc(), j.position, j.ref_str[0], j.variant_str[0], genome_str.c_str()) ;
 				if (j.type==pt_deletion)
@@ -185,7 +190,6 @@ bool VariantMap::validate_variant(Variant & j, int chr, const char *flank) const
 				{
 					fprintf(of, "writing current variants to variants.tmp\n") ;
 					report_to_sdi(std::string("variants.tmp")) ;
-					
 					exit(-1) ;
 				}
 				else
@@ -193,20 +197,20 @@ bool VariantMap::validate_variant(Variant & j, int chr, const char *flank) const
 			}
 		}
 	}
-	if (flank!=NULL && flank[0]!='N' and flank[1]!='N')
+	if (flank!=NULL)
 	{
 		std::string genome_str = "" ;
 		for (int i=-4; i<4; i++)
 		{
 			if (i==0)
 				genome_str+='|' ;
-			genome_str+=genome->chromosome(chr)[j.position+i-1] ;
+			genome_str+=genome->chromosome(chr)[j.position+i] ;
 		}
-		if (genome_str[3]!=flank[0] || genome_str[5]!=flank[1])
+		if ((genome_str[3]!=flank[0] && flank[0]!='N') || (genome_str[5]!=flank[1] && flank[1]!='N'))
 		{
 			if (exit_on_validation_error)
 			{
-				fprintf(stderr, "ERROR: flanking region does not match: %s %s\n", flank, genome_str.c_str()) ;
+				fprintf(stderr, "ERROR: flanking region does not match: %s %s\nvariant: %s \n", flank, genome_str.c_str(), j.variant_str.c_str()) ;
 				fprintf(stderr, "writing current variants to variants.tmp\n") ;
 				report_to_sdi(std::string("variants.tmp")) ;
 				exit(-1) ;
@@ -217,21 +221,25 @@ bool VariantMap::validate_variant(Variant & j, int chr, const char *flank) const
 			}
 		}
 	}
+	//fprintf(stdout, "variant ok\n") ;
+	
 	return true ;
 }
 
 
-void VariantMap::insert_variant(Variant & j, int chr)
+void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 {
 	if (validate_variants)
-		if (!validate_variant(j, chr, "NN"))
+		if (!validate_variant(j, chr, flank))
 			return ;
 
+	if (j.variant_len>max_variant_len)
+		return ;
+	
 	lock() ;
 
-	if (variantlist[chr].empty())
+	if (insert_unsorted || variantlist[chr].empty())
 	{
-		
 		j.id=next_variant_id;
 		next_variant_id++;
 		variantlist[chr].push_back(j);
@@ -282,7 +290,7 @@ void VariantMap::insert_variant(Variant & j, int chr)
 	return ;
 }
 
-int VariantMap::init_from_sdi(std::string &sdi_fname)
+int VariantMap::init_from_sdi(const std::string &sdi_fname)
 {
 
 	fprintf(stdout, "initializing genome variant list with SDI file %s\n", sdi_fname.c_str()) ;
@@ -294,8 +302,8 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 
 	while (!feof(fd))
 	{
-		char chr_name[1000], ref_str[100000], variant_str[100000], tmp[1000], buf[250000] ;
-		int position, lendiff ;
+		char chr_name[1001], ref_str[100001], variant_str[10001], buf[250000], prop[1001], source_id[1001]  ;
+		int position, lendiff, read_pos=-1, read_len=-1, conf_count=0, non_conf_count=0, used_count=0 ;
 		
 		Util::skip_comment_lines(fd) ;
 		
@@ -303,7 +311,12 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 			break ; 
 
 		//Scan sdi line
-		int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;  
+		//int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;  
+
+		int num = sscanf(buf,"%1000s\t%i\t%i\t%10000s\t%10000s\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count, 
+						 source_id, &read_pos, &read_len, prop);
+		//fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
 		if (num<5)
 		{
 			if (feof(fd))
@@ -329,7 +342,7 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 		assert(lendiff==variant_len-ref_len) ;
 
 		// validate variants on genome sequence
-		if (ref_len>0)
+		if (ref_len>0 && validate_variants && false)
 		{
 			//fprintf(stdout, "pos=%i\tref_len=%i\tvariant_len=%i\n", pos, ref_len, variant_len) ;
 			for (int i=0; i<ref_len; i++)
@@ -343,13 +356,13 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 						exit(-1) ;
 					}
 					else
-						fprintf(stdout, "ERROR: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\n%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
+						fprintf(stdout, "WARNING: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\t%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
 				}
 			}
 			variant_lines_checked++ ;
 		}
 			
-		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, "", -1, -1);
+		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count, source_id, read_pos-1, read_len);
 		variant_lines++ ;
 	}		
 
@@ -361,26 +374,52 @@ int VariantMap::init_from_sdi(std::string &sdi_fname)
 
 }
 
-int VariantMap::report_to_sdi(const std::string &sdi_fname) const
+int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 {
 	int nb_variants=0;
 	
-	fprintf(stdout, "report genome list in SDI file %s\n", sdi_fname.c_str()) ;
+	fprintf(stdout, "report genome variants in SDI file %s\n", sdi_fname.c_str()) ;
 	
 	FILE * fd=Util::openFile(sdi_fname.c_str(), "w") ;
 	if (!fd)
 		return -1 ;	
 
-	for (unsigned int i=0; i<genome->nrChromosomes(); i++){
+	const int max_len=10 ;
+	int num_del=0 ;
+	int num_ins=0 ;
+	int num_snp=0 ;
+	int num_sub=0 ;
+	std::vector<int> num_del_dist(max_len+2, 0) ;
+	std::vector<int> num_ins_dist(max_len+2, 0) ;
+
+	for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+	{
 		
 		const char * chr= genome->get_desc(i);
 		std::deque<Variant>::iterator it;
 		
 		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
 		{			
-			
-			//if (false && (((*it).conf_count<2 || (double)(*it).conf_count/(double)(*it).non_conf_count<0.2) && (*it).used_count<=0))
-			//	continue ;
+			if ((*it).type==pt_SNP)
+				num_snp++ ;
+			if ((*it).type==pt_deletion)
+			{
+				num_del++ ;
+				if ((*it).ref_len>max_len)
+					num_del_dist[max_len+1]++ ;
+				else
+					num_del_dist[(*it).ref_len]++ ;
+			}
+			if ((*it).type==pt_insertion)
+			{
+				num_ins++ ;
+				if ((*it).variant_len>max_len)
+					num_ins_dist[max_len+1]++ ;
+				else
+					num_ins_dist[(*it).variant_len]++ ;
+			}
+			if ((*it).type==pt_substitution)
+				num_sub++ ;
 			
 			std::string ref_str = (*it).ref_str ;
 			if (ref_str.size()==0)
@@ -390,14 +429,45 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname) const
 				variant_str+='-' ;
 			
 			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%i\t%s\t%i/%i\t%s\n",
-					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count,(*it).used_count, (*it).read_id.c_str(),(*it).read_pos+1, (*it).read_len, (*it).id<=known_variants_limit?"known":"discovered");
+					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).used_count, 
+					(*it).read_id.c_str(),(*it).read_pos+1, (*it).read_len, (*it).id<=known_variants_limit?"known":"discovered");
 			nb_variants++;
 		}
 	}
 	fclose(fd) ;
-	fprintf(stdout, "reported %i variants\n", nb_variants) ;	
 
-	check_variant_order() ;
+	fprintf(stdout, "reported %i variants\n", nb_variants) ;	
+	fprintf(stdout, "* %i SNPs\n", num_snp) ;
+	fprintf(stdout, "* %i substitutions\n", num_sub) ;
+	fprintf(stdout, "* %i deletions\n\t", num_del) ;
+	for (int i=0; i<max_len+1; i++)
+		fprintf(stdout, "%i:%i ", i, num_del_dist[i]) ;
+	fprintf(stdout, " >%i:%i\n", max_len, num_del_dist[max_len+1]) ;
+	fprintf(stdout, "* %i insertions\n\t", num_ins) ;
+	for (int i=0; i<max_len+1; i++)
+		fprintf(stdout, "%i:%i ", i, num_ins_dist[i]) ;
+	fprintf(stdout, " >%i:%i\n", max_len, num_ins_dist[max_len+1]) ;
+	
+	/*if (false && sdi_fname!=std::string("/tmp/tmpgu.sdi"))
+	{
+		//check_variant_order() ;
+		exit_on_validation_error=false ;
+		
+		fprintf(stdout, "reading file again\n") ;
+		VariantMap read(*genome) ;
+		read.init_from_sdi(sdi_fname) ;
+		read.exit_on_validation_error=false ;
+		
+		fprintf(stdout, "done\n") ;
+		
+		for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+		{
+			fprintf(stdout, "%s: %ld - %ld\n", genome->chromosome(i).desc(), copy.variantlist[i].size(), read.variantlist[i].size()) ;
+		}
+		read.report_to_sdi("/tmp/tmpgu.sdi") ;
+
+		assert(0) ;
+		}*/
 	
 	return 0;
 	
@@ -419,12 +489,12 @@ int VariantMap::init_from_files(std::string &fnames)
 			filename=fnames.substr(previousfound);
 
 		unsigned int pos_ext=filename.rfind('.');
-		fprintf(stdout, "fn=%s,%i\n", filename.c_str(), pos_ext) ;
+		//fprintf(stdout, "fn=%s,%i\n", filename.c_str(), pos_ext) ;
 		VariantInputEnum ext=unknown;
 		if (pos_ext != std::string::npos)
 		{
 			std::string extension(filename.substr(pos_ext+1));
-			fprintf(stdout, "ext=%s\n", extension.c_str()) ;
+			//fprintf(stdout, "ext=%s\n", extension.c_str()) ;
 			
 			if (extension.compare("sdi")==0 ||extension.compare("SDI")==0)
 				ext=sdi;
@@ -471,7 +541,8 @@ int VariantMap::init_from_files(std::string &fnames)
 }
 
 
-int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,int ref_len, std::vector<std::string> variant_align,int start_position,int chr_idx, char strand)
+int VariantMap::insert_variants_from_multiple_alignments(std::string &ref_align,int ref_len, std::vector<std::string> &variant_align, std::vector<std::string> &variant_name, 
+														 int start_position, int chr_len, int chr_idx, char strand)
 {
 
 	int start_variant=-1;
@@ -479,40 +550,76 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 	std::string diff_seq;
 	int num_variants=0;
 	
-	
-
 	//Compare reference sequence with alignments from different genomes 
 	for (unsigned int i=0;i<variant_align.size();i++){
 
 		std::string variant_seq=variant_align[i];
+		std::string source_name=variant_name[i] ;
+		
 		if (variant_seq.length() != ref_align.length())
 			continue;
 		int ref_position=-1;
+
 		//fprintf(stdout, "%s\n%s\n",(char*)ref_align.c_str(), (char*)variant_seq.c_str()) ;
+		bool ref_started = false ;
+		bool variant_started = false ;
+		char flank_variant='N' ;
+		
 		for (unsigned j=0;j<ref_align.length();j++){
 
 			//Gap on both sequences
 			if (ref_align[j]=='-' && variant_seq[j]=='-')
 				continue;
+			if (ref_align[j]!='-' && !ref_started)
+			{
+				ref_started=true ;
+				start_variant=-1 ;
+				flank_variant=ref_align[j] ;
+				diff_seq.clear() ;
+			}
+			if (variant_seq[j]!='-' && !variant_started)
+			{
+				variant_started=true ;
+				start_variant=-1 ;
+				diff_seq.clear() ;
+			}
 			
 			//Match
-			if (ref_align[j]==variant_seq[j]){
+			if (ref_align[j]==variant_seq[j])
+			{
 				ref_position++;
 				//Next position after an insertion or deletion
-				if(start_variant!=-1){
-					if (type_variant == pt_insertion){
+				if (start_variant!=-1)
+				{
+					if (type_variant == pt_insertion)
+					{
+						char flank[3]="NN" ;
+						
 						if (strand =='+')
-							insert_variant(chr_idx, start_position -1 + ref_position, 0, diff_seq.length(), "", diff_seq, 0, 0,"", -1, -1);
+						{
+							//flank[0]=ref_align[start_variant] ;
+							flank[1]=ref_align[j] ; 
+							
+							insert_variant(chr_idx, start_position + ref_position, 0, diff_seq.length(), "", diff_seq, 1, 0, 0, source_name, -1, -1, flank);
+						}
 						else
-							insert_variant(chr_idx, start_position -1 + ref_len-ref_position, 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 0, 0,"", -1, -1);
+						{
+							flank[0]=ref_align[j] ;
+							std::string rflank=QPalma::complement(flank) ;
+							
+							insert_variant(chr_idx, chr_len - start_position - ref_position , 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 
+										   1, 0, 0, source_name, -1, -1, rflank.c_str());
+						}
 					}
 					if (type_variant == pt_deletion){
 						if (strand =='+')
-							insert_variant(chr_idx, start_position -1 +start_variant, diff_seq.length(), 0,  diff_seq, "", 0, 0,"",-1,-1);
+							insert_variant(chr_idx, start_position +start_variant, diff_seq.length(), 0,  diff_seq, "", 1, 0, 0, source_name,-1,-1);
 						else
-							insert_variant(chr_idx, start_position -1 + ref_len-1 -start_variant, diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), "", 0, 0,"",-1,-1);
+							insert_variant(chr_idx, chr_len - start_position - ref_position , diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), "", 1, 0, 0, 
+										   source_name, -1, -1);
 					}
 					start_variant=-1;
+					flank_variant='N' ;
 					diff_seq.clear();
 					num_variants++;
 				}
@@ -520,13 +627,16 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 			}
 			
 			//Insertion on ref
-			if (ref_align[j]=='-'){
+			if (ref_align[j]=='-')
+			{
 				//This position corresponds to the end of a deletion
-				if (start_variant!=-1 && type_variant == pt_deletion){
+				if (start_variant!=-1 && type_variant == pt_deletion)
+				{
 					if (strand =='+')
-						insert_variant(chr_idx, start_position -1 +start_variant,  diff_seq.length(), 0,  diff_seq, "", 0, 0,"",-1,-1);
+						insert_variant(chr_idx, start_position +start_variant,  diff_seq.length(), 0,  diff_seq, "", 1, 0, 0, source_name, -1, -1);
 					else
-						insert_variant(chr_idx, start_position -1 + ref_len-1 -start_variant, diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), "", 0, 0,"",-1,-1);
+						insert_variant(chr_idx, chr_len - start_position - ref_position -1, diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), 
+									   "", 1, 0, 0, source_name, -1, -1);
 					diff_seq.clear();
 					start_variant=ref_position;
 					type_variant=pt_insertion;
@@ -535,9 +645,15 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 				}
 				else{
 					//New insertion
-					if (start_variant==-1){
+					if (start_variant==-1 && ref_started && variant_started)
+					{
 						start_variant=ref_position;
 						type_variant=pt_insertion;
+						assert(j>=0) ;
+						int k=j ;
+						while (ref_align[k-1]=='-' && k>1)
+							k-- ;
+						flank_variant=ref_align[k-1] ;
 					}
 					diff_seq+=variant_seq[j];
 				}
@@ -546,14 +662,26 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 			}
 			
 			//Deletion on ref
-			if (variant_seq[j]=='-'){
+			if (variant_seq[j]=='-')
+			{
 				ref_position++;
 				//This position corresponds to the end of an insertion
-				if (start_variant!=-1 && type_variant == pt_insertion){
+				if (start_variant!=-1 && type_variant == pt_insertion)
+				{
+					char flank[3]="NN" ;
+					
 					if (strand =='+')
-						insert_variant(chr_idx, start_position -1 + ref_position, 0, diff_seq.length(), "", diff_seq, 0, 0,"",-1,-1);
+					{
+						// TODO: check flanks
+						insert_variant(chr_idx, start_position + ref_position, 0, diff_seq.length(), "", diff_seq, 1, 0, 0, source_name, -1, -1, flank);
+					}
 					else
-						insert_variant(chr_idx, start_position -1 + ref_len-ref_position, 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 0, 0,"",-1,-1);
+					{
+						// TODO: check flanks
+						insert_variant(chr_idx, chr_len - start_position - ref_position - 1, 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 
+									   1, 0, 0, source_name,-1,-1, flank);
+					}
+					
 					diff_seq.clear();
 					start_variant=ref_position;
 					type_variant=pt_deletion;
@@ -562,12 +690,17 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 				}
 				else{
 					//New deletion
-					if (start_variant==-1){
+					if (start_variant==-1 && variant_started && ref_started)
+					{
 						start_variant=ref_position;
 						type_variant=pt_deletion;
+						assert(j>=0) ;
+						int k=j ;
+						while (ref_align[j-1]=='-' && k>1)
+							k-- ;
+						flank_variant=ref_align[k-1] ;
 					}
 					diff_seq+=ref_align[j];
-					
 				}
 				
 				continue;
@@ -577,26 +710,48 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 			//Mismatch => SNP
 			ref_position++;
 			//Next position after an insertion or deletion
-			if(start_variant!=-1){
-				if (type_variant == pt_insertion){
+			if (start_variant!=-1)
+			{
+				if (type_variant == pt_insertion)
+				{
+					char flank[3]="NN" ;
+					
 					if (strand =='+')
-						insert_variant(chr_idx, start_position -1 + ref_position, 0, diff_seq.length(), "", diff_seq, 0, 0,"",-1,-1);
+					{
+						//TODO: check flanks
+						insert_variant(chr_idx, start_position + ref_position, 0, diff_seq.length(), "", diff_seq, 1, 0, 0, source_name,-1,-1, flank);
+					}
 					else
-						insert_variant(chr_idx, start_position -1 + ref_len-ref_position, 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 0, 0,"",-1,-1);
+					{
+						//TODO: check flanks
+						insert_variant(chr_idx, chr_len - start_position - ref_position - 1, 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 
+									   1, 0, 0, source_name,-1,-1, flank);
+					}
 				}
 				if (type_variant == pt_deletion){
 					if (strand =='+')
-						insert_variant(chr_idx, start_position -1 +start_variant,  diff_seq.length(), 0,  diff_seq, "", 0, 0,"",-1,-1);
+						insert_variant(chr_idx, start_position +start_variant,  diff_seq.length(), 0,  diff_seq, "", 1, 0, 0, source_name,-1,-1);
 					else
-						insert_variant(chr_idx, start_position -1 + ref_len-1 -start_variant, diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), "", 0, 0,"",-1,-1);
+						insert_variant(chr_idx, chr_len - start_position - ref_position, diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), 
+									   "", 1, 0, 0, source_name,-1,-1);
 				}
 				start_variant=-1;
 				diff_seq.clear();
 				num_variants++;
 			}
+
 			//Insert SNP
 			if (strand =='+')
-				insert_variant(chr_idx, start_position -1 +ref_position,  1, 1,  &ref_align[j], &variant_seq[j], 0, 0,"",-1,-1);
+			{
+				std::string ref;
+				std::string var;
+				char r=ref_align[j];
+				char v=variant_seq[j];
+				ref+=r;
+				var+=v;
+				
+				insert_variant(chr_idx, start_position + ref_position, 1, 1,  ref, var, 1, 0, 0, source_name,-1,-1);
+			}
 			else{
 				std::string ref;
 				std::string var;
@@ -604,29 +759,44 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 				char v=QPalma::complement(variant_seq[j]);
 				ref+=r;
 				var+=v;
-				insert_variant(chr_idx, start_position -1 + ref_len-1 -ref_position, 1,1,&ref[0], &var[0], 0, 0,"",-1,-1);
+				insert_variant(chr_idx, chr_len - start_position - ref_position -1, 1,1, ref, var, 1, 0, 0, source_name,-1,-1);
 			}
 			
 			num_variants++;
 		}
-		//Next position after an insertion or deletion
-		if(start_variant!=-1){
-			if (type_variant == pt_insertion){
+
+		// Next position after an insertion or deletion
+		// disabled: do not insert indels at the trailing ends
+		if (false && start_variant!=-1)
+		{
+			if (type_variant == pt_insertion)
+			{
+				char flank[3]="NN" ;
+				
 				if (strand =='+')
-					insert_variant(chr_idx, start_position -1 + ref_position, 0, diff_seq.length(), "", diff_seq, 0, 0,"",-1,-1);
+				{
+					//TODO: check flanks
+					insert_variant(chr_idx, start_position + ref_position, 0, diff_seq.length(), "", diff_seq, 1, 0, 0, source_name,-1,-1);
+				}
 				else
-					insert_variant(chr_idx, start_position -1 + ref_len-ref_position, 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 0, 0,"",-1,-1);
+				{
+					//TODO: check flanks
+					insert_variant(chr_idx, chr_len - start_position - ref_position - 1, 0,  diff_seq.length(), "", QPalma::reverse(QPalma::complement(diff_seq)), 
+								   1, 0, 0, source_name,-1,-1, flank);
+				}
 			}
-			if (type_variant == pt_deletion){
+			if (type_variant == pt_deletion)
+			{
 				if (strand =='+')
-					insert_variant(chr_idx, start_position -1 +start_variant,  diff_seq.length(), 0,  diff_seq, "", 0, 0,"",-1,-1);
+					insert_variant(chr_idx, start_position +start_variant,  diff_seq.length(), 0,  diff_seq, "", 1, 0, 0, source_name,-1,-1);
 				else
-					insert_variant(chr_idx, start_position -1 + ref_len-1 -start_variant, diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), "", 0, 0,"",-1,-1);
+					insert_variant(chr_idx, chr_len - start_position - ref_position -1, diff_seq.length(), 0, QPalma::reverse(QPalma::complement(diff_seq)), 
+								   "", 1, 0, 0, source_name,-1,-1);
 			}
 			start_variant=-1;
 			diff_seq.clear();
 			num_variants++;
-		}//End comparaison reference against one other genome
+		}//End comparison reference against one other genome
 		
 
 	}//End loop over non reference genomes
@@ -636,11 +806,17 @@ int VariantMap::insert_variants_from_multiple_alignments(std::string ref_align,i
 }
 
 
-int VariantMap::init_from_maf(std::string &maf_fname,std::string &ref_genome)
+bool compare_variants(const Variant &a, const Variant &b)
+{
+	return (VariantMap::variant_cmp(a,b)<0) ;
+}
+
+int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &ref_genome)
 {
 
 	fprintf(stdout, "initializing genome variant list with MAF file %s\n", maf_fname.c_str()) ;
-
+	insert_unsorted = true ;
+	
 	FILE * fd=Util::openFile(maf_fname.c_str(), "r") ;
 	if (!fd)
 		return -1 ;
@@ -648,11 +824,13 @@ int VariantMap::init_from_maf(std::string &maf_fname,std::string &ref_genome)
 	
 	std::string ref_align="";
 	std::vector<std::string> variant_align;
+	std::vector<std::string> variant_name;
 	char strand='+';
 	int start_position=-1;
 	int chr_idx=-1;
 	int ref_len=-1;
-
+	int ref_chr_len=-1 ;
+	int num_blocks = 0 ;
 	
 	while (!feof(fd))
 	{
@@ -666,11 +844,12 @@ int VariantMap::init_from_maf(std::string &maf_fname,std::string &ref_genome)
 
 		//Scan MAF line type
 		char name_maf[1000], alignment_maf[100000];
-		int position_maf, len_maf ;
+		int position_maf, len_maf, len_chr ;
 		char strand_maf;
 		char type_maf;
-		int tmp;
-		int num = fscanf(fd, "%c\t%1000s\t%i\t%i\t%c\t%i\t%100000s\n", &type_maf, name_maf, &position_maf, &len_maf, &strand_maf, &tmp,alignment_maf) ;  
+
+		int num = fscanf(fd, "%c\t%1000s\t%i\t%i\t%c\t%i\t%100000s\n", &type_maf, name_maf, &position_maf, &len_maf, &strand_maf, &len_chr, alignment_maf) ;  
+		//fprintf(stdout, "%c\t%s\t%i\t%i\t%c\t%i\t%s\n", type_maf, name_maf, position_maf, len_maf, strand_maf, len_chr, alignment_maf) ;  
 		if (num<1)
 		{
 			if (feof(fd))
@@ -681,15 +860,24 @@ int VariantMap::init_from_maf(std::string &maf_fname,std::string &ref_genome)
 		}
 
 		//New alignment block: get variants from the previous block
-		if (type_maf == 'a'){
+		if (type_maf == 'a')
+		{
 			//Block with reference name
 			if(!ref_align.empty())
-				variant_lines+=insert_variants_from_multiple_alignments(ref_align,ref_len,variant_align,start_position,chr_idx,strand);
+				variant_lines+=insert_variants_from_multiple_alignments(ref_align, ref_len, variant_align, variant_name, start_position, ref_chr_len, chr_idx,strand);
 			ref_align.clear();
 			variant_align.clear();
-		}
-		
+			variant_name.clear();
+			num_blocks++ ;
 			
+			if (num_blocks%10000==0)
+			{
+				long pos = ftell(fd) ;
+				fprintf(stdout, "num_blocks=%i\t\t%ld Mb read\r", num_blocks, pos/1024/1024) ; 
+			}
+			//if (num_blocks>1000)
+			//	break ;
+		}
 
 		//Line should be a sequence line and have 7 fields
 		if (type_maf != 's' || num <7)
@@ -727,34 +915,44 @@ int VariantMap::init_from_maf(std::string &maf_fname,std::string &ref_genome)
 			chr_idx=chr_tmp;
 			strand=strand_maf;
 			ref_len=len_maf;
+			ref_chr_len = len_chr ;
 			ref_align.assign(alignment_maf);
 			std::transform(ref_align.begin(), ref_align.end(),ref_align.begin(), ::toupper);			
-
-			
-			
-
 		}
 		else{
 			std::string var_seq(alignment_maf);
 			std::transform(var_seq.begin(), var_seq.end(),var_seq.begin(), ::toupper);			
 			variant_align.push_back(var_seq);
+			variant_name.push_back(genome_name) ;
 			var_seq.clear();
-			
 		}
 		
 
 	}		
 
 	//Last block if exists
-	if (!ref_align.empty()){
-		variant_lines+=insert_variants_from_multiple_alignments(ref_align,ref_len,variant_align,start_position,chr_idx,strand);
+	if (!ref_align.empty())
+	{
+		variant_lines+=insert_variants_from_multiple_alignments(ref_align,ref_len,variant_align,variant_name, start_position, ref_chr_len, chr_idx,strand);
 		ref_align.clear();
 		variant_align.clear();
+		variant_name.clear();
 	}
 	
 	fclose(fd) ;
 
-	fprintf(stdout, "Insert %i variant lines\n", variant_lines) ;
+	lock() ;
+	fprintf(stdout, "Inserted %i variants\n", variant_lines) ;
+
+	fprintf(stdout, "Sorting...") ;
+	for (int i=0; i<(int)genome->nrChromosomes(); i++)
+	{
+		sort(variantlist[i].begin(), variantlist[i].end(), compare_variants);
+		fprintf(stdout, ".") ;
+	}
+	fprintf(stdout, "Done.\n") ;
+	insert_unsorted = false ;
+	unlock() ;
 
 	return 0 ;
 
