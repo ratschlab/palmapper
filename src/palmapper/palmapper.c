@@ -119,6 +119,9 @@ int main(int argc, char *argv[])
 		int ret=variants.init_from_files(_config.USE_VARIANT_FILE_NAME);
 		if (ret!=0)
 			return -1;
+
+		if (_config.FILTER_VARIANTS)
+			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES) ;
 	}
 
 	// initialize GenomeMaps

@@ -76,6 +76,8 @@ public:
 	int init_from_files(std::string &sdi_fname);
 	int report_to_sdi(const std::string &sdi_fname) const ;
 
+	void filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources) ;
+	
 	void lock() 
 	{ 
 		pthread_mutex_lock( &variant_mutex) ; 
