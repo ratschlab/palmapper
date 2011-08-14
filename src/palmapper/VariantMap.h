@@ -58,18 +58,22 @@ private:
 	int known_variants_limit;
 	bool validate_variants ;
 	bool exit_on_validation_error ;
+	bool insert_unsorted ;
+	int max_variant_len ;
 	
 public:
 	std::deque<Variant> * variantlist ;
+
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
-	int insert_variants_from_multiple_alignments(std::string ref_align,int ref_len, std::vector<std::string> variant_align,int start_position,int chr_idx, char strand);
-	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int used_count, 
-						const std::string & read_id, int read_pos, int read_len);
+	int insert_variants_from_multiple_alignments(std::string & ref_align,int ref_len, std::vector<std::string> & variant_align, std::vector<std::string> & variant_name, 
+												 int start_position, int ref_chr_len, int chr_idx, char strand);
+	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count, 
+						const std::string & read_id, int read_pos, int read_len, const char* flank="NN");
 	bool validate_variant(Variant & j, int chr, const char *flank="NN") const ;
-	void insert_variant(Variant & j, int chr) ;
+	void insert_variant(Variant & j, int chr, const char* flank="NN") ;
 	int init_from_files(std::string &sdi_fname);
-	int report_to_sdi(const std::string &sdi_fname) const;
+	int report_to_sdi(const std::string &sdi_fname) const ;
 
 	void lock() 
 	{ 
@@ -90,7 +94,7 @@ public:
 		return true ;
 	}
 
-	int variant_cmp(const Variant &a, const Variant &b) const
+	static int variant_cmp(const Variant &a, const Variant &b) 
 	{
 		if (a.position<b.position)
 			return -1  ;
@@ -216,7 +220,7 @@ public:
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
 			for (int j=0; j<(int)(variantlist[i].size()-1); j++)
 			{
-				if (variant_cmp(variantlist[i][j], variantlist[i][j+1])>=0) 
+				if (variant_cmp(variantlist[i][j], variantlist[i][j+1])>0) 
 				{
 					fprintf(stdout, "ERROR: wrong order %i/%i-%i\n", i, j, j+1) ;
 				}
@@ -225,8 +229,8 @@ public:
 
 protected:
 	
-	int init_from_sdi(std::string &gff_fname);
-	int init_from_maf(std::string &gff_fname,std::string &ref_genome);
+	int init_from_sdi(const  std::string &gff_fname);
+	int init_from_maf(const  std::string &gff_fname, const std::string &ref_genome);
 
 	Genome const *genome;
 
