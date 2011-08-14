@@ -15,20 +15,21 @@ enum polytype
 	pt_substitution
 }  ;
 
-struct variant_str {
+struct variant_str 
+{
+	int id ;
 	int position ;
 	int end_position ;
 	short int ref_len ;
 	short int variant_len ;
-	int id ;
 	enum polytype type ;
-	std::string ref_str, variant_str ;
-	std::string read_id ;
 	short int read_pos;
 	short int read_len;
 	short unsigned int used_count ;
 	short unsigned int conf_count ;
 	short unsigned int non_conf_count ;
+	std::string ref_str, variant_str ;
+	std::string read_id ;
 };
 
 typedef struct variant_str Variant;

@@ -25,7 +25,7 @@ VariantMap::VariantMap(Genome const &genome_)
 	validate_variants=true ;
 	exit_on_validation_error=true ;
 	insert_unsorted=false ;
-	max_variant_len=100 ;
+	max_variant_len=50 ;
 	
 }
 
@@ -317,6 +317,8 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count, 
 						 source_id, &read_pos, &read_len, prop);
 		//fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
+		strcpy(source_id, "") ;
+		
 		if (num<5)
 		{
 			if (feof(fd))
@@ -941,18 +943,22 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
 	
 	fclose(fd) ;
 
-	lock() ;
+	//lock() ;
 	fprintf(stdout, "Inserted %i variants\n", variant_lines) ;
-
+	fflush(stdout) ;
+	
 	fprintf(stdout, "Sorting...") ;
 	for (int i=0; i<(int)genome->nrChromosomes(); i++)
 	{
 		sort(variantlist[i].begin(), variantlist[i].end(), compare_variants);
 		fprintf(stdout, ".") ;
+		fflush(stdout) ;
 	}
 	fprintf(stdout, "Done.\n") ;
 	insert_unsorted = false ;
-	unlock() ;
+	//unlock() ;
+
+	fflush(stdout) ;
 
 	return 0 ;
 
