@@ -22,7 +22,7 @@ VariantMap::VariantMap(Genome const &genome_)
 	int ret = pthread_mutex_init(&variant_mutex, NULL) ;
 	assert(ret==0) ;
 
-	validate_variants=false ;
+	validate_variants=true ;
 	exit_on_validation_error=true ;
 	insert_unsorted=false ;
 	max_variant_len=50 ;
