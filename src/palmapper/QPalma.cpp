@@ -45,6 +45,11 @@ int map_back(char c)
 	return 7;
 }
 
+bool alignment_pass_filters (int min_intron_len, int max_intron_len,  int mm, int gaps, int num_exons, int min_exon_len, bool remapping)
+{
+	return (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && (mm <= _config.NUM_MISMATCHES && gaps <= _config.NUM_GAPS && mm+gaps <= _config.NUM_EDIT_OPS) &&(num_exons ==1 ||(num_exons >= 2 && (num_exons <= _config.SPLICED_MAX_INTRONS+1) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
+}
+
 void get_annotated_splice_positions( std::vector<int> &pos, JunctionMap &annotatedjunctions,const char * type, int start, int end, int chr, char strand)
 {
 	// find a lower bound on the index with binary search
@@ -3384,7 +3389,7 @@ std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant
 	dna_align_back.clear();
 	read_align_back.clear();
 		
-	alignment_passed_filters= (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && (alignment_mm <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mm+alignment_gaps <= _config.NUM_EDIT_OPS) &&(num_exons ==1 ||(num_exons >= 2 && (num_exons <= _config.SPLICED_MAX_INTRONS+1) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
+	alignment_passed_filters= alignment_pass_filters(min_intron_len,max_intron_len,alignment_mm,alignment_gaps,num_exons,min_exon_len,remapping);
 
 	if (verbosity>=3){
 		fprintf(stdout, "DNA: %s\n",(char*)dna.c_str());
@@ -4377,7 +4382,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	std::vector<FoundVariant> found_variants =alignment.getVariants();
 	std::vector<Variant> final_variants;
-	bool alignment_variants_valid=true;
+	bool alignment_variants_valid=false;
 
 	// for (unsigned int i=0; i<found_variants.size();i++){
 	// 	fprintf(stdout,"variant used: read_pos:%i id:%i type:%i\n",found_variants[i].read_position, found_variants[i].id,found_variants[i].type);
@@ -4453,11 +4458,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
 	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
 
-	bool alignment_passed_filters= //(!_config.USE_VARIANTS || alignment_variants_valid) && // what is this good for? GR
-		((max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH) && 
-		 ((alignment_mismatches <= _config.NUM_MISMATCHES && alignment_gaps <= _config.NUM_GAPS && alignment_mismatches+alignment_gaps <= _config.NUM_EDIT_OPS))
-		 &&(exons.size()==2 ||( (exons.size() >= 4) && ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2) && 
-								(min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping)))) ;
+	bool alignment_passed_filters= (_config.USE_VARIANTS && alignment_variants_valid) || // what is this good for? -> it computes validity of the alignment with variants
+		alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches,alignment_gaps,exons.size()/2,min_exon_len,remapping);
 
 	bool non_consensus_alignment=false ;
 
