@@ -124,7 +124,7 @@ Config::Config() {
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
 	SPLICED_CLUSTER_TOLERANCE = 10 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
-	SPLICED_MIN_SEGMENT_LENGTH = DEFAULT_SETTING ;
+	SPLICED_MIN_SEGMENT_LENGTH = 1 ;//DEFAULT_SETTING ;
 
 	STATISTICS = 0;
 	CHROM_CONTAINER_SIZE = 15000000 ;
@@ -168,6 +168,8 @@ Config::Config() {
 	REPORT_INDEL_TERMINAL_DIST = 15 ;
 	
 	NO_GAP_END =-1;
+
+	TRANSCRIBE_GFF=false ;
 	
 	// Number of additional matches you have to find in case of a non consensus search compared to consensus one (based on QMM)
 	MIN_NUM_MATCHES_PEN=2;
@@ -265,7 +267,7 @@ int Config::applyDefaults(Genome * genome)
 				fprintf(stdout, "* Automatically determined minimal match length near splice sites (%int)\n", QPALMA_MIN_NUM_MATCHES) ;
 			}
 
-			if (SPLICED_HITS && SPLICED_MIN_SEGMENT_LENGTH == DEFAULT_SETTING)
+			/*if (SPLICED_HITS && SPLICED_MIN_SEGMENT_LENGTH == DEFAULT_SETTING)
 			{
 				SPLICED_MIN_SEGMENT_LENGTH=QPALMA_MIN_NUM_MATCHES ;
 
@@ -278,7 +280,7 @@ int Config::applyDefaults(Genome * genome)
 
 				fprintf(stdout, "* Automatically determined minimal segment length in spliced alignments based on read length (%int)\n",
 						SPLICED_MIN_SEGMENT_LENGTH) ;
-			}
+						}*/
 		}
 		else
 		{ // defaults if read length is not determinable
@@ -2091,6 +2093,21 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				NO_GAP_END = atoi(argv[i]) ;
 				NO_GENOMEMAPPER = true ;
+			}
+
+			//transcribe transcripts into fasta files
+			if (strcmp(argv[i], "-transcribe-gff") == 0) {
+				not_defined = 0;
+				if (i + 2 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -transcribe-gff\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				TRANSCRIBE_GFF_FILE =argv[i] ;
+				i++;
+				TRANSCRIBE_FASTA_FILE =argv[i] ;
+				TRANSCRIBE_GFF=true ;
 			}
 			
 			if (not_defined == 1) {

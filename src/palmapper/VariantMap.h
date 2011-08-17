@@ -73,6 +73,7 @@ public:
 						const std::string & read_id, int read_pos, int read_len, const char* flank="NN");
 	bool validate_variant(Variant & j, int chr, const char *flank="NN") const ;
 	void insert_variant(Variant & j, int chr, const char* flank="NN") ;
+
 	int init_from_files(std::string &sdi_fname);
 	int report_to_sdi(const std::string &sdi_fname) const ;
 
@@ -229,6 +230,9 @@ public:
 				}
 			}
 	}
+
+	void transcribe_gff(const std::string & gff_input, const std::string & fasta_output) ;
+	
 
 protected:
 	

@@ -253,6 +253,11 @@ int main(int argc, char *argv[])
 		fclose(USED_VARIANTS_FP);
 	}
 
+	if (_config.TRANSCRIBE_GFF)
+	{
+		variants.transcribe_gff(_config.TRANSCRIBE_GFF_FILE, _config.TRANSCRIBE_FASTA_FILE) ;
+	}
+
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);
 //TODO:		printf("R E D U N D A N T : %d\n", mapper.REDUNDANT);

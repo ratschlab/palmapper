@@ -235,6 +235,9 @@ public:
 	int REPORT_INDEL_TERMINAL_DIST ;
 	
 	int NO_GAP_END;
+
+	bool TRANSCRIBE_GFF ;
+	std::string TRANSCRIBE_GFF_FILE, TRANSCRIBE_FASTA_FILE ;
 	
 	int INDEX_PRECACHE;
 	unsigned int FLANKING;

@@ -161,7 +161,7 @@ int QPalma::get_transcription_direction(int side,int orientation) const
 }
 
 QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
-//  : 	verbosity(2), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
+//  : 	verbosity(3), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 	: 	verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)  
 {
 	genome=genome_ ;
@@ -3395,18 +3395,18 @@ std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant
 		fprintf(stdout, "DNA: %s\n",(char*)dna.c_str());
 		
 		fprintf(stdout,"new s_align: ");	
-		for (unsigned int j=0; j<s_len;j++){
+		for (int j=0; j<s_len;j++){
 			fprintf(stdout,"%i",s_align[j]);		
 		}
 		fprintf(stdout,"\n");	
 		fprintf(stdout,"new dna_align:  ");
-		for (unsigned int j=0; j<result_length;j++){
+		for (int j=0; j<result_length;j++){
 			fprintf(stdout,"%i",dna_align[j]);		
 		}
 		fprintf(stdout,"\n");
 		fprintf(stdout,"new read_align: ")	;
 		
-		for (unsigned int j=0; j<result_length;j++){
+		for (int j=0; j<result_length;j++){
 			fprintf(stdout,"%i",read_align[j]);		
 		}
 		fprintf(stdout,"\n length=%i\n",result_length);	
@@ -3800,7 +3800,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (myverbosity>=2)
 	{
 		for (size_t i=0; i<current_regions.size(); i++)
-			fprintf(stdout, "region %i: %i - %i (%i)\n", (int)i, current_regions[i]->start, current_regions[i]->end, current_regions[i]->from_map) ;
+			fprintf(stdout, "region %i: %i - %i (from_map=%i)\n", (int)i, current_regions[i]->start, current_regions[i]->end, current_regions[i]->from_map) ;
 	}
 	
 	if (myverbosity>=2)
@@ -3818,8 +3818,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	if (myverbosity >= 2) {
 		for (size_t i = 0; i < current_regions.size(); i++) {
-			fprintf(stdout, "# region %i: %i - %i\n", (int)i, current_regions[i]->start,
-					current_regions[i]->end);
+			fprintf(stdout, "# region %i: %i - %i (len=%i)\n", (int)i, current_regions[i]->start,
+					current_regions[i]->end, current_regions[i]->end-current_regions[i]->start);
 		}
 	}
 
@@ -4199,7 +4199,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 	
 		if (match < num * 0.9)
-			fprintf(stderr,
+			fprintf(stdout,
 					"Warning: donor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n",
 					match, num, strand, ori == 0 ? '+' : '-', contig_idx.desc(),
 					current_regions[0]->start, current_regions[current_regions.size() - 1]->end);
@@ -4243,7 +4243,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 		if (match<num*0.9)
 
-			fprintf(stderr, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i, %i)\n", 
+			fprintf(stdout, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i, %i)\n", 
 					match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end, non_consensus_search) ;
 
 
