@@ -343,7 +343,7 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 
 	while (!feof(fd))
 	{
-		char chr_name[1001], ref_str[100001], variant_str[100001], buf[250000], prop[1001], source_id[1001]  ;
+		char chr_name[1001]="", ref_str[100001]="", variant_str[100001]="", buf[250000]="", prop[1001]="", source_id[1001]=""  ;
 		int position, lendiff, read_pos=-1, read_len=-1, conf_count=0, non_conf_count=0, used_count=0 ;
 		
 		Util::skip_comment_lines(fd) ;

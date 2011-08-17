@@ -2551,15 +2551,15 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	std::vector<int> map(end_pos-start_pos+1, -1) ; 
 	for (unsigned int i=0; i<positions.size(); i++)
 	{
-		if (positions[i]!=-2){//(dna[i]!='N')
-		if (perform_extra_checks)
-		{		
-			assert(positions[i]-start_pos>=0) ;
-			assert(positions[i]-start_pos<=end_pos-start_pos) ;
+		if (positions[i]!=-2)
+		{//(dna[i]!='N')
+			if (perform_extra_checks)
+			{		
+				assert(positions[i]-start_pos>=0) ;
+				assert(positions[i]-start_pos<=end_pos-start_pos) ;
+			}
+			map[positions[i]-start_pos] = i ;
 		}
-		map[positions[i]-start_pos] = i ;
-		}
-		
 	}
 
 	std::deque<Variant>::iterator it = my_lower_bound(variants.variantlist[chr].begin(), variants.variantlist[chr].end(), start_pos-100) ;
@@ -2578,11 +2578,15 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		
 		if ((*it).type == pt_SNP)
 		{
+			assert((*it).ref_len==1 && (*it).variant_len==1) ;
 			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
 			{
 				v=*it ;
-				v.position = map[(*it).position-start_pos] ;
+				v.position = map[(*it).position-start_pos] ; 
 				v.end_position = v.position+v.ref_len ;
+				if (perform_extra_checks)
+					assert(v.position>=0) ;
+				
 				if (dna[v.position]!='N')
 				{
 					//if (v.ref_str[0]!=dna[v.position])
@@ -2598,16 +2602,20 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		}
 		if ((*it).type == pt_insertion)
 		{
+			assert((*it).variant_len>0 && (*it).ref_len==0) ;
 			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
 			{
 				v=*it ;
 				v.position = map[(*it).position-start_pos] ;
+				if (perform_extra_checks)
+					assert(v.position>=0) ;
 				v.end_position = v.position + v.ref_len ;
 				found = true ;
 			}
 		}
 		if ((*it).type == pt_deletion || (*it).type == pt_substitution)
 		{
+			assert((*it).ref_len>0) ;
 			v=*it ;
 			v.position = -1 ;
 			v.ref_str = "" ;
@@ -2635,7 +2643,10 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 			
 			if (deleted_positions.size()>0 && (*it).type == pt_deletion)
 			{
+				assert((*it).ref_len>0 && (*it).variant_len==0) ;
 				v.position = deleted_positions[0] ;
+				if (perform_extra_checks)
+					assert(v.position>=0) ;
 				v.ref_len = 0 ;
 				v.ref_str = "" ;
 				for (int i=deleted_positions[0]; i<=deleted_positions[deleted_positions.size()-1]; i++)
@@ -2649,12 +2660,15 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 			}
 			if (deleted_positions.size()>0 && (*it).type == pt_substitution)
 			{
+				assert((*it).ref_len>0 && (*it).variant_len>0) ;
 				if (deleted_positions.size()==(unsigned)(*it).ref_len)
 				{
 					// use the full substitution
 					
 					v.ref_str = (*it).ref_str ;
 					v.position = deleted_positions[0] ;
+					if (perform_extra_checks)
+						assert(v.position>=0) ;
 					v.end_position = v.position+v.ref_len ;
 					found = true ;
 					//fprintf(stdout, "full subst: %s\t%s\t%s\n", (*it).ref_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
@@ -2665,6 +2679,8 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					{
 						// only use the 5' end of the substitution
 						v.position = deleted_positions[0] ;
+						if (perform_extra_checks)
+							assert(v.position>=0) ;
 						v.ref_len = 0 ;
 						v.ref_str = "" ;
 						v.variant_str = "" ;
@@ -2683,10 +2699,12 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					{
 						// only use the 3' end of the substitution
 						v.position = deleted_positions[deleted_positions.size()-1]-last_stretch + 1 ; // +/- 1 ? 
+						if (perform_extra_checks)
+							assert(v.position>=0) ;
 						v.ref_len = 0 ;
 						v.ref_str = "" ;
 						v.variant_str = "" ;
-						for (int i=0; i<last_stretch; i++)
+						for (int i=0; i<last_stretch && deleted_positions.size() - i - 1>0; i++)
 						{
 							v.ref_len++ ;
 							v.ref_str = dna[deleted_positions[deleted_positions.size() - i - 1]] + v.ref_str ;

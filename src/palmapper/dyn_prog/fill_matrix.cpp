@@ -255,7 +255,8 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	
 	//Take variants into account and output the best score among the different possibilities (match first I guess)
 	int temp[4]={0,0,0,0};
-	for (int j=0; j<(int)super_variants.size();j++){
+	for (int j=0; j<(int)super_variants.size();j++)
+	{
 		if (super_variants[j].position != position || super_variants[j].type!=pt_SNP)
 			continue;
 		int variantInt= check_char(super_variants[j].SNP[1]);
@@ -321,7 +322,8 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 
 		double tmpscore=score;
 	
-		for (int i=0; i<=4; i++){
+		for (int i=0; i<4; i++)
+		{
 			if (temp[i]==0)
 				continue;
 			
@@ -429,7 +431,8 @@ double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_str
 
 		double tmpscore=score;
 	
-		for (int i=0; i<=4; i++){
+		for (int i=0; i<4; i++)
+		{
 			if (temp[i]==0)
 				continue;
 			if (currentMode == USE_QUALITY_SCORES){
