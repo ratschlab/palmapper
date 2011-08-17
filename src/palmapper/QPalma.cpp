@@ -2674,6 +2674,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					//fprintf(stdout, "full subst: %s\t%s\t%s\n", (*it).ref_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
 				} 
 				else 
+					if (false) // buggy
 				{
 					if ((signed)first_stretch>=(signed)last_stretch && first_stretch>0)
 					{
