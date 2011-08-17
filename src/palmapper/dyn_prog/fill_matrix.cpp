@@ -152,6 +152,87 @@ std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> super_varia
 }
 
 template <bool use_variants>
+char getBestDnaChar(char readChar, char dnaChar, int position,std::vector<SuperVariant> super_variants )
+{
+
+	int readInt = check_char(readChar);
+	
+	
+	if ( !use_variants || (int)super_variants.size()==0 || readInt == 5)
+		return dnaChar;
+	
+	//Take variants into account and output the best score among the different possibilities (match first I guess)
+	int temp[4]={0,0,0,0};
+	for (int j=0; j<(int)super_variants.size();j++){
+		if (super_variants[j].position != position || super_variants[j].type!=pt_SNP)
+			continue;
+		int variantInt= check_char(super_variants[j].SNP[1]);
+		//fprintf(stdout,"a variant for %i with %i (read=%i)\n",dnaInt,variantInt,readInt);
+		
+		switch ( variantInt )
+		{		
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			temp[variantInt-1]=1;
+			break;
+		case 5:
+			return readChar;
+		case 6:
+			temp[1]=1;
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 7:
+			temp[0]=1;
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 8:
+			temp[0]=1;
+			temp[1]=1;
+			temp[3]=1;
+			break;
+		case 9:
+			temp[2]=1;
+			temp[3]=1;
+			break;
+		case 10:
+			temp[0]=1;
+			temp[1]=1;
+			break;
+		case 11:
+			temp[0]=1;
+			temp[2]=1;
+			break;
+		case 12:
+			temp[1]=1;
+			temp[2]=1;
+			break;
+		case 13:
+			temp[0]=1;
+			temp[1]=1;
+			temp[2]=1;
+			break;
+		case 14:
+			temp[0]=1;
+			temp[3]=1;
+			break;
+		case 15:
+			temp[1]=1;
+			temp[3]=1;
+			break;
+		}
+
+		if (temp[readInt-1]==1)
+			return readChar;
+	}
+	
+	return dnaChar;
+}
+
+template <bool use_variants>
 double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore,
 								std::vector<SuperVariant> super_variants, int position, int &dnaValue, int &snp_id )
 {
@@ -477,8 +558,8 @@ void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
 	}
 }
 
-
-int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices, int i, int j, int prev_shift, char* read, int read_len, char* dna, int dna_len, double* read_scores, int verbosity)
+template <bool use_variants>
+int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices, int i, int j, int prev_shift, char* read, int read_len, char* dna, int dna_len, double* read_scores, int verbosity, std::vector<SuperVariant> super_variants)
 {
 	double prevValue;
 	int num;
@@ -508,9 +589,11 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 				conserved_seq=false ;
 				break ;
 			}
-			if (read[pos_i]!=dna[pos_j])
+			//Take possible SNP into account
+			char dna_char= getBestDnaChar<use_variants>(read[pos_i], dna[pos_j], pos_j, super_variants);
+			if (read[pos_i]!=dna_char)
 			{
-				if (check_char(read[pos_i])!=5 && check_char(dna[pos_j])!=5 && read_scores[pos_i]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
+				if (check_char(read[pos_i])!=5 && check_char(dna_char)!=5 && read_scores[pos_i]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
 				{
 					conserved_seq=false ;
 					//fprintf(stdout,"[check_min_matches] mismatch with high quality\n");
@@ -519,7 +602,7 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 				else
 				{
 					diff_i++ ;
-					if (check_char(read[pos_i])==5 || check_char(dna[pos_j])==5)
+					if (check_char(read[pos_i])==5 || check_char(dna_char)==5)
 						num_N++ ;
 					else
 					{
@@ -778,7 +861,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 
 						//Number of paths that has at least diff_i consecutive matches that lead to the previous position in the diagonal
 						int number;
-						number=check_min_matches(current_seed,nr_paths_par,matrix_position-row_len, diff_i,possible_matrices, i, j, prev_shift, read, read_len, dna, dna_len, read_scores, verbosity);
+						number=check_min_matches<use_variants>(current_seed,nr_paths_par,matrix_position-row_len, diff_i,possible_matrices, i, j, prev_shift, read, read_len, dna, dna_len, read_scores, verbosity,super_variants);
 						if (number>0){
 							splice_pos* sp= new splice_pos();
 							sp->site=j; //position of the splice site
@@ -1087,9 +1170,11 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											break;		   
 										}
 										else{
-											if (read[ii]!=dna[jj]) 
+											//Take possible SNP into account
+											char dna_char= getBestDnaChar<use_variants>(read[ii], dna[jj], jj, super_variants);
+											if (read[ii]!=dna_char) 
 											{
-												if (check_char(read[ii])!=5 && check_char(dna[jj])!=5 && read_scores[ii]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
+												if (check_char(read[ii])!=5 && check_char(dna_char)!=5 && read_scores[ii]>=MAX_SPLICE_MISMATCH_QUAL_SINGLE)
 												{
 													conserved_seq=false;
 													break;
@@ -1097,7 +1182,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 												else
 												{
 													diff_i++ ;
-													if (check_char(read[ii])==5 || check_char(dna[jj])==5)
+													if (check_char(read[ii])==5 || check_char(dna_char)==5)
 														num_N++ ;
 													else
 													{
