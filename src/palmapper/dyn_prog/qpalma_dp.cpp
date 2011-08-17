@@ -98,7 +98,7 @@ double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len, in
 
 //Add starting position for alignment according to a long hit (read and dna pos, len) and strand
 
-void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<int> &positions, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
+void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 							 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns,  
 							 int max_gap, int max_mism, int max_edit_op, int min_match, bool remapping, std::vector<SuperVariant> super_variant_list, bool variant_mapping, int no_gap_end) {
@@ -317,14 +317,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 						assert(rstart<=prev_i && dstart<=prev_j);
 	  
 						if (prev_i==rstart && prev_j==dstart+1){//read gap
-							if (dna[dstart]=='N' && !variant_mapping){
-								if(strand=='-')
-									dna_align_temp.push_back(check_char(get_compl_base(chr[positions[dstart]])));
-								else
-									dna_align_temp.push_back(check_char(chr[positions[dstart]]));
-							}
-							else
-								dna_align_temp.push_back(dnaInt);
+							dna_align_temp.push_back(dnaInt);
 							read_align_temp.push_back(0);	    
 						}
 
@@ -335,14 +328,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 
 
 						else if(prev_i==rstart+1 && prev_j==dstart+1){//match/mismatch
-							if (dna[dstart]=='N'  && !variant_mapping){
-								if(strand=='-')
-									dna_align_temp.push_back(check_char(get_compl_base(chr[positions[dstart]])));
-								else
-									dna_align_temp.push_back(check_char(chr[positions[dstart]]));
-							}
-							else
-								dna_align_temp.push_back(dnaInt);
+							dna_align_temp.push_back(dnaInt);
 							read_align_temp.push_back(check_char(est[rstart]));	    
 						}
 	   
@@ -419,14 +405,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 						prev_z=((Prev_score*)matrix[prev_z]+matrix_position)->prev_matrix_no;
 						
 						if (prev_i==rstart && prev_j==dstart-1){//read gap
-							if (dna[dstart]=='N' && !variant_mapping){
-								if(strand=='-')
-									dna_align_temp.push_back(check_char(get_compl_base(chr[positions[dstart]])));
-								else
-									dna_align_temp.push_back(check_char(chr[positions[dstart]]));
-							}
-							else
-								dna_align_temp.push_back(dnaInt);
+							dna_align_temp.push_back(dnaInt);
 							read_align_temp.push_back(0);
 						}
 						else if(prev_i==rstart-1 && prev_j==dstart){//dna gap
@@ -434,14 +413,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr,  std::vector<in
 							read_align_temp.push_back(check_char(est[rstart]));
 						}
 						else if(prev_i==rstart-1 && prev_j==dstart-1){//match/mismatch
-							if (dna[dstart]=='N' && !variant_mapping){
-								if(strand=='-')
-									dna_align_temp.push_back(check_char(get_compl_base(chr[positions[dstart]])));
-								else
-									dna_align_temp.push_back(check_char(chr[positions[dstart]]));
-							}
-							else
-								dna_align_temp.push_back(dnaInt);
+							dna_align_temp.push_back(dnaInt);
 							read_align_temp.push_back(check_char(est[rstart]));
 						}
 

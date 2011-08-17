@@ -1870,15 +1870,21 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 			if (regions[ori][chrN].size() == 0)
 				continue;
 			int start_region = -1;
-			for (size_t nregion = 0; nregion < regions[ori][chrN].size(); nregion++)
+			
+            //Search for start region
+			for (size_t nregion = 0; nregion < regions[ori][chrN].size(); nregion++){
 				if (!regions[ori][chrN][nregion]->erased) 
 				{
 					start_region = nregion;
 					break;
 				}
+			}
+			
+			//No valid region to start -> next chromosome
 			if (start_region == -1)
 				continue;
 		  
+			//Init dna sequence and positions from start region
 			std::string str;
 			{
 				int ret = get_string_from_region(chr, regions[ori][chrN][start_region], str);
@@ -1897,7 +1903,11 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 				assert(regions[ori][chrN][start_region]->end >= regions[ori][chrN][start_region]->start) ;
 			for (int p = 0; p < regions[ori][chrN][start_region]->end - regions[ori][chrN][start_region]->start; p++) 
 			{
-				current_positions.push_back(regions[ori][chrN][start_region]->start + p);
+				//Fake positions for N blocks
+				if (p<3 || p>= regions[ori][chrN][start_region]->end - regions[ori][chrN][start_region]->start -3)
+					current_positions.push_back(-2);
+				else
+					current_positions.push_back(regions[ori][chrN][start_region]->start + p);
 			}
 		  
 			// if (paired_read_processing) 
@@ -1908,6 +1918,8 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 			for (size_t i = 0; i < read.length(); i++)
 				read_map[i] = regions[ori][chrN][start_region]->read_map[i];
 		  
+
+			//Concatenate next regions if not too far apart
 			for (size_t nregion = start_region + 1; nregion < regions[ori][chrN].size(); nregion++) 
 			{
 				if (regions[ori][chrN][nregion]->erased)
@@ -2039,11 +2051,16 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 					for (size_t i = 0; i < read.length(); i++)
 						read_map[i] = read_map[i] || regions[ori][chrN][nregion]->read_map[i];
 				}
+				
 				current_regions.push_back(regions[ori][chrN][nregion]);
 			  
 				for (int p = 0; p < regions[ori][chrN][nregion]->end - regions[ori][chrN][nregion]->start; p++) 
 				{
-					current_positions.push_back(regions[ori][chrN][nregion]->start + p);
+					//Fake positions for N blocks
+					if (p<3 || p>= regions[ori][chrN][nregion]->end - regions[ori][chrN][nregion]->start -3)
+						current_positions.push_back(-2);
+					else
+						current_positions.push_back(regions[ori][chrN][nregion]->start + p);
 				}
 			  
 				/*fprintf(stdout, "read_map: ") ;
@@ -2522,19 +2539,27 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int> positions, 
 									   Chromosome const &contig_idx, VariantMap & variants) const
 {
-	int start_pos = positions[0] ;
-	int end_pos = positions[positions.size()-1] ;
+	int k=0;
+	while (positions[k]==-2)
+		k++;
+	int start_pos = positions[k] ;
+	k=positions.size()-1;
+	while (positions[k]==-2)
+		k--;
+	int end_pos = positions[k] ;
 	int chr=contig_idx.nr() ;
 	std::vector<int> map(end_pos-start_pos+1, -1) ; 
 	for (unsigned int i=0; i<positions.size(); i++)
 	{
+		if (positions[i]!=-2){//(dna[i]!='N')
 		if (perform_extra_checks)
 		{		
 			assert(positions[i]-start_pos>=0) ;
 			assert(positions[i]-start_pos<=end_pos-start_pos) ;
 		}
-		if (dna[i]!='N')
-			map[positions[i]-start_pos] = i ;
+		map[positions[i]-start_pos] = i ;
+		}
+		
 	}
 
 	std::deque<Variant>::iterator it = my_lower_bound(variants.variantlist[chr].begin(), variants.variantlist[chr].end(), start_pos-100) ;
@@ -3441,9 +3466,11 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			exon_start = i;
 			continue;
 		}
-		if (exon_start!=-1 && i>0)
+		if (exon_start!=-1 && i>0 && s_align[i]==0)
 		{
 			alignment_valid = remapping || (alignment_valid && ((positions[i-1]+1 == positions[i]) || (positions[i-1] == positions[i]+1))) ;
+			if (!alignment_valid)
+				return false;
 			intron_location=remapping && s_align[i]==0 && 
 				((strand=='+' && positions[i-1]+1 != positions[i]) || 
 				 (strand=='-' && positions[i-1] != positions[i]+1)) ;
@@ -3579,10 +3606,10 @@ void QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s
 		{
 			if (strand=='+')
 				fprintf(stdout, "%i-%i\t%i (%i, %c)\t%i\t%s\n", dna_align[i], est_align[i], dna_pos, 
-						positions[start_offset+dna_pos]+1, contig_idx[positions[start_offset+dna_pos]+1], read_pos, read_anno.c_str()) ;
+						positions[start_offset+dna_pos]+1, positions[start_offset+dna_pos]+1>=0?contig_idx[positions[start_offset+dna_pos]+1]:' ', read_pos, read_anno.c_str()) ;
 			else
 				fprintf(stdout, "%i-%i\t%i (%i, %c)\t%i\t%s\n", dna_align[i], est_align[i], dna_pos, 
-						positions[start_offset+dna_pos]+1, contig_idx[positions[start_offset+dna_pos]+1], read_pos, read_anno.c_str()) ;
+						positions[start_offset+dna_pos]+1, positions[start_offset+dna_pos]+1>=0?contig_idx[positions[start_offset+dna_pos]+1]:' ', read_pos, read_anno.c_str()) ;
 		}
 		
 		if (discover_variants)
@@ -4333,7 +4360,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	
 	if (non_consensus_search)
 	{
-		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
+		alignment.myalign_fast(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
 							   est_len_p, prb, alignment_parameters->h,
 							   alignment_parameters->matchmatrix,
 							   alignment_parameters->matchmatrix_dim[0]
@@ -4345,7 +4372,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 							   _config.USE_VARIANTS, _config.NO_GAP_END);
 	}
 	else
-		alignment.myalign_fast(strand, contig_idx, positions, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
+		alignment.myalign_fast(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
 							   est_len_p, prb, alignment_parameters->h,
 							   alignment_parameters->matchmatrix,
 							   alignment_parameters->matchmatrix_dim[0]
@@ -4442,6 +4469,17 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		alignment_valid = alignment_valid && 
 			determine_exons(exons, dna, positions, remapping, strand, s_align, e_align, min_exon_len, max_intron_len, min_intron_len)  ;
 	   
+	}
+
+	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
+	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
+
+
+	bool non_consensus_alignment=false ;
+
+	if (alignment_valid) //Should align consecutive positions and have at least one exon
+	{
+
 	    if (strand=='-')
 			exons=reverse(exons) ;
 	    for (size_t i=0; i<exons.size(); i+=2)
@@ -4453,23 +4491,15 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			for (size_t i = 0; i < exons.size(); i += 2)
 				fprintf(stdout, "# %i. %i - %i\n", (int)i / 2, exons[i], exons[i + 1]);
 	    }
-	}
-
-	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
-	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
-
-	bool alignment_passed_filters= (_config.USE_VARIANTS && alignment_variants_valid) || // what is this good for? -> it computes validity of the alignment with variants
-		alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches,alignment_gaps,exons.size()/2,min_exon_len,remapping);
-
-	bool non_consensus_alignment=false ;
-
-	if (alignment_valid) // it must be spliced and not have too many mismatches
-	{
+		
 		determine_read_variants<myverbosity, discover_variants>(contig_idx, s_align, e_align, dna_align, est_align, positions, 
 																variants, align_variants, aligned_positions,
 																read, read_string, read_quality, read_anno, est_len_p, result_length, strand, ori,
 																alignment_matches, alignment_gaps, alignment_mismatches, alignment_qual_mismatches) ;
 
+		bool alignment_passed_filters= (_config.USE_VARIANTS && alignment_variants_valid) || // what is this good for? -> it computes validity of the alignment with variants
+			alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches,alignment_gaps,exons.size()/2,min_exon_len,remapping);
+		
 		if (myverbosity >= 2)
 			fprintf(stdout,
 					"# alignment: score=%1.3f  matches=%i  gaps=%i  anno=%s\n",
