@@ -343,7 +343,7 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 
 	while (!feof(fd))
 	{
-		char chr_name[1001], ref_str[100001], variant_str[10001], buf[250000], prop[1001], source_id[1001]  ;
+		char chr_name[1001], ref_str[100001], variant_str[100001], buf[250000], prop[1001], source_id[1001]  ;
 		int position, lendiff, read_pos=-1, read_len=-1, conf_count=0, non_conf_count=0, used_count=0 ;
 		
 		Util::skip_comment_lines(fd) ;
@@ -354,7 +354,7 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 		//Scan sdi line
 		//int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;  
 
-		int num = sscanf(buf,"%1000s\t%i\t%i\t%10000s\t%10000s\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+		int num = sscanf(buf,"%1000s\t%i\t%i\t%100000s\t%100000s\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
 						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count, 
 						 source_id, &read_pos, &read_len, prop);
 		//fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
@@ -382,6 +382,8 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 
 		int ref_len = strlen(ref_str) ;
 		int variant_len = strlen(variant_str) ;
+
+		
 		assert(lendiff==variant_len-ref_len) ;
 
 		// validate variants on genome sequence
