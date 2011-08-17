@@ -3213,17 +3213,17 @@ std::vector<Variant> QPalma::reconstruct_reference_alignment(std::vector<Variant
 	int read_pos=-1;
 	
 
+	//Gap on DNA from alignment: keep them
+	while(align_ind+1<result_tmp && dna_align[align_ind+1]==0){
+		alignment_gaps++;
+		dna_align_back.push_back(dna_align[align_ind+1]);
+		read_align_back.push_back(read_align[align_ind+1]);
+		align_ind++;
+		read_pos++;
+	} 
+
 	while(i<dna.length())
 	{
-
-		//Gap on DNA from alignment: keep them
-		while(align_ind+1<result_tmp && dna_align[align_ind+1]==0){
-			alignment_gaps++;
-			dna_align_back.push_back(dna_align[align_ind+1]);
-			read_align_back.push_back(read_align[align_ind+1]);
-			align_ind++;
-			read_pos++;
-		} 
 
 		//Build reference sequence
 		if (ref_map[i])
