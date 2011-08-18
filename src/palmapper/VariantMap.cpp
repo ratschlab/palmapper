@@ -420,7 +420,282 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 
 	fclose(fd) ;
 
-	fprintf(stdout, "read %i variant lines (checked %i)\n", variant_lines, variant_lines_checked) ;
+	fprintf(stdout, "read %i variants (checked %i)\n", variant_lines, variant_lines_checked) ;
+
+	return 0 ;
+
+}
+
+int VariantMap::init_from_snp(const std::string &sdi_fname, const std::vector<std::string> & take_lines)
+{
+	std::string ref_line ="" ;
+	int ref_line_idx=-1 ;
+	
+	std::vector<std::string> take_lines_names ;
+	std::vector<int> take_lines_idx ;
+	
+	fprintf(stdout, "initializing genome variant list with SNP file %s\n", sdi_fname.c_str()) ;
+	
+	FILE * fd=Util::openFile(sdi_fname.c_str(), "r") ;
+	if (!fd)
+		return -1 ;
+	int variant_lines = 0 ;
+	
+	{
+		char list[250001], buf[250001] ;
+		if (fgets(buf, 250000, fd)==NULL)
+		{
+			fprintf(stdout, "Error reading file\n") ;
+			exit(-1) ;
+		}
+		int num = sscanf(buf,"Chromosome,Position,%100000s", list);
+		if (num<1)
+		{
+			fprintf(stderr, "SNP header only contained %i columns (>=3 expected), aborting \n%s\n", num, buf) ;
+			exit(-1) ;
+		}
+		int column=0 ;
+		std::string line="" ;
+		for (unsigned int i=0; i<strlen(list); i++) 
+		{
+			if (list[i]==',')
+			{
+				for (unsigned int j=0; j<take_lines.size(); j++)
+					if (take_lines[j]==line || take_lines[j]=="*")
+					{
+						take_lines_idx.push_back(column) ;
+						take_lines_names.push_back(line) ;
+					}
+				
+				if (ref_line==line)
+					ref_line_idx=column ;
+				line="" ;
+				column++ ;
+			}
+			else
+				line+=list[i] ;
+		}
+	}
+	
+	while (!feof(fd))
+	{
+		char chr_name[1001]="", ref_str[100001]="", variant_str[100001]="", buf[250001] ;
+		int position=0 ;
+		char list[250001] ;
+		
+		Util::skip_comment_lines(fd) ;
+		
+		if (fgets(buf, 250000, fd)==NULL)
+			break ;  
+
+		int num = sscanf(buf,"%1000[^,],%i,%100000s", chr_name, &position, list);
+		
+		if (num<3)
+		{
+			if (feof(fd))
+				break ;
+			fprintf(stderr, "SNP line only contained %i columns (>=3 expected), aborting (%s)\n%s\n", num, chr_name, buf) ;
+			exit(-1) ;
+		}
+
+		int chr_idx = genome->find_desc(chr_name) ;
+		if (chr_idx==-1)
+		{
+			chr_idx = genome->find_desc((std::string("Chr") + std::string(chr_name)).c_str()) ;
+			if (chr_idx==-1)
+			{
+				fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
+				genome->print_desc(stderr) ;
+				fclose(fd) ;
+				return -1 ;
+			}
+		}
+
+		int column=0 ;
+		std::string line="" ;
+		char SNP[take_lines_idx.size()] ;
+		char ref='N' ;
+		for (unsigned int j=0; j<take_lines_idx.size(); j++)
+			SNP[j]='N' ;
+		
+		for (unsigned int i=0; i<strlen(list); i++) 
+		{
+			if (list[i]==',')
+			{
+				for (unsigned int j=0; j<take_lines_idx.size(); j++)
+					if (take_lines_idx[j]==column)
+					{
+						assert(line.size()==1) ;
+						SNP[j] = line[0] ;
+					}
+				if (column==ref_line_idx)
+				{
+					assert(line.size()==1) ;
+					ref=line[0] ;
+				}
+				line="" ;
+				column++ ;
+			}
+			else
+				line+=list[i] ;
+		}
+				
+		for (unsigned int s=0; s<take_lines_idx.size(); s++)
+		{
+			int spos=position ;
+		
+			strcpy(ref_str, "N") ;
+			if (ref!='N')
+				ref_str[0]=ref ;
+			else
+				ref_str[0]=genome->chromosome(chr_idx)[spos-1] ;
+				
+			strcpy(variant_str, "N") ;
+			variant_str[0]=SNP[s] ;
+
+			if (ref_str[0]!=variant_str[0])
+			{
+				int ref_len = strlen(ref_str) ; assert(ref_len==1) ;
+				int variant_len = strlen(variant_str) ; assert(variant_len==1) ;
+				
+				std::string source="SNP:" ; 
+				source+= take_lines_names[s] ;	
+				char flank[3]="NN" ;
+				insert_variant(chr_idx, spos-1, ref_len, variant_len, ref_str, variant_str, 1, 0, 0, 0, source.c_str(), -1, -1, flank) ;
+			
+				variant_lines++ ;
+				
+				if (variant_lines%10000==0)
+				{
+					long pos = ftell(fd) ;
+					fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r", variant_lines, pos/1024/1024) ; 
+				}
+			}
+		}		
+	}
+	
+	fclose(fd) ;
+
+	fprintf(stdout, "read %i SNPs\n", variant_lines) ;
+
+	return 0 ;
+
+}
+
+int VariantMap::init_from_samtools(const std::string &sdi_fname)
+{
+	fprintf(stdout, "initializing genome variant list with indel/samtools file %s\n", sdi_fname.c_str()) ;
+
+	FILE * fd=Util::openFile(sdi_fname.c_str(), "r") ;
+	if (!fd)
+		return -1 ;
+	int variant_lines = 0, variant_lines_checked = 0 ;
+
+	while (!feof(fd))
+	{
+		char chr_name[1001]="", ref_str[100001]="", variant_str[100001]="", buf[250001] ;
+		int position=0 ;
+		char str[2][1000001], rest[250001] ;
+		
+		Util::skip_comment_lines(fd) ;
+		
+		if (fgets(buf, 250000, fd)==NULL)
+			break ; 
+
+		int num = sscanf(buf,"%1000s\t%i\t*\t%100000s\t%s", chr_name, &position, str[0], rest);
+		
+		if (num<3)
+		{
+			if (feof(fd))
+				break ;
+			fprintf(stdout, "sdi line only contained %i columns (>=4 expected), aborting (%s)\n%s\n", num, chr_name, buf) ;
+		}
+
+		int chr_idx = genome->find_desc(chr_name) ;
+		if (chr_idx==-1)
+		{
+			fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
+			genome->print_desc(stderr) ;
+			fclose(fd) ;
+			return -1 ;
+		}
+		for (unsigned int i=0; i<strlen(str[0]); i++)
+		{
+			if (str[0][i]=='/')
+			{
+				strcpy(str[1], &str[0][i+1]) ;
+				str[0][i]=0 ;
+				break ;
+			}
+		}
+		
+		for (int s=0; s<2; s++)
+		{
+			int spos=position ;
+			if (s==1 && strcmp(str[0],str[s])==0)
+				continue ;
+			if (strcmp(str[s],"*")==0)
+				continue ;
+			
+			assert(str[s][0]=='-' || str[s][0]=='+') ;
+
+			char flank[3]="NN" ;
+		
+			if (str[s][0]=='+') 
+			{
+				strcpy(ref_str, "") ;
+				if (strcmp(str[s], "*")!=0)
+					strcpy(variant_str, str[s]+1) ;
+				//flank[0]=genome->chromosome(chr_idx)[spos-1] ;
+				//flank[1]=genome->chromosome(chr_idx)[spos-1+1] ;
+			}
+			else
+			{
+				strcpy(variant_str, "") ;
+				if (strcmp(str[s], "*")!=0)
+					strcpy(ref_str, str[s]+1) ;
+				spos++ ;
+			}
+
+			int ref_len = strlen(ref_str) ;
+			int variant_len = strlen(variant_str) ;
+			
+			// validate variants on genome sequence
+			if (ref_len>0 && validate_variants && false)
+			{
+				//fprintf(stdout, "pos=%i\tref_len=%i\tvariant_len=%i\n", pos, ref_len, variant_len) ;
+				for (int i=0; i<ref_len; i++)
+				{
+					if (genome->chromosome(chr_idx)[spos+i-1]!=ref_str[i] && 
+						ref_str[i]!='N' && ref_str[i]!='Y' && ref_str[i]!='W' && ref_str[i]!='K' && ref_str[i]!='S' && ref_str[i]!='M' && ref_str[i]!='R' && ref_str[i]!='D')
+					{
+						if (exit_on_validation_error)
+						{
+							fprintf(stderr, "ERROR: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\n%s\n", i, spos+i, genome->chromosome(chr_idx)[spos+i-1], ref_str[i], ref_str, buf) ;
+							exit(-1) ;
+						}
+						else
+							fprintf(stdout, "WARNING: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\t%s\n", i, spos+i, genome->chromosome(chr_idx)[spos+i-1], ref_str[i], ref_str, buf) ;
+					}
+				}
+				variant_lines_checked++ ;
+			}
+			
+			insert_variant(chr_idx, spos-1, ref_len, variant_len, ref_str, variant_str, 1, 0, 0, 0, "indel", -1, -1, flank) ;
+			
+			variant_lines++ ;
+			
+			if (variant_lines%10000==0)
+			{
+				long pos = ftell(fd) ;
+				fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r", variant_lines, pos/1024/1024) ; 
+			}
+		}		
+	}
+	
+	fclose(fd) ;
+
+	fprintf(stdout, "read %i indels (checked %i)\n", variant_lines, variant_lines_checked) ;
 
 	return 0 ;
 
@@ -444,9 +719,10 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 	std::vector<int> num_del_dist(max_len+2, 0) ;
 	std::vector<int> num_ins_dist(max_len+2, 0) ;
 
+	fprintf(fd,"#chromosome\tposition\tlen_diff\tref_seq\tvariant_seq\tconf_count\tnon_conf_count\tused_count\tnon_used_count\tsource\tread position/len\tstatus\n");
+
 	for (unsigned int i=0; i<genome->nrChromosomes(); i++)
 	{
-		
 		const char * chr= genome->get_desc(i);
 		std::deque<Variant>::iterator it;
 		
@@ -500,27 +776,6 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 		fprintf(stdout, "%i:%i ", i, num_ins_dist[i]) ;
 	fprintf(stdout, " >%i:%i\n", max_len, num_ins_dist[max_len+1]) ;
 	
-	/*if (false && sdi_fname!=std::string("/tmp/tmpgu.sdi"))
-	{
-		//check_variant_order() ;
-		exit_on_validation_error=false ;
-		
-		fprintf(stdout, "reading file again\n") ;
-		VariantMap read(*genome) ;
-		read.init_from_sdi(sdi_fname) ;
-		read.exit_on_validation_error=false ;
-		
-		fprintf(stdout, "done\n") ;
-		
-		for (unsigned int i=0; i<genome->nrChromosomes(); i++)
-		{
-			fprintf(stdout, "%s: %ld - %ld\n", genome->chromosome(i).desc(), copy.variantlist[i].size(), read.variantlist[i].size()) ;
-		}
-		read.report_to_sdi("/tmp/tmpgu.sdi") ;
-
-		assert(0) ;
-		}*/
-	
 	return 0;
 	
 }
@@ -552,6 +807,10 @@ int VariantMap::init_from_files(std::string &fnames)
 				ext=sdi;
 			if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
 				ext=maf;
+			if (extension.compare("indel")==0 ||extension.compare("samtools")==0)
+				ext=samtools;
+			if (extension.compare("snp")==0 ||extension.compare("SNP")==0)
+				ext=snp;
 		}
 		if (ext==unknown)
 		{
@@ -567,6 +826,10 @@ int VariantMap::init_from_files(std::string &fnames)
 		int ret = 0 ;
 		if (ext == sdi)
 			init_from_sdi(filename);
+		if (ext == samtools)
+			init_from_samtools(filename);
+		if (ext == snp)
+			init_from_snp(filename, _config.VARIANT_SNP_TAKE_LINES);
 		if (ext == maf)
 		{
 			init_from_maf(filename, _config.MAF_REF_NAME);

@@ -462,12 +462,12 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 				dna_align.clear();
 				read_align.clear();
 				
-				for (int n=0;n<result_len;n++)
+				/*for (int n=0;n<result_len;n++)
 					fprintf(stdout,"%i",DNA_ARRAY[n]);
 				fprintf(stdout,"\n");
 				for (int n=0;n<result_len;n++)
 					fprintf(stdout,"%i",EST_ARRAY[n]);
-				fprintf(stdout,"\n");
+					fprintf(stdout,"\n");*/
 				
 			}
 		} // end of "if z == 0"

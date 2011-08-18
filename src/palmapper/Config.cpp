@@ -164,6 +164,8 @@ Config::Config() {
 	FILTER_VARIANT_MINCONFCOUNT=0 ;
 	FILTER_VARIANT_MAXNONCONFRATIO=10.0 ;
 	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
+	VARIANT_SNP_TAKE_LINES.push_back("*") ;
+	
 	REPORT_SNP_TERMINAL_DIST = 10 ;
 	REPORT_INDEL_TERMINAL_DIST = 15 ;
 	
@@ -881,6 +883,38 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				REPORT_VARIANTS_FILE_NAME=strdup(argv[i]) ;
 				REPORT_VARIANTS = true ;
+			}
+
+			//Report variants 
+			if (strcmp(argv[i], "-variant-snp-sources") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -variant-snp-sources\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				VARIANT_SNP_TAKE_LINES.clear() ;
+				
+				std::string sources=argv[i] ;
+				int previousfound=0;
+				int found=sources.find(",");
+				std::string source;
+				
+				while (true)
+				{
+					if (found >=0)
+						source = sources.substr(previousfound, found-previousfound);
+					else
+						source = sources.substr(previousfound);
+					VARIANT_SNP_TAKE_LINES.push_back(source) ;
+
+					if (found<=0)
+						break ;
+					
+					previousfound=found+1;
+					found=sources.find(",", found+1);
+				}
 			}
 
 			//Enable to discover new variants
