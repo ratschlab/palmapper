@@ -2934,7 +2934,7 @@ int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 		if (pos_table[i]->pos == position)
 			return i ;
 
-	fprintf(stderr, "Error: Position %i not found \n", position) ;
+	fprintf(stderr, "ERROR: Position %i not found \n", position) ; // BUG-TODO
 	
 	return -1 ;
 }
@@ -3445,7 +3445,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std
 	}
 	if (result_length!=(int)dna_align_back.size() || result_length!=(int)read_align_back.size())
 	{
-		fprintf(stderr, "ERROR: len mismatch %i!=%ld || %i!=%ld\n", result_length, dna_align_back.size(), result_length, read_align_back.size()) ;
+		fprintf(stderr, "ERROR: len mismatch %i!=%ld || %i!=%ld\n", result_length, dna_align_back.size(), result_length, read_align_back.size()) ; // BUG-TODO
 		alignment_passed_filters = false ;
 	}
 	else	
@@ -3557,15 +3557,33 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 				if (intron_len<min_intron_len)
 					min_intron_len=intron_len ;
 			}
+			if (perform_extra_checks && positions[exon_start]<0)
+			{
+				fprintf(stderr, "ERROR: positions[exon_start=%i]=%i\n", exon_start, positions[exon_start]) ; // BUG-TODO
+				alignment_valid=false ;
+			}
+
 			exons.push_back(positions[exon_start]) ;
 			
 			int exon_len;
-			if (s_align[i]==0 && !intron_location){
+			if (s_align[i]==0 && !intron_location)
+			{
+				if (perform_extra_checks && positions[i]<0)
+				{
+					fprintf(stderr, "ERROR: positions[%i]=%i\n", (int)i, (int)positions[i]) ; // BUG-TODO
+					alignment_valid=false ;
+				}
 				exons.push_back(positions[i]) ;
 				//fprintf(stdout,"Exon: %i-%i\n",exon_start,i);
 				exon_len=positions[i] - positions[exon_start] ;		
 			}				
-			else{					
+			else
+			{					
+				if (perform_extra_checks && positions[i-1]<0)
+				{
+					fprintf(stderr, "ERROR: positions[%i-1]=%i\n", (int)i, (int)positions[i-1]) ; // BUG-TODO
+					alignment_valid=false ;
+				}
 				exons.push_back(positions[i-1]) ;
 				//fprintf(stdout,"Exon: %i-%i\n",exon_start,i-1);
 				exon_len=positions[i-1] - positions[exon_start] ;		
@@ -3669,7 +3687,7 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 		{
 			if (!(est_align[i]>=0 && est_align[i]<=6))
 			{
-				fprintf(stderr, "ERROR: est_align[%i]=%i (should be between 0 and 6)\n", i, est_align[i]) ;
+				fprintf(stderr, "ERROR: est_align[%i]=%i (should be between 0 and 6)\n", i, est_align[i]) ; // BUG-TODO
 				return -1 ;
 			}
 		}
@@ -3873,7 +3891,7 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 	{
 		if (!(read_pos==(int)read.length()))
 		{
-			fprintf(stderr, "ERROR: len mismatch: %i != %i\n", read_pos, (int)read.length()) ;
+			fprintf(stderr, "ERROR: len mismatch: %i != %i\n", read_pos, (int)read.length()) ; // BUG-TODO
 			return -1 ;
 		}
 	}
@@ -4631,6 +4649,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			
 		    int istart=exons[ne*2+1] ;
 		    int istop =exons[(ne+1)*2] ;
+
+			if (perform_extra_checks && (istop<4 || istart<2))
+			{
+				fprintf(stderr, "ERROR: istart=%i, istop=%i\n", istart, istop) ; // BUG-TODO
+				return -1 ;
+			}
+			
 		    char buf[1000] ;
 		    if ((ori==0 && strand=='+') || (ori==1 && strand=='+'))
 			{
