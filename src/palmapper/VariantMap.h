@@ -26,6 +26,7 @@ struct variant_str
 	short int read_pos;
 	short int read_len;
 	short unsigned int used_count ;
+	short unsigned int non_used_count ;
 	short unsigned int conf_count ;
 	short unsigned int non_conf_count ;
 	std::string ref_str, variant_str ;
@@ -69,11 +70,10 @@ public:
 	~VariantMap() ;
 	int insert_variants_from_multiple_alignments(std::string & ref_align,int ref_len, std::vector<std::string> & variant_align, std::vector<std::string> & variant_name, 
 												 int start_position, int ref_chr_len, int chr_idx, char strand);
-	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count, 
+	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count,int non_used_count, 
 						const std::string & read_id, int read_pos, int read_len, const char* flank="NN");
 	bool validate_variant(Variant & j, int chr, const char *flank="NN") const ;
 	void insert_variant(Variant & j, int chr, const char* flank="NN") ;
-
 	int init_from_files(std::string &sdi_fname);
 	int report_to_sdi(const std::string &sdi_fname) const ;
 
@@ -132,6 +132,7 @@ public:
 		v.variant_str+=variant ;
 		v.conf_count = 1 ;
 		v.used_count = 0 ;
+		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
@@ -156,6 +157,7 @@ public:
 		v.variant_str=variant_str ;
 		v.conf_count = 1 ;
 		v.used_count = 0 ;
+		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
@@ -180,6 +182,7 @@ public:
 		v.variant_str="" ;
 		v.conf_count = 1 ;
 		v.used_count = 0 ;
+		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
@@ -205,6 +208,7 @@ public:
 		v.variant_str=variant_str ;
 		v.conf_count = 1 ;
 		v.used_count = 0 ;
+		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
 		v.read_pos=read_pos;
