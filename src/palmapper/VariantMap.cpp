@@ -1279,5 +1279,182 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
 
 void VariantMap::transcribe_gff(const std::string & gff_input, const std::string & fasta_output)
 {
+    
+	fprintf(stdout, "\ninitializing trancripts from GFF file %s\n", gff_input.c_str()) ;
+
+	FILE * fd=Util::openFile(gff_input.c_str(), "r") ;
+	FILE * fdo=Util::openFile(fasta_output.c_str(), "w") ;
+    std::string last_parent;
+    std::string exon_seq;
+    std::string transcript_seq;
+
+    char * ret;
+
+	if (!fd || !fdo)
+		return ;
+    
+    char curr_strand = '*';
+    char last_strand = '*';
+    int start = 0, end = 0;
+
+	while (!feof(fd))
+	{
+		Util::skip_comment_lines(fd) ;
+
+        char line[10000], chr_name[1000], source[1000], type[1000], properties[1000], strand ;
+        ret = fgets(line, sizeof(line), fd);
+        if (!ret)
+            break;
+        char * sl = strtok(line, "\t");
+
+        int idx = 0;
+        while (sl != NULL) {
+            if (idx == 0) {
+                strcpy(chr_name, sl) ; 
+            } else if (idx == 1) {
+                strcpy(source, sl) ; 
+            } else if (idx == 2) {
+                strcpy(type, sl) ; 
+            } else if (idx == 3) {
+                start = atoi(sl);
+            } else if (idx == 4) {
+                end = atoi(sl);
+            } else if (idx == 6) {
+                strand = sl[0]; 
+            } else if (idx == 8) {
+                strcpy(properties, sl) ; 
+            }
+            sl = strtok(NULL, "\t");    
+            idx++;
+        }
+
+		if (idx<9)
+		{
+			if (feof(fd))
+				break ;
+			fprintf(stdout, "gff line in file %s only contained %i columns, aborting\n", gff_input.c_str(), idx) ;
+            continue ;
+			//exit(-1) ;
+		}
+
+
+        int chr_idx = genome->find_desc(chr_name) ;
+        if (chr_idx==-1)
+        {
+            fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
+            genome->print_desc(stderr) ;
+            fclose(fd) ;
+            return ;
+        }
+
+		if (strcmp(type, "exon")==0)
+		{
+			//Get Parent name
+			std::string parent;
+			std::string tmp(properties);
+			int pos_parent=tmp.find("Parent=");
+			if (pos_parent <0){
+				fprintf(stderr, "No parent information for exon in gff3 file\n") ;
+				fclose(fd) ;
+				exit(-1) ;
+			}
+			else
+				pos_parent += 7;
+		    if (tmp.find("Transcript:") > 0) 
+                pos_parent += 11;
+
+			int pos_parent_end = tmp.find(";", pos_parent);
+			if (pos_parent_end < 0)
+				parent=tmp.substr(pos_parent);
+			else
+				parent=tmp.substr(pos_parent,pos_parent_end-pos_parent);
+            
+            if (parent[parent.size() - 1] == '\n')
+                parent = parent.substr(0, parent.size() - 1);
+
+            curr_strand = strand;
+            if (last_strand == '*')
+                last_strand = curr_strand;
+
+            int e_idx = start;
+            // collect all variants overlapping to this exon
+            std::vector<std::deque<Variant>::iterator> variant_list;
+            std::deque<Variant>::iterator it = my_lower_bound(this->variantlist[chr_idx].begin(), this->variantlist[chr_idx].end(), e_idx-100) ;
+            for (; it != this->variantlist[chr_idx].end(); it++) {
+                if (it->position + it->ref_len > start - 1 && it->position < end - 1 ) {
+                    // possibility to filter variants based on confirmation
+                    //if (it->conf_count > 0) 
+                        variant_list.push_back(it);
+                }
+                if (it->position > end) 
+                    break;
+            }
+
+            // define set of combatible variants in the variant list
+
+            // incorporate compatible variants into exon
+            size_t v_idx = 0;
+            while (e_idx <= end && v_idx < variant_list.size()) {
+                it = variant_list.at(v_idx);
+                if (it->position <= e_idx - 1) {
+                    int offset = e_idx - 1 - it->position;
+                    switch (it->type) {
+                        case pt_substitution: case pt_SNP: { 
+                            e_idx += it->ref_len - offset;
+                            if (offset > 0) {
+                                exon_seq = exon_seq.append(it->ref_str.substr(offset, it->ref_len - offset));
+                            } else {
+                                exon_seq = exon_seq.append(it->variant_str);
+                            }
+                        }; break; 
+                        case pt_deletion: e_idx = e_idx + it->ref_len - offset <=end?e_idx + it->ref_len - offset:end; break;
+                        case pt_insertion: {
+                            if (e_idx > start && offset == 0) 
+                                exon_seq = exon_seq.append(it->variant_str);
+                        }; break;
+                    } 
+                    v_idx++;
+                } else {
+                    exon_seq += genome->chromosome(chr_idx)[e_idx - 1]; 
+                    e_idx++;
+                }
+            }
+            while (e_idx <=end) {
+                exon_seq += genome->chromosome(chr_idx)[e_idx - 1]; 
+                e_idx++;
+            }
+
+            if (last_parent.size() == 0)
+                last_parent = parent;
+
+            if (!parent.compare(last_parent)) {
+                transcript_seq = transcript_seq.append(exon_seq);
+            } else {
+                fprintf(fdo, ">%s\n", last_parent.c_str());
+                if (transcript_seq.size() > 0) {
+                    if (last_strand == '-')
+                        transcript_seq = QPalma::reverse(QPalma::complement(transcript_seq));
+                    for (size_t i = 0; i < transcript_seq.size(); i+= 80)
+                    {
+                        fprintf(fdo,"%s\n", transcript_seq.substr(i, 80).c_str());
+                    }
+                    transcript_seq = exon_seq;
+                    last_strand = curr_strand;
+                }
+                last_parent = parent;
+            }
+            exon_seq.clear();
+        } 
+    }
+    if (transcript_seq.size() > 0) {
+        fprintf(fdo, ">%s\n", last_parent.c_str());
+        if (last_strand == '-')
+            transcript_seq = QPalma::reverse(QPalma::complement(transcript_seq));
+        for (size_t i = 0; i < transcript_seq.size(); i+= 80)
+        {
+            fprintf(fdo,"%s\n", transcript_seq.substr(i, 80).c_str());
+        }
+        transcript_seq.clear();
+    }
 }
 
