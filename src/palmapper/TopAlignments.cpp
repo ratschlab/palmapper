@@ -1786,6 +1786,9 @@ int TopAlignments::print_top_alignment_variants(std::ostream *OUT_FP, std::vecto
 	
 	for (unsigned int i=0; i< v.size(); i++)
 	{			
+		if (v[i].used_count<=0)
+			continue;
+		
 		std::string ref_str = v[i].ref_str ;
 		if (ref_str.size()==0)
 			ref_str+='-' ;
