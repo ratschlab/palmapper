@@ -161,7 +161,7 @@ int QPalma::get_transcription_direction(int side,int orientation) const
 }
 
 QPalma::QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_)
-//  : 	verbosity(3), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
+//  : 	verbosity(4), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)
 	: 	verbosity(verbosity_), MIN_NUM_MATCHES(_config.QPALMA_MIN_NUM_MATCHES)  
 {
 	genome=genome_ ;
