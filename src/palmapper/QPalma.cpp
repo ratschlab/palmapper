@@ -2595,9 +2595,16 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					//	fprintf(stdout, "%c \t %c (%i) \t %s \n", contig_idx[(*it).position], dna[v.position], v.position, v.ref_str.c_str()) ;
 					if (perform_extra_checks)
 					{
-						assert(contig_idx[(*it).position]==dna[v.position]) ;
+						if (contig_idx[(*it).position]!=dna[v.position])
+						{
+							fprintf(stderr, "ERROR: sequence mismatch: %c != %c  (1)\n", contig_idx[(*it).position], dna[v.position]) ; // BUG-TODO
+							//assert(contig_idx[(*it).position]==dna[v.position]) ;
+						}
 						if (v.ref_str[0]=='A' || v.ref_str[0]=='C' || v.ref_str[0]=='G' || v.ref_str[0]=='T')
-							assert(contig_idx[(*it).position]==v.ref_str[0]) ;
+						{
+							if (contig_idx[(*it).position]!=v.ref_str[0])
+								fprintf(stderr, "ERROR: sequence mismatch: %c != %c  (2)\n", contig_idx[(*it).position], v.ref_str[0]) ; // BUG-TODO
+						}
 					}
 					found = true ;
 				}
