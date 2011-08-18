@@ -2594,7 +2594,8 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					if (perform_extra_checks)
 					{
 						assert(contig_idx[(*it).position]==dna[v.position]) ;
-						assert(contig_idx[(*it).position]==v.ref_str[0]) ;
+						if (v.ref_str[0]=='A' || v.ref_str[0]=='C' || v.ref_str[0]=='G' || v.ref_str[0]=='T')
+							assert(contig_idx[(*it).position]==v.ref_str[0]) ;
 					}
 					found = true ;
 				}
