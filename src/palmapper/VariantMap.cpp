@@ -23,7 +23,7 @@ VariantMap::VariantMap(Genome const &genome_)
 	assert(ret==0) ;
 
 	validate_variants=true ;
-	exit_on_validation_error=true ;
+	exit_on_validation_error=false ;
 	insert_unsorted=false ;
 	max_variant_len=50 ;
 	
