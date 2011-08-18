@@ -1394,24 +1394,33 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
 
             // incorporate compatible variants into exon
             size_t v_idx = 0;
-            while (e_idx <= end && v_idx < variant_list.size()) {
+            while (e_idx <= end && v_idx < variant_list.size()) 
+			{
                 it = variant_list.at(v_idx);
-                if (it->position <= e_idx - 1) {
+                if (it->position <= e_idx - 1) 
+				{
                     int offset = e_idx - 1 - it->position;
-                    switch (it->type) {
-                        case pt_substitution: case pt_SNP: { 
-                            e_idx += it->ref_len - offset;
-                            if (offset > 0) {
-                                exon_seq = exon_seq.append(it->ref_str.substr(offset, it->ref_len - offset));
-                            } else {
-                                exon_seq = exon_seq.append(it->variant_str);
-                            }
-                        }; break; 
-                        case pt_deletion: e_idx = e_idx + it->ref_len - offset <=end?e_idx + it->ref_len - offset:end; break;
-                        case pt_insertion: {
-                            if (e_idx > start && offset == 0) 
-                                exon_seq = exon_seq.append(it->variant_str);
-                        }; break;
+                    switch (it->type) 
+					{
+					case pt_substitution: 
+					case pt_SNP: 
+					{ 
+						e_idx += it->ref_len - offset;
+						if (offset > 0) {
+							exon_seq = exon_seq.append(it->ref_str.substr(offset, it->ref_len - offset));
+						} else {
+							exon_seq = exon_seq.append(it->variant_str);
+						}
+					}
+					break; 
+					case pt_deletion: e_idx = e_idx + it->ref_len - offset <=end?e_idx + it->ref_len - offset:end; break;
+					case pt_insertion: 
+					{
+						if (e_idx > start && offset == 0) 
+							exon_seq = exon_seq.append(it->variant_str);
+					}; 
+					break;
+					default: assert(0) ;
                     } 
                     v_idx++;
                 } else {
