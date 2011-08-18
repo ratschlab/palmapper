@@ -3669,7 +3669,7 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 		{
 			if (!(est_align[i]>=0 && est_align[i]<=6))
 			{
-				fprintf(stderr, "ERROR: est_align[%i]=%i (should be between 0 and 6\n", i, est_align[i]) ;
+				fprintf(stderr, "ERROR: est_align[%i]=%i (should be between 0 and 6)\n", i, est_align[i]) ;
 				return -1 ;
 			}
 		}
