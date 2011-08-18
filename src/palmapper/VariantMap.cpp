@@ -357,7 +357,8 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 
 		int num = sscanf(buf,"%1000s\t%i\t%i\t%100000s\t%100000s\t%i\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
 						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count,&non_used_count, source_id, &read_pos, &read_len, prop);
-		//fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
+		fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
+		fprintf(stdout, "conf_count=%i non_conf_count=%i used_count=%i non_used_count=%i\n", conf_count,non_conf_count,used_count,non_used_count) ;
 		//strcpy(source_id, "") ;
 		
 		if (num<5)
@@ -406,9 +407,16 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 			}
 			variant_lines_checked++ ;
 		}
-			
-		insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count,non_used_count, source_id, read_pos-1, read_len);
-
+		
+		//SDI file does not come from PALMapper and does not provide all fields
+		if (num <12){
+			insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
+		}
+		//SDI file from PALMapper with counter values
+		else{
+			insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count,non_used_count, source_id, read_pos-1, read_len);
+		}
+		
 		variant_lines++ ;
 
 		if (variant_lines%10000==0)
