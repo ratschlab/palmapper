@@ -56,13 +56,6 @@ enum Personality {
 	GenomeMapper,
 };
 
-enum VariantInputEnum {
-	sdi,
-	maf,
-	samtools,
-	unknown,
-};
-
 const int DEFAULT_SETTING=123456789 ;
 
 class Genome;
@@ -228,6 +221,8 @@ public:
 	std::string MAF_REF_NAME;
 	std::string REPORT_VARIANTS_FILE_NAME ;
 	std::vector<std::string> FILTER_VARIANT_SOURCES ;
+	std::vector<std::string> VARIANT_SNP_TAKE_LINES ;
+	
 	int FILTER_VARIANT_MINCONFCOUNT ;
 	double FILTER_VARIANT_MAXNONCONFRATIO ;
 

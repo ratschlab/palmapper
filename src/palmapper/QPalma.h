@@ -156,7 +156,7 @@ protected:
 	bool determine_exons(std::vector<int> & exons, const std::string & dna, const std::vector<int> &positions, bool remapping, char strand, const int *s_align, const int *e_align, 
 						 int & min_exon_len, int & max_intron_len, int & min_intron_len) const ;
 	template<int myverbosity, bool discover_variants> 
-		void determine_read_variants(Chromosome const &contig_idx, const int * s_align, const int* e_align, const int *dna_align, const int *est_align, const std::vector<int> & positions, 
+		int determine_read_variants(Chromosome const &contig_idx, const int * s_align, const int* e_align, const int *dna_align, const int *est_align, const std::vector<int> & positions, 
 									 const VariantMap & variants, std::vector<Variant> & align_variants, std::vector<int> & aligned_positions,
 									 Read const & read, const std::string & read_string, const std::string & read_quality, std::string &read_anno, 
 									 int est_len_p, int result_length, char strand, int ori,
