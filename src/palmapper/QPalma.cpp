@@ -3500,7 +3500,15 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std
 			else
 				result_length--;
 		}
-		
+	
+		//Gap on DNA from alignment: keep them
+		while(align_ind+1<result_tmp && dna_align[align_ind+1]==0){
+			alignment_gaps++;
+			dna_align_back.push_back(dna_align[align_ind+1]);
+			read_align_back.push_back(read_align[align_ind+1]);
+			align_ind++;
+			read_pos++;
+		} 	
 		i++;
 
 	}
@@ -3550,7 +3558,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std
 		dna_align_back.clear();
 		read_align_back.clear();
 		
-		alignment_passed_filters = alignment_passed_filters || alignment_pass_filters(min_intron_len,max_intron_len,alignment_mm,alignment_gaps,num_exons,min_exon_len,remapping);
+		alignment_passed_filters = alignment_passed_filters && alignment_pass_filters(min_intron_len,max_intron_len,alignment_mm,alignment_gaps,num_exons,min_exon_len,remapping);
 	}
 	
 	if (verbosity>=3)
