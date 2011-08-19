@@ -311,7 +311,7 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 			(*it).non_conf_count += j.non_conf_count ;
 			int old_dist = min((*it).read_pos, (*it).read_len-(*it).read_pos) ;
 			int new_dist = min(j.read_pos, j.read_len-j.read_pos) ;
-			if	(new_dist>old_dist || (*it).read_id.size()==0 )
+			if	((new_dist>old_dist && (*it).read_len>0) || (*it).read_id.size()==0 || j.read_len<=0 )
 			{
 				(*it).read_id = j.read_id;
 				(*it).read_pos = j.read_pos;
@@ -887,7 +887,7 @@ int VariantMap::init_from_files(std::string &fnames)
 		previousfound=found+1;
 		found=fnames.find(",", found+1);
 	}
-	
+	 
 	known_variants_limit=next_variant_id-1;
 	
 	if (!has_maf_file && _config.MAF_REF_NAME.length()>0)

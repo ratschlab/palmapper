@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
 
 	if (_config.REPORT_VARIANTS)
 	{
-		int ret=variants.report_to_file(_config.REPORT_VARIANTS_FILE_NAME);
+		int ret=variants.report_to_file(_config.REPORT_VARIANTS_FILE_NAME); 
 		if (ret!=0)
 			return -1;
 	}

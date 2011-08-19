@@ -199,6 +199,7 @@ public:
 		ogzstream s(sdi_fname.c_str()) ;
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
 			s << variantlist[i] ;
+		//fprintf(stdout, "next_variant_id=%i\n", next_variant_id) ;
 		return 0 ;
 	}
 	int init_from_bin(const std::string &sdi_fname)
@@ -208,13 +209,16 @@ public:
 		igzstream s(sdi_fname.c_str()) ;
 		next_variant_id=0 ;
 		
+		int num_variants =0;
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
 		{
 			s >> variantlist[i] ;
-			for (unsigned int j=0; j<variantlist[i].size(); j++) 
-				if (next_variant_id<variantlist[i][j].id)
-					next_variant_id = variantlist[i][j].id ;
+			for (unsigned int j=0; j<variantlist[i].size(); j++, num_variants++) 
+				if (next_variant_id<variantlist[i][j].id+1)
+					next_variant_id = variantlist[i][j].id+1 ;
 		}
+		fprintf(stdout, "read %i variants\n", num_variants) ;
+		
 		return 0 ;
 	}
 
