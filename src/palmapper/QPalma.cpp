@@ -2613,10 +2613,11 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		if ((*it).type == pt_insertion)
 		{
 			assert((*it).variant_len>0 && (*it).ref_len==0) ;
-			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
-			{
+			if ((*it).position-start_pos>0 && (*it).position-start_pos<=end_pos-start_pos && map[(*it).position-start_pos]>=0)
+			{	
 				v=*it ;
 				v.position = map[(*it).position-start_pos] ;
+				//	fprintf(stdout,"found insertion:v.position=%i=map[%i] with start_pos=%i\n",v.position,(*it).position,start_pos);
 				if (perform_extra_checks)
 					assert(v.position>=0) ;
 				v.end_position = v.position + v.ref_len ;
@@ -2941,7 +2942,7 @@ int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 		if (pos_table[i]->pos == position)
 			return i ;
 
-	fprintf(stdout, "ERROR: Position %i not found \n", position) ; // BUG-TODO
+	fprintf(stderr, "ERROR: Position %i not found \n", position) ; // BUG-TODO->FIXED
 	
 	return -1 ;
 }
@@ -3006,6 +3007,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 	{
 		if (variants[i].type == pt_insertion)
 		{
+			//Position cannot be 0 because insertion is considered before this position
 			int idx = find_pos(pos_table, variants[i].position) ;
 			if (idx>0)
 			{
@@ -3522,7 +3524,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std
 	}
 	if (result_length!=(int)dna_align_back.size() || result_length!=(int)read_align_back.size())
 	{
-		fprintf(stdout, "ERROR: len mismatch %i!=%ld || %i!=%ld\n", result_length, dna_align_back.size(), result_length, read_align_back.size()) ; // BUG-TODO
+		fprintf(stderr, "ERROR: len mismatch %i!=%ld || %i!=%ld\n", result_length, dna_align_back.size(), result_length, read_align_back.size()) ; // BUG-TODO->FIXED
 		alignment_passed_filters = false ;
 	}
 	else	
