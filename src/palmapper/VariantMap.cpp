@@ -366,10 +366,6 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count,&non_used_count, source_id, &read_pos, &read_len, prop);
 		}
 
-		//fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
-		//fprintf(stdout, "conf_count=%i non_conf_count=%i used_count=%i non_used_count=%i\n", conf_count,non_conf_count,used_count,non_used_count) ;
-		//strcpy(source_id, "") ;
-		
 		if (num<5)
 		{
 			if (feof(fd))
