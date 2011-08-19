@@ -115,9 +115,9 @@ inline ogzstream& operator<<(ogzstream & os, const struct variant_str & a)
 inline igzstream& operator>>(igzstream & os, std::deque<Variant> & list)
 {
 	unsigned int size=0 ;
+	//os.read((char*)&next_variant_id, sizeof(next_variant_id)) ;
 	os.read((char*)&size, sizeof(size)) ;
-	//fprintf(stdout, "size=%i\n", size) ;
-	
+
 	list.clear() ;
 	for (unsigned int i=0; i<size; i++)
 	{
@@ -131,6 +131,7 @@ inline igzstream& operator>>(igzstream & os, std::deque<Variant> & list)
 inline ogzstream& operator<<(ogzstream & os, const std::deque<Variant> & list)
 {
 	unsigned int size=list.size() ;
+	//os.write((char*)&next_variant_id, sizeof(next_variant_id)) ;
 	os.write((char*)&size, sizeof(size)) ;
 	//fprintf(stdout, "size=%i\n", size) ;
 	
@@ -205,8 +206,15 @@ public:
 		fprintf(stdout, "init genome variants in BIN file %s\n", sdi_fname.c_str()) ;
 
 		igzstream s(sdi_fname.c_str()) ;
+		next_variant_id=0 ;
+		
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
+		{
 			s >> variantlist[i] ;
+			for (unsigned int j=0; j<variantlist[i].size(); j++) 
+				if (next_variant_id<variantlist[i][j].id)
+					next_variant_id = variantlist[i][j].id ;
+		}
 		return 0 ;
 	}
 
