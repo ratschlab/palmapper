@@ -1309,7 +1309,7 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
 	{
 		Util::skip_comment_lines(fd) ;
 
-        char line[10000], chr_name[1000], source[1000], type[1000], properties[1000], strand ;
+        char line[10000]="", chr_name[1000]="", source[1000]="", type[1000]="", properties[1000]="", strand='+' ;
         ret = fgets(line, sizeof(line), fd);
         if (!ret)
             break;
