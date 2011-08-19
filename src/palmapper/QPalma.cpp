@@ -1322,7 +1322,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 			num_hits++;
 			//TODO: Real length of a hit is i-1
 			bool consider_as_long_hit = (i >= _config.SPLICED_HIT_MIN_LENGTH_LONG);
-			if (consider_as_long_hit && num_hits >= MAX_NUM_LONG_HITS) {
+			if (consider_as_long_hit && num_hits >= MAX_NUM_LONG_HITS && !hit->aligned) {
 				consider_as_long_hit = false;
 				if (verbosity >= 2)
 					fprintf(stdout, "# ignoring long hits from now on\n");
