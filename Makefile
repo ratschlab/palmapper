@@ -74,14 +74,18 @@ src/bwa/bwa: src/bwa/libbwa.a
 	@echo Compiling bwa
 	(cd src/bwa && make bwa) 
 
+src/gzstream/libgzstream.a:
+	@echo Compiling libgzstream
+	(cd src/gzstream && make libgzstream.a)
+
 bwa: src/bwa/bwa
 	ln -sf src/bwa/bwa
 
-palmapperX: src/bwa/libbwa.a bwa $(PM_OBJ) src/palmapper/*.h 
-	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -o palmapperX
+palmapperX: src/bwa/libbwa.a bwa src/gzstream/libgzstream.a $(PM_OBJ) src/palmapper/*.h 
+	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -Lsrc/gzstream -l gzstream -o palmapperX
 
-palmapper: src/bwa/libbwa.a bwa $(PM_OBJ) src/palmapper/*.h 
-	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -o palmapper
+palmapper: src/bwa/libbwa.a bwa src/gzstream/libgzstream.a $(PM_OBJ) src/palmapper/*.h 
+	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -Lsrc/gzstream -l gzstream -o palmapper
 	ln -sf palmapper genomemapper
 
 pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c

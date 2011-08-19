@@ -355,10 +355,19 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 		//Scan sdi line
 		//int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;  
 
-		int num = sscanf(buf,"%1000s\t%i\t%i\t%100000s\t%100000s\t%i\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+		int num1 = sscanf(buf,"%1000s\t%i\t%i\t%100000s\t%100000s\t%i\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
 						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count,&non_used_count, source_id, &read_pos, &read_len, prop);
-		fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
-		fprintf(stdout, "conf_count=%i non_conf_count=%i used_count=%i non_used_count=%i\n", conf_count,non_conf_count,used_count,non_used_count) ;
+		// compatibility with old format
+		int num = sscanf(buf,"%1000s\t%i\t%i\t%100000s\t%100000s\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count, source_id, &read_pos, &read_len, prop);
+		if (num1>num)
+		{
+			num = sscanf(buf,"%1000s\t%i\t%i\t%100000s\t%100000s\t%i\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+						 chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count,&non_used_count, source_id, &read_pos, &read_len, prop);
+		}
+
+		//fprintf(stdout, "num=%i\nref_str=%s\nvariant_str=%s\n", num, ref_str, variant_str) ;
+		//fprintf(stdout, "conf_count=%i non_conf_count=%i used_count=%i non_used_count=%i\n", conf_count,non_conf_count,used_count,non_used_count) ;
 		//strcpy(source_id, "") ;
 		
 		if (num<5)
@@ -709,6 +718,26 @@ int VariantMap::init_from_samtools(const std::string &sdi_fname)
 
 }
 
+
+int VariantMap::report_to_file(const std::string &filename) const
+{
+	unsigned int pos_ext=filename.rfind('.');
+
+	if (pos_ext != std::string::npos)  
+	{
+		std::string extension(filename.substr(pos_ext+1));
+		
+		if (extension.compare("sdi")==0 ||extension.compare("SDI")==0)
+			return report_to_sdi(filename) ;
+		if (extension.compare("bin")==0 ||extension.compare("BIN")==0)
+			return report_to_bin(filename) ; 
+	}
+	fprintf(stderr, "ERROR: unknown extension of variant file %s\n", filename.c_str()) ;
+	exit(-1) ;
+	
+	return -1 ;
+}
+
 int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 {
 	int nb_variants=0;
@@ -819,6 +848,8 @@ int VariantMap::init_from_files(std::string &fnames)
 				ext=samtools;
 			if (extension.compare("snp")==0 ||extension.compare("SNP")==0)
 				ext=snp;
+			if (extension.compare("bin")==0 ||extension.compare("BIN")==0)
+				ext=bingz;
 		}
 		if (ext==unknown)
 		{
@@ -834,6 +865,8 @@ int VariantMap::init_from_files(std::string &fnames)
 		int ret = 0 ;
 		if (ext == sdi)
 			init_from_sdi(filename);
+		if (ext == bingz)
+			init_from_bin(filename);
 		if (ext == samtools)
 			init_from_samtools(filename);
 		if (ext == snp)

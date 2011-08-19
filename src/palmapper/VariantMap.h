@@ -5,6 +5,8 @@
 #include <string>
 #include <stdlib.h> 
 #include <assert.h>
+#include <iostream>
+#include <gzstream/gzstream.h>
 
 enum polytype
 {
@@ -31,9 +33,111 @@ struct variant_str
 	short unsigned int non_conf_count ;
 	std::string ref_str, variant_str ;
 	std::string read_id ;
-};
+} ;
 
 typedef struct variant_str Variant;
+	
+inline igzstream& operator>>(igzstream & os, struct variant_str & a)
+{
+	os.read((char*)&a.id, sizeof(a.id)) ;
+	os.read((char*)&a.position, sizeof(a.position)) ;
+	os.read((char*)&a.end_position, sizeof(a.end_position)) ;
+	os.read((char*)&a.ref_len, sizeof(a.ref_len)) ;
+	os.read((char*)&a.variant_len, sizeof(a.variant_len)) ;
+	os.read((char*)&a.type, sizeof(a.type)) ;
+	os.read((char*)&a.read_pos, sizeof(a.read_pos)) ;
+	os.read((char*)&a.read_len, sizeof(a.read_len)) ;
+	os.read((char*)&a.used_count, sizeof(a.used_count)) ;
+	os.read((char*)&a.non_used_count, sizeof(a.non_used_count)) ;
+	os.read((char*)&a.conf_count, sizeof(a.conf_count)) ;
+	os.read((char*)&a.non_conf_count, sizeof(a.non_conf_count)) ;
+
+	int size=0 ;
+	os.read((char*)&size, sizeof(size)) ;
+	{
+		char buf[size+1] ;
+		os.read(buf, size) ;
+		buf[size]=0 ;
+		a.ref_str.assign(buf) ;
+	}
+	
+	size=0 ;
+	os.read((char*)&size, sizeof(size)) ;
+	{
+		char buf[size+1] ;
+		os.read(buf, size) ;
+		buf[size]=0 ;
+		a.variant_str.assign(buf) ;
+	}
+
+	size=0 ;
+	os.read((char*)&size, sizeof(size)) ;
+	{
+		char buf[size+1] ;
+		os.read(buf, size) ;
+		buf[size]=0 ;
+		a.read_id.assign(buf) ;
+	}
+
+	return os ;
+}
+
+inline ogzstream& operator<<(ogzstream & os, const struct variant_str & a)
+{
+	os.write((char*)&a.id, sizeof(a.id)) ;
+	os.write((char*)&a.position, sizeof(a.position)) ;
+	os.write((char*)&a.end_position, sizeof(a.end_position)) ;
+	os.write((char*)&a.ref_len, sizeof(a.ref_len)) ;
+	os.write((char*)&a.variant_len, sizeof(a.variant_len)) ;
+	os.write((char*)&a.type, sizeof(a.type)) ;
+	os.write((char*)&a.read_pos, sizeof(a.read_pos)) ;
+	os.write((char*)&a.read_len, sizeof(a.read_len)) ;
+	os.write((char*)&a.used_count, sizeof(a.used_count)) ;
+	os.write((char*)&a.non_used_count, sizeof(a.non_used_count)) ;
+	os.write((char*)&a.conf_count, sizeof(a.conf_count)) ;
+	os.write((char*)&a.non_conf_count, sizeof(a.non_conf_count)) ;
+
+	int size=a.ref_str.size() ;
+	os.write((char*)&size, sizeof(size)) ;
+	os.write(a.ref_str.c_str(), size) ;
+
+	size=a.variant_str.size() ;
+	os.write((char*)&size, sizeof(size)) ;
+	os.write(a.variant_str.c_str(), size) ;
+
+	size=a.read_id.size() ;
+	os.write((char*)&size, sizeof(size)) ;
+	os.write(a.read_id.c_str(), size) ;
+	
+	return os ;
+}
+
+inline igzstream& operator>>(igzstream & os, std::deque<Variant> & list)
+{
+	unsigned int size=0 ;
+	os.read((char*)&size, sizeof(size)) ;
+	//fprintf(stdout, "size=%i\n", size) ;
+	
+	list.clear() ;
+	for (unsigned int i=0; i<size; i++)
+	{
+		Variant v ;
+		os >> v ;
+		list.push_back(v) ;
+	}
+	return os ;
+}
+
+inline ogzstream& operator<<(ogzstream & os, const std::deque<Variant> & list)
+{
+	unsigned int size=list.size() ;
+	os.write((char*)&size, sizeof(size)) ;
+	//fprintf(stdout, "size=%i\n", size) ;
+	
+	for (unsigned int i=0; i<size; i++)
+		os << list[i] ;
+	return os ;
+}
 
 struct found_variant_str {
 	int read_position ;
@@ -57,6 +161,7 @@ enum VariantInputEnum {
 	maf,
 	samtools,
 	snp,
+	bingz,
 	unknown,
 };
 
@@ -83,7 +188,27 @@ public:
 	bool validate_variant(Variant & j, int chr, const char *flank="NN") const ;
 	void insert_variant(Variant & j, int chr, const char* flank="NN") ;
 	int init_from_files(std::string &sdi_fname);
+
+	int report_to_file(const std::string &sdi_fname) const ;
 	int report_to_sdi(const std::string &sdi_fname) const ;
+	int report_to_bin(const std::string &sdi_fname) const 
+	{
+		fprintf(stdout, "report genome variants in BIN file %s\n", sdi_fname.c_str()) ;
+
+		ogzstream s(sdi_fname.c_str()) ;
+		for (int i=0; i<(int)genome->nrChromosomes(); i++)
+			s << variantlist[i] ;
+		return 0 ;
+	}
+	int init_from_bin(const std::string &sdi_fname)
+	{
+		fprintf(stdout, "init genome variants in BIN file %s\n", sdi_fname.c_str()) ;
+
+		igzstream s(sdi_fname.c_str()) ;
+		for (int i=0; i<(int)genome->nrChromosomes(); i++)
+			s >> variantlist[i] ;
+		return 0 ;
+	}
 
 	void filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources) ;
 	
@@ -240,7 +365,7 @@ public:
 				{
 					fprintf(stdout, "ERROR: wrong order %i/%i-%i\n", i, j, j+1) ;
 				}
-			}
+			}		
 	}
 
 	void transcribe_gff(const std::string & gff_input, const std::string & fasta_output) ;
