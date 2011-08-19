@@ -3560,7 +3560,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std
 		dna_align_back.clear();
 		read_align_back.clear();
 		
-		alignment_passed_filters = alignment_passed_filters && alignment_pass_filters(min_intron_len,max_intron_len,alignment_mm,alignment_gaps,num_exons,min_exon_len,remapping);
+		alignment_passed_filters = alignment_pass_filters(min_intron_len,max_intron_len,alignment_mm,alignment_gaps,num_exons,min_exon_len,remapping);
 	}
 	
 	if (verbosity>=3)
