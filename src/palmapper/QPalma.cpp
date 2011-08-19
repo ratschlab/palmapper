@@ -3533,6 +3533,10 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 		
 	bool alignment_valid=true ;
 	int exon_start = -1;
+
+	if (!(dna.length()==positions.size()))
+		fprintf(stderr, "len mismatch dna.length()=%ld != %ld=positions.size()\n", dna.length(), positions.size()) ; // BUG-TODO
+	
 	for (size_t i = 0; i < dna.length(); i++) 
 	{
 		if (exon_start == -1 && s_align[i] == 0 && i<dna.length()-1) 
