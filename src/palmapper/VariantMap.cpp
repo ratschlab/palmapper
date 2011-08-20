@@ -34,10 +34,12 @@ VariantMap::~VariantMap()
 	delete[] variantlist;	
 }
 
-void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources) 
+void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) 
 {
 	fprintf(stdout, "Filtering variants, requiring\n* %i as minimum confirmation count\n* %1.2f as the ratio of confirmed vs. non-confirmed\nAdditionally accepting %ld specific sources\n", min_conf_count, max_nonconf_ratio, accept_sources.size()) ;
-	
+	if (filter_by_map>=0)
+		fprintf(stdout, "* requiring variation next to mapped read or annotated exon with distance at most %i bp\n", filter_by_map) ;
+
 	int nbchr = genome->nrChromosomes();
 	int N=0, T=0;
 	 
@@ -61,6 +63,14 @@ void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, s
 				for (unsigned int k=0; k<accept_sources.size(); k++)
 					if (accept_sources[k]==variantlist[i][j].read_id)
 						take = true ;
+			}
+			if (take && filter_by_map>=0)
+			{
+				bool map=false ;
+				for (int p=-filter_by_map; p<=filter_by_map; p++)
+					for (int l=variantlist[i][j].position; l<=variantlist[i][j].end_position; l++)
+						if (l+p>=0 && l+p<(int)genome->chromosome(i).length())
+							map |= genomemaps.CHR_MAP(genome->chromosome(i), l+p) ;
 			}
 			if (take)
 			{
@@ -277,11 +287,12 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 	if (j.variant_len>max_variant_len)
 		return ;
 	
-	lock() ;
 
 	if (insert_unsorted || variantlist[chr].empty())
 	{
 		j.id=next_variant_id;
+
+		lock() ;
 		next_variant_id++;
 		variantlist[chr].push_back(j);
 
@@ -298,6 +309,7 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 		if (variant_cmp(j, *it)<0)
 		{
 			j.id=next_variant_id;
+			lock() ;
 			next_variant_id++;
 			variantlist[chr].insert(it, j);
 			unlock() ;
@@ -317,18 +329,18 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 				(*it).read_pos = j.read_pos;
 				(*it).read_len = j.read_len;
 			}
-
-			unlock() ;
 			return;
 		}
 		continue;
 	}
 
 	j.id=next_variant_id;
+
+	lock() ;
 	next_variant_id++;
 	variantlist[chr].push_back(j);
-
 	unlock() ;
+
 	return ;
 }
 

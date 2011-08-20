@@ -1,10 +1,11 @@
 #pragma once
 
+#include <assert.h>
 #include <palmapper/Genome.h>
+#include <palmapper/GenomeMaps.h>
 #include <deque>
 #include <string>
 #include <stdlib.h> 
-#include <assert.h>
 #include <iostream>
 #include <gzstream/gzstream.h>
 
@@ -240,7 +241,7 @@ public:
 		return 0 ;
 	}
 
-	void filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources) ;
+	void filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) ;
 	
 	void lock() 
 	{ 

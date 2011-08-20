@@ -36,7 +36,8 @@ public:
 	Genome();
 	~Genome();
 
-	Chromosome const &chromosome(int index) const{
+	Chromosome const &chromosome(int index) const
+	{
 		return _chromosomes[index];
 	}
 	unsigned int nrChromosomes() const {
