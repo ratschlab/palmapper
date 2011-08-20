@@ -34,6 +34,7 @@ VariantMap::~VariantMap()
 	delete[] variantlist;	
 }
 
+
 void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) 
 {
 	fprintf(stdout, "Filtering variants, requiring\n* %i as minimum confirmation count\n* %1.2f as the ratio of confirmed vs. non-confirmed\nAdditionally accepting %ld specific sources\n", min_conf_count, max_nonconf_ratio, accept_sources.size()) ;
@@ -209,7 +210,44 @@ inline int min(int a, int b)
 	return b ;
 }
 
-bool VariantMap::validate_variant(Variant & j, int chr, const char *flank) const
+int VariantMap::update_variant(int index, int chr, const Variant &v,const char *flank)
+{
+
+	if (validate_variants)
+		if (!validate_variant(v, chr, flank))
+			return 0;
+	
+	if (v.variant_len>max_variant_len)
+		return 0;
+	
+	for (unsigned int i=index; i<variantlist[chr].size(); i++)
+	{
+		
+		if (v.id == variantlist[chr][i].id){
+			variantlist[chr][i].used_count += v.used_count ;
+			variantlist[chr][i].non_used_count += v.non_used_count ;
+			variantlist[chr][i].conf_count += v.conf_count ;
+			variantlist[chr][i].non_conf_count += v.non_conf_count ;
+			int old_dist = min(variantlist[chr][i].read_pos, variantlist[chr][i].read_len-variantlist[chr][i].read_pos) ;
+			int new_dist = min(v.read_pos, v.read_len-v.read_pos) ;
+			if	((new_dist>old_dist && variantlist[chr][i].read_len>0) || variantlist[chr][i].read_id.size()==0 || v.read_len<=0 )
+			{
+				variantlist[chr][i].read_id = v.read_id;
+				variantlist[chr][i].read_pos = v.read_pos;
+				variantlist[chr][i].read_len = v.read_len;
+			}
+			return 1;
+		}
+		
+		if (v.position > variantlist[chr][i].position)
+			break;
+	}
+	
+	return 0;
+	
+}
+
+bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank) const
 {
 	if (j.ref_len>0)
 	{

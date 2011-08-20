@@ -6,6 +6,7 @@
 #include <palmapper/GenomeMaps.h>
 #include <palmapper/JunctionMap.h>
 #include <palmapper/VariantMap.h>
+#include <map>
 
 class Mapper ;
 class GenomeMaps ;
@@ -38,9 +39,10 @@ typedef struct alignment_t {
 	bool passed_filters;
 	bool remapped ;
 	std::vector<Variant> found_variants ; //Existing variants used to obtain a better alignment than on the reference
+	std::map<int,int> variant_positions;
 	std::vector<Variant> align_variants ; //Variants discovered from an alignment
 	std::vector<int> aligned_positions ;
-	
+
 	HIT* hit ;
 	int num ;
 	std::vector<std::string> intron_consensus ;
