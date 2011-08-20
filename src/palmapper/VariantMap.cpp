@@ -1418,7 +1418,7 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
             std::vector<std::deque<Variant>::iterator> variant_list;
             std::deque<Variant>::iterator it = my_lower_bound(this->variantlist[chr_idx].begin(), this->variantlist[chr_idx].end(), e_idx-100) ;
             for (; it != this->variantlist[chr_idx].end(); it++) {
-                if (it->position + it->ref_len > start - 1 && it->position < end - 1 ) {
+                if (it->position + it->ref_len >= start - 1 && it->position <= end - 1 ) {
                     // possibility to filter variants based on confirmation
                     //if (it->conf_count > 0) 
                         variant_list.push_back(it);
@@ -1443,23 +1443,24 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
 					case pt_SNP: 
 					{ 
 						e_idx += it->ref_len - offset;
-						if (offset > 0) {
-							exon_seq = exon_seq.append(it->ref_str.substr(offset, it->ref_len - offset));
-						} else {
-							exon_seq = exon_seq.append(it->variant_str);
-						}
+                        if (it->ref_len - offset >= it->variant_len)
+                            exon_seq = exon_seq.append(it->variant_str.substr(0, it->ref_len - offset));
+                        else
+                            exon_seq = exon_seq.append(it->variant_str.substr(it->variant_len + offset - it->ref_len, it->ref_len - offset));
+                        v_idx++;
 					}
 					break; 
-					case pt_deletion: e_idx = e_idx + it->ref_len - offset <=end?e_idx + it->ref_len - offset:end; break;
+					case pt_deletion: e_idx = e_idx + it->ref_len - offset <=end?e_idx + it->ref_len - offset:end; v_idx++; break;
 					case pt_insertion: 
 					{
-						if (e_idx > start && offset == 0) 
+						if (offset == 0) {
 							exon_seq = exon_seq.append(it->variant_str);
-					}; 
+                            v_idx++;
+                        }
+					}
 					break;
 					default: assert(0) ;
                     } 
-                    v_idx++;
                 } else {
                     exon_seq += genome->chromosome(chr_idx)[e_idx - 1]; 
                     e_idx++;
