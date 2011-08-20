@@ -91,10 +91,11 @@ int main(int argc, char *argv[])
 
 	QueryFile queryFile(_config.QUERY_FILE_NAMES,_config.QUERY_FILE_STRANDS);
 	FileReporter reporter(OUT_FP, SP_OUT_FP, USED_VARIANTS_FP, LEFTOVER_FP);
+
+	// junction maps
 	JunctionMap junctionmap(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
 	JunctionMap annotated_junctions(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
-	VariantMap variants(genome);
-	
+
 	if ( _config.OUTPUT_FORMAT == OUTPUT_FORMAT_BAM)
 	{
 		TopAlignments::print_bam_header(genome, OUT_FP) ;
@@ -114,6 +115,13 @@ int main(int argc, char *argv[])
 			return -1;
 	}
 
+	// genomemaps
+	GenomeMaps *genomemaps = NULL;
+	genomemaps = new GenomeMaps(genome);
+
+	// variant maps
+	VariantMap variants(genome);
+
 	if (_config.USE_VARIANTS)
 	{
 		int ret=variants.init_from_files(_config.USE_VARIANT_FILE_NAME);
@@ -121,27 +129,12 @@ int main(int argc, char *argv[])
 			return -1;
 
 		if (_config.FILTER_VARIANTS)
-			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES) ;
+			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES, 100, *genomemaps) ;
 	}
 
-	// initialize GenomeMaps
-//	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
-//	{
-//		genomemaps.init_reporting() ;
-//
-//		if (!_config.REPORT_RESET)
-//		{
-//			genomemaps.read_reporting() ;
-//			genomemaps.do_reporting(1) ;
-//		}
-//	}
-
-	GenomeMaps *genomemaps = NULL;
 	QPalma *qpalma = NULL;
-	genomemaps = new GenomeMaps(genome);
 	qpalma = new QPalma(&genome, genomemaps, 0);
 
-	
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{
 		//genomemaps = new GenomeMaps(genome);

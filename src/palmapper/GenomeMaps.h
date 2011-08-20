@@ -42,7 +42,7 @@ public:
 	GenomeMaps(Genome const &genome) ;
 	~GenomeMaps() ;
 
-	inline unsigned char CHR_MAP(Chromosome const &chr, size_t index)
+	inline unsigned char CHR_MAP(Chromosome const &chr, size_t index) const
 	{
 #ifdef CHR_MAP_DNAARRAY
 		return CHR_MAP_a[chr.nr()]->get_elem(index) ;
