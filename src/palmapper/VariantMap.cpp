@@ -1353,9 +1353,9 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
             } else if (idx == 2) {
                 strcpy(type, sl) ; 
             } else if (idx == 3) {
-                start = atoi(sl);
+                start = atoi(sl) - 1;
             } else if (idx == 4) {
-                end = atoi(sl);
+                end = atoi(sl) - 1;
             } else if (idx == 6) {
                 strand = sl[0]; 
             } else if (idx == 8) {
@@ -1418,7 +1418,7 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
             std::vector<std::deque<Variant>::iterator> variant_list;
             std::deque<Variant>::iterator it = my_lower_bound(this->variantlist[chr_idx].begin(), this->variantlist[chr_idx].end(), e_idx-100) ;
             for (; it != this->variantlist[chr_idx].end(); it++) {
-                if (it->position + it->ref_len >= start - 1 && it->position <= end - 1 ) {
+                if (it->position + it->ref_len >= start && it->position <= end) {
                     // possibility to filter variants based on confirmation
                     //if (it->conf_count > 0) 
                         variant_list.push_back(it);
@@ -1434,9 +1434,9 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
             while (e_idx <= end && v_idx < variant_list.size()) 
 			{
                 it = variant_list.at(v_idx);
-                if (it->position <= e_idx - 1) 
+                if (it->position <= e_idx) 
 				{
-                    int offset = e_idx - 1 - it->position;
+                    int offset = e_idx - it->position;
                     switch (it->type) 
 					{
 					case pt_substitution: 
@@ -1444,9 +1444,11 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
 					{ 
 						e_idx += it->ref_len - offset;
                         if (it->ref_len - offset >= it->variant_len)
-                            exon_seq = exon_seq.append(it->variant_str.substr(0, it->ref_len - offset));
-                        else
+                            exon_seq = exon_seq.append(it->variant_str);
+                        else if (offset > 0)
                             exon_seq = exon_seq.append(it->variant_str.substr(it->variant_len + offset - it->ref_len, it->ref_len - offset));
+                        else
+                            exon_seq = exon_seq.append(it->variant_str);
                         v_idx++;
 					}
 					break; 
@@ -1462,12 +1464,12 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
 					default: assert(0) ;
                     } 
                 } else {
-                    exon_seq += genome->chromosome(chr_idx)[e_idx - 1]; 
+                    exon_seq += genome->chromosome(chr_idx)[e_idx]; 
                     e_idx++;
                 }
             }
             while (e_idx <=end) {
-                exon_seq += genome->chromosome(chr_idx)[e_idx - 1]; 
+                exon_seq += genome->chromosome(chr_idx)[e_idx]; 
                 e_idx++;
             }
 
