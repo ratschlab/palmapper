@@ -67,10 +67,12 @@ void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, s
 			if (take && filter_by_map>=0)
 			{
 				bool map=false ;
-				for (int p=-filter_by_map; p<=filter_by_map; p++)
-					for (int l=variantlist[i][j].position; l<=variantlist[i][j].end_position; l++)
+				for (int p=-filter_by_map; p<=filter_by_map && !map; p++)
+					for (int l=variantlist[i][j].position; l<=variantlist[i][j].end_position && !map; l++)
 						if (l+p>=0 && l+p<(int)genome->chromosome(i).length())
 							map |= genomemaps.CHR_MAP(genome->chromosome(i), l+p) ;
+				if (!map)
+					take=false ;
 			}
 			if (take)
 			{
