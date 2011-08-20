@@ -194,17 +194,29 @@ public:
 	int report_to_sdi(const std::string &sdi_fname) const ;
 	int report_to_bin(const std::string &sdi_fname) const 
 	{
-		fprintf(stdout, "report genome variants in BIN file %s\n", sdi_fname.c_str()) ;
+		fprintf(stdout, "report genome variants in BIN file %s ...", sdi_fname.c_str()) ;
 
 		ogzstream s(sdi_fname.c_str()) ;
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
+		{
+			fprintf(stdout, ".") ;
 			s << variantlist[i] ;
+		}
 		//fprintf(stdout, "next_variant_id=%i\n", next_variant_id) ;
+		std::string end_marker="sdi_bin_end_marker" ;
+		s << end_marker ;
+		
+		int num_variants =0;
+		for (int i=0; i<(int)genome->nrChromosomes(); i++)
+			for (unsigned int j=0; j<variantlist[i].size(); j++, num_variants++)  ;
+
+		fprintf(stdout, " Done.\nWrote %i variants\n", num_variants) ;
+
 		return 0 ;
 	}
 	int init_from_bin(const std::string &sdi_fname)
 	{
-		fprintf(stdout, "init genome variants in BIN file %s\n", sdi_fname.c_str()) ;
+		fprintf(stdout, "init genome variants in BIN file %s ...", sdi_fname.c_str()) ;
 
 		igzstream s(sdi_fname.c_str()) ;
 		next_variant_id=0 ;
@@ -213,11 +225,17 @@ public:
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
 		{
 			s >> variantlist[i] ;
+			fprintf(stdout, ".") ;
 			for (unsigned int j=0; j<variantlist[i].size(); j++, num_variants++) 
 				if (next_variant_id<variantlist[i][j].id+1)
 					next_variant_id = variantlist[i][j].id+1 ;
 		}
-		fprintf(stdout, "read %i variants\n", num_variants) ;
+		std::string end_marker="" ;
+		s >> end_marker ;
+		if (end_marker!=std::string("sdi_bin_end_marker"))
+			fprintf(stdout, "\nWarning: EOF marker missing\n") ;
+
+		fprintf(stdout, " Done.\nRead %i variants\n", num_variants) ;
 		
 		return 0 ;
 	}
