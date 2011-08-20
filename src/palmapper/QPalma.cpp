@@ -2203,7 +2203,7 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 			 data->current_regions, data->positions, *data->contig_idx,
 			 data->strand, data->ori, data->hit_read,
 			 data->hit_dna,data->hit_length, data->non_consensus_search, data->aln, 
-			 *data->annotatedjunctions, *data->variants, *data->variant_list) ;
+			 *data->annotatedjunctions, *data->variants, *data->variant_list,*data->variant_positions) ;
 	}
 	catch (std::bad_alloc&)
 	{
@@ -2539,7 +2539,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 }
 
 std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int> positions, 
-									   Chromosome const &contig_idx, VariantMap & variants) const
+											   Chromosome const &contig_idx, VariantMap & variants, std::map<int,int> & variantpos) const
 {
 	int k=0;
 	while (positions[k]==-2)
@@ -2570,8 +2570,15 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	int num_checked_variants = 0 ;
 	std::vector<Variant> variant_list ;
 	
+	//position of the first variant pointed by it
+	int index_position= it - variants.variantlist[chr].begin() ;
+	fprintf(stdout,"index position for lower bound variant: %i\n",index_position );
+	
+	
 	while (it != variants.variantlist[chr].end() && (*it).position <= end_pos)
 	{
+
+		
 		bool found = false ;
 		std::vector<int> match_pos ;
 		
@@ -2743,10 +2750,16 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 			if ((*it).type == pt_SNP)
 				num_found_SNP_variants++ ;
 			
+			//Store the position of this particular variant from VariantMap object
+			variantpos[v.id]=index_position;
+			fprintf(stdout,"Position %i, id %i, position %i\n", index_position,v.id,v.position);
+			
 //			fprintf(stdout,"%i\t%i\t%i\t%i\t%i\t%s\t%s\n",
 //					(*it).id,(*it).type, chr,(*it).position,(*it).variant_len-(*it).ref_len,(*it).ref_str.c_str(), (*it).variant_str.c_str());
 		}
 		it++ ;
+		index_position++;
+		
 	}
 	//fprintf(stdout, "%i\t%i\t%i found\n", num_found_SNP_variants, num_found_variants, num_checked_variants) ;
 	
@@ -2786,18 +2799,20 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 	if (!_config.USE_VARIANTS)
 	{
 		std::vector<Variant> variant_list ;
-	
+		std::map<int, int> variant_positions;
+		
 		return perform_alignment_starter_single(result, readMappings, 
 												read_string, read_quality, 
 												dna, current_regions, positions, 
 												contig_idx, strand, ori,
 												hit_read_position, hit_dna_position, hit_length, 
 												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list) ;
+												annotatedjunctions, variants, variant_list,variant_positions) ;
 	}
 	else
 	{
-		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants) ;
+		std::map<int, int> variant_positions;
+		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants,variant_positions) ;
 
 		return perform_alignment_starter_single(result, readMappings, 
 												read_string, read_quality, 
@@ -2805,7 +2820,7 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 												contig_idx, strand, ori,
 												hit_read_position, hit_dna_position, hit_length, 
 												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list) ;
+												annotatedjunctions, variants, variant_list,variant_positions) ;
 	}
 } 
 
@@ -2816,7 +2831,7 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 											 Chromosome const &contig_idx, char strand, int ori,
 											 int hit_read_position, int hit_dna_position, int hit_length, 
 											 bool non_consensus_search, int& num_alignments_reported, bool remapping, 
-											 JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list) const
+											 JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list, std::map<int, int> & variant_pos) const
 {
 	struct perform_alignment_t* data = NULL ;
 	try
@@ -2850,7 +2865,8 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 			data->annotatedjunctions=&annotatedjunctions;
 			data->variant_list = &variant_list ;
 			data->variants = &variants ;
-
+			data->variant_positions = &variant_pos;
+			
 			perform_alignment_wrapper1(data);
 
 			consensus_alignment = data->aln ;
@@ -2885,6 +2901,8 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 			data->annotatedjunctions=&annotatedjunctions;
 			data->variant_list = &variant_list ;
 			data->variants = &variants ;
+			data->variant_positions = &variant_pos;
+
 
 			perform_alignment_wrapper1(data);
 				
@@ -3998,8 +4016,7 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 template<int myverbosity, bool discover_variants, bool remapping> 
 int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, 
 							  std::vector<region_t *> &current_regions, std::vector<int> &positions, 
-							  Chromosome const &contig_idx, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln, 
-							  JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list) const
+							  Chromosome const &contig_idx, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln,  JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list,std::map<int, int> & variant_pos) const
 // ori = read orientation
 // strand = dna strand/orientation
 //hit_read, hit_dna, hit_length: starting (real) positions and length of the hit for starting the alignment
@@ -4832,7 +4849,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->found_variants = variant_list ;
 		aln->align_variants = align_variants ;
 		aln->aligned_positions = aligned_positions ;
-		
+		aln->variant_positions= variant_pos;
 		aln->from_gm = 3;
 
 		if (ori == 0)

@@ -187,7 +187,10 @@ public:
 												 int start_position, int ref_chr_len, int chr_idx, char strand);
 	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count,int non_used_count, 
 						const std::string & read_id, int read_pos, int read_len, const char* flank="NN");
-	bool validate_variant(Variant & j, int chr, const char *flank="NN") const ;
+	int update_variant(int index, int chr, const Variant &v,const char *flank="NN");
+	
+	
+	bool validate_variant(const Variant & j, int chr, const char *flank="NN") const ;
 	void insert_variant(Variant & j, int chr, const char* flank="NN") ;
 	int init_from_files(std::string &sdi_fname);
 

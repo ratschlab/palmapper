@@ -868,8 +868,21 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 				}
 				if (_config.USE_VARIANTS)
 				{
-					//for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++)
-					//	variants.insert_variant(top_alignments[i]->found_variants[j], top_alignments[i]->chromosome->nr()) ;
+					for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++){
+						
+						//	variants.insert_variant(top_alignments[i]->found_variants[j], top_alignments[i]->chromosome->nr()) ;
+						std::map<int,int>::iterator it = top_alignments[i]->variant_positions.find(top_alignments[i]->found_variants[j].id);
+						if (it == top_alignments[i]->variant_positions.end()){
+							fprintf(stderr,"[end_top_alignment_record]ERROR: variant with id %i has no index position\n",top_alignments[i]->found_variants[j].id);							
+							assert(0);
+						}
+						else{
+							int ret=variants.update_variant((*it).second,top_alignments[i]->chromosome->nr(),top_alignments[i]->found_variants[j]);
+							if (ret ==0){
+								fprintf(stderr,"[end_top_alignment_record]WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);							
+							}
+						}
+					}
 				}
 			}
 		}
@@ -877,8 +890,8 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		{
 			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
 			{
-				//fprintf(stdout,"Report variants %ld\n", top_alignments[i]->found_variants.size());
-				//print_top_alignment_variants(VARIANTS_FP, top_alignments[i]->found_variants, top_alignments[i]->chromosome->desc()) ;		
+				fprintf(stdout,"Report variants %ld\n", top_alignments[i]->found_variants.size());
+				print_top_alignment_variants(VARIANTS_FP, top_alignments[i]->found_variants, top_alignments[i]->chromosome->desc()) ;		
 			}
 		}
     }
@@ -1785,7 +1798,7 @@ int TopAlignments::print_top_alignment_variants(std::ostream *OUT_FP, std::vecto
 	int num_variants=0;
 	
 	for (unsigned int i=0; i< v.size(); i++)
-	{			
+	{	
 		if (v[i].used_count<=0)
 			continue;
 		
@@ -1795,7 +1808,6 @@ int TopAlignments::print_top_alignment_variants(std::ostream *OUT_FP, std::vecto
 		std::string variant_str = v[i].variant_str ;
 		if (variant_str.size()==0)
 			variant_str+='-' ;
-		
 
 		fprintf(MY_OUT_FP,"%s\t%i\t%i\t%s\t%s\t%s\t%i\n",
 				chr, v[i].position+1, v[i].variant_len-v[i].ref_len, ref_str.c_str(), variant_str.c_str(), v[i].read_id.c_str(),v[i].read_pos+1);
