@@ -2572,8 +2572,6 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	
 	//position of the first variant pointed by it
 	int index_position= it - variants.variantlist[chr].begin() ;
-	fprintf(stdout,"index position for lower bound variant: %i\n",index_position );
-	
 	
 	while (it != variants.variantlist[chr].end() && (*it).position <= end_pos)
 	{
@@ -2752,8 +2750,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 			
 			//Store the position of this particular variant from VariantMap object
 			variantpos[v.id]=index_position;
-			fprintf(stdout,"Position %i, id %i, position %i\n", index_position,v.id,v.position);
-			
+			//fprintf(stdout,"Position %i, id %i, position %i\n", index_position,v.id,v.position);
 //			fprintf(stdout,"%i\t%i\t%i\t%i\t%i\t%s\t%s\n",
 //					(*it).id,(*it).type, chr,(*it).position,(*it).variant_len-(*it).ref_len,(*it).ref_str.c_str(), (*it).variant_str.c_str());
 		}

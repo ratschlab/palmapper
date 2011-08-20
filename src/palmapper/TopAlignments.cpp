@@ -890,7 +890,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		{
 			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
 			{
-				fprintf(stdout,"Report variants %ld\n", top_alignments[i]->found_variants.size());
+				//fprintf(stdout,"Report variants %ld\n", top_alignments[i]->found_variants.size());
 				print_top_alignment_variants(VARIANTS_FP, top_alignments[i]->found_variants, top_alignments[i]->chromosome->desc()) ;		
 			}
 		}
