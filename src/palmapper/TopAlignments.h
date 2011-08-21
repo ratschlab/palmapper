@@ -66,6 +66,19 @@ public:
 	alignment_t *gen_alignment_from_hit(Read const &read, HIT *best_hit, QPalma const *qpalma) ;
 	int construct_aligned_string(HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *num_matches_p);
 	
+	inline void free_alignment_record(alignment_t *&alignment) 
+	{
+		alignment->variant_positions.clear() ;
+		alignment->align_variants.clear() ;
+		alignment->found_variants.clear() ;
+		alignment->aligned_positions.clear() ;
+		alignment->non_consensus_intron.clear() ;
+		alignment->intron_consensus.clear() ;
+		alignment->exons.clear() ;
+
+		delete alignment ;
+		alignment=NULL ;
+	}
 
 	void init_top_alignment_indice()  ;
 	void update_top_alignment_indice()  ;

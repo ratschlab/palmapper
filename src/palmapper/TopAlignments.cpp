@@ -654,9 +654,7 @@ void TopAlignments::clean_top_alignment_record()
 	
 	// Cleaning up and starting over.
 	for (uint32_t i = 0; i < top_alignments.size(); i++) 
-    {
-		delete top_alignments[i];
-    }
+		free_alignment_record(top_alignments[i]) ;
 
 	top_alignments.clear();
 	num_spliced_alignments = 0;
@@ -740,8 +738,7 @@ void TopAlignments::sort_top_alignment_list()
 	{
 		for (size_t i=0; i<top_alignments.size();++i){
 			if (!top_alignments[i]->passed_filters){
-				delete top_alignments[i] ;
-				top_alignments[i]=NULL ;
+				free_alignment_record(top_alignments[i]) ;
 				top_alignments.erase(top_alignments.begin()+i) ;
 				i--;
 			}
@@ -752,17 +749,8 @@ void TopAlignments::sort_top_alignment_list()
 	// Sort by qpalma score and positions remaining alignments if not all reported
 	{
 		
-		alignment_t ** arr = NULL ;
+		alignment_t * arr[top_alignments.size()] ;
 		size_t nbr_aligments=top_alignments.size();
-		try 
-		{
-			arr = new alignment_t*[nbr_aligments] ;			
-		}
-		catch (std::bad_alloc&)
-		{
-			fprintf(stderr, "[sort_top_alignment_list] ERROR Could not allocate memory\n");
-			assert(0) ;
-		}
 		
 		for (int i = 0; i < (int)nbr_aligments; i++)
 		{
@@ -778,7 +766,6 @@ void TopAlignments::sort_top_alignment_list()
 		for (int i = 0; i < (int)nbr_aligments; i++)
 			top_alignments[i] = arr[i];
 		
-		delete[] arr;
 	}
 	
 	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || _config.OUTPUT_FILTER==OUTPUT_FILTER_LIMIT)
@@ -792,8 +779,7 @@ void TopAlignments::sort_top_alignment_list()
 		{
 			for(size_t i=top_alignments.size()-1; i>=limit; i--)
 			{
-				delete top_alignments[i] ;
-				top_alignments[i]=NULL ;
+				free_alignment_record(top_alignments[i]) ; 
 				top_alignments.pop_back();
 			}
 		}
@@ -1028,7 +1014,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 						temp_ind=i;
 					
 					if (alignment!=top_alignments[i])
-						delete alignment ;
+						free_alignment_record(alignment) ;
 					return NULL ;
 				}
 
@@ -1041,7 +1027,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 						//fprintf(stdout,"   Replace alignment: spliced overlapping\n");
 						if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 							num_filtered++;
-						delete top_alignments[i] ;
+						free_alignment_record(top_alignments[i]) ;
 						top_alignments[i]=alignment;
 						if (temp_ind<i)
 							temp_ind=i;
@@ -1054,7 +1040,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 						if (temp_ind<i)
 							temp_ind=i;
 						
-						delete alignment;
+						free_alignment_record(alignment) ;
 						return NULL;						
 					}
 				}
@@ -1067,7 +1053,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					//fprintf(stdout,"   Replace alignment: consensus and non consensus\n");
 					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 						num_filtered++;
-					delete top_alignments[i] ;
+					free_alignment_record(top_alignments[i]) ;
 					top_alignments[i]=alignment;
 					if (temp_ind<i)
 						temp_ind=i;
@@ -1079,7 +1065,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					if (temp_ind<i)
 						temp_ind=i;
 					
-					delete alignment;
+					free_alignment_record(alignment);
 					return NULL;						
 				}
 				
@@ -1090,7 +1076,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					//fprintf(stdout,"   Replace alignment: opposite\n");
 					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 						num_filtered++;
-					delete top_alignments[i] ;
+					free_alignment_record(top_alignments[i]) ;
 					top_alignments[i]=alignment;
 					if (temp_ind<i)
 						temp_ind=i;
@@ -1104,7 +1090,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					if (temp_ind<i)
 						temp_ind=i;
 					
-					delete alignment;
+					free_alignment_record(alignment);
 					return NULL;						
 				}
 			
