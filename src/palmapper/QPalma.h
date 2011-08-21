@@ -150,6 +150,7 @@ public:
 							  Chromosome const &contig_id, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln, 
 							  JunctionMap &annotatedjunctions, const VariantMap& variants, std::vector<Variant> & variant_list,std::map<int, int> & variant_pos) const;
 
+
 	double score_unspliced(Read const &read, const char * read_anno, const char strand, const char ori) const;
 	//void capture_hits_timing(int read_count=-1, float this_read=-1.0) const;
 	
@@ -164,6 +165,12 @@ protected:
 									 int est_len_p, int result_length, char strand, int ori,
 									 int &alignment_matches, int &alignment_gaps, int &alignment_mismatches, int &alignment_qual_mismatches) const ;
 	
+	template <int myverbosity>
+		int get_splice_predictions(std::vector<region_t *> &current_regions, Chromosome const &contig_idx, Read const &read, JunctionMap &annotatedjunctions, double* prb, char* est,
+								   std::vector<size_t> & cum_length, 
+								   int &a_len, double *& acceptor, int &d_len, double*& donor, std::string & dna, bool non_consensus_search, char strand, int ori, bool remapping)  const ;
+	int postprocess_splice_predictions(std::vector<region_t *> &current_regions, Chromosome const &contig_idx,
+									   int a_len, double *acceptor, int d_len, double* donor, std::string & dna, bool non_consensus_search, char strand, int ori) const ;
 
 	int get_splicesite_positions(std::string file_template, const char *type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
 								 std::vector<int> &positions) const;
@@ -172,7 +179,7 @@ protected:
 	int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) const;
 	void qsort(region_t** output, int size) const;
 	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) const;
-	int convert_dna_position(int real_position, size_t* cum_length, const std::vector<region_t *> &current_regions) const;
+	int convert_dna_position(int real_position, const std::vector<size_t> & cum_length, const std::vector<region_t *> &current_regions) const;
 	void convert_variants(std::vector<Variant> &variants, int dna_len) const;
 	void recover_variants_on_ref(Variant &variant,std::vector<int> positions,char strand,int read_len) const;
 	int get_first_read_map(Read const &read, bool* read_map) const;
