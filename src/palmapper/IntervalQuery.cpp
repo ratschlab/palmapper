@@ -44,6 +44,7 @@ enum {E_SYNTAX = 1, E_BAD_INTERVAL};
 
 std::vector<std::string> IntervalQuery::mmap_fname_list ;
 std::vector<void*> IntervalQuery::mmap_ptr_list ;
+std::vector<bool> IntervalQuery::mmap_ptr_alloced ;
 std::vector<int> IntervalQuery::mmap_size_list ;
 clock_t IntervalQuery::total_time ;
 pthread_mutex_t IntervalQuery::mmap_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -233,7 +234,11 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 
 		mmap_total_size+=*size ;
 		//fprintf(stderr, "mmap total size: %ld +\n", mmap_total_size) ;
+
+		mmap_ptr_alloced.push_back(true) ;
 	}
+	else
+		mmap_ptr_alloced.push_back(false) ;
 
 	pthread_mutex_lock(&mmap_mutex) ;
 	mmap_fname_list.push_back(filename_s) ;
@@ -472,15 +477,28 @@ void IntervalQuery::cleanup(bool free_static)
 
 	if (score_ptr != NULL)
 	{
-#ifdef CONVERT_SCORE_MAPS
-		if (free_static)
-			for (unsigned int i=0; i<mmap_ptr_list.size(); i++)
-				free(mmap_ptr_list[i]) ;
-#endif	
 		delete[] score_ptr;
 		score_ptr=NULL ;
 	}
 
+#ifdef CONVERT_SCORE_MAPS
+	if (free_static)
+	{
+		fprintf(stdout, "freeing mmaps\n") ;
+		
+		for (unsigned int i=0; i<mmap_ptr_list.size(); i++)
+		{
+			if (mmap_ptr_list[i])
+			{
+				if (mmap_ptr_alloced[i])
+					free(mmap_ptr_list[i]) ;
+				else
+					munmap(mmap_ptr_list[i], mmap_size_list[i]) ;
+				mmap_ptr_list[i]=NULL ;
+			}
+		}
+	}
+#endif	
 
 }
 

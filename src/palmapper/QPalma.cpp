@@ -17,6 +17,8 @@
 #define MAX_NUM_LONG_HITS _config.SPLICED_MAX_NUM_ALIGNMENTS 
 #define MAX_MAP_REGION_SIZE _config.QPALMA_USE_MAP_MAX_SIZE
 
+const float QPalma::NON_CONSENSUS_SCORE = -123456;
+
 static const bool perform_extra_checks = true ;
 
 int map_back(char c)
@@ -805,8 +807,10 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 		assert(quality_offset_dims[1]==1) ;
 		quality_offset=(int)quality_offset_matrix[0] ;
 		free(quality_offset_matrix) ;
+
+		fclose(fd) ;
 	}
-	
+
 	return 0;
 }
 
@@ -2596,13 +2600,16 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					{
 						if (contig_idx[(*it).position]!=dna[v.position])
 						{
-							fprintf(stdout, "ERROR: sequence mismatch at %i position: %c|%c|%c != %c  (1)\n", v.position, contig_idx[(*it).position-1], contig_idx[(*it).position],contig_idx[(*it).position+1], dna[v.position]) ; // BUG-TODO
-							//assert(contig_idx[(*it).position]==dna[v.position]) ;
+							fprintf(stdout, "ERROR: sequence mismatch at %i position: %c|%c|%c != %c  (1)\n", v.position, contig_idx[(*it).position-1], contig_idx[(*it).position],contig_idx[(*it).position+1], dna[v.position]) ; 
+							assert(contig_idx[(*it).position]==dna[v.position]) ;
 						}
 						if (v.ref_str[0]=='A' || v.ref_str[0]=='C' || v.ref_str[0]=='G' || v.ref_str[0]=='T')
 						{
 							if (contig_idx[(*it).position]!=v.ref_str[0])
+							{
 								fprintf(stdout, "ERROR: sequence mismatch: %c != %c  (2)\n", contig_idx[(*it).position], v.ref_str[0]) ; // BUG-TODO
+								assert(contig_idx[(*it).position]==v.ref_str[0]) ;
+							}
 						}
 					}
 					found = true ;
@@ -2946,16 +2953,74 @@ struct pos_table_str
 	std::vector<pos_table_str *> del_origs ;
 } ;
 
+
+inline std::vector<struct pos_table_str *>::iterator  pos_table_lower_bound ( std::vector<struct pos_table_str *>::iterator first, std::vector<struct pos_table_str *>::iterator last, const int& value )
+{
+	std::vector<struct pos_table_str *>::iterator it;
+	long int count, step;
+	count = distance(first,last);
+
+	while (count>0)
+	{
+		it = first;
+		step = count/2;
+		advance(it,step);
+
+		// find closest non-negative position
+		std::vector<struct pos_table_str *>::iterator itf=it, itb=it;
+		while ((*itf)->pos<0 || (*itb)->pos<0)
+		{
+			if (itf>=last && itb<=first)
+				break ;
+			if (itf<last)
+				advance(itf, 1) ;
+			if (itb>first)
+				advance(itb, -1) ;
+		}
+		if ((*itf)->pos>=0)
+			it=itf ;
+		else
+			if ((*itb)->pos>=0)
+				it=itb ;
+			else
+				assert(0) ;
+		
+		if ( (*it)->pos < value) 
+		{
+			first=it; //++it;
+			count-=step+1;
+		}
+		else count=step ;
+	}
+
+	while (first<last && (*first)->pos<value)
+		advance(first, 1) ;
+	
+	return first;
+}
+
+
 int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 {
 	// todo: speedup by binary search 
-	for (unsigned int i=0; i<pos_table.size(); i++)
-		if (pos_table[i]->pos == position)
-			return i ;
-
-	fprintf(stderr, "ERROR: Position %i not found \n", position) ; // BUG-TODO->FIXED
 	
-	return -1 ;
+	std::vector<struct pos_table_str *>::iterator first = pos_table_lower_bound(pos_table.begin(), pos_table.end(), position) ;
+	int p = first - pos_table.begin() ;
+	if (perform_extra_checks)
+		assert(pos_table[p]->pos==position) ;
+	return p ;
+
+	/*for (unsigned int i=0; i<pos_table.size(); i++)
+		if (pos_table[i]->pos == position)
+		{
+			assert(p==(int)i) ;
+			return i ;
+		}
+
+	fprintf(stderr, "ERROR: Position %i not found \n", position) ; 
+	assert(0) ;
+	
+	return -1 ;*/
 }
 
 void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_end_p, struct pos_table_str * pos_table_new_end_p)
@@ -3037,7 +3102,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				change_pos_table_deletion_ends(pos_table[idx+variants[i].variant_len],pos_table[idx]);
 				pos_table[idx-1]->del_refs.push_back(pos_table[idx+variants[i].variant_len]) ;
 				pos_table[idx+variants[i].variant_len]->del_origs.push_back(pos_table[idx-1]) ;
-				pos_table[idx-1]->del_ids.push_back(variants[i].id) ; //TODO: why 0 instead of variant id -> I replaced it
+				pos_table[idx-1]->del_ids.push_back(variants[i].id) ; 
 			}
 			else
 				fprintf(stdout, "dropped insertion of length %i at beginning or end of sequence\n", variants[i].variant_len) ;
@@ -3114,8 +3179,6 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 		donor[i] = pos_table[i]->don ;
 		dna[i] = pos_table[i]->nuc ;
 	}
-	
-	// TODO: find newly generated splice site consensus sites
 	
 	std::vector<SuperVariant> super_variants ;
 
@@ -3541,8 +3604,9 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std
 	}
 	if (result_length!=(int)dna_align_back.size() || result_length!=(int)read_align_back.size())
 	{
-		fprintf(stderr, "ERROR: len mismatch %i!=%ld || %i!=%ld\n", result_length, dna_align_back.size(), result_length, read_align_back.size()) ; // BUG-TODO->FIXED
+		fprintf(stderr, "ERROR: len mismatch %i!=%ld || %i!=%ld\n", result_length, dna_align_back.size(), result_length, read_align_back.size()) ; 
 		alignment_passed_filters = false ;
+		assert(result_length==(int)dna_align_back.size() && result_length==(int)read_align_back.size()) ;
 	}
 	else	
 	{
@@ -3624,7 +3688,10 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 	int exon_start = -1;
 
 	if (!(dna.length()==positions.size()))
-		fprintf(stderr, "len mismatch dna.length()=%ld != %ld=positions.size()\n", dna.length(), positions.size()) ; // BUG-TODO
+	{
+		fprintf(stderr, "len mismatch dna.length()=%ld != %ld=positions.size()\n", dna.length(), positions.size()) ; 
+		assert(dna.length()==positions.size()) ;
+	}
 	
 	for (size_t i = 0; i < dna.length(); i++) 
 	{
@@ -3659,8 +3726,9 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			}
 			if (perform_extra_checks && positions[exon_start]<0)
 			{
-				fprintf(stdout, "ERROR: positions[exon_start=%i]=%i\n", exon_start, positions[exon_start]) ; // BUG-TODO
+				fprintf(stdout, "ERROR: positions[exon_start=%i]=%i\n", exon_start, positions[exon_start]) ;
 				alignment_valid=false ;
+				assert(positions[exon_start]>=0) ;
 			}
 
 			exons.push_back(positions[exon_start]) ;
@@ -3670,8 +3738,9 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			{
 				if (perform_extra_checks && positions[i]<0)
 				{
-					fprintf(stdout, "ERROR: positions[%i]=%i\n", (int)i, (int)positions[i]) ; // BUG-TODO
+					fprintf(stdout, "ERROR: positions[%i]=%i\n", (int)i, (int)positions[i]) ; 
 					alignment_valid=false ;
+					assert(positions[i]>=0) ;
 				}
 				exons.push_back(positions[i]) ;
 				//fprintf(stdout,"Exon: %i-%i\n",exon_start,i);
@@ -3681,8 +3750,9 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			{					
 				if (perform_extra_checks && positions[i-1]<0)
 				{
-					fprintf(stdout, "ERROR: positions[%i-1]=%i\n", (int)i, (int)positions[i-1]) ; // BUG-TODO
+					fprintf(stdout, "ERROR: positions[%i-1]=%i\n", (int)i, (int)positions[i-1]) ; 
 					alignment_valid=false ;
+					assert(positions[i-1]>=0) ;
 				}
 				exons.push_back(positions[i-1]) ;
 				//fprintf(stdout,"Exon: %i-%i\n",exon_start,i-1);
@@ -3787,7 +3857,8 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 		{
 			if (!(est_align[i]>=0 && est_align[i]<=6))
 			{
-				fprintf(stdout, "ERROR: est_align[%i]=%i (should be between 0 and 6)\n", i, est_align[i]) ; // BUG-TODO
+				fprintf(stderr, "ERROR: est_align[%i]=%i (should be between 0 and 6)\n", i, est_align[i]) ; 
+				assert(est_align[i]>=0 && est_align[i]<=6) ;
 				return -1 ;
 			}
 		}
@@ -3991,7 +4062,8 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 	{
 		if (!(read_pos==(int)read.length()))
 		{
-			fprintf(stdout, "ERROR: len mismatch: %i != %i\n", read_pos, (int)read.length()) ; // BUG-TODO
+			fprintf(stdout, "ERROR: len mismatch: %i != %i\n", read_pos, (int)read.length()) ;
+			assert(read_pos==(int)read.length()) ;
 			return -1 ;
 		}
 	}
@@ -4219,7 +4291,8 @@ int QPalma::get_splice_predictions(std::vector<region_t *> &current_regions, Chr
 			}
 			
 			//Use splice sites from the annotation
-			if (_config.SCORE_ANNOTATED_SPLICE_SITES){
+			if (_config.SCORE_ANNOTATED_SPLICE_SITES)
+			{
 
 				//fprintf(stdout,"Use annotated splice sites\n");
 				std::vector<int> acc_pos_vec;
@@ -4259,10 +4332,10 @@ int QPalma::get_splice_predictions(std::vector<region_t *> &current_regions, Chr
 }
 
 
-int QPalma::postprocess_splice_predictions(std::vector<region_t *> &current_regions, Chromosome const &contig_idx,
-								   int a_len, double *acceptor, int d_len, double* donor, std::string & dna, bool non_consensus_search, char strand, int ori) const
+int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
+										   const int a_len, double *acceptor, const int d_len, double* donor, const std::string & dna, bool non_consensus_search, char strand, int ori,
+										   bool check_ss, int region_start, int region_end) const
 {
-	const float NON_CONSENSUS_SCORE = -123456;
 
 		
 	int match = 0, num = 0;
@@ -4287,23 +4360,22 @@ int QPalma::postprocess_splice_predictions(std::vector<region_t *> &current_regi
 				// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
 				if (_config.NO_SPLICE_PREDICTIONS)
 					donor[i] = 0.0 ;
-				if (_config.SCORE_ANNOTATED_SPLICE_SITES && donor[i]==-ALMOST_INFINITY)
-					donor[i] = 0.0 ;
-				match += (donor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES);
+				if ((_config.SCORE_ANNOTATED_SPLICE_SITES||_config.USE_VARIANTS) && donor[i]==-ALMOST_INFINITY)
+					donor[i] = NON_CONSENSUS_SCORE ;
+				match += (donor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS);
 			} 
 			else 
 			{
-				match += _config.SCORE_ANNOTATED_SPLICE_SITES || (donor[i] <= -ALMOST_INFINITY)  || dna[i]=='N' || dna[i+1]=='N' ;
+				match += (_config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS) || (donor[i] <= -ALMOST_INFINITY)  || dna[i]=='N' || dna[i+1]=='N' ;
 				donor[i] = -ALMOST_INFINITY;
 			}
 	}
 	
-	if (match < num * 0.9)
+	if (check_ss && match < num * 0.9)
 		fprintf(stdout,
 				"Warning: donor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i)\n",
 				match, num, strand, ori == 0 ? '+' : '-', contig_idx.desc(),
-				current_regions[0]->start, current_regions[current_regions.size() - 1]->end);
-	//assert(match>=num*0.9) ; // otherwise positions will are shifted somehow
+				region_start, region_end);
 	
 	
 	match = 0; num = 0;
@@ -4328,32 +4400,35 @@ int QPalma::postprocess_splice_predictions(std::vector<region_t *> &current_regi
 			{
 				if (_config.NO_SPLICE_PREDICTIONS)
 					acceptor[i] = 0.0 ;
-				if (_config.SCORE_ANNOTATED_SPLICE_SITES && acceptor[i]==-ALMOST_INFINITY)
-					acceptor[i] = 0.0 ;
-				match += (acceptor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES);
+				if ((_config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS) && acceptor[i]==-ALMOST_INFINITY)
+					acceptor[i] = NON_CONSENSUS_SCORE ;
+				match += (acceptor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS);
 			} 
 			else 
 			{
 				//if (acceptor[i]>-ALMOST_INFINITY && dna[i]!='N' && dna[i-1]!='N')
 				//	fprintf(stdout, "acc over %i %f  %c%c\n", i, acceptor[i], dna[i-1], dna[i]) ;
-				match += _config.SCORE_ANNOTATED_SPLICE_SITES || (acceptor[i] <= -ALMOST_INFINITY) || dna[i]=='N' || dna[i-1]=='N' ;
+				match += _config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS || (acceptor[i] <= -ALMOST_INFINITY) || dna[i]=='N' || dna[i-1]=='N' ;
 				acceptor[i] = -ALMOST_INFINITY;
 			}
 	}
 	
-	if (match<num*0.9)
-		
+	if (check_ss && match<num*0.9)
 		fprintf(stdout, "Warning: acceptor predictions do not match genome positions (match=%i  num=%i  strand=%c  ori=%c  chr=%s  start=%i  end=%i, %i)\n", 
-				match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), current_regions[0]->start, current_regions[current_regions.size()-1]->end, non_consensus_search) ;
-	
-	
+				match, num, strand, ori==0 ? '+' : '-' , contig_idx.desc(), region_start, region_end, non_consensus_search) ;
+
+	return 0 ;
+}
+
+int QPalma::transform_splice_predictions(const int a_len, double *acceptor, const int d_len, double* donor) const
+{
 	/* apply donor and acceptor plifs */
 	for (int i = 0; i < d_len; i++)
 		if (donor[i] > -ALMOST_INFINITY)
 		{
 			if (donor[i]==NON_CONSENSUS_SCORE)
 			{
-				donor[i]=0.01 ; // low donor probability  -> correspondingly low score
+				donor[i]=0.1 ; // low donor probability  -> correspondingly low score
 				if (not _config.NO_QPALMA)
 					donor[i] = lookup_penalty(&alignment_parameters->d, 0, &donor[i]);
 			}
@@ -4368,7 +4443,7 @@ int QPalma::postprocess_splice_predictions(std::vector<region_t *> &current_regi
 		{
 			if (acceptor[i]==NON_CONSENSUS_SCORE)
 			{
-				acceptor[i]=0.01 ; // low acceptor probability  -> correspondingly low score
+				acceptor[i]=0.1 ; // low acceptor probability  -> correspondingly low score
 				if (not _config.NO_QPALMA)
 					acceptor[i] = lookup_penalty(&alignment_parameters->a, 0, &acceptor[i]);
 			}
@@ -4393,7 +4468,8 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 		
 		if (perform_extra_checks && (istop<4 || istart<2))
 		{
-			fprintf(stdout, "ERROR: istart=%i, istop=%i\n", istart, istop) ; // BUG-TODO
+			fprintf(stdout, "ERROR: istart=%i, istop=%i\n", istart, istop) ; 
+			assert(istop>=4 && istart>=2) ;
 			return -1 ;
 		}
 		
@@ -4580,11 +4656,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			fprintf(stdout, "# dna: %s\n", dna.c_str());
 		if (myverbosity >= 3)
 			fprintf(stdout, "# read: %s\n", read_string.c_str());
-		
-		/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
-		if (!remapping)
-			postprocess_splice_predictions(current_regions, contig_idx, a_len, acceptor, d_len, donor, dna, non_consensus_search, strand, ori) ;
-		
+				
 		// Convert real dna position of the hit into relative dna position 
 		hit_dna_converted = convert_dna_position(hit_dna, cum_length, current_regions);
 		if (strand=='-')
@@ -4629,6 +4701,14 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 		if (variant_list.size()==0)
 			assert(super_variant_list.size()==0) ;
+	}
+
+	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
+	if (!remapping)
+	{
+		postprocess_splice_predictions(contig_idx, a_len, acceptor, d_len, donor, dna, non_consensus_search, strand, ori, 
+									   !_config.USE_VARIANTS, current_regions[0]->start, current_regions[current_regions.size()-1]->end) ;
+		transform_splice_predictions(a_len, acceptor, d_len, donor);
 	}
 
 	if (myverbosity>=4)

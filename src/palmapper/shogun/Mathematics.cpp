@@ -50,7 +50,8 @@ uint32_t CMath::seed = 0;
 CMath::CMath()
 : CSGObject()
 {
-	CMath::rand_state=new char[RNG_SEED_SIZE];
+	if (!CMath::rand_state)
+		CMath::rand_state=new char[RNG_SEED_SIZE];
 	init_random();
 
 #ifdef USE_LOGCACHE
