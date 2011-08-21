@@ -31,7 +31,7 @@ VariantMap::VariantMap(Genome const &genome_)
 
 VariantMap::~VariantMap()
 {
-	for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+	for (unsigned int i=0; i<genome->nrChromosomes(); i++) 
 		variantlist[i].clear() ;
 	
 	delete[] variantlist;	

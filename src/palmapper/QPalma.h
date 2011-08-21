@@ -130,6 +130,7 @@ public:
 protected:
 	int get_num_splicesites(std::string file_template, const char* type, Chromosome const &chr, char strand, int start, int end, float thresh) const;
 	
+	static const float NON_CONSENSUS_SCORE ;
 
  public:
 	
@@ -169,8 +170,10 @@ protected:
 		int get_splice_predictions(std::vector<region_t *> &current_regions, Chromosome const &contig_idx, Read const &read, JunctionMap &annotatedjunctions, double* prb, char* est,
 								   std::vector<size_t> & cum_length, 
 								   int &a_len, double *& acceptor, int &d_len, double*& donor, std::string & dna, bool non_consensus_search, char strand, int ori, bool remapping)  const ;
-	int postprocess_splice_predictions(std::vector<region_t *> &current_regions, Chromosome const &contig_idx,
-									   int a_len, double *acceptor, int d_len, double* donor, std::string & dna, bool non_consensus_search, char strand, int ori) const ;
+	int postprocess_splice_predictions(Chromosome const &contig_idx,
+									   const int a_len, double *acceptor, const int d_len, double* donor, const std::string & dna, bool non_consensus_search, char strand, int ori,
+									   bool check_ss, int region_start, int region_end) const ;
+	int transform_splice_predictions(const int a_len, double *acceptor, const int d_len, double* donor) const ;
 
 	int get_splicesite_positions(std::string file_template, const char *type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
 								 std::vector<int> &positions) const;

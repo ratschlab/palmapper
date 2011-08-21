@@ -40,6 +40,7 @@ class IntervalQuery {
 
 	  static std::vector<std::string> mmap_fname_list ;
 	  static std::vector<void*> mmap_ptr_list ;
+	  static std::vector<bool> mmap_ptr_alloced ;
 	  static std::vector<int> mmap_size_list ;
 	  static pthread_mutex_t mmap_mutex ;
 
