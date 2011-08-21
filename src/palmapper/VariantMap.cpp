@@ -31,13 +31,17 @@ VariantMap::VariantMap(Genome const &genome_)
 
 VariantMap::~VariantMap()
 {
+	for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+		variantlist[i].clear() ;
+	
 	delete[] variantlist;	
 }
 
 
 void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) 
 {
-	fprintf(stdout, "Filtering variants, requiring\n* %i as minimum confirmation count\n* %1.2f as the ratio of confirmed vs. non-confirmed\nAdditionally accepting %ld specific sources\n", min_conf_count, max_nonconf_ratio, accept_sources.size()) ;
+	fprintf(stdout, "Filtering variants, requiring\n* %i as minimum confirmation count\n* %1.2f as the ratio of confirmed vs. non-confirmed\n* Accepting %ld specific sources (independent of conditions above)\n", 
+			min_conf_count, max_nonconf_ratio, accept_sources.size()) ;
 	if (filter_by_map>=0)
 		fprintf(stdout, "* requiring variation next to mapped read or annotated exon with distance at most %i bp\n", filter_by_map) ;
 

@@ -94,6 +94,9 @@ JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_, int anno_pseu
 
 JunctionMap::~JunctionMap()
 {
+	for (unsigned int i=0; i< genome->nrChromosomes(); i++)
+		junctionlist[i].clear();
+	
 	delete[] junctionlist;	
 }
 
@@ -367,6 +370,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				if (pos_intron>0)
 				{
 					pos_intron += strlen("IntronSeq=") ;
+					delete[] intron_string ;
 					intron_string = strdup(tmp.substr(pos_intron).c_str()) ;
 				}
 			}
@@ -384,10 +388,9 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			if (pos_id>0)
 			{
 				pos_id += strlen("ReadID=") ;
+				delete[] read_id ;
 				read_id = strdup(tmp.substr(pos_id).c_str()) ;
 			}
-			
-
 			
 			//Attention: positions in this file start at 0! :S
 			insert_junction(strand,chr_idx,start, end, !nonconsensus, intron_string, junction_qual, read_id, coverage);
