@@ -2562,7 +2562,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		}
 	}
 
-	std::deque<Variant>::iterator it = my_lower_bound(variants.variantlist[chr].begin(), variants.variantlist[chr].end(), start_pos-100) ;
+	std::vector<Variant>::iterator it = my_lower_bound(variants.variantlist[chr].begin(), variants.variantlist[chr].end(), start_pos-100) ;
 	int num_found_variants = 0 ;
 	int num_found_SNP_variants = 0 ;
 	int num_checked_variants = 0 ;

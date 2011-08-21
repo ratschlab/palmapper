@@ -113,7 +113,7 @@ inline ogzstream& operator<<(ogzstream & os, const struct variant_str & a)
 	return os ;
 }
 
-inline igzstream& operator>>(igzstream & os, std::deque<Variant> & list)
+inline igzstream& operator>>(igzstream & os, std::vector<Variant> & list)
 {
 	unsigned int size=0 ;
 	//os.read((char*)&next_variant_id, sizeof(next_variant_id)) ;
@@ -129,7 +129,7 @@ inline igzstream& operator>>(igzstream & os, std::deque<Variant> & list)
 	return os ;
 }
 
-inline ogzstream& operator<<(ogzstream & os, const std::deque<Variant> & list)
+inline ogzstream& operator<<(ogzstream & os, const std::vector<Variant> & list)
 {
 	unsigned int size=list.size() ;
 	//os.write((char*)&next_variant_id, sizeof(next_variant_id)) ;
@@ -179,7 +179,7 @@ private:
 	int max_variant_len ;
 	
 public:
-	std::deque<Variant> * variantlist ;
+	std::vector<Variant> * variantlist ;
 
 	VariantMap(Genome const &genome_) ;
 	~VariantMap() ;
@@ -417,9 +417,9 @@ protected:
 	pthread_mutex_t variant_mutex;
 };
 
-inline std::deque<Variant>::iterator  my_lower_bound ( std::deque<Variant>::iterator first, std::deque<Variant>::iterator  last, const int& value )
+inline std::vector<Variant>::iterator  my_lower_bound ( std::vector<Variant>::iterator first, std::vector<Variant>::iterator  last, const int& value )
 {
-	std::deque<Variant>::iterator it;
+	std::vector<Variant>::iterator it;
 	long int count, step;
 	count = distance(first,last);
 

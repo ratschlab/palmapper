@@ -15,7 +15,7 @@ VariantMap::VariantMap(Genome const &genome_)
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
 	
-	variantlist = new std::deque<Variant>[nbchr];
+	variantlist = new std::vector<Variant>[nbchr];
 	next_variant_id =0;
 	known_variants_limit =-1;
 	
@@ -52,7 +52,7 @@ void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, s
 	{
 		int n=0,t=0 ;
 		
-		std::deque<Variant> filtered ;
+		std::vector<Variant> filtered ;
 		for (unsigned int j=0; j<variantlist[i].size(); j++)
 		{
 			n++ ;
@@ -129,7 +129,7 @@ void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & a
 			map[j-start_pos] = true ;
 	}
 
-	std::deque<Variant>::iterator it = my_lower_bound(variantlist[chr->nr()].begin(), variantlist[chr->nr()].end(), start_pos) ;
+	std::vector<Variant>::iterator it = my_lower_bound(variantlist[chr->nr()].begin(), variantlist[chr->nr()].end(), start_pos) ;
 	
 	for (; it!=variantlist[chr->nr()].end(); it++)
 	{
@@ -345,7 +345,7 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 		return;
 	}
 
-	std::deque<Variant>::iterator it = my_lower_bound(variantlist[chr].begin(), variantlist[chr].end(), j.position);
+	std::vector<Variant>::iterator it = my_lower_bound(variantlist[chr].begin(), variantlist[chr].end(), j.position);
 	if (it !=variantlist[chr].begin())
 		it--;
 	
@@ -814,7 +814,7 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 	for (unsigned int i=0; i<genome->nrChromosomes(); i++)
 	{
 		const char * chr= genome->get_desc(i);
-		std::deque<Variant>::iterator it;
+		std::vector<Variant>::iterator it;
 		
 		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
 		{			
@@ -1472,8 +1472,8 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
 
             int e_idx = start;
             // collect all variants overlapping to this exon
-            std::vector<std::deque<Variant>::iterator> variant_list;
-            std::deque<Variant>::iterator it = my_lower_bound(this->variantlist[chr_idx].begin(), this->variantlist[chr_idx].end(), e_idx-100) ;
+            std::vector<std::vector<Variant>::iterator> variant_list;
+            std::vector<Variant>::iterator it = my_lower_bound(this->variantlist[chr_idx].begin(), this->variantlist[chr_idx].end(), e_idx-100) ; 
             for (; it != this->variantlist[chr_idx].end(); it++) {
                 if (it->position + it->ref_len >= start && it->position <= end) {
                     // possibility to filter variants based on confirmation
