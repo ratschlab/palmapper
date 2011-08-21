@@ -198,7 +198,8 @@ protected:
 	
 //	int rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
 
-	std::vector<SuperVariant> create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int & a_len, double *&donor, int & d_len, int &hit_dna_converted, std::vector<bool> &ref_map) const ;
+	template <int myverbosity>
+		std::vector<SuperVariant> create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int & a_len, double *&donor, int & d_len, int &hit_dna_converted, std::vector<bool> &ref_map) const ; 
 	int reconstruct_reference_alignment(std::vector<Variant> & variants,  std::vector<SuperVariant> super_variants, std::vector<FoundVariant> found_variants, std::string & dna,  std::vector<bool> ref_map, int * &s_align, int & s_len, int * &e_align, int & e_len,int * &dna_align,int * &read_align,int & result_length,bool remapping, bool& alignment_passed_filters) const ;
 
 

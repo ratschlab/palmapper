@@ -1487,7 +1487,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 		//verbose
 		if (strcmp(argv[i], "-v") == 0) {
 			not_defined = 0;
-			VERBOSE = 3;
+			VERBOSE++ ;
+		}
+		//verbose
+		if (strcmp(argv[i], "-vv") == 0) {
+			not_defined = 0;
+			VERBOSE+=2 ;
 		}
 
 		//scores out
