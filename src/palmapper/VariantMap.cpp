@@ -1267,7 +1267,7 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
 			
 		}
 
-		//New alignment block: get variants from the previous block
+		//New alignment block: get variants from the previous block 
 		if (type_maf == 'a')
 		{
 			//Block with reference name

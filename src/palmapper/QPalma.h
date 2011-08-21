@@ -174,7 +174,8 @@ protected:
 
 	int get_splicesite_positions(std::string file_template, const char *type, Chromosome const &chr, char strand, int start, int end, float thresh, bool store_pos,
 								 std::vector<int> &positions) const;
-	
+	int construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_idx, const std::vector<int> & exons, 
+								 const char strand, const int ori, bool & non_consensus_alignment, const bool remapping, const bool non_consensus_search) const ;
 	
 	int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) const;
 	void qsort(region_t** output, int size) const;
