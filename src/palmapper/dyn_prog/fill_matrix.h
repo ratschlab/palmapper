@@ -68,8 +68,10 @@ struct splice_pos{
 
 struct variant_cache_str
 {
-	std::vector<std::vector<int> > endposdeletions ;
-	std::vector<std::vector<int> > idsdeletions ;
+	std::vector<std::vector<int> > endposdeletions_left ;
+	std::vector<std::vector<int> > idsdeletions_left ;
+	std::vector<std::vector<int> > endposdeletions_right ;
+	std::vector<std::vector<int> > idsdeletions_right ;
 	
 } ;
 typedef struct variant_cache_str variant_cache_t ;
