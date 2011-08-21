@@ -245,7 +245,7 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  splice_state = 0 ; //exon again
 		  }
 		  else{
-			  for (int d=0; d<next_seed->deletion_id.size();d++ ){
+			  for (unsigned int d=0; d<next_seed->deletion_id.size();d++ ){
 				  FoundVariant f;
 				  f.read_position = next_seed->read_pos;
 				  f.id=next_seed->deletion_id[d];
@@ -402,14 +402,14 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 		  }
 		  
 		  else{
-			  for (int d=0; d<next_seed->deletion_id.size();d++ ){
+			  for (unsigned int d=0; d<next_seed->deletion_id.size();d++ ){
 				  FoundVariant f;
 				  f.read_position = rstart+1;
 				  f.id=next_seed->deletion_id[d];
 				  f.type=pt_deletion;
 				  vfound.push_back(f);
 			  }
-			  for (int n=dstart+1;n<=next_seed->dna_pos-1;n++){
+			  for (int n=dstart+1; n<=next_seed->dna_pos-1;n++){
 				  s_align[n] = 5; //Deletion variant
 			  }
 		  }

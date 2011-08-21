@@ -56,10 +56,10 @@ public:
       }
       
       ~IntervalQuery() {
-		  cleanup() ;
+		  cleanup(false) ;
 	  }
    
-	  void cleanup() ;
+	  void cleanup(bool free_static=false) ;
 	  
 	  int find_interval(unsigned *pos_map, off_t num_entries, unsigned begin, unsigned end, unsigned *lindex, unsigned *rindex, unsigned left_limit, unsigned right_limit) ;
 	  

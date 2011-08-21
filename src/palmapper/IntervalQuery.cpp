@@ -415,14 +415,14 @@ int IntervalQuery::interval_query(char* basename, char** score_names, unsigned i
 	      for (i = 0; i < num_scores; i++)
 		  {
 			  /*score_ptr[i + num_scores * (k + m)] = (double)score_maps[i][lindex_ + m];*/
-		    if ((lindex_ + m)*sizeof(score_maps[i][0]) >= (unsigned) score_sizes[i])
-		      score_ptr[i * total_num_pos + (k + m)] = 0.0 ; // rescue, when the conf_cum file is too short
-		    else
+			  if ((lindex_ + m)*sizeof(score_maps[i][0]) >= (unsigned) score_sizes[i])
+				  score_ptr[i * total_num_pos + (k + m)] = 0.0 ; // rescue, when the conf_cum file is too short
+			  else
 		      {
 #ifdef CONVERT_SCORE_MAPS
-			score_ptr[i * total_num_pos + (k + m)] = ((double) score_maps[i][lindex_ + m])/65535 ;
+				  score_ptr[i * total_num_pos + (k + m)] = ((double) score_maps[i][lindex_ + m])/65535 ;
 #else
-			score_ptr[i * total_num_pos + (k + m)] = (double) score_maps[i][lindex_ + m] ;
+				  score_ptr[i * total_num_pos + (k + m)] = (double) score_maps[i][lindex_ + m] ;
 #endif
 		      }
 		  }
@@ -456,25 +456,31 @@ int IntervalQuery::interval_query(char* basename, char** score_names, unsigned i
 }
 
 
-void IntervalQuery::cleanup()
+void IntervalQuery::cleanup(bool free_static)
 {
-         if (pos_ptr != NULL)
-		 {
-			 delete[] pos_ptr;
-			 pos_ptr=NULL ;
-		 }
+	if (pos_ptr != NULL)
+	{
+		delete[] pos_ptr;
+		pos_ptr=NULL ;
+	}
+	
+	if (index_ptr != NULL)
+	{
+		delete[] index_ptr;
+		index_ptr = NULL ;
+	}
 
-         if (index_ptr != NULL)
-		 {
-			 delete[] index_ptr;
-			 index_ptr = NULL ;
-		 }
+	if (score_ptr != NULL)
+	{
+#ifdef CONVERT_SCORE_MAPS
+		if (free_static)
+			for (unsigned int i=0; i<mmap_ptr_list.size(); i++)
+				free(mmap_ptr_list[i]) ;
+#endif	
+		delete[] score_ptr;
+		score_ptr=NULL ;
+	}
 
-         if (score_ptr != NULL)
-		 {
-			 delete[] score_ptr;
-			 score_ptr=NULL ;
-		 }
 
 }
 
