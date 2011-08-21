@@ -86,6 +86,7 @@ void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, s
 			}
 		}
 		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants\n", genome->chromosome(i).desc(), n, t) ;
+		variantlist[i].clear() ;
 		variantlist[i]=filtered ;
 		N+=n ;
 		T+=t ;
