@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 	}
 
 	QPalma *qpalma = NULL;
-	qpalma = new QPalma(&genome, genomemaps, 0);
+	qpalma = new QPalma(&genome, genomemaps, _config.VERBOSE);
 
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{

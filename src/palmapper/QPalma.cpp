@@ -2974,10 +2974,10 @@ void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_en
 	pos_table_previous_end_p->del_origs.clear();
 }
 
-	
+
+template <int myverbosity>	
 std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, int &hit_dna_pos, std::vector<bool> &ref_map) const 
 {
-
 	int seed_ref=hit_dna_pos;
 	
 	std::vector< struct pos_table_str *> pos_table(dna.size(), NULL) ;
@@ -3003,7 +3003,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				nbv_dels++ ;
 			} 
 			else
-				if (verbosity>=2)
+				if (myverbosity>=2)
 					fprintf(stdout, "dropped deletion of length %i at beginning or end of sequence\n", variants[i].ref_len) ;
 		}
 		
@@ -3088,6 +3088,9 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 			}
 		}
 	}
+
+	if (myverbosity>=1)
+		fprintf(stdout, "Created supersequence of length %ld from reference sequence of length %ld using %ld variants\n", dna.length(), pos_table.size(), variants.size()) ;
 	
 	dna = std::string(pos_table.size(), ' ') ;
 	delete[] acceptor ;
@@ -3154,7 +3157,10 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 		pos_table[i]=NULL ;
 	}
 
-	if (verbosity>=2)
+	if (myverbosity>=1)
+		fprintf(stdout, "* used %ld supervariants\n", super_variants.size()) ;
+	
+	if (myverbosity>=2)
 		fprintf(stdout, "found %lu supervariants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", super_variants.size(), nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
 
 	return super_variants ;
@@ -4610,7 +4616,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 		try 
 		{
-			super_variant_list = create_super_sequence_from_variants(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
+			super_variant_list = create_super_sequence_from_variants<myverbosity>(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
 		}
 		catch (std::bad_alloc)
 		{
