@@ -2203,7 +2203,7 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 			 data->current_regions, data->positions, *data->contig_idx,
 			 data->strand, data->ori, data->hit_read,
 			 data->hit_dna,data->hit_length, data->non_consensus_search, data->aln, 
-			 *data->annotatedjunctions, *data->variants, *data->variant_list,*data->variant_positions) ;
+			 *data->annotatedjunctions, *data->variants, *data->variant_list, *data->variant_positions) ;
 	}
 	catch (std::bad_alloc&)
 	{
@@ -2505,8 +2505,11 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						}
 						
 						num_alignments_reported += ret;						
+
 						current_regions.clear();
 						current_positions.clear();
+						delete[] new_region1.read_map ;
+						delete[] new_region2.read_map ;
 				  						
 						hits.topAlignments().update_top_alignment_indice();
 
@@ -2795,12 +2798,12 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 												contig_idx, strand, ori,
 												hit_read_position, hit_dna_position, hit_length, 
 												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list,variant_positions) ;
+												annotatedjunctions, variants, variant_list, variant_positions) ;
 	}
 	else
 	{
 		std::map<int, int> variant_positions;
-		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants,variant_positions) ;
+		std::vector<Variant> variant_list = identify_variants(dna, positions, contig_idx, variants, variant_positions) ;
 
 		return perform_alignment_starter_single(result, readMappings, 
 												read_string, read_quality, 
@@ -2808,7 +2811,7 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 												contig_idx, strand, ori,
 												hit_read_position, hit_dna_position, hit_length, 
 												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list,variant_positions) ;
+												annotatedjunctions, variants, variant_list, variant_positions) ;
 	}
 } 
 
@@ -2910,9 +2913,9 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 			{
 				readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
 				num_alignments_reported++ ;
-				if (consensus_alignment)
-					delete consensus_alignment ;
 			}
+			if (consensus_alignment)
+				delete consensus_alignment ;
 			
 		}
 		
@@ -4449,7 +4452,7 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 			
 		}
 		aln->non_consensus_intron.push_back(non_consensus_intron) ;
-		aln->intron_consensus.push_back(strdup(buf)) ;
+		aln->intron_consensus.push_back(buf) ; 
 	}
 	return 0 ;
 }
@@ -4459,7 +4462,7 @@ template<int myverbosity, bool discover_variants, bool remapping>
 int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, 
 							  std::vector<region_t *> &current_regions, std::vector<int> &positions, 
 							  Chromosome const &contig_idx, char strand, int ori, int hit_read, int hit_dna, int hit_length, bool non_consensus_search, ALIGNMENT *& aln,  
-							  JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list,std::map<int, int> & variant_pos) const
+							  JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list, std::map<int, int> & variant_pos) const
 // ori = read orientation
 // strand = dna strand/orientation
 //hit_read, hit_dna, hit_length: starting (real) positions and length of the hit for starting the alignment
@@ -4870,7 +4873,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->found_variants = variant_list ;
 		aln->align_variants = align_variants ;
 		aln->aligned_positions = aligned_positions ;
-		aln->variant_positions= variant_pos;
+		aln->variant_positions = variant_pos;
 		aln->from_gm = 3;
 
 		if (ori == 0)
