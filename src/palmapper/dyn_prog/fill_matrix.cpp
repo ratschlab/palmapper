@@ -177,11 +177,11 @@ std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> & super_var
 	//Right side: position corresponds to the beginning of the deletion
 	if (right_side)
 	{
-		if ((int)cache.endposdeletions_right.size()>position)
+		/*if ((int)cache.endposdeletions_right.size()>position)
 		{
 			endpositions=cache.endposdeletions_right[position] ;
 			return cache.idsdeletions_right[position] ;
-		}
+			}*/
 
 		std::vector<SuperVariant>::iterator it = supervariant_lower_bound(super_variants.begin(), super_variants.end(), position) ;
 
@@ -196,20 +196,20 @@ std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> & super_var
 				break ;
 		}
 
-		cache.endposdeletions_right.resize(position+1) ;
+		/*cache.endposdeletions_right.resize(position+1) ;
 		cache.endposdeletions_right[position]=endpositions ;
 		cache.idsdeletions_right.resize(position+1) ;
-		cache.idsdeletions_right[position]=dels ;
+		cache.idsdeletions_right[position]=dels ;*/
 		
 		return dels;
 	}
 	else
 	{
-		if ((int)cache.endposdeletions_left.size()>position)
+		/*if ((int)cache.endposdeletions_left.size()>position)
 		{
 			endpositions=cache.endposdeletions_left[position] ;
 			return cache.idsdeletions_left[position] ;
-		}
+			}*/
 
 		std::vector<SuperVariant>::iterator it = supervariant_lower_bound(super_variants.begin(), super_variants.end(), position) ;
 
@@ -231,10 +231,10 @@ std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> & super_var
 				break ;
 		}
 
-		cache.endposdeletions_left.resize(position+1) ;
+		/*cache.endposdeletions_left.resize(position+1) ;
 		cache.endposdeletions_left[position]=endpositions ;
 		cache.idsdeletions_left.resize(position+1) ;
-		cache.idsdeletions_left[position]=dels ;
+		cache.idsdeletions_left[position]=dels ;*/
 
 		return dels;
 	}
