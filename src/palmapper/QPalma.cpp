@@ -3039,9 +3039,14 @@ void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_en
 	pos_table_previous_end_p->del_origs.clear();
 }
 
+inline bool supervariant_cmp(const SuperVariant &a, const SuperVariant &b)
+{
+	return a.position < b.position ;
+}
 
 template <int myverbosity>	
-std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, int &hit_dna_pos, std::vector<bool> &ref_map) const 
+std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, 
+																	  std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, int &hit_dna_pos, std::vector<bool> &ref_map) const 
 {
 	int seed_ref=hit_dna_pos;
 	
@@ -3224,8 +3229,11 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 		fprintf(stdout, "* used %ld supervariants\n", super_variants.size()) ;
 	
 	if (myverbosity>=2)
-		fprintf(stdout, "found %lu supervariants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", super_variants.size(), nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
+		fprintf(stdout, "found %lu supervariants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", 
+				super_variants.size(), nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
 
+	sort(super_variants.begin(), super_variants.end(), supervariant_cmp) ;
+	
 	return super_variants ;
 }
 

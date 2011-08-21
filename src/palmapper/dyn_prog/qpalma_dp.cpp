@@ -1,4 +1,4 @@
-// Authors: Bettina Hepp, Uta Schulze, Cheng Soon Ong, Fabio De Bona, Gunnar Raetsch, Geraldine Jean, Soeren Sonnenburg
+// Authors: Bettina Hepp, Uta Schulze, Cheng Soon Ong, Fabio De Bona, Gunnar Raetsch, Geraldine Jean, Soeren Sonnenburg 
 // Copyright (C) 2005-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include "qpalma_dp.h"
@@ -168,10 +168,12 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 	std::vector<SeedElem *> seed_matrix_right;
 	int* max_score_positions = new int[nr_paths*2];
 
+	variant_cache_t variant_cache ;
+	
 	if (super_variant_list.size()>0)
-		fast_fill_matrix<true>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len);
+		fast_fill_matrix<true>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len, variant_cache);
 	else
-		fast_fill_matrix<false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores,	donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len);
+		fast_fill_matrix<false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores,	donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len, variant_cache);
 
 
 	/***************************************************************************/ 
@@ -182,7 +184,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 	splice_align_size = (dna_len)*nr_paths;
 	est_align_size = (est_len)*nr_paths;
 
-	int mmatrix_size;
+	int mmatrix_size=0;
 
 	if (currentMode == USE_QUALITY_SCORES) {
 		mmatrix_param_size = mlen*nr_paths;
