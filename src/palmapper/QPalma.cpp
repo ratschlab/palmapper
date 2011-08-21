@@ -4372,6 +4372,88 @@ int QPalma::postprocess_splice_predictions(std::vector<region_t *> &current_regi
 	return 0 ;
 }
 
+int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_idx, const std::vector<int> & exons, 
+									 const char strand, const int ori, bool & non_consensus_alignment, const bool remapping, const bool non_consensus_search) const
+{
+	for (unsigned int ne=0; ne<(exons.size()/2)-1; ne++)
+	{
+		bool non_consensus_intron = false ;
+		
+		int istart=exons[ne*2+1] ;
+		int istop =exons[(ne+1)*2] ;
+		
+		if (perform_extra_checks && (istop<4 || istart<2))
+		{
+			fprintf(stdout, "ERROR: istart=%i, istop=%i\n", istart, istop) ; // BUG-TODO
+			return -1 ;
+		}
+		
+		char buf[1000] ;
+		if ((ori==0 && strand=='+') || (ori==1 && strand=='+'))
+		{
+			sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istart, istop-1, 
+					contig_idx[istart-2], contig_idx[istart-1], contig_idx[istart], contig_idx[istart+1],  contig_idx[istart+2], contig_idx[istart+3], 
+					contig_idx[istop-4], contig_idx[istop-3], contig_idx[istop-2], contig_idx[istop-1], contig_idx[istop], contig_idx[istop+1]) ;
+			//fprintf(stdout, "intron+: %s\n", buf) ;
+			
+			bool is_consensus_don = false ;
+			for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
+				if (contig_idx[istart] == _config.DON_CONSENSUS[j][0] && contig_idx[istart+1] == _config.DON_CONSENSUS[j][1])
+				{
+					is_consensus_don = true ;
+					break ;
+				}
+			bool is_consensus_acc = false ;
+			for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
+				if (contig_idx[istop-2] == _config.ACC_CONSENSUS[j][0] && contig_idx[istop-1] == _config.ACC_CONSENSUS[j][1])
+				{
+					is_consensus_acc = true ;
+					break ;
+				}
+			if (!is_consensus_don || !is_consensus_acc)
+			{
+				non_consensus_intron=true ;
+				non_consensus_alignment=true ;
+			}
+			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
+				assert(!non_consensus_intron) ;
+		}
+		else
+		{
+			sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istop-1, istart, 
+					complement(contig_idx[istop+1]), complement(contig_idx[istop]), complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istop-3]), complement(contig_idx[istop-4]), 
+					complement(contig_idx[istart+3]), complement(contig_idx[istart+2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0]), complement(contig_idx[istart-1]), complement(contig_idx[istart-2])) ;
+			//fprintf(stdout, "intron-: %s\n", buf) ;
+			
+			bool is_consensus_don = false ;
+			for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
+				if (complement(contig_idx[istop-1]) == _config.DON_CONSENSUS[j][0] && complement(contig_idx[istop-2]) == _config.DON_CONSENSUS[j][1])
+				{
+					is_consensus_don = true ;
+					break ;
+				}
+			bool is_consensus_acc = false ;
+			for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
+				if (complement(contig_idx[istart+1]) == _config.ACC_CONSENSUS[j][0] && complement(contig_idx[istart-0]) == _config.ACC_CONSENSUS[j][1]) 
+				{
+					is_consensus_acc = true ;
+					break ;
+				}
+			if (!is_consensus_don || !is_consensus_acc)
+			{
+				non_consensus_intron=true ;
+				non_consensus_alignment=true ;
+			}
+			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
+				assert(!non_consensus_intron) ;
+			
+		}
+		aln->non_consensus_intron.push_back(non_consensus_intron) ;
+		aln->intron_consensus.push_back(strdup(buf)) ;
+	}
+	return 0 ;
+}
+
 
 template<int myverbosity, bool discover_variants, bool remapping> 
 int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &read_string, std::string &read_quality, std::string &dna, 
@@ -4464,46 +4546,45 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	int a_len, d_len ;
 	double * acceptor=NULL, *donor=NULL ;
-	std::vector<size_t> cum_length ;
-	
+	int hit_dna_converted ;
 	{
+		std::vector<size_t> cum_length ;
 		int ret=get_splice_predictions<myverbosity>(current_regions, contig_idx, read, annotatedjunctions, prb, est,
 													cum_length, a_len, acceptor, d_len, donor, dna, non_consensus_search, strand, ori, remapping) ;
 		if (ret<0)
 			return ret ;
+	
+		if (strand=='-')
+		{
+			dna = reverse(complement(dna)) ;
+			positions = reverse(positions);
+		}
+		if (myverbosity>=4)
+		{
+			fprintf(stdout, "positions (%i):\n",(int)dna.length()) ;
+			for (unsigned int i=0; i<positions.size(); i++)
+				fprintf(stdout, "%i:%i ", i, positions[i]) ;
+			fprintf(stdout, "\n") ;
+		}
+		
+		if (myverbosity >= 3)
+			fprintf(stdout, "# dna: %s\n", dna.c_str());
+		if (myverbosity >= 3)
+			fprintf(stdout, "# read: %s\n", read_string.c_str());
+		
+		/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
+		if (!remapping)
+			postprocess_splice_predictions(current_regions, contig_idx, a_len, acceptor, d_len, donor, dna, non_consensus_search, strand, ori) ;
+		
+		// Convert real dna position of the hit into relative dna position 
+		hit_dna_converted = convert_dna_position(hit_dna, cum_length, current_regions);
+		if (strand=='-')
+			hit_dna_converted=(int)dna.length()-1-hit_dna_converted;
 	}
-	
-	if (strand=='-')
-	{
-		dna = reverse(complement(dna)) ;
-		positions = reverse(positions);
-	}
-	if (myverbosity>=4)
-	  {
-		  fprintf(stdout, "positions (%i):\n",(int)dna.length()) ;
-	  for (unsigned int i=0; i<positions.size(); i++)
-	  fprintf(stdout, "%i:%i ", i, positions[i]) ;
-	  fprintf(stdout, "\n") ;
-	  }
-	
-	if (myverbosity >= 3)
-		fprintf(stdout, "# dna: %s\n", dna.c_str());
-	if (myverbosity >= 3)
-		fprintf(stdout, "# read: %s\n", read_string.c_str());
-	
-	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
-	if (!remapping)
-		postprocess_splice_predictions(current_regions, contig_idx, a_len, acceptor, d_len, donor, dna, non_consensus_search, strand, ori) ;
-	
-	// Convert real dna position of the hit into relative dna position 
-	int hit_dna_converted = convert_dna_position(hit_dna, cum_length, current_regions);
-	if (strand=='-')
-		hit_dna_converted=(int)dna.length()-1-hit_dna_converted;
     
 	clock_t start_time = clock();
 
 	bool remove_duplicate_scores = false;
-//	bool print_matrix = false;
 
     // create super-sequence and deletion list from variant list
 	int seed_i;
@@ -4519,13 +4600,24 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (_config.USE_VARIANTS && variant_list.size()>0)
 	{
 		
-		if (strand == '-'){
+		if (strand == '-')
+		{
 			//reverse super variants coordinates and sequences
 			convert_variants(variant_list ,(int)dna.length());
 		}
-		
-		super_variant_list = create_super_sequence_from_variants(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
-
+		try 
+		{
+			super_variant_list = create_super_sequence_from_variants(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
+		}
+		catch (std::bad_alloc)
+		{
+			fprintf(stderr,	"[capture_hits] allocating memory for supersequence failed\n");
+			result.delete_regions();
+			delete[] acceptor ;
+			delete[] donor ;
+			aln=NULL ;
+			return -1;
+		}
 		if (variant_list.size()==0)
 			assert(super_variant_list.size()==0) ;
 	}
@@ -4615,7 +4707,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	
 	if (_config.USE_VARIANTS && variant_list.size()>0)
 	{
-		used_variants = reconstruct_reference_alignment(variant_list, super_variant_list, found_variants, dna, ref_map,s_align, s_len, e_align, est_len_p, 
+		used_variants = reconstruct_reference_alignment(variant_list, super_variant_list, found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
 														 dna_align, est_align, result_length, remapping, alignment_variants_valid) ;
 		if (super_variant_list.size()==0)
 			assert(used_variants==0) ;
@@ -4645,7 +4737,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	int min_exon_len = read.length();
 	int max_intron_len = 0;
-	int min_intron_len = 1000000;
+	int min_intron_len = 10000000;
 
 	bool alignment_valid=true ;
 
@@ -4694,14 +4786,17 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				fprintf(stdout, "# %i. %i - %i\n", (int)i / 2, exons[i], exons[i + 1]);
 	    }
 		
-		int ret=determine_read_variants<myverbosity, discover_variants>(contig_idx, s_align, e_align, dna_align, est_align, positions, 
+		bool alignment_passed_filters ;
+		{
+			int ret=determine_read_variants<myverbosity, discover_variants>(contig_idx, s_align, e_align, dna_align, est_align, positions, 
 																		variants, align_variants, aligned_positions,
 																		read, read_string, read_quality, read_anno, est_len_p, result_length, strand, ori,
 																		alignment_matches, alignment_gaps, alignment_mismatches, alignment_qual_mismatches) ;
 
-		bool alignment_passed_filters= (ret==0) && ((_config.USE_VARIANTS && alignment_variants_valid) || 
-													alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches,alignment_gaps,exons.size()/2,min_exon_len,remapping));
-		
+			alignment_passed_filters= (ret==0) && ((_config.USE_VARIANTS && alignment_variants_valid) || 
+												   alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches,alignment_gaps,exons.size()/2,min_exon_len,remapping));
+		}
+
 		if (myverbosity >= 2)
 			fprintf(stdout,
 					"# alignment: score=%1.3f  matches=%i  gaps=%i  anno=%s\n",
@@ -4724,7 +4819,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	      }*/
 
 			
-		aln = NULL;
 		try 
 		{
 			aln = new ALIGNMENT();
@@ -4732,89 +4826,26 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		catch (std::bad_alloc&) 
 		{
 			fprintf(stderr,	"[capture_hits] allocating memory for aligment failed\n");
-			result.delete_regions();
-			aln=NULL ;
-			return -1;
+			aln = NULL ;
 		}
-
-		for (unsigned int ne=0; ne<(exons.size()/2)-1; ne++)
+		
 		{
-			bool non_consensus_intron = false ;
-			
-		    int istart=exons[ne*2+1] ;
-		    int istop =exons[(ne+1)*2] ;
-
-			if (perform_extra_checks && (istop<4 || istart<2))
+			int ret=-1 ;
+			if (aln)
+				ret = construct_intron_strings(aln, contig_idx, exons, strand, ori, non_consensus_alignment, remapping, non_consensus_search) ;
+			if (ret<0)
 			{
-				fprintf(stdout, "ERROR: istart=%i, istop=%i\n", istart, istop) ; // BUG-TODO
 				result.delete_regions();
+				delete[] acceptor ;
+				delete[] donor ;
+				delete[] s_align;
+				delete[] e_align;
+				delete[] dna_align;
+				delete[] est_align;
 				delete aln ;
 				aln=NULL ;
-				return -1 ;
+				return ret ;
 			}
-			
-		    char buf[1000] ;
-		    if ((ori==0 && strand=='+') || (ori==1 && strand=='+'))
-			{
-				sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istart, istop-1, 
-						contig_idx[istart-2], contig_idx[istart-1], contig_idx[istart], contig_idx[istart+1],  contig_idx[istart+2], contig_idx[istart+3], 
-						contig_idx[istop-4], contig_idx[istop-3], contig_idx[istop-2], contig_idx[istop-1], contig_idx[istop], contig_idx[istop+1]) ;
-				//fprintf(stdout, "intron+: %s\n", buf) ;
-				
-				bool is_consensus_don = false ;
-				for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
-					if (contig_idx[istart] == _config.DON_CONSENSUS[j][0] && contig_idx[istart+1] == _config.DON_CONSENSUS[j][1])
-					{
-						is_consensus_don = true ;
-						break ;
-					}
-				bool is_consensus_acc = false ;
-				for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
-					if (contig_idx[istop-2] == _config.ACC_CONSENSUS[j][0] && contig_idx[istop-1] == _config.ACC_CONSENSUS[j][1])
-					{
-						is_consensus_acc = true ;
-						break ;
-					}
-				if (!is_consensus_don || !is_consensus_acc)
-				{
-					non_consensus_intron=true ;
-					non_consensus_alignment=true ;
-				}
-				if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
-					assert(!non_consensus_intron) ;
-			}
-		    else
-			{
-				sprintf(buf, "%s:%i:%i:%c%c|%c%c%c%c..%c%c%c%c|%c%c", contig_idx.desc(), istop-1, istart, 
-						complement(contig_idx[istop+1]), complement(contig_idx[istop]), complement(contig_idx[istop-1]), complement(contig_idx[istop-2]), complement(contig_idx[istop-3]), complement(contig_idx[istop-4]), 
-						complement(contig_idx[istart+3]), complement(contig_idx[istart+2]), complement(contig_idx[istart+1]), complement(contig_idx[istart-0]), complement(contig_idx[istart-1]), complement(contig_idx[istart-2])) ;
-				//fprintf(stdout, "intron-: %s\n", buf) ;
-
-				bool is_consensus_don = false ;
-				for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
-					if (complement(contig_idx[istop-1]) == _config.DON_CONSENSUS[j][0] && complement(contig_idx[istop-2]) == _config.DON_CONSENSUS[j][1])
-					{
-						is_consensus_don = true ;
-						break ;
-					}
-				bool is_consensus_acc = false ;
-				for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
-					if (complement(contig_idx[istart+1]) == _config.ACC_CONSENSUS[j][0] && complement(contig_idx[istart-0]) == _config.ACC_CONSENSUS[j][1]) 
-					{
-						is_consensus_acc = true ;
-						break ;
-					}
-				if (!is_consensus_don || !is_consensus_acc)
-				{
-					non_consensus_intron=true ;
-					non_consensus_alignment=true ;
-				}
-				if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
-					assert(!non_consensus_intron) ;
-
-			}
-		    aln->non_consensus_intron.push_back(non_consensus_intron) ;
-		    aln->intron_consensus.push_back(strdup(buf)) ;
 		}
 
 		if (remapping && exons.size()>=4)
@@ -4885,6 +4916,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	delete[] e_align;
 	delete[] dna_align;
 	delete[] est_align;
+
 	return (int) isunspliced;
 }
 
