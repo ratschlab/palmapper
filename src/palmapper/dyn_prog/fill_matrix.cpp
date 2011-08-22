@@ -1072,7 +1072,6 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						assert(i-prev_shift>=0 && i-prev_shift<read_len);
 
 						if (right_side){
-							//fprintf(stdout,"current pos=%i, next pos=%i\n",j-prev_shift,jj);
 							assert (jj>j-prev_shift);
 						}
 						
