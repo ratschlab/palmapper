@@ -11,7 +11,7 @@ CC = g++
 CFLAGS = -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -pg -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
-LDFLAGS =  #-pg
+LDFLAGS =  -pg
 
 SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
 	$(ObjDir)/palmapper/shogun/Mathematics.o \
