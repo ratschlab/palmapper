@@ -62,6 +62,8 @@ static const int MAX_SPLICE_MISMATCH_NUM_N=2 ;
 
 #define D_USE_QUALITY_SCORES 1
 
+#define PERFORM_EXTRA_CHECKS 1
+
 inline bool myisfinite(double x)
 {
 	if (x<=-ALMOST_INFINITY || x>=ALMOST_INFINITY)
@@ -161,8 +163,9 @@ std::vector<int> getDeletionsfromVariants(int position, std::vector<int>& endpos
 	
 	if (!use_variants || position <0 || position >= (int)cache.size() || cache[position]==NULL || cache[position]->end_positions.empty())
 		return dels ;
-
-	assert(cache[position]->end_positions.size() == cache[position]->id_dels.size());
+	
+	if (PERFORM_EXTRA_CHECKS)
+		assert(cache[position]->end_positions.size() == cache[position]->id_dels.size());
 	
 
 	//Add new positions to the end of endpositions vector
@@ -192,8 +195,9 @@ char getBestDnaChar(char readChar, char dnaChar, int position, std::vector<varia
 	
 	if ( !use_variants)
 		return dnaChar;
-	
-	assert(position >=0 && position < (int)variant_cache.size());
+
+	if (PERFORM_EXTRA_CHECKS)
+		assert(position >=0 && position < (int)variant_cache.size());
 
 	if (variant_cache[position]==NULL || readInt == 5)
 		return dnaChar;
@@ -289,7 +293,8 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	if ( !use_variants)
 		return score;
 
-	assert(position >=0 && position < (int)variant_cache.size());
+	if (PERFORM_EXTRA_CHECKS)
+		assert(position >=0 && position < (int)variant_cache.size());
 
 	if ( variant_cache[position]==NULL)
 		return score;
@@ -398,7 +403,9 @@ double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_str
 	}	
 	if (!use_variants)
 		return score;
-	assert(position >=0 && position < (int)variant_cache.size());
+
+	if (PERFORM_EXTRA_CHECKS)
+		assert(position >=0 && position < (int)variant_cache.size());
 	if (variant_cache[position]==NULL)
 		return score;
 	
@@ -1068,10 +1075,13 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						if ( (right_side && jj>=dna_len) || (!right_side && jj<0))
 							continue;
 
-						assert(jj>=0 && jj<dna_len);
-						assert(i-prev_shift>=0 && i-prev_shift<read_len);
-
-						if (right_side){
+						if (PERFORM_EXTRA_CHECKS)
+						{
+							assert(jj>=0 && jj<dna_len);
+							assert(i-prev_shift>=0 && i-prev_shift<read_len);
+						}
+						
+						if (right_side && PERFORM_EXTRA_CHECKS){
 							assert (jj>j-prev_shift);
 						}
 						
@@ -1500,11 +1510,14 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											if ( (right_side && jj>=dna_len) || (!right_side && jj<0))
 												continue;
 											
-											assert(jj>=0 && jj<dna_len);
-											assert(i-prev_shift>=0 && i-prev_shift<read_len);
-											if (right_side)
-												assert (jj>j);
-
+											if (PERFORM_EXTRA_CHECKS)
+											{
+												assert(jj>=0 && jj<dna_len);
+												assert(i-prev_shift>=0 && i-prev_shift<read_len);
+												if (right_side)
+													assert (jj>j);
+											}
+											
 											idsdeletions = getDeletionsfromVariants<use_variants>(jj,endpositions, variant_cache);
 											for (int d=0;d<(int)idsdeletions.size();d++){
 												std::vector<int> vtemp=current_variant_ids;
@@ -1644,10 +1657,13 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											if ( (right_side && jj>=dna_len) || (!right_side && jj<0))
 												continue;
 
-											assert(jj>=0 && jj<dna_len);
-											assert(i>=0 && i<read_len);
-											if (right_side)
-												assert (jj>j-prev_shift);
+											if (PERFORM_EXTRA_CHECKS)
+											{
+												assert(jj>=0 && jj<dna_len);
+												assert(i>=0 && i<read_len);
+												if (right_side)
+													assert (jj>j-prev_shift);
+											}
 
 											idsdeletions = getDeletionsfromVariants<use_variants>(jj,endpositions, variant_cache);
 											for (int d=0;d<(int)idsdeletions.size();d++){
@@ -1779,7 +1795,7 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
   
 	//fprintf(stdout,"Best match scores...END\n");
 
-	assert(isSorted(super_variants)) ;
+	//assert(isSorted(super_variants)) ;
 	
 
 	//Precompute SNP and deletions for each position in the super sequence

@@ -3232,7 +3232,7 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 		fprintf(stdout, "found %lu supervariants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", 
 				super_variants.size(), nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
 
-	sort(super_variants.begin(), super_variants.end(), supervariant_cmp) ;
+	//sort(super_variants.begin(), super_variants.end(), supervariant_cmp) ;
 	
 	return super_variants ;
 }
