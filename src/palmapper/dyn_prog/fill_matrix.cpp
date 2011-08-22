@@ -218,7 +218,12 @@ std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> & super_var
 			if ((*it).position > position)
 				break ;
 		}
+		
+		if (it == super_variants.end())
+			return dels;
+		
 		const int max_lookback = 1000 ; // TODO: determine maximal variant length
+
 		
 		for (; it>super_variants.begin(); it--)
 		{
