@@ -3308,7 +3308,7 @@ void QPalma::recover_variants_on_ref(Variant &variant,std::vector<int> positions
 	}
 }
 
-int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> super_variants,std::vector<FoundVariant> found_variants, std::string & dna, std::vector<bool> ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters) const
+int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> & super_variants, std::vector<FoundVariant> & found_variants, std::string & dna, std::vector<bool> & ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters) const
 {
 
 	if (verbosity>=3)
@@ -4819,9 +4819,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				variant_list[i].non_used_count += 1;
 		}
 		
-		if (verbosity>=2)
+		if (true || verbosity>=2)
 		{
-			fprintf(stdout,"Number of variants used for this alignment: %i\n",used_variants);
+			fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);
 			
 			for (unsigned int v=0; v<variant_list.size();v++){
 				fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s used_count=%i non_used_count=%i\n",variant_list[v].type,variant_list[v].position,variant_list[v].read_pos, (char *)variant_list[v].read_id.c_str(),variant_list[v].used_count,variant_list[v].non_used_count);
@@ -5007,12 +5007,32 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			fprintf(stdout, "min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH=%i\n", min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH) ;
 		}
 
-	delete[] acceptor ;
-	delete[] donor ;
-	delete[] s_align;
-	delete[] e_align;
-	delete[] dna_align;
-	delete[] est_align;
+	if (acceptor != NULL){
+		delete[] acceptor ;
+		acceptor=NULL;
+	}
+	if (donor != NULL){
+		delete[] donor ;
+		donor = NULL;
+	}
+	if (s_align != NULL){
+		delete[] s_align;
+		s_align=NULL;
+	}
+	if (e_align != NULL){
+		delete[] e_align;
+		e_align =NULL;
+	}
+	if (dna_align != NULL){
+		delete[] dna_align;
+		dna_align = NULL;
+	}
+	
+	if (est_align != NULL){
+		delete[] est_align;
+		est_align = NULL;
+	}
+	
 
 	return (int) isunspliced;
 }
