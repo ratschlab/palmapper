@@ -370,13 +370,15 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 			if (temp[i]==0)
 				continue;
 			
-			if (currentMode == USE_QUALITY_SCORES){
+			if (currentMode == USE_QUALITY_SCORES)
+			{
 				tmpscore = getScore(qualityScores,mlen,i+1,readInt,baseScore);
 			}
 			else{
 				tmpscore =(matchmatrix[mlen* (i+1) +readInt]);
 			}
-			if (tmpscore > score){
+			if (tmpscore > score)
+			{
 				dnaValue=i+1;
 				snp_id=variant_cache[position]->id_snps[j];
 				score=tmpscore;	

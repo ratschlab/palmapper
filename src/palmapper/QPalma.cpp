@@ -2573,8 +2573,6 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	
 	while (it != variants.variantlist[chr].end() && (*it).position <= end_pos)
 	{
-
-		
 		bool found = false ;
 		std::vector<int> match_pos ;
 		

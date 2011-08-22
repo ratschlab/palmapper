@@ -857,15 +857,18 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 					for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++){
 						
 						//	variants.insert_variant(top_alignments[i]->found_variants[j], top_alignments[i]->chromosome->nr()) ;
-						std::map<int,int>::iterator it = top_alignments[i]->variant_positions.find(top_alignments[i]->found_variants[j].id);
-						if (it == top_alignments[i]->variant_positions.end()){
-							fprintf(stderr,"[end_top_alignment_record]ERROR: variant with id %i has no index position\n",top_alignments[i]->found_variants[j].id);							
+						std::map<int,int>::iterator it = top_alignments[i]->variant_positions.find(top_alignments[i]->found_variants[j].id); // TODO: Efficiency
+						if (it == top_alignments[i]->variant_positions.end())
+						{
+							fprintf(stderr,"[end_top_alignment_record] ERROR: variant with id %i has no index position\n",top_alignments[i]->found_variants[j].id);							
 							assert(0);
 						}
-						else{
+						else
+						{
 							int ret=variants.update_variant((*it).second,top_alignments[i]->chromosome->nr(),top_alignments[i]->found_variants[j]);
-							if (ret ==0){
-								fprintf(stderr,"[end_top_alignment_record]WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);							
+							if (ret == 0)
+							{
+								fprintf(stderr,"[end_top_alignment_record] WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);							
 							}
 						}
 					}
