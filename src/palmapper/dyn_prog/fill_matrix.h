@@ -68,11 +68,10 @@ struct splice_pos{
 
 struct variant_cache_str
 {
-	std::vector<std::vector<int> > endposdeletions_left ;
-	std::vector<std::vector<int> > idsdeletions_left ;
-	std::vector<std::vector<int> > endposdeletions_right ;
-	std::vector<std::vector<int> > idsdeletions_right ;
-	
+	std::vector<int>  end_positions ;
+	std::vector<int>  id_dels ;
+	std::vector<int>  id_snps ;	
+	std::vector<char> snps ;
 } ;
 typedef struct variant_cache_str variant_cache_t ;
 
@@ -86,23 +85,16 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 					  double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
 					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping, std::vector<SuperVariant> & super_variants,
-					  int no_gap_end, int min_exon_len, int min_intron_len, variant_cache_t & variant_cache);
+					  int no_gap_end, int min_exon_len, int min_intron_len);
 
 
 int check_char(char base);
 
-void getSNPfromVariants( std::vector<SuperVariant> & super_variants, int position,std::vector<char>& snps, variant_cache_t & variant_cache);
+template<bool use_variants>
+double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, int position, int &dnaValue, int &snp_id, variant_cache_t & variant_cache );
 
 template<bool use_variants>
-std::vector<int> getDeletionsfromVariants( std::vector<SuperVariant> & super_variants, int position, bool right_side, std::vector<int>& endpositions, variant_cache_t & variant_cache);
-
-template<bool use_variants>
-double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, 
-								std::vector<SuperVariant> & super_variants, int position, int &dnaValue, int &snp_id, variant_cache_t & variant_cache );
-
-template<bool use_variants>
-double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, std::vector<SuperVariant> & super_variants, 
-							  int position, int &dnaValue, int &snp_id, variant_cache_t & variant_cache );
+double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, int position, int &dnaValue, int &snp_id, variant_cache_t & variant_cache );
 
 
 double getScore(double *matchmatrix,int mlen, int dnaChar, int estChar);

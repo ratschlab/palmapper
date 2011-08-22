@@ -129,38 +129,6 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 	int seed_i=hit_read; 
 	int seed_j=hit_dna; 
 
-	// double best_match=-ALMOST_INFINITY;
-	// const int end_error=5;
-
-
-	// for(int i=0+end_error; i < hit_len-end_error && hit_read+i<est_len_p && hit_dna+i<dna_len_p ;i++){
-    
-	// 	int i_pos=hit_read+i ;
-	// 	int j_pos=hit_dna+i ;
-	// 	if (i_pos<0 || i_pos>=est_len_p)
-	// 		continue ;
-	// 	if (j_pos<0 || j_pos>=dna_len_p)
-	// 		continue ;
-	
-	// 	double score;
-	// 	if (currentMode == USE_QUALITY_SCORES)
-	// 		score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(est[i_pos]),prb[i_pos]) ;
-	// 	else
-	// 		score=matchmatrix[mm_len*check_char(dna[j_pos])+check_char(est[i_pos])] ;
-
-	// 	if (score>best_match){
-	// 		best_match=score;
-	// 		seed_i=i_pos;
-	// 		seed_j=j_pos;
-	// 	}
-	// }
-  
-	// seed_i=hit_read; 
-	// seed_j=hit_dna; 
-	//fprintf(stdout,"seed (%i-%i) %f\n",seed_i,seed_j,best_match);
-
-
-
 	///////////////////////////////
 	// Initialize seed vectors for left and right alignments
 	///////////////////////////////
@@ -168,12 +136,11 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 	std::vector<SeedElem *> seed_matrix_right;
 	int* max_score_positions = new int[nr_paths*2];
 
-	variant_cache_t variant_cache ;
 	
 	if (super_variant_list.size()>0)
-		fast_fill_matrix<true>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len, variant_cache);
+		fast_fill_matrix<true>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len);
 	else
-		fast_fill_matrix<false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores,	donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len, variant_cache);
+		fast_fill_matrix<false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores,	donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping,super_variant_list,no_gap_end,min_exon_len,min_intron_len);
 
 
 	/***************************************************************************/ 
@@ -275,7 +242,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
      
 			DNA_ARRAY = new int[result_length];
 			EST_ARRAY = new int[result_length];
-
+			
 			if (no_more_path==0){
 
 				int z_path_left=max_score_positions[2*z] ; //path number for the left seed matrix
@@ -366,10 +333,17 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 					}
      
 				}
-				
+				// fprintf(stdout, "size=%ld\n", dna_align.size()) ;
+				// for (int n=dna_align.size()-1;n>=0;n--)
+				// 	fprintf(stdout,"%i",dna_align[n]);				
+				// for (int n=read_align.size()-1; n>=0;n--)
+				// 	fprintf(stdout,"%i",read_align[n]);				
+
 				int size=dna_align.size();
-				for(int n=0; n<size;n++){
-					
+				for(int n=0; n<size;n++)
+				{
+					assert(size-n-1>=0) ;
+
 					DNA_ARRAY[size-n-1]=dna_align[n];
 					EST_ARRAY[size-n-1]=read_align[n];
 				}
@@ -380,6 +354,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 				next_seed=seed_matrix_right[0];
 				zz=z_path_right;
 				
+
 				
 				while (next_seed!=NULL){
 					
@@ -393,10 +368,11 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 					int prev_z= next_seed->best_score_pos[zz]->path_number_matrices;
 					int gaps_for_seed=next_seed->max_gaps;
 					
+					
 					while(!(rstart==rseed-1 && dstart==dseed-1)){
 						
 						int matrix_position= (rstart-rseed)*(2*gaps_for_seed+1)+dstart-(dseed+rstart-rseed)+gaps_for_seed;
-						//	fprintf(stdout,"(%i-%i),(%i,%i) %i\n",rstart,dstart,rseed,dseed,matrix_position);
+						//fprintf(stdout,"(%i-%i),(%i,%i) %i\n",rstart,dstart,rseed,dseed,matrix_position);
 						int prev_i=((Prev_score*)matrix[prev_z]+matrix_position)->prev_i;
 						int prev_j=((Prev_score*)matrix[prev_z]+matrix_position)->prev_j;
 						int dnaInt=((Prev_score*)matrix[prev_z]+matrix_position)->snp_int;		
@@ -454,9 +430,16 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 					} 
 				}
   
+				// fprintf(stdout, "size2=%ld\n", dna_align.size()) ;
+				// for (int n=0; n<dna_align.size();n++)
+				// 	fprintf(stdout,"%i",dna_align[n]);				
+				// for (int n=0;n<read_align.size();n++)
+				// 	fprintf(stdout,"%i",read_align[n]);			
+	
 				int size2=dna_align.size();
-				for(int n=0; n<size2;n++){
-					
+				for(int n=0; n<size2;n++)
+				{
+					assert((result_length-size2)+n>=0) ;
 					DNA_ARRAY[(result_length-size2)+n]=dna_align[n];
 					EST_ARRAY[(result_length-size2)+n]=read_align[n];
 				}
