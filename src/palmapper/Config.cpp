@@ -337,7 +337,7 @@ int Config::applyDefaults(Genome * genome)
 			}
 		}
 
-		if (USE_VARIANTS || NO_GAP_END>=0)
+		if (NO_GAP_END>=0)
 		{
 			fprintf(stdout, "* Disabling GenomeMapper alignments\n") ;
 			NO_GENOMEMAPPER=true ;
