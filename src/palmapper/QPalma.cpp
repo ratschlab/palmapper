@@ -4819,7 +4819,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				variant_list[i].non_used_count += 1;
 		}
 		
-		if (true || verbosity>=2)
+		if (verbosity>=2)
 		{
 			fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);
 			
