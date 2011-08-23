@@ -24,10 +24,12 @@ typedef struct meta_idx_file_entry {
 	unsigned int num;
 } META_INDEX_ENTRY;
 
+#ifndef PMINDEX
 typedef struct position_structure {
 	unsigned int pos;
 	unsigned int chr;
 } POS;
+#endif
 
 class Mapper ;
 
@@ -106,9 +108,10 @@ private:
 public:
 	size_t INDEX_SIZE ;
 
-
+#ifndef PMINDEX
 	POS *BLOCK_TABLE;
 	unsigned int BLOCK_TABLE_SIZE;
+#endif
 	
 #if 1 // dd
 	INDEX_ENTRY *INDEX;

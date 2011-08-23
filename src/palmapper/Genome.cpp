@@ -5,13 +5,22 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
+
 #include <palmapper/Genome.h>
 #include <palmapper/Util.h>
 
 #include <palmapper/palmapper.h>
 
+#ifdef PMINDEX
+#undef VERSION
+#include <pmindex/pmindex.h>
+
+#endif
+
+#ifndef PMINDEX
 #include <bwa/bwtaln.h>
 #include <bwa/bwtmyaln.h>
+#endif
 
 
 inline char get_compl_base_(char c)
@@ -51,17 +60,23 @@ Genome::Genome() {
 	MAX_POSITIONS = 0;
 	
 	NUM_CHROMOSOMES = 0;
+#ifndef PMINDEX 
 	INDEX_SIZE = Config::INDEX_SIZE_15 ;
+#endif
 
 	INDEX=NULL;
 	BLOCK_TABLE=NULL;
 
+#ifndef PMINDEX 
  	if (_config.VERBOSE) { printf("Reading in indices\n"); }
 	build_index();
 
 	if (_config.VERBOSE) printf("Reading in genome\n");
+#endif
 	load_genome();
+#ifndef PMINDEX 
 	init_constants(); // updated
+#endif
 }
 
 Genome::~Genome() {
@@ -69,8 +84,10 @@ Genome::~Genome() {
 	free(INDEX);
 	free(BLOCK_TABLE);
 
+#ifndef PMINDEX 
 	if (_config.BWA_INDEX == 1)
 		bwa_seed2genome_destroy() ;
+#endif
 }
 
 int Genome::alloc_index_memory()
@@ -84,6 +101,7 @@ int Genome::alloc_index_memory()
 	//MEM_MGR.num_bins = 0;
 	//MEM_MGR.next_unused_entry = MEM_MGR.first_entry;
 
+#ifndef PMINDEX
 	INDEX_SIZE=_config.INDEX_SIZE_15 ;
 	if (_config.INDEX_DEPTH==14)
 		INDEX_SIZE = _config.INDEX_SIZE_14 ;
@@ -91,9 +109,9 @@ int Genome::alloc_index_memory()
 		INDEX_SIZE = _config.INDEX_SIZE_13 ;
 	if (_config.INDEX_DEPTH==12)
 		INDEX_SIZE = _config.INDEX_SIZE_12 ;
-	
 	if (_config.VERBOSE>0)
 		fprintf(stdout, "_config.INDEX_DEPTH=%i, INDEX_SIZE=%ld, sizeof(INDEX_ENTRY)=%ld, index size=%ld\n",  (int)_config.INDEX_DEPTH, (long int)INDEX_SIZE, (long int)sizeof(INDEX_ENTRY), (long int)sizeof(INDEX_ENTRY)*INDEX_SIZE) ;
+#endif
 
 	if ( (INDEX = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY)) ) == NULL) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (2)\n");
@@ -110,12 +128,22 @@ int Genome::alloc_index_memory()
 
 int Genome::load_genome()
 {	
+#ifndef PMINDEX
 	FILE *GENOME_FP = fopen(_config.GENOME_FILE_NAME.c_str(), "r");
 	if (GENOME_FP == NULL) {
 		fprintf(stderr, "ERROR : Couldn't open genome file %s\n",
 				_config.GENOME_FILE_NAME.c_str());
 		exit(1);
 	}
+#endif
+#ifdef PMINDEX
+	GENOME_FP = fopen(GENOME_FILE_NAME, "r");
+	if (GENOME_FP == NULL) {
+		fprintf(stderr, "ERROR : Couldn't open genome file %s\n",
+				GENOME_FILE_NAME);
+		exit(1);
+	}
+#endif
 
 //	if ((CHR_SEQ_c = (char**) malloc (NUM_CHROMOSOMES * sizeof(char**))) == NULL) {
 //		fprintf(stderr, "ERROR : not enough memory for genome\n");
@@ -154,7 +182,12 @@ int Genome::load_genome()
 		while (line[0] != '>') {
 			linelen = strcspn(line, " \n\t");
 			if (linelen > 0 && (line[linelen] == '\t' || line[linelen] == ' ')) {
+#ifndef PMINDEX
 				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", _config.GENOME_FILE_NAME.c_str(), chr.desc());
+#endif
+#ifdef PMINDEX
+				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", GENOME_FILE_NAME, chr.desc());
+#endif
 				exit(0);
 			}
 			for (unsigned int j=0; j!=linelen; j++)
@@ -201,10 +234,12 @@ int Genome::load_genome()
 	return 0;	
 }
 
+#ifndef PMINDEX
 int Genome::build_index()
 {
 
-	if (_config.BWA_INDEX==0){	
+	if (_config.BWA_INDEX==0)
+	{	
 		FILE *META_INDEX_FP = Util::openFile(_config.META_INDEX_FILE_NAME, "r");
 		FILE *CHR_INDEX_FP = Util::openFile(_config.CHR_INDEX_FILE_NAME, "r");
 		// handle meta information
@@ -219,7 +254,8 @@ int Genome::build_index()
 		read_chr_index(CHR_INDEX_FP);
 
 	}
-	else{
+	else
+	{
 
 		if (_config.VERBOSE) { printf("\tIndex depth is %d\n", _config.INDEX_DEPTH); }
 
@@ -234,8 +270,7 @@ int Genome::build_index()
 		read_chr_bwa();
 		fprintf(stdout, "done.\n") ;
 	}
-
-   
+ 
 	return(0);
 }
 
@@ -688,3 +723,4 @@ int Genome::init_constants()
 	
 	return (0);
 }
+#endif

@@ -8,7 +8,7 @@ SVNVERSION = $(shell svnversion)
 CC = g++
 #CFLAGS = -Wall -ggdb -pg # debug 
 #CFLAGS = -O9 -ggdb -g -pg -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
-CFLAGS = -O -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+CFLAGS = -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -pg -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS =  -pg
@@ -60,7 +60,11 @@ PMIDX_OBJ = $(ObjDir)/pmindex/init.o \
 	$(ObjDir)/pmindex/load.o \
 	$(ObjDir)/pmindex/index.o \
 	$(ObjDir)/pmindex/alloc.o \
-	$(ObjDir)/pmindex/pmindex.o
+	$(ObjDir)/pmindex/pmindex.o \
+	$(ObjDir)/pmindex/Genome.o \
+	$(ObjDir)/pmindex/Chromosome.o \
+	$(ObjDir)/pmindex/Util.o \
+	$(ObjDir)/pmindex/VariantMap.o
 
 CurrentDir := $(shell pwd)
 
@@ -88,8 +92,8 @@ palmapper: src/bwa/libbwa.a bwa src/gzstream/libgzstream.a $(PM_OBJ) src/palmapp
 	$(CC) $(CFLAGS) $(INCLUDE) $(PM_OBJ) $(LDFLAGS) -lpthread -lz -lm -Lsrc/bwa -lbwa -Lsrc/gzstream -l gzstream -o palmapper
 	ln -sf palmapper genomemapper
 
-pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c
-	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -o pmindex $(PMIDX_OBJ)
+pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c src/gzstream/libgzstream.a
+	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -DPMINDEX -o pmindex $(PMIDX_OBJ) -Lsrc/gzstream -l gzstream -lz -lm
 	ln -sf pmindex gmindex 
 
 clean:
@@ -116,6 +120,11 @@ $(ObjDir)/%.o : $(SrcDir)/%.cpp
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
+
+$(ObjDir)/pmindex/%.o : $(SrcDir)/palmapper/%.cpp
+	@echo Compiling $<
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(INCLUDE) -DPMINDEX -o $@ -c $<
 
 $(ObjDir)/%.o : $(SrcDir)/%.c
 	@echo Compiling $<
