@@ -2966,19 +2966,19 @@ inline std::vector<struct pos_table_str *>::iterator  pos_table_lower_bound ( st
 
 		// find closest non-negative position
 		std::vector<struct pos_table_str *>::iterator itf=it, itb=it;
-		while ((*itf)->pos<0 || (*itb)->pos<0)
+		while ((itf<last && (*itf)->pos<0) || (itb>=first && (*itb)->pos<0))
 		{
-			if (itf>=last && itb<=first)
+			if (itf>=last && itb<first)
 				break ;
 			if (itf<last)
 				advance(itf, 1) ;
-			if (itb>first)
+			if (itb>=first)
 				advance(itb, -1) ;
 		}
-		if ((*itf)->pos>=0)
+		if (itf<last && (*itf)->pos>=0)
 			it=itf ;
 		else
-			if ((*itb)->pos>=0)
+			if (itb>=first && (*itb)->pos>=0)
 				it=itb ;
 			else
 				assert(0) ;

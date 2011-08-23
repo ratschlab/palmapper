@@ -32,8 +32,11 @@ int index_chromosome(unsigned int chr)
 			}
 		}
 		else {
-			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') {
-
+			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') 
+			{
+				//char b[INDEX_DEPTH+1] ;
+				//strncpy(b, &CHR_SEQ[pos], INDEX_DEPTH) ;
+				
 				slot = get_slot(CHR_SEQ, pos);
 
 				if(INDEX[slot] == NULL) {
@@ -101,7 +104,7 @@ int pos2bin(unsigned int slot, unsigned int chr)
 			*bin_ext = alloc_bin_ext();
 			memcpy(&(*bin_ext)->ids[0].id, &BLOCK, 3 * sizeof(char));
 			memcpy(&(*bin_ext)->ids[0].id[3], &POSITION, sizeof(unsigned char));
-        		bin->num_pos++;
+			bin->num_pos++;
 			bin->last_bin_ext = *bin_ext;
 			return 0;
 		}
