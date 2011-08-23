@@ -3732,9 +3732,10 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			}
 			if (perform_extra_checks && positions[exon_start]<0)
 			{
-				fprintf(stdout, "ERROR: positions[exon_start=%i]=%i\n", exon_start, positions[exon_start]) ;
+				fprintf(stdout, "ERROR: positions[exon_start=%i]=%i\n", exon_start, positions[exon_start]) ; // BUG-TODO
 				alignment_valid=false ;
-				assert(positions[exon_start]>=0) ;
+				//assert(positions[exon_start]>=0) ;
+				return false ;
 			}
 
 			exons.push_back(positions[exon_start]) ;
