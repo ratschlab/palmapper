@@ -241,9 +241,9 @@ restart:
         // if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 		int ret;
 		if (_config.BWA_INDEX == 1)
-			ret	= hits.map_fast<bwt>(read);	
+			ret	= hits.map_fast<index_bwt>(read);	
 		else
-			ret	= hits.map_fast<array>(read);	
+			ret	= hits.map_fast<index_array>(read);	
 
 		if (ret<0)
 			cancel = 1 ;
@@ -266,9 +266,9 @@ restart:
 			
 			int ret;
 			if (_config.BWA_INDEX == 1)
-				ret = hits.map_short_read<bwt>(read, read.getNr());
+				ret = hits.map_short_read<index_bwt>(read, read.getNr());
 			else
-				ret = hits.map_short_read<array>(read, read.getNr()); 
+				ret = hits.map_short_read<index_array>(read, read.getNr()); 
 
 			if (ret<0)
 				cancel=2 ;

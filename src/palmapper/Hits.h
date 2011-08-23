@@ -168,7 +168,7 @@ class QPalma ;
 class GenomeMaps ;
 
 enum index_type_t { 
-	array=1, bwt=2, debug=3
+	index_array=1, index_bwt=2, index_debug=3
 }  ;
 
 	

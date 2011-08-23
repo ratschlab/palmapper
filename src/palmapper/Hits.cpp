@@ -16,13 +16,13 @@
 
 static const bool perform_extra_checks = true ;
 
-template int Hits::map_short_read<bwt>(Read& read, unsigned int num) ;
-template int Hits::map_short_read<array>(Read& read, unsigned int num) ;
-template int Hits::map_short_read<debug>(Read& read, unsigned int num) ;
+template int Hits::map_short_read<index_bwt>(Read& read, unsigned int num) ;
+template int Hits::map_short_read<index_array>(Read& read, unsigned int num) ;
+template int Hits::map_short_read<index_debug>(Read& read, unsigned int num) ;
 
-template int Hits::map_fast<bwt>(Read & read) ;
-template int Hits::map_fast<array>(Read & read) ;
-template int Hits::map_fast<debug>(Read & read) ;
+template int Hits::map_fast<index_bwt>(Read & read) ;
+template int Hits::map_fast<index_array>(Read & read) ;
+template int Hits::map_fast<index_debug>(Read & read) ;
 
 void printhit(Read const &read, HIT* hit);
 
@@ -333,15 +333,15 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 	{
 		index_entry.num=0 ;
 		
-		if (index_type&array)
+		if (index_type&index_array)
 		{
 			index_entry = *(_genome.INDEX+SLOTS[reverse]);
 			index_mmap = _genome.INDEX_FWD_MMAP;
 		}
-		if (index_type&bwt)
+		if (index_type&index_bwt)
 		{
 			sa_seq=bwa_seed2genome_map(&SLOT_STR[reverse][SLOT_STR_POS[reverse]], _config.INDEX_DEPTH, 0, &sa_num, &sa_k, &sa_l) ;
-			if (index_type==bwt)
+			if (index_type==index_bwt)
 				index_entry.num=sa_num ;
 		}
 		direction = reverse? 1 : -1;
@@ -353,7 +353,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 		}
 		bool debug_show=false ;
 		
-		if (debug_show || (index_type==debug && index_entry.num!=sa_num))
+		if (debug_show || (index_type==index_debug && index_entry.num!=sa_num))
 		{
 			char *seed=strdup(&SLOT_STR[reverse][SLOT_STR_POS[reverse]]) ;
 			seed[_config.INDEX_DEPTH]=0 ;
@@ -372,7 +372,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			int report_repetitive_seeds = _config.REPORT_REPETITIVE_SEEDS ;
 			if (report_repetitive_seeds) 
 			{
-				assert(index_type&array) ; // TODO: fix for bwt
+				assert(index_type&index_array) ; // TODO: fix for bwt
 
 				if (_mapper.seed_covered.size()<SLOTS[reverse])
 					_mapper.seed_covered.resize(SLOTS[reverse]+1, false) ;
@@ -395,7 +395,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD && !report_repetitive_seeds) 
 				index_entry_num=0 ;
 			
-			if (index_type&array)
+			if (index_type&index_array)
 			{
 				TIME_CODE(clock_t start_time = clock()) ;
 				
@@ -413,7 +413,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			
 			for (i=0; i<index_entry_num; i++) { // foreach seed...
 				TIME_CODE(clock_t start_time = clock()) ;
-				if (read_num == num && (index_type&array)) 
+				if (read_num == num && (index_type&index_array)) 
 				{
 					printf("############################\n");
 					printf("Now adding seed # %d/%d of read %i (%s), slot %i, ori %d\n", i+1, index_entry.num, num, _read.id(), SLOTS[reverse], reverse);
@@ -435,11 +435,11 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				
 				strand = reverse? (_config.BSSEQ? -conversion : -1) : (_config.BSSEQ? conversion : 1);
 
-				if (index_type&bwt)
+				if (index_type&index_bwt)
 				{
 					uint64_t contig_id, contig_pos  ;
 
-					if (index_type!=debug)
+					if (index_type!=index_debug)
 						assert(sa_k+i<=sa_l) ;
 					if (sa_k+i<=sa_l)
 					{
@@ -451,7 +451,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 							fprintf(stdout, "bwt   pos: contig=%i pos=%i\n", genome_chr_id, genome_pos) ;
 					}
 				}
-				if (index_type&array)
+				if (index_type&index_array)
 				{
 					block = 0;
 					pos = 0;
@@ -467,7 +467,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					p_block[2] = p_id[2];
 					pos = p_id[3];
 					
-					if (index_type==debug && !debug_show)
+					if (index_type==index_debug && !debug_show)
 					{
 						if (pos + _genome.BLOCK_TABLE[block].pos != genome_pos && sa_num==1)
 						{
@@ -862,7 +862,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 			} //end of for each seed on read
 			
-			if (index_type&bwt)
+			if (index_type&index_bwt)
 				bwa_seed2genome_cleanup_seq(sa_seq) ;
 
 			if (_config._personality == Palmapper && report_repetitive_seeds)
@@ -1601,21 +1601,21 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 				
 				for (int rev=0; rev <= _config.MAP_REVERSE; ++rev) {
 					
-					if (index_type&array)
+					if (index_type&index_array)
 					{
 						index_entry = _genome.INDEX[SLOTS[rev]];
 						index_mmap = _genome.INDEX_FWD_MMAP;
 					}
 					
-					if (index_type&bwt)
+					if (index_type&index_bwt)
 					{
 						sa_seq=bwa_seed2genome_map(&SLOT_STR[rev][SLOT_STR_POS[rev]], _config.INDEX_DEPTH, 0, &sa_num, &sa_k, &sa_l) ;
-						if (index_type==bwt)
+						if (index_type==index_bwt)
 							index_entry.num=sa_num ;
 					}
 					bool debug_show=false ;
 					
-					if (debug_show || (index_type==debug && index_entry.num!=sa_num))
+					if (debug_show || (index_type==index_debug && index_entry.num!=sa_num))
 					{
 						char *seed=strdup(&SLOT_STR[rev][SLOT_STR_POS[rev]]) ;
 						seed[_config.INDEX_DEPTH]=0 ;
@@ -1642,7 +1642,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 						
 						TIME_CODE(time_t start_time = clock() ;) ;
 
-						if (index_type&array)
+						if (index_type&index_array)
 						{
 #ifndef BinaryStream_MAP
 							_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
@@ -1657,7 +1657,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 						{
 							int chr_id=0 ;
 							pos=0 ;
-							if (index_type&array)
+							if (index_type&index_array)
 							{
 							
 								block = 0; position = 0;
@@ -1685,11 +1685,11 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 								pos = (unsigned int) position + _genome.BLOCK_TABLE[block].pos;	// 0-initialized
 								chr_id=_genome.BLOCK_TABLE[block].chr ;
 							}
-							if (index_type&bwt)
+							if (index_type&index_bwt)
 							{
 								uint64_t contig_id, contig_pos  ;
 								
-								if (index_type!=debug)
+								if (index_type!=index_debug)
 									assert(sa_k+i<=sa_l) ;
 								if (sa_k+i<=sa_l)
 								{
@@ -1925,7 +1925,7 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 			{
 				if (_config.BSSEQ) {
 
-					assert(index_type==array) ;
+					assert(index_type==index_array) ;
 					
 					// generate seeds with all allowed combinations of conversions and store them in SLOTS_CV1 and SLOTS_CV2:
 					generate_all_possible_seeds(read, num, readpos, 0, 0, 0, 0);
@@ -1939,7 +1939,7 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 					for (unsigned int i=0; i!=SLOTS_CV1_FWD.size(); i++) {
 						SLOTS[0] = SLOTS_CV1_FWD[i];
 						if (_config.MAP_REVERSE) SLOTS[1] = SLOTS_CV2_REV[i];
-						seed2genome<array>(num, readpos + 1, 1);
+						seed2genome<index_array>(num, readpos + 1, 1);
 					}
 					SLOTS_CV1_FWD.clear();
 					SLOTS_CV2_REV.clear();
@@ -1948,7 +1948,7 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 					for (unsigned int i=0; i!=SLOTS_CV2_FWD.size(); i++) {
 						SLOTS[0] = SLOTS_CV2_FWD[i];
 						if (_config.MAP_REVERSE) SLOTS[1] = SLOTS_CV1_REV[i];
-						seed2genome<array>(num, readpos + 1, 2);
+						seed2genome<index_array>(num, readpos + 1, 2);
 					}
 					SLOTS_CV1_REV.clear();
 					SLOTS_CV2_FWD.clear();
@@ -2018,7 +2018,7 @@ template<enum index_type_t index_type> int Hits::get_slots(Read & read, int pos)
 		SLOTS[0] = 0;
 		SLOTS[1] = 0;
 
-		if (index_type&array)
+		if (index_type&index_array)
 		{
 			for (i = 0; i < _config.INDEX_DEPTH; i++)
 			{
@@ -2047,7 +2047,7 @@ template<enum index_type_t index_type> int Hits::get_slots(Read & read, int pos)
 					SLOTS[1] += Util::POWER[_config.INDEX_DEPTH - i - 1] * (c ^ 3);
 			}
 		}
-		if (index_type&bwt)
+		if (index_type&index_bwt)
 		{
 			free(SLOT_STR[0]) ;
 			free(SLOT_STR[1]) ;
@@ -2061,7 +2061,7 @@ template<enum index_type_t index_type> int Hits::get_slots(Read & read, int pos)
 		
 	} else {
 		
-		if (index_type&array)
+		if (index_type&index_array)
 		{
 			SLOTS[0] >>= 2;
 		
@@ -2093,7 +2093,7 @@ template<enum index_type_t index_type> int Hits::get_slots(Read & read, int pos)
 			}
 		}
 
-		if (index_type&bwt) 
+		if (index_type&index_bwt) 
         {
             SLOT_STR_POS[0]++ ;
             SLOT_STR_POS[1]-- ;

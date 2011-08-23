@@ -876,7 +876,9 @@ int VariantMap::init_from_files(std::string &fnames)
 	int previousfound=0;
 	int found=fnames.find(",");
 	std::string filename;
+#ifndef PMINDEX 
 	bool has_maf_file = false ;
+#endif
 	
 	while (true)
 	{
@@ -895,8 +897,10 @@ int VariantMap::init_from_files(std::string &fnames)
 			
 			if (extension.compare("sdi")==0 ||extension.compare("SDI")==0)
 				ext=sdi;
+#ifndef PMINDEX 
 			if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
 				ext=maf;
+#endif
 			if (extension.compare("indel")==0 ||extension.compare("samtools")==0)
 				ext=samtools;
 			if (extension.compare("snp")==0 ||extension.compare("SNP")==0)
@@ -909,11 +913,13 @@ int VariantMap::init_from_files(std::string &fnames)
 			fprintf(stderr,	"ERROR: Variant input %s has an unknown format\n", (char*)filename.c_str());
 			exit(1) ;
 		}
-		if ( ext==maf && _config.MAF_REF_NAME.length()<=0)
+#ifndef PMINDEX 
+		if ( ext==maf && _config.MAF_REF_NAME.length()<=0 )
 		{
 			fprintf(stderr,	"ERROR: Need reference genome name (with -maf-ref option) to initialize variants from the maf file %s\n", (char*)filename.c_str());
 			exit(1) ;
 		}
+#endif
 		
 		int ret = 0 ;
 		if (ext == sdi)
@@ -922,6 +928,7 @@ int VariantMap::init_from_files(std::string &fnames)
 			init_from_bin(filename);
 		if (ext == samtools)
 			init_from_samtools(filename);
+#ifndef PMINDEX 
 		if (ext == snp)
 			init_from_snp(filename, _config.VARIANT_SNP_TAKE_LINES);
 		if (ext == maf)
@@ -929,6 +936,7 @@ int VariantMap::init_from_files(std::string &fnames)
 			init_from_maf(filename, _config.MAF_REF_NAME);
 			has_maf_file = true ;
 		}
+#endif
 
 		if (ret!=0)
 			return ret;
@@ -943,8 +951,10 @@ int VariantMap::init_from_files(std::string &fnames)
 	 
 	known_variants_limit=next_variant_id-1;
 	
+#ifndef PMINDEX 
 	if (!has_maf_file && _config.MAF_REF_NAME.length()>0)
 		fprintf(stdout, "WARNING: maf reference given, but no maf file as input\n") ;
+#endif
 	
 	return 0;
 }
