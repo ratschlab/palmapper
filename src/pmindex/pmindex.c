@@ -6,7 +6,7 @@
 #include <time.h>
 
 #include "pmindex.h"
-#include "pmindex_symbols.c"
+#include "pmindex_symbols.c" 
 
 int load_chromosomes();
 char* get_seq(unsigned int n);
@@ -37,7 +37,19 @@ int main(int argc, char *argv[])
 	
 	if (VERBOSE) { printf("Start loading\n"); }
 
-	load_chromosomes();
+	Genome genome(22) ;
+	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
+	{
+		fprintf(stdout, "loading complete genome\n") ;
+		//genome.load_genome() ;
+	}
+	VariantMap variants(genome) ;
+	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
+	{
+		std::string fnames = std::string(GENOME_VARIANTS_FILE_NAME) ;
+		variants.init_from_files(fnames) ;
+	}
+	load_chromosomes(variants);
 
 	if (VERBOSE) printf("\nTotal number of seed occurrences: %lu\n\n", POSITION_COUNTER);
 

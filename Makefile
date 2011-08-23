@@ -129,4 +129,4 @@ $(ObjDir)/pmindex/%.o : $(SrcDir)/palmapper/%.cpp
 $(ObjDir)/%.o : $(SrcDir)/%.c
 	@echo Compiling $<
 	@mkdir -p $(@D)
-	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
+	@$(CC) $(CFLAGS) $(INCLUDE) -DPMINDEX -o $@ -c $<

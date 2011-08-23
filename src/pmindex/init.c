@@ -50,6 +50,8 @@ int init_defaults()
 		POWER[i] = POWER[i-1] * 4;
 	}
 
+	strcpy(GENOME_VARIANTS_FILE_NAME, "") ;
+
 	return 0;
 }
 
@@ -80,6 +82,14 @@ int init_opts(int argc, char *argv[])
 
 
 		}
+
+		//genome variants
+		if(strcmp(argv[i],"-use-variants")==0)
+		{
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			strcpy(GENOME_VARIANTS_FILE_NAME, argv[i]);
+		} 
 		
 		//genome OUT
 		/*if(strcmp(argv[i],"-go")==0){

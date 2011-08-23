@@ -35,7 +35,7 @@ class Mapper ;
 
 class Genome {
 public:
-	Genome();
+	Genome(int numChromosomes=0);
 	~Genome();
 
 	Chromosome const &chromosome(int index) const
@@ -74,11 +74,12 @@ public:
 			}
 		}
 
+	int load_genome();
+
 private:
 	int init_constants();
 	int alloc_index_memory() ;
 	int build_index();
-	int load_genome();
 	int read_meta_index_header(FILE *META_INDEX_FP);
 	int read_meta_index(FILE *META_INDEX_FP);
 	int read_chr_index(FILE *CHR_INDEX_FP);
