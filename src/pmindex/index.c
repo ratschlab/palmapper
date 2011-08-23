@@ -1,13 +1,17 @@
 // Authors: Korbinian Schneeberger and Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
+#include <palmapper/VariantMap.h>
 #include "pmindex.h"
 
 int pos2bin(unsigned int slot, unsigned int chr);
 int pos2bin_rev(unsigned int slot, unsigned int chr);
 int get_slot(char *seq, int pos);
 
-int index_chromosome(unsigned int chr) 
+const bool perform_extra_checks=true ;
+
+
+int index_chromosome(unsigned int chr, VariantMap & variants) 
 {
 	if (VERBOSE) { printf("\tBuilding index ..."); fflush(stdout); }
 
@@ -17,6 +21,8 @@ int index_chromosome(unsigned int chr)
 	POS p;
 	
 	HAS_SLOT = 0;
+	
+	std::vector<Variant>::iterator it = variants.variantlist[chr].begin() ;
 
 	while (spacer < (int)CHR_LENGTH) {
 		

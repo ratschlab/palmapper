@@ -56,23 +56,32 @@ int Genome::valid_char[256];
 char Genome::compl_char[256];
 char Genome::upper_char[256];
 
-Genome::Genome() {
+Genome::Genome(int numChromosomes) {
 	MAX_POSITIONS = 0;
 	
-	NUM_CHROMOSOMES = 0;
+	NUM_CHROMOSOMES = numChromosomes ;
+
 #ifndef PMINDEX 
 	INDEX_SIZE = Config::INDEX_SIZE_15 ;
 #endif
 
 	INDEX=NULL;
+#ifndef PMINDEX 
 	BLOCK_TABLE=NULL;
+#endif
 
 #ifndef PMINDEX 
+	assert(numChromosomes==0) ;
  	if (_config.VERBOSE) { printf("Reading in indices\n"); }
 	build_index();
 
 	if (_config.VERBOSE) printf("Reading in genome\n");
 #endif
+#ifdef PMINDEX
+	if (NUM_CHROMOSOMES>0)
+		_chromosomes = new Chromosome[NUM_CHROMOSOMES];
+#endif
+
 	load_genome();
 #ifndef PMINDEX 
 	init_constants(); // updated
@@ -126,24 +135,15 @@ int Genome::alloc_index_memory()
 	return(0);
 }
 
+#ifdef PMINDEX
 int Genome::load_genome()
 {	
-#ifndef PMINDEX
-	FILE *GENOME_FP = fopen(_config.GENOME_FILE_NAME.c_str(), "r");
-	if (GENOME_FP == NULL) {
-		fprintf(stderr, "ERROR : Couldn't open genome file %s\n",
-				_config.GENOME_FILE_NAME.c_str());
-		exit(1);
-	}
-#endif
-#ifdef PMINDEX
-	GENOME_FP = fopen(GENOME_FILE_NAME, "r");
-	if (GENOME_FP == NULL) {
+	FILE *genome_fp = fopen(GENOME_FILE_NAME, "r");
+	if (genome_fp == NULL) {
 		fprintf(stderr, "ERROR : Couldn't open genome file %s\n",
 				GENOME_FILE_NAME);
 		exit(1);
 	}
-#endif
 
 //	if ((CHR_SEQ_c = (char**) malloc (NUM_CHROMOSOMES * sizeof(char**))) == NULL) {
 //		fprintf(stderr, "ERROR : not enough memory for genome\n");
@@ -151,14 +151,118 @@ int Genome::load_genome()
 //	}
 
 	char line[513];
-	unsigned int fp = ftell(GENOME_FP);
+	unsigned int fp = ftell(genome_fp);
+	unsigned int linelen;
+
+#ifdef USE_CHR_BIN
+	fprintf(stdout, "using compact genome representation (class %s)\n", USE_CHR_BIN_CLASS::get_class_name()) ;
+#endif	
+	unsigned int i ;
+	for (i=0; ; ++i) { 
+		fprintf(stdout, ".") ;
+		Chromosome &chr = _chromosomes[i];
+		chr._nr = i;
+		std::string data ;
+		data.reserve(200000000) ;
+		char desc[100], rest[1000] ;
+		
+		//unsigned int pos = 0;
+		
+		line[0] = '\0';
+		fseek(genome_fp, fp, SEEK_SET);
+		
+		while (line[0] != '>')
+			if (fgets(line, 512, genome_fp) == 0) 
+			{
+				break;
+			}
+		if (line[0]=='>')
+		{
+			int ret = sscanf(line, ">%100s %1000s", desc, rest) ;
+			assert(ret>=1) ;
+			//fprintf(stdout, "found chromosome %s\n", desc) ;
+		}
+		fflush(stdout) ; 
+	
+		if (fgets(line, 512, genome_fp) == NULL || line[0] == '>') 
+		{
+			break ;
+			//fprintf(stderr, "ERROR: cannot find sequence \"%s\"!\n",chr.desc());
+			//exit(1);
+		}
+		while (line[0] != '>') {
+			linelen = strcspn(line, " \n\t");
+			if (linelen > 0 && (line[linelen] == '\t' || line[linelen] == ' ')) {
+				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", GENOME_FILE_NAME, chr.desc());
+				exit(0);
+			} 
+			char buf[linelen+1] ;
+			for (unsigned int j=0; j!=linelen; j++)
+			{
+				if (is_valid_char((int)line[j]))
+				{
+					buf[j]= is_valid_char((int)line[j]) ;
+				}
+				else 
+				{
+					char c=mytoupper(line[j]) ;
+					fprintf(stderr,"ERROR: Character '%c' encountered in chromosome '%s'! Only IUPAC-code is accepted!\n", c, chr.desc());
+					exit(0);
+				} 
+			}
+			buf[linelen]=0 ;
+			data+=buf ;
+
+			fp = ftell(genome_fp);
+			if (fgets(line, 512, genome_fp) == NULL) break;
+		}
+		
+		//data[chr.length()] = '\0';
+		chr._length= data.size() ;
+		
+		if (chr.length() != data.size()) {
+			fprintf(stderr, "ERROR: Idx file seems to be corrupted. Chromosome %d has %d characters at the end! (%d %d)\n",i+1, (int)data.size()-chr.length(), (int)data.size(), chr.length());
+			exit(1);
+		}
+		char *buf=new char[data.size()+1] ;
+		strcpy(buf, data.c_str()) ;
+		
+		chr.data(buf, chr.length(), desc);
+	}
+	NUM_CHROMOSOMES=i ;
+	fprintf(stdout, "read %i chromosomes\n", NUM_CHROMOSOMES) ;
+	
+	fclose(genome_fp);
+	
+	return 0;	
+}
+#endif
+
+#ifndef PMINDEX
+int Genome::load_genome()
+{	
+	FILE *genome_fp = fopen(_config.GENOME_FILE_NAME.c_str(), "r");
+	if (genome_fp == NULL) {
+		fprintf(stderr, "ERROR : Couldn't open genome file %s\n",
+				_config.GENOME_FILE_NAME.c_str());
+		exit(1);
+	}
+
+//	if ((CHR_SEQ_c = (char**) malloc (NUM_CHROMOSOMES * sizeof(char**))) == NULL) {
+//		fprintf(stderr, "ERROR : not enough memory for genome\n");
+//		exit(1);
+//	}
+
+	char line[513];
+	unsigned int fp = ftell(genome_fp);
 	unsigned int linelen;
 
 #ifdef USE_CHR_BIN
 		fprintf(stdout, "using compact genome representation (class %s)\n", USE_CHR_BIN_CLASS::get_class_name()) ;
 #endif	
 
-	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) {
+	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) 
+	{
 		Chromosome &chr = _chromosomes[i];
 		chr._nr = i;
 		char *data = new char[chr.length() + 1];
@@ -170,24 +274,20 @@ int Genome::load_genome()
 		unsigned int pos = 0;
 		
 		line[0] = '\0';
-		fseek(GENOME_FP, fp, SEEK_SET);
+		fseek(genome_fp, fp, SEEK_SET);
 		
 		while (line[0] != '>')
-			if (fgets(line, 512, GENOME_FP) == 0) {}
-	
-		if (fgets(line, 512, GENOME_FP) == NULL || line[0] == '>') {
+			if (fgets(line, 512, genome_fp) == 0) {}
+		
+		if (fgets(line, 512, genome_fp) == NULL || line[0] == '>') {
 			fprintf(stderr, "ERROR: cannot find sequence \"%s\"!\n",chr.desc());
 			exit(1);
 		}
-		while (line[0] != '>') {
+		while (line[0] != '>') 
+		{
 			linelen = strcspn(line, " \n\t");
 			if (linelen > 0 && (line[linelen] == '\t' || line[linelen] == ' ')) {
-#ifndef PMINDEX
 				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", _config.GENOME_FILE_NAME.c_str(), chr.desc());
-#endif
-#ifdef PMINDEX
-				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", GENOME_FILE_NAME, chr.desc());
-#endif
 				exit(0);
 			}
 			for (unsigned int j=0; j!=linelen; j++)
@@ -211,12 +311,9 @@ int Genome::load_genome()
 					exit(0);
 				} 
 			}
-			// if you can assume that each base is already upper case, use the next 2 statements:
-			//strncpy(CHR_SEQ_c[i] + pos, line, strlen(line) - (line[strlen(line)-1] == '\n'));
-			//pos += strlen(line) - (line[strlen(line)-1] == '\n');
 			
-			fp = ftell(GENOME_FP);
-			if (fgets(line, 512, GENOME_FP) == NULL) break;
+			fp = ftell(genome_fp);
+			if (fgets(line, 512, genome_fp) == NULL) break;
 		}
 		
 		data[chr.length()] = '\0';
@@ -229,10 +326,11 @@ int Genome::load_genome()
 		chr.data(data, chr.length());
 	}
 	
-	fclose(GENOME_FP);
+	fclose(genome_fp);
 	
 	return 0;	
 }
+#endif
 
 #ifndef PMINDEX
 int Genome::build_index()

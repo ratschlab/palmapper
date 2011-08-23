@@ -80,5 +80,4 @@ BIN_EXT *alloc_bin_ext()
 void alloc_blocktable()
 {
 	BLOCK_TABLE = (POS *) malloc (BLOCK_TABLE_SIZE * sizeof(POS));
-	
 }

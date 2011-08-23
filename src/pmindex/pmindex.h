@@ -10,6 +10,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <palmapper/VariantMap.h>
+
 #define VERSION "0.3.0"
 
 // ##############################################################
@@ -36,6 +38,7 @@ extern int debug;
 // ##############################################################
 
 extern char GENOME_FILE_NAME[500];
+extern char GENOME_VARIANTS_FILE_NAME[500];
 extern char CHR_INDEX_FILE_NAME[500];
 extern char MAPFWD_INDEX_FILE_NAME[500];
 extern char META_INDEX_FILE_NAME[500];
@@ -142,11 +145,11 @@ extern int init(int argc, char *argv[]);
 extern int usage();
 
 //load.c
-extern int load_chromosomes();
+extern int load_chromosomes(VariantMap & variants);
 extern int desc_parsing(char *c);
 
 //indec.c
-extern int index_chromosome(unsigned int chr);
+extern int index_chromosome(unsigned int chr, VariantMap & variants);
 
 //alloc.c
 extern int alloc_bin(int slot);

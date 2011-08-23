@@ -43,7 +43,7 @@ public:
 		_desc.assign(d);
 	}
 
-	void data(char *ascii, uint32_t len);
+	void data(char *ascii, uint32_t len, const char *desc=NULL);
 
 private:
 	static char num2dna(uint8_t num) {
@@ -70,9 +70,11 @@ template <> inline char ChromosomeBase<8>::num2dna(uint8_t num) {
 	return (char) num;
 }
 
-template <> inline void ChromosomeBase<8>::data(char *ascii, uint32_t len) {
+template <> inline void ChromosomeBase<8>::data(char *ascii, uint32_t len, const char *pdesc) {
 	_length = len;
 	_data = (uint8_t*) ascii;
+	if (pdesc)
+		_desc.assign(pdesc) ;
 }
 
 template <int bits> bool ChromosomeBase<bits>::_classInitialized = ChromosomeBase<bits>::initClass();
@@ -85,16 +87,20 @@ template <int bits> bool ChromosomeBase<bits>::initClass() {
 	return true;
 }
 
-template <int bits> void ChromosomeBase<bits>::data(char *ascii, uint32_t len) {
+template <int bits> void ChromosomeBase<bits>::data(char *ascii, uint32_t len, const char* pdesc) 
+{
 	if (_classInitialized)
 		initClass();
 	_length = len;
 	_data = new uint8_t[(len + _valuesPerByte - 1) / _valuesPerByte];
+	if (pdesc)
+		_desc.assign(pdesc) ;
+
 	if (len == 0) {
 		delete[] ascii;
 		return;
 	}
-
+	
 	char *src = ascii;
 	char *end = ascii + len;
 	uint8_t *pos = _data;

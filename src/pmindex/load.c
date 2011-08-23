@@ -8,13 +8,15 @@ int alloc_chr_seq_buffer();
 int load_chr_sequence();
 
 
-int load_chromosomes()
+int load_chromosomes(VariantMap & variants)
 {
 	unsigned int eof = 0;
 	unsigned int chr = 0;
 	POS p;
 	
 	BLOCK = 0;
+
+	fprintf(stdout, "blocktable=%ld", BLOCK_TABLE) ;
 
 
 	while (!eof) {
@@ -30,8 +32,7 @@ int load_chromosomes()
 
 		if (VERBOSE) { printf("\tLength %d\n", CHR_LENGTH); }
 
-
-		index_chromosome(chr);
+		index_chromosome(chr, variants);
 
 		write_chr_desc(chr);
 
