@@ -1216,21 +1216,11 @@ void QPalma::convert_variants(std::vector<Variant> &variants, int dna_len) const
 {
 	for (unsigned int i = 0; i < variants.size(); i++)
 	{
-		if (variants[i].type == pt_insertion)
-		{
 			int start_tmp=variants[i].position;
-			variants[i].position=dna_len-variants[i].end_position;
-			variants[i].end_position=dna_len-start_tmp;
+			variants[i].position=dna_len-(variants[i].end_position);
+			variants[i].end_position=dna_len-(start_tmp);
 			variants[i].ref_str=reverse(complement(variants[i].ref_str));
 			variants[i].variant_str=reverse(complement(variants[i].variant_str));
-		}
-		else{
-			int start_tmp=variants[i].position;
-			variants[i].position=dna_len-(variants[i].end_position+1);
-			variants[i].end_position=dna_len-(start_tmp+1);
-			variants[i].ref_str=reverse(complement(variants[i].ref_str));
-			variants[i].variant_str=reverse(complement(variants[i].variant_str));
-		}
 	}
 }
 
@@ -3268,14 +3258,18 @@ int report_variant_at_read_pos(std::vector<Variant> & variants, int id, int read
 		
 
 
-void QPalma::recover_variants_on_ref(Variant &variant,std::vector<int> positions,char strand, int read_len) const
+void QPalma::recover_variants_on_ref(Variant &variant,std::vector<int> positions,char strand, int read_len,Chromosome const &contig_idx) const
 {
+	
 	
 	if (strand =='+')
 	{
 		//Get directly original positions
 		variant.position=positions[variant.position];
-		variant.end_position=positions[variant.end_position];
+		if (variant.type == pt_insertion)
+			variant.end_position=positions[variant.end_position];
+		else
+			variant.end_position=positions[variant.end_position-1]+1;
 	}
 	else{	
 		//Give sequences according to positive strand
@@ -3298,11 +3292,37 @@ void QPalma::recover_variants_on_ref(Variant &variant,std::vector<int> positions
 		}
 		else
 		{
-			int start_v=positions[variant.position];
-			int end_v=positions[variant.end_position];
+			int start_v=positions[variant.position]+1;
+			int end_v=positions[variant.end_position-1];
 			variant.position=end_v;
 			variant.end_position=start_v;
 		}
+	}
+
+	if (perform_extra_checks){
+		assert (variant.position >=0);
+		assert (variant.end_position >=0);
+	}
+	
+
+	//Case for long deletion or substitution which spans several regions
+	if (variant.type == pt_deletion || variant.type == pt_substitution){
+		
+		if (variant.end_position-variant.position != variant.ref_len){
+
+			int ref_len=0;
+			std::string ref_str="";
+			
+			for (int i=variant.position; i<variant.end_position;i++){
+				ref_str+=contig_idx[i];
+				ref_len++;
+			}
+			
+			variant.ref_str=ref_str;
+			variant.ref_len=ref_len;
+			ref_str.clear();
+		}
+	   		
 	}
 }
 
@@ -3701,6 +3721,10 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 	
 	for (size_t i = 0; i < dna.length(); i++) 
 	{
+		//Alignment goes over N sequence
+		if (s_align[i] == 0 && positions[i]<0)
+			return false;
+		
 		if (exon_start == -1 && s_align[i] == 0 && i<dna.length()-1) 
 		{
 			exon_start = i;
@@ -4810,7 +4834,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		
 		for (unsigned int i=0; i< variant_list.size();i++)
 		{
-			recover_variants_on_ref(variant_list[i], positions, strand, est_len_p);
+			recover_variants_on_ref(variant_list[i], positions, strand, est_len_p,contig_idx);
 
 			if (variant_list[i].used_count >=1)
 				variant_list[i].read_id = read.id();
