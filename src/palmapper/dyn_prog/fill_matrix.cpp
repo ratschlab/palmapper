@@ -39,16 +39,16 @@ template
 void fast_fill_matrix<true>(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 							double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 							std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
-							int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping, std::vector<SuperVariant> & super_variants,
-							int no_gap_end,int min_exon_len,int min_intron_len);
+							int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping, 
+							int no_gap_end,int min_exon_len,int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
 
 
 template
 void fast_fill_matrix<false>(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 							 double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 							 std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
-							 int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping, std::vector<SuperVariant> & super_variants,
-							 int no_gap_end,int min_exon_len,int min_intron_len);
+							 int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping,
+							 int no_gap_end,int min_exon_len,int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
 
 int number_fill_matrix;
 
@@ -119,45 +119,11 @@ inline bool is_a_match(int dna, int read)
 	return false;
 }
 
-bool isSorted(const std::vector<SuperVariant> &  super_variants)
-{
-	for (unsigned int i=1; i<super_variants.size(); i++)
-		if (super_variants[i-1].position > super_variants[i].position)
-			return false ;
-	return true ;
-}
-
-inline std::vector<SuperVariant>::iterator  
-supervariant_lower_bound ( std::vector<SuperVariant>::iterator first, std::vector<SuperVariant>::iterator last, const int& value )
-{
-	std::vector<SuperVariant>::iterator it;
-	long int count, step;
-	count = distance(first,last);
-
-	while (count>0)
-	{
-		it = first;
-		step = count/2;
-		advance(it,step);
-
-		if ( (*it).position < value) 
-		{
-			first=it; 
-			count-=step+1;
-		}
-		else count=step ;
-	}
-
-	while (first<last && (*first).position<value)
-		advance(first, 1) ;
-	
-	return first;
-}
 
 
 
 template<bool use_variants>
-std::vector<int> getDeletionsfromVariants(int position, std::vector<int>& endpositions, std::vector<variant_cache_t*> & cache){
+std::vector<int> getDeletionsfromVariants(int position, std::vector<int>& endpositions, const std::vector<variant_cache_t*> & cache){
 	std::vector<int> dels;
 
 	
@@ -189,7 +155,7 @@ std::vector<int> getDeletionsfromVariants(int position, std::vector<int>& endpos
 }
 
 template <bool use_variants>
-char getBestDnaChar(char readChar, char dnaChar, int position, std::vector<variant_cache_t*> & variant_cache )
+char getBestDnaChar(char readChar, char dnaChar, int position, const std::vector<variant_cache_t*> & variant_cache )
 { // TODO: implement cache
 	int readInt = check_char(readChar);
 	
@@ -273,7 +239,7 @@ char getBestDnaChar(char readChar, char dnaChar, int position, std::vector<varia
 }
 
 template <bool use_variants>
-double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, int position, int &dnaValue, int &snp_id, std::vector<variant_cache_t*> & variant_cache )
+double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, char readChar, double baseScore, int position, int &dnaValue, int &snp_id, const std::vector<variant_cache_t*> & variant_cache )
 {
 	double score;
 	int dnaInt= check_char(dnaChar);
@@ -293,9 +259,14 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	if ( !use_variants)
 		return score;
 
-	if (PERFORM_EXTRA_CHECKS)
+	if (PERFORM_EXTRA_CHECKS){
+		
+		if (position <0 || position >= (int)variant_cache.size())
+			fprintf(stdout,"pos %i cache size %i\n", position,  (int)variant_cache.size());
+		
 		assert(position >=0 && position < (int)variant_cache.size());
-
+	}
+	
 	if ( variant_cache[position]==NULL)
 		return score;
 	//Take variants into account and output the best score among the different possibilities (match first I guess)
@@ -390,7 +361,7 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 }
 
 template<bool use_variants>
-double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, int position, int &dnaValue, int &snp_id, std::vector<variant_cache_t*> & variant_cache )
+double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_struct* qualityScores,int mlen, char dnaChar, int position, int &dnaValue, int &snp_id, const std::vector<variant_cache_t*> & variant_cache )
 {
 	double score;
 	int dnaInt= check_char(dnaChar);
@@ -609,7 +580,7 @@ void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
 }
 
 template <bool use_variants>
-int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices, int i, int j, int prev_shift, char* read, int read_len, char* dna, int dna_len, double* read_scores, int verbosity, std::vector<variant_cache_t*> & variant_cache)
+int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min_matches, int*matrices, int i, int j, int prev_shift, char* read, int read_len, char* dna, int dna_len, double* read_scores, int verbosity, const std::vector<variant_cache_t*> & variant_cache)
 {
 	double prevValue;
 	int num;
@@ -701,7 +672,7 @@ void print_restricted_matrix(Prev_score* matrices[],int nr_paths, int matrix_len
 
 
 template <bool use_variants>
-void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,	int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity, mode currentMode, bool remapping, std::vector<int> deletion_id, int no_gap_end,int min_exon_len,int min_intron_len, std::vector<variant_cache_t*> & variant_cache)
+void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,	int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity, mode currentMode, bool remapping, std::vector<int> deletion_id, int no_gap_end,int min_exon_len,int min_intron_len, const std::vector<variant_cache_t*> & variant_cache)
 {
 
 //	fprintf(stdout,"START: Fill %s side of the matrix from position %i-%i (%i-%i) (%i,%i,%i,num_intron=%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,read_len, dna_len,max_gap,max_mism,max_edit_op, max_number_introns);
@@ -1763,8 +1734,8 @@ template<bool use_variants>
 void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 					  double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
-					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping,  std::vector<SuperVariant> &super_variants, 
-					  int no_gap_end,int min_exon_len,int min_intron_len)
+					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping,
+					  int no_gap_end,int min_exon_len,int min_intron_len, const std::vector<variant_cache_t *> &variant_cache)
 {
   
 	const int MMATRIX_LEN = 6; // length of matchmatrix
@@ -1796,63 +1767,7 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	}
   
 	//fprintf(stdout,"Best match scores...END\n");
-
-	//assert(isSorted(super_variants)) ;
 	
-
-	//Precompute SNP and deletions for each position in the super sequence
-	std::vector<variant_cache_t *> variant_cache;
-
-	if (use_variants){
-		variant_cache.assign(dna_len,NULL);
-		
-		for (unsigned int i=0; i< super_variants.size();i++){
-
-			assert(super_variants[i].position < dna_len);
-			assert(super_variants[i].position >=0);
-		
-			//deletion/insertion/substitution
-			if (super_variants[i].type == pt_deletion){
-
-				if (seed_j >= super_variants[i].position && seed_j <= super_variants[i].end_position)
-					continue;
-				
-				assert(super_variants[i].end_position < dna_len);
-				assert(super_variants[i].end_position >=0);
-
-				//left side: the end of the deletion is encountered first
-				if ((int)super_variants[i].position<=seed_j){
-					if (variant_cache[super_variants[i].end_position]==NULL){
-						variant_cache[super_variants[i].end_position]= new variant_cache_t;
-					}
-					variant_cache[super_variants[i].end_position]->end_positions.push_back(super_variants[i].position);
-					variant_cache[super_variants[i].end_position]->id_dels.push_back(super_variants[i].variant_id);	
-				}
-				//right side: the beginning of the deletion is encountered first
-				else{
-					if (variant_cache[super_variants[i].position]==NULL){
-						variant_cache[super_variants[i].position]= new variant_cache_t;
-					}
-					variant_cache[super_variants[i].position]->end_positions.push_back(super_variants[i].end_position);
-					variant_cache[super_variants[i].position]->id_dels.push_back(super_variants[i].variant_id);	
-				}
-			}
-			//SNP
-			else{
-				if (variant_cache[super_variants[i].position]==NULL){
-					variant_cache[super_variants[i].position]= new variant_cache_t;
-					
-				}
-				variant_cache[super_variants[i].position]->snps.push_back(super_variants[i].SNP[1]);
-				variant_cache[super_variants[i].position]->id_snps.push_back(super_variants[i].variant_id);
-			}
-			
-		}
-		
-	}
-	
-	
-
 	
 	/*********************************************************************************************/
 	/*Left and right alignments */
@@ -2139,20 +2054,6 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	delete[] best_match_scores;
 	best_match_scores=NULL;
 
-	if (use_variants){
-		for (int i=0;i<dna_len;i++){
-			if (variant_cache[i] == NULL)
-				continue;
-			variant_cache[i]->end_positions.clear();
-			variant_cache[i]->id_dels.clear();
-			variant_cache[i]->id_snps.clear();
-			variant_cache[i]->snps.clear();
-			delete variant_cache[i];
-			variant_cache[i]=NULL;
-		}
-		
-		variant_cache.clear();
-	}
 	
 	//  fprintf(stdout,"Clean structures...END\n");
 }

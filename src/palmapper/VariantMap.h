@@ -161,6 +161,16 @@ struct super_variant_str {
 };
 typedef struct super_variant_str SuperVariant ;
 
+struct variant_cache_str
+{
+	std::vector<int>  end_positions ;
+	std::vector<int>  id_dels ;
+	std::vector<int>  id_snps ;	
+	std::vector<char> snps ;
+	int insertion;
+} ;
+typedef struct variant_cache_str variant_cache_t ;
+
 
 enum VariantInputEnum {
 	sdi,
