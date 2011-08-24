@@ -2569,7 +2569,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		Variant v ;
 		v.position = -1 ;
 		
-		if (false && (*it).type == pt_SNP)
+		if ((*it).type == pt_SNP)
 		{
 			assert((*it).ref_len==1 && (*it).variant_len==1) ;
 			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
