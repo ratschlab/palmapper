@@ -3380,11 +3380,6 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 	if (verbosity>=3)
 	{
 		fprintf(stdout, "DNA: %s\n",(char*)dna.c_str());
-		fprintf(stdout,"ref_map: ");	
-		for (unsigned int j=0; j<ref_map.size();j++){
-			fprintf(stdout,"%i",ref_map[j]?1:0);		
-		}
-		fprintf(stdout,"\n");	
 		fprintf(stdout,"s_align: ");	
 		for (int j=0; j<s_len;j++){
 			fprintf(stdout,"%i",s_align[j]);		
@@ -3440,7 +3435,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 	// for (unsigned int i=0; i< found_variants.size();i++){
 	// 	int pos=found_variants[i];
 		
-	// 	fprintf(stdout,"V type=%i id=%i ref(%i)=%s var(%i)=%s\n",variants[pos].type,variants[pos].id, variants[pos].ref_len, (char*)variants[pos].ref_str.c_str(),variants[pos].variant_len,(char *)variants[pos].variant_str.c_str());
+	// 	fprintf(stdout,"V[%i] type=%i id=%i ref(%i)=%s var(%i)=%s\n",pos,variants[pos].type,variants[pos].id, variants[pos].ref_len, (char*)variants[pos].ref_str.c_str(),variants[pos].variant_len,(char *)variants[pos].variant_str.c_str());
 	// }
 		
 	//Read position to report for a used variant
@@ -4886,55 +4881,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	alignment.getAlignmentArrays(dna_align, est_align);
 
 	std::vector<int> found_variants =alignment.getVariants();
-	int used_variants;
-	bool alignment_variants_valid=false;
-
-	// for (unsigned int i=0; i<found_variants.size();i++){
-	// 	fprintf(stdout,"variant used: read_pos:%i id:%i type:%i\n",found_variants[i].read_position, found_variants[i].id,found_variants[i].type);
-	// }
 	
-	
-	if (_config.USE_VARIANTS && variant_list.size()>0)
-	{
-		used_variants = reconstruct_reference_alignment(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
-														dna_align, est_align, result_length, remapping, alignment_variants_valid,variant_cache) ;
-
-		
-		for (unsigned int i=0; i< variant_list.size();i++)
-		{
-			recover_variants_on_ref(variant_list[i], positions, strand, est_len_p,contig_idx);
-
-			if (variant_list[i].used_count >=1)
-				variant_list[i].read_id = read.id();
-			else
-				variant_list[i].non_used_count += 1;
-		}
-
-
-		for (int i=0;i<d_len;i++){
-			if (variant_cache[i] == NULL)
-				continue;
-			variant_cache[i]->end_positions.clear();
-			variant_cache[i]->id_dels.clear();
-			variant_cache[i]->id_snps.clear();
-			variant_cache[i]->snps.clear();
-			delete variant_cache[i];
-			variant_cache[i]=NULL;
-		}
-		
-		variant_cache.clear();
-
-		
-		if (verbosity>=2)
-		{
-			fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);
-			
-			for (unsigned int v=0; v<variant_list.size();v++){
-				fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s used_count=%i non_used_count=%i\n",variant_list[v].type,variant_list[v].position,variant_list[v].read_pos, (char *)variant_list[v].read_id.c_str(),variant_list[v].used_count,variant_list[v].non_used_count);
-			}
-		}
-	}
-
 	std::vector<int> exons;
 	exons.clear();
 
@@ -4952,6 +4899,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	std::vector<Variant> align_variants ;
 	std::vector<int> aligned_positions ;
+	int used_variants;
+	bool alignment_variants_valid=false;
 
 	//Alignment not found with less than _config.NUM_EDIT_OPS or _config.NUM_GAPS or _config.NUM_MISMATCHES
 	if (result_length<est_len_p)
@@ -4963,13 +4912,55 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	else
 	{  	
+		
+		if (_config.USE_VARIANTS && variant_list.size()>0)
+		{
+			used_variants = reconstruct_reference_alignment(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
+															dna_align, est_align, result_length, remapping, alignment_variants_valid,variant_cache) ;
+			
+			
+			for (unsigned int i=0; i< variant_list.size();i++)
+			{
+				recover_variants_on_ref(variant_list[i], positions, strand, est_len_p,contig_idx);
+				
+				if (variant_list[i].used_count >=1)
+					variant_list[i].read_id = read.id();
+				else
+					variant_list[i].non_used_count += 1;
+			}
+			
+			
+			
+			if (verbosity>=2)
+			{
+				fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);
+				
+				for (unsigned int v=0; v<variant_list.size();v++){
+					fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s used_count=%i non_used_count=%i\n",variant_list[v].type,variant_list[v].position,variant_list[v].read_pos, (char *)variant_list[v].read_id.c_str(),variant_list[v].used_count,variant_list[v].non_used_count);
+				}
+			}
+		}
 		alignment_valid = alignment_valid && 
 			determine_exons(exons, dna, positions, remapping, strand, s_align, e_align, min_exon_len, max_intron_len, min_intron_len)  ;
-	   
+		
 	}
+	
+	for (int i=0;i<(int)variant_cache.size();i++){
+		if (variant_cache[i] == NULL)
+			continue;
+		variant_cache[i]->end_positions.clear();
+		variant_cache[i]->id_dels.clear();
+		variant_cache[i]->id_snps.clear();
+		variant_cache[i]->snps.clear();
+		delete variant_cache[i];
+		variant_cache[i]=NULL;
+	}
+	
+	variant_cache.clear();
+	
 
 	//if (alignment_matches >= read_string.length() - _config.NUM_EDIT_OPS
-	//		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
+   //		&& exons.size() >= 4) // it must be spliced and not have too many mismatches
 
 
 	bool non_consensus_alignment=false ;
