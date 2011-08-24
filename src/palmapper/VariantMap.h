@@ -152,15 +152,6 @@ struct found_variant_str {
 };
 typedef struct found_variant_str FoundVariant;
 
-struct super_variant_str {
-	int variant_id ;
-	int position ;
-	int end_position ;
-	char SNP[2] ;
-	enum polytype type ;
-};
-typedef struct super_variant_str SuperVariant ;
-
 struct variant_cache_str
 {
 	std::vector<int>  end_positions ;
