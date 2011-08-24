@@ -3,74 +3,112 @@
 
 #include <palmapper/VariantMap.h>
 #include "pmindex.h"
+#include <iterator>
 
 int pos2bin(unsigned int slot, unsigned int chr);
 int pos2bin_rev(unsigned int slot, unsigned int chr);
-int get_slot(char *seq, int pos);
+int get_slot(const char *seq, int pos);
 
 const bool perform_extra_checks=true ;
 
 
-int insert_variants(std::vector<Variant>::iterator start, std::vector<Variant>::iterator end, char * seq, unsigned int pos, int chr, POS & p)
+inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Variant>::iterator end, char * seq, unsigned int pos, int chr, 
+						   int counter, std::map<int,bool> & source_ids, std::map<int,bool> & slots)  
 {
-	if (start==end)
-	{
-		//fprintf(stdout, "variant at pos %i\n", pos) ;
-
-		HAS_SLOT = 0;
-		
-		int slot = get_slot(seq, 0);
-		
-		if(INDEX[slot] == NULL) {
-			alloc_bin(slot);
-		}
-		pos2bin(slot, chr);	// 0-initialized
-		
-		POSITION++;
-		HAS_SLOT = 0;
-
-		if (POSITION >= BLOCK_SIZE) 
-		{
-			if (BLOCK == BLOCK_TABLE_SIZE - 1) 
-			{
-				fprintf(stderr, "ERROR: Too large chromosomes/contigs or too many chromosomes/contigs! Split input file into many smaller ones!\n");
-				exit(0);
-			}
-			BLOCK++;
-			POSITION %= BLOCK_SIZE;
-			
-			p.chr = chr;
-			p.pos = pos - POSITION;
-			BLOCK_TABLE[BLOCK] = p;
-		}
-
-
-		return 1 ;
-	}
-
+	if (counter < 0)
+		return 0 ;
 
 	std::vector<Variant>::iterator it ;
 	for (it=start; it<end; it++)
 	{
 		if ((*it).type == pt_SNP)
 		{
-			char myseq[INDEX_DEPTH] ;
-			strncpy(myseq, seq, INDEX_DEPTH) ;
-			if (perform_extra_checks)
-				assert(CHR_SEQ[(*it).position] == (*it).ref_str[0]) ;
+			int r1=0, r2=0 ;
+			bool found = false, used=false ;
+
+			for (unsigned int j=0; j<(*it).read_id_num.size(); j++)
+			{
+				found = (source_ids.count((*it).read_id_num[j])>0) ;
+				if (found)
+				{
+					used = source_ids[(*it).read_id_num[j]] ;
+					break ;
+				}
+			}
 			
-			char c = (*it).variant_str[0] ;
-			if (c!='A' && c!='C' && c!='G' && c!='T') 
-				continue ;
-			assert((*it).position-(int)pos>=0 && (*it).position-(int)pos<INDEX_DEPTH) ;
-			seq[(*it).position-pos] = c ;
+			if (found)
+			{
+				if (!used)
+					r2+=insert_variants( it+1, end, seq, pos, chr, counter, source_ids, slots) ;
+				else
+				{
+					char c = (*it).variant_str[0] ;
+					if (c=='A' || c=='C' || c=='G' || c=='T')
+					{
+						assert((*it).position-(int)pos>=0 && (*it).position-(int)pos<INDEX_DEPTH) ;
+						
+						char o=seq[(*it).position-pos] ;
+						seq[(*it).position-pos] = c ;
+						
+						r1+=insert_variants( it+1, end, seq, pos, chr, counter, source_ids, slots) ;
+						
+						// cleanup
+						seq[(*it).position-pos] = o ;
+					}
+				}
+			}
+			else
+			{
+				if (counter<1)
+					continue ; // spare preparing the sequence
+
+				for (unsigned int j=0; j<(*it).read_id_num.size(); j++)
+				{
+					source_ids[(*it).read_id_num[j]]=false ;
+					r2+=insert_variants( it+1, end, seq, pos, chr, counter-1, source_ids, slots) ;
+					
+					char c = (*it).variant_str[0] ;
+					if ((c=='A' || c=='C' || c=='G' || c=='T'))
+					{
+						source_ids[(*it).read_id_num[j]]=true ;
+						assert((*it).position-(int)pos>=0 && (*it).position-(int)pos<INDEX_DEPTH) ;
+						
+						char o=seq[(*it).position-pos] ;
+						seq[(*it).position-pos] = c ;
+						
+						r1+=insert_variants( it+1, end, seq, pos, chr, counter-1, source_ids, slots) ;
+						
+						// cleanup
+						seq[(*it).position-pos] = o ;
+					}
+					
+					source_ids.erase((*it).read_id_num[j]) ;
+				}
+			}
 			
-			int r1=insert_variants( it+1, end, myseq, pos, chr, p) ;
-			int r2=insert_variants( it+1, end, seq, pos, chr, p) ;
 			return r1+r2 ;
 		}
 	}
+	
+	if (it==end)
+	{
+		if (false && slots.size()>2)
+		{
+			fprintf(stdout, "variant at pos %i\nsources\n", pos) ;
+			for (std::map<int,bool>::iterator it2=source_ids.begin(); it2!=source_ids.end(); it2++)
+				fprintf(stdout, "%i\n", it2->first) ;
+		}
+		
+		HAS_SLOT = 0;
+		
+		int slot = get_slot(seq, 0);
+		slots[slot]=true ;
 
+		HAS_SLOT = 0 ;
+		
+		return 1 ;
+	}
+	
 	return 0 ;
 }
 
@@ -127,10 +165,45 @@ int index_chromosome(unsigned int chr, VariantMap & variants)
 				{
 					char seq[INDEX_DEPTH] ;
 					strncpy(seq, &CHR_SEQ[pos], INDEX_DEPTH) ;
-					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, p) ;
-					if (num_seeds>16)
-						fprintf(stdout, "num_seeds=%i\n", num_seeds) ;
-					num_seeds_total+=num_seeds ;
+
+					std::map<int,bool> source_ids ;
+					std::map<int,bool> slots ;
+					
+					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, 4, source_ids, slots) ;
+					int num_slots=slots.size() ;
+					for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
+						assert(seq[i-pos]==CHR_SEQ[i]) ;
+
+					if (slots.size()>10)
+						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld, source_ids=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop), source_ids.size()) ;
+					num_seeds_total += num_slots ;
+
+					for (std::map<int,bool>::iterator it=slots.begin(); it != slots.end(); it++)
+					{
+						slot = it->first ;
+						if(INDEX[slot] == NULL) {
+							alloc_bin(slot);
+						}
+						pos2bin(slot, chr);	// 0-initialized
+						
+						POSITION++;
+						HAS_SLOT = 0;
+						
+						if (POSITION >= BLOCK_SIZE) 
+						{
+							if (BLOCK == BLOCK_TABLE_SIZE - 1) 
+							{
+								fprintf(stderr, "ERROR: Too large chromosomes/contigs or too many chromosomes/contigs! Split input file into many smaller ones!\n");
+								exit(0);
+							}
+							BLOCK++;
+							POSITION %= BLOCK_SIZE;
+							
+							p.chr = chr;
+							p.pos = pos - POSITION;
+							BLOCK_TABLE[BLOCK] = p;
+						}
+					}
 				}
 				else
 				{
@@ -232,7 +305,7 @@ int pos2bin(unsigned int slot, unsigned int chr)
 }
 
 
-int get_slot(char *seq, int pos)
+int get_slot(const char *seq, int pos)
 {
 	unsigned int slot = 0;
 	unsigned int i;

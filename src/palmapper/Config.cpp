@@ -155,7 +155,8 @@ Config::Config() {
 	REPORT_VARIANTS=false ;
 	REPORT_USED_VARIANTS=false ;
 	FILTER_VARIANTS=false ;
-	
+	MERGE_VARIANT_SOURCE_IDS = false ;
+
 	USE_VARIANT_FILE_NAME = "" ;
 	REPORT_USED_VARIANT_FILE_NAME = "";
 	REPORT_VARIANTS_FILE_NAME="" ;
@@ -921,6 +922,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-discover-variants") == 0) {
 				not_defined = 0;
 				DISCOVER_VARIANTS = true;
+			}
+			if (strcmp(argv[i], "-merge-variant-source-ids") == 0) {
+				not_defined = 0;
+				MERGE_VARIANT_SOURCE_IDS = true;
 			}
 
 			//Variant filename with variants to use for alignments

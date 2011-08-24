@@ -2,7 +2,7 @@
 #include <string>
 #include <list>
 #include <map>
-#include <palmapper/Genome.h>
+#include <palmapper/Genome.h> 
 #include <palmapper/Config.h>
 #include <stdlib.h> 
 #include <palmapper/Util.h>
@@ -10,7 +10,7 @@
 #include <palmapper/QPalma.h>
 #include <algorithm>
 
-VariantMap::VariantMap(Genome const &genome_)
+VariantMap::VariantMap(Genome const &genome_, bool p_merge_variant_source_ids)
 {
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
@@ -26,7 +26,8 @@ VariantMap::VariantMap(Genome const &genome_)
 	exit_on_validation_error=false ;
 	insert_unsorted=false ;
 	max_variant_len=50 ;
-	
+
+	merge_variant_source_ids=p_merge_variant_source_ids ;
 }
 
 VariantMap::~VariantMap()
@@ -370,10 +371,13 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 			int new_dist = min(j.read_pos, j.read_len-j.read_pos) ;
 			if	((new_dist>old_dist && (*it).read_len>0) || (*it).read_id.size()==0 || j.read_len<=0 )
 			{
-				(*it).read_id = j.read_id;
+				if (!merge_variant_source_ids)
+					(*it).read_id = j.read_id;
 				(*it).read_pos = j.read_pos;
 				(*it).read_len = j.read_len;
 			}
+			if (merge_variant_source_ids)
+				(*it).read_id = (*it).read_id + "," + j.read_id ;
 			return;
 		}
 		continue;
@@ -431,7 +435,7 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 		}
 
 		int chr_idx = genome->find_desc(chr_name) ;
-		if (chr_idx==-1)
+		if (chr_idx==-1) 
 		{
 			fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
 			genome->print_desc(stderr) ;

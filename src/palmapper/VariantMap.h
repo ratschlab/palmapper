@@ -4,6 +4,7 @@
 #include <palmapper/Genome.h>
 #include <palmapper/GenomeMaps.h>
 #include <deque>
+#include <map>
 #include <string>
 #include <stdlib.h> 
 #include <iostream>
@@ -34,6 +35,9 @@ struct variant_str
 	short unsigned int non_conf_count ;
 	std::string ref_str, variant_str ;
 	std::string read_id ;
+#ifdef PMINDEX
+	std::vector<int> read_id_num ;
+#endif
 } ;
 
 typedef struct variant_str Variant;
@@ -177,11 +181,12 @@ private:
 	bool exit_on_validation_error ;
 	bool insert_unsorted ;
 	int max_variant_len ;
+	int merge_variant_source_ids ;
 	
 public:
 	std::vector<Variant> * variantlist ;
 
-	VariantMap(Genome const &genome_) ;
+	VariantMap(Genome const &genome_, bool merge_variant_source_ids=false) ;
 	~VariantMap() ;
 	int insert_variants_from_multiple_alignments(std::string & ref_align,int ref_len, std::vector<std::string> & variant_align, std::vector<std::string> & variant_name, 
 												 int start_position, int ref_chr_len, int chr_idx, char strand);
@@ -243,6 +248,52 @@ public:
 		
 		return 0 ;
 	}
+
+#ifdef PMINDEX
+	int get_read_id_num()
+	{
+		int counter=0 ;
+		std::map<std::string,int> map ;
+		for (int i=0; i<(int)genome->nrChromosomes(); i++)
+		{
+			for (unsigned int j=0; j<variantlist[i].size(); j++)
+			{
+				std::string source_ids=variantlist[i][j].read_id ;
+				int found=source_ids.find(",");
+				int previousfound=0;
+
+				while (true)
+				{
+					std::string source_id ;
+					if (found >=0)
+						source_id = source_ids.substr(previousfound, found-previousfound);
+					else
+						source_id=source_ids.substr(previousfound);
+					
+					if (map.count(source_id)==0)
+					{
+						/*if (counter<30)
+						  fprintf(stdout, "%s  %i\n", source_id.c_str(), counter) ;*/
+						map[source_id] = counter ;
+						variantlist[i][j].read_id_num.push_back(counter) ;
+						counter++ ;
+					}
+					else
+						variantlist[i][j].read_id_num.push_back(map[source_id]) ;
+
+					if (found<=0)
+						break ;
+					
+					previousfound=found+1;
+					found=source_ids.find(",", found+1);
+					
+				}
+				
+			}
+		}
+		return counter ;
+	}
+#endif
 
 	void filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) ;
 	
