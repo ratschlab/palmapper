@@ -147,12 +147,22 @@ int init_opts(int argc, char *argv[])
 			} 
 		}
 	
-		//depth
+		//threads
 		if(strcmp(argv[i],"-threads")==0){
 			if(i+1 > argc - 1){ usage(); exit(1); }
 			i++;
 			if ((NUM_THREADS = atoi(argv[i])) == 0 || NUM_THREADS<=0) {
 				fprintf(stderr, "ERROR: number of threads must be an integer value between larger 0!\n");
+				exit(0);
+			}
+		}
+
+		//maximal number of combinations of source ids
+		if(strcmp(argv[i],"-max-variant-source-combinations")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			if ((MAX_SOURCE_COMBINATIONS = atoi(argv[i])) == 0 || MAX_SOURCE_COMBINATIONS<=0) {
+				fprintf(stderr, "ERROR: number of maximal variant source combinations must be an integer value between larger 0!\n");
 				exit(0);
 			}
 		}
