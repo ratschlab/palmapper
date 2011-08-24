@@ -135,7 +135,7 @@ int index_chromosome(unsigned int chr, VariantMap & variants)
 	
 	while (spacer < (int)CHR_LENGTH) 
 	{ 
-		if (spacer % 1000000 == 0)
+		if (spacer % 100000 == 0)
 		{
 			fprintf(stdout, "%i (%i, %i)", spacer, num_positions_total, num_seeds_total) ;
 			fflush(stdout) ;
