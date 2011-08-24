@@ -67,6 +67,7 @@ extern char CHR_DESC[2000];
 extern char CHR_DESC_TMP[2000];
 
 extern unsigned long int POSITION_COUNTER;
+extern int MAX_SOURCE_COMBINATIONS ;
 
 // ##############################################################
 // ####### INDEX MANAGEMENT #####################################
