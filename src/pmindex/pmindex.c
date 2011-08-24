@@ -37,18 +37,15 @@ int main(int argc, char *argv[])
 	
 	if (VERBOSE) { printf("Start loading\n"); }
 
-	Genome genome(22) ;
-	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
-	{
-		fprintf(stdout, "loading complete genome\n") ;
-		//genome.load_genome() ;
-	}
+	fprintf(stdout, "loading complete genome\n") ;
+	Genome genome(0) ; 
 	VariantMap variants(genome) ;
 	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
 	{
 		std::string fnames = std::string(GENOME_VARIANTS_FILE_NAME) ;
 		variants.init_from_files(fnames) ;
 	}
+	assert(variants.genome!=NULL) ;
 	load_chromosomes(variants);
 
 	if (VERBOSE) printf("\nTotal number of seed occurrences: %lu\n\n", POSITION_COUNTER);
