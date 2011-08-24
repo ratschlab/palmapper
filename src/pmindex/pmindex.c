@@ -44,6 +44,8 @@ int main(int argc, char *argv[])
 	{
 		std::string fnames = std::string(GENOME_VARIANTS_FILE_NAME) ;
 		variants.init_from_files(fnames) ;
+		int cnt=variants.get_read_id_num() ;
+		fprintf(stdout, "found %i source ids\n", cnt) ;
 	}
 	assert(variants.genome!=NULL) ;
 	load_chromosomes(variants);

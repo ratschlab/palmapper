@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 	genomemaps = new GenomeMaps(genome);
 
 	// variant maps
-	VariantMap variants(genome);
+	VariantMap variants(genome, _config.MERGE_VARIANT_SOURCE_IDS);
 
 	if (_config.USE_VARIANTS)
 	{
