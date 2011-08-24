@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <cctype> // std::tolower
 
 #include <palmapper/Chromosome.h>
 
@@ -58,6 +60,18 @@ public:
 			for (unsigned int i=0; i<NUM_CHROMOSOMES; i++)
 				if (strcmp(desc, _chromosomes[i].desc())==0)
 					return i ;
+			
+			std::string desc1 = desc ;
+			std::transform(desc1.begin(), desc1.end(), desc1.begin(), tolower);
+
+			for (unsigned int i=0; i<NUM_CHROMOSOMES; i++)
+			{
+				std::string desc2 = _chromosomes[i].desc() ;
+				std::transform(desc2.begin(), desc2.end(), desc2.begin(), tolower);
+				
+				if (desc1==desc2)
+					return i ;
+			}
 			return -1 ;
 		}
 

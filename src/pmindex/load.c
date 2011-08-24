@@ -16,9 +16,6 @@ int load_chromosomes(VariantMap & variants)
 	
 	BLOCK = 0;
 
-	fprintf(stdout, "blocktable=%ld", BLOCK_TABLE) ;
-
-
 	while (!eof) {
 
 		if (VERBOSE) { printf("Start chromosome nb. %d\n", chr+1); }

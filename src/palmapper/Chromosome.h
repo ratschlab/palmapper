@@ -18,6 +18,16 @@ public:
 	ChromosomeBase(char *ascii, uint32_t len) {
 		data(ascii, len);
 	}
+	ChromosomeBase(const ChromosomeBase & p) 
+	{
+		_length=p._length ;
+		_nr = p._nr ;
+		_desc = p._desc ;
+		int plen = (_length + _valuesPerByte - 1) / _valuesPerByte ;
+		_data = new uint8_t[plen];
+		memcpy(_data, p._data, sizeof(uint8_t)*plen) ;
+	}
+
 	~ChromosomeBase() {
 		delete[] _data;
 	}
@@ -119,8 +129,13 @@ template <int bits> void ChromosomeBase<bits>::data(char *ascii, uint32_t len, c
 	}
 }
 
+#ifndef PMINDEX
 #ifndef GM
 typedef ChromosomeBase<2> Chromosome;
 #else
 typedef ChromosomeBase<4> Chromosome;
 #endif
+#else
+typedef ChromosomeBase<8> Chromosome;
+#endif
+

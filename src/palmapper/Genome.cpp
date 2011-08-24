@@ -145,14 +145,12 @@ int Genome::load_genome()
 		exit(1);
 	}
 
-//	if ((CHR_SEQ_c = (char**) malloc (NUM_CHROMOSOMES * sizeof(char**))) == NULL) {
-//		fprintf(stderr, "ERROR : not enough memory for genome\n");
-//		exit(1);
-//	}
-
 	char line[513];
 	unsigned int fp = ftell(genome_fp);
 	unsigned int linelen;
+
+	//std::vector<Chromosome> chromosomes ;
+	_chromosomes = new Chromosome[10000] ;//NUM_CHROMOSOMES];
 
 #ifdef USE_CHR_BIN
 	fprintf(stdout, "using compact genome representation (class %s)\n", USE_CHR_BIN_CLASS::get_class_name()) ;
@@ -160,11 +158,12 @@ int Genome::load_genome()
 	unsigned int i ;
 	for (i=0; ; ++i) { 
 		fprintf(stdout, ".") ;
-		Chromosome &chr = _chromosomes[i];
+		//chromosomes.push_back(Chromosome()) ; 
+		Chromosome & chr = _chromosomes[i];
 		chr._nr = i;
 		std::string data ;
 		data.reserve(200000000) ;
-		char desc[100], rest[1000] ;
+		char desc[100] ;//, rest[1000] ;
 		
 		//unsigned int pos = 0;
 		
@@ -178,7 +177,7 @@ int Genome::load_genome()
 			}
 		if (line[0]=='>')
 		{
-			int ret = sscanf(line, ">%100s %1000s", desc, rest) ;
+			int ret = sscanf(line, ">%100s", desc) ;
 			assert(ret>=1) ;
 			//fprintf(stdout, "found chromosome %s\n", desc) ;
 		}
@@ -190,7 +189,8 @@ int Genome::load_genome()
 			//fprintf(stderr, "ERROR: cannot find sequence \"%s\"!\n",chr.desc());
 			//exit(1);
 		}
-		while (line[0] != '>') {
+		while (line[0] != '>') 
+		{
 			linelen = strcspn(line, " \n\t");
 			if (linelen > 0 && (line[linelen] == '\t' || line[linelen] == ' ')) {
 				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", GENOME_FILE_NAME, chr.desc());
@@ -211,8 +211,10 @@ int Genome::load_genome()
 				} 
 			}
 			buf[linelen]=0 ;
+			//if (data.size()==0)
+			//fprintf(stdout, "%s\n", buf) ; 
 			data+=buf ;
-
+			
 			fp = ftell(genome_fp);
 			if (fgets(line, 512, genome_fp) == NULL) break;
 		}
@@ -224,13 +226,18 @@ int Genome::load_genome()
 			fprintf(stderr, "ERROR: Idx file seems to be corrupted. Chromosome %d has %d characters at the end! (%d %d)\n",i+1, (int)data.size()-chr.length(), (int)data.size(), chr.length());
 			exit(1);
 		}
-		char *buf=new char[data.size()+1] ;
-		strcpy(buf, data.c_str()) ;
+		char *mbuf=new char[data.size()+1] ;
+		strcpy(mbuf, data.c_str()) ;
 		
-		chr.data(buf, chr.length(), desc);
+		chr.data(mbuf, chr.length(), desc);
 	}
 	NUM_CHROMOSOMES=i ;
 	fprintf(stdout, "read %i chromosomes\n", NUM_CHROMOSOMES) ;
+
+	//delete[] _chromosomes ;
+	//_chromosomes = new Chromosome[NUM_CHROMOSOMES];
+	//for (unsigned int ii=0; ii<NUM_CHROMOSOMES; ii++)
+	//	_chromosomes[ii]=chromosomes[ii] ;
 	
 	fclose(genome_fp);
 	
