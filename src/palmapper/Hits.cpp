@@ -699,8 +699,14 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 								if (read_num == num) {
 									printf("  Neighbour info: readpos %d \n", neighbor->readpos);
 								}
-								if (read_num == num) { printf("neighbor hit: "); if (neighbor->hit!=NULL) printhit(_read, neighbor->hit); else printf("null\n"); }
-								if (neighbor->readpos == mapping_entry->readpos-1) { // is the neighbored mapping entry also neighbored in the read?
+								if (read_num == num) 
+								{ 
+									printf("neighbor hit: "); 
+									if (neighbor->hit!=NULL) 
+										printhit(_read, neighbor->hit); else printf("null\n"); 
+								}
+								if (neighbor->readpos == mapping_entry->readpos-1) 
+								{ // is the neighbored mapping entry also neighbored in the read?
 									hit = neighbor->hit;
 									if (hit != NULL) {
 										oldlength = hit->end - hit->start + 1;
@@ -1215,11 +1221,13 @@ int Hits::insert_into_scorelist(HIT* hit, char d)
 		else if (ret<0)
 			return ret ;
 	}
-//printhit(_read,hit);
+    //printhit(_read,hit);
+
 	int interval = (hit->mismatches-hit->gaps) * _config.MM_SCORE + hit->gaps * _config.GAP_SCORE - (((int)_read.length())-hit->mismatches) * _config.M_SCORE;
 	assert(interval>=0) ;
 	
-	if (HITS_BY_SCORE[interval].num == 0) {
+	if (HITS_BY_SCORE[interval].num == 0) 
+	{
 		// first entry in list
 		HITS_BY_SCORE[interval].hitpointer = hit;
 	}
@@ -1798,7 +1806,8 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 								}
 
 
-								if ( !cancel && nr_mms <= max_mms ) {
+								if ( !cancel && nr_mms <= max_mms ) 
+								{
 									// create hit
 									HIT* hit = new HIT();
 									if (!hit)
