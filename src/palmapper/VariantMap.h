@@ -278,7 +278,7 @@ public:
 					if (found >=0)
 						source_id = source_ids.substr(previousfound, found-previousfound);
 					else
-						source_id=source_ids.substr(previousfound);
+						source_id = source_ids.substr(previousfound);
 					
 					if (map.count(source_id)==0)
 					{
