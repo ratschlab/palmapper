@@ -4901,7 +4901,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	std::vector<int> aligned_positions ;
 	int used_variants;
 	bool alignment_variants_valid=false;
-
+ 
 	//Alignment not found with less than _config.NUM_EDIT_OPS or _config.NUM_GAPS or _config.NUM_MISMATCHES
 	if (result_length<est_len_p)
 	{
@@ -4933,8 +4933,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			
 			if (verbosity>=2)
 			{
-				fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);
-				
+				fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);				
 				for (unsigned int v=0; v<variant_list.size();v++){
 					fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s used_count=%i non_used_count=%i\n",variant_list[v].type,variant_list[v].position,variant_list[v].read_pos, (char *)variant_list[v].read_id.c_str(),variant_list[v].used_count,variant_list[v].non_used_count);
 				}
