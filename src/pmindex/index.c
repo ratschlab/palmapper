@@ -10,7 +10,7 @@ int pos2bin_rev(unsigned int slot, unsigned int chr);
 int get_slot(const char *seq, int pos);
 
 const bool perform_extra_checks=true ;
-
+const int max_source_combinations=1 ;
 
 inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Variant>::iterator end, char * seq, unsigned int pos, int chr, 
 						   int counter, std::map<int,bool> & source_ids, std::map<int,bool> & slots)  
@@ -439,7 +439,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 	
 	while (spacer < to) 
 	{ 
-		if (spacer % 1000000 == 0)
+		if (spacer % 100000 == 0)
 		{
 			fprintf(stdout, "[%i: %2.1f%%, %i, %i, %i]  ", thread_id, 100.0*(double)(pos-from)/(double)(to-from), spacer-from, num_positions_total, num_seeds_total) ;
 			fflush(stdout) ;
@@ -472,14 +472,14 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 					std::map<int,bool> source_ids ;
 					std::map<int,bool> slots ;
 					
-					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, 3, source_ids, slots) ;
+					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, max_source_combinations, source_ids, slots) ;
 					int num_slots=slots.size() ;
 					
 					if (perform_extra_checks)
 						for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
 							assert(seq[i-pos]==CHR_SEQ[i]) ;
 
-					if (slots.size()>100)
+					if (slots.size()>1000)
 						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop)) ;
 					num_seeds_total += num_slots ;
 
