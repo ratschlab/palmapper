@@ -66,7 +66,7 @@ inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Var
 				for (unsigned int j=0; j<(*it).read_id_num.size(); j++)
 				{
 					source_ids[(*it).read_id_num[j]]=false ;
-					r2+=insert_variants( it+1, end, seq, pos, chr, counter-1, source_ids, slots) ;
+					r2+=insert_variants( it+1, end, seq, pos, chr, counter, source_ids, slots) ;
 					
 					char c = (*it).variant_str[0] ;
 					if ((c=='A' || c=='C' || c=='G' || c=='T'))
@@ -392,7 +392,7 @@ int index_chromosome(unsigned int chr, VariantMap & variants)
 				pos = spacer;
 			}
 		}
-		assert(POSITION==pos) ;
+		assert( POSITION%BLOCK_SIZE == pos%BLOCK_SIZE ) ;
 		
 		if (POSITION >= BLOCK_SIZE) 
 		{
@@ -464,7 +464,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 		else {
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') 
 			{
-				if (false && distance(curr_start, curr_stop)>0)
+				if (distance(curr_start, curr_stop)>0)
 				{
 					char seq[INDEX_DEPTH] ;
 					strncpy(seq, &CHR_SEQ[pos], INDEX_DEPTH) ;
@@ -489,8 +489,10 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 						chr_slots[pos].push_back(slot) ;
 					}
 				}
-				else
+				//else
 				{
+					HAS_SLOT=0 ;
+					
 					slot = get_slot(CHR_SEQ, pos);
 					chr_slots[pos].push_back(slot) ;
 					
