@@ -29,7 +29,10 @@ int load_chromosomes(VariantMap & variants)
 
 		if (VERBOSE) { printf("\tLength %d\n", CHR_LENGTH); }
 
-		index_chromosome(chr, variants);
+		if (strlen(GENOME_VARIANTS_FILE_NAME)==0)
+			index_chromosome_novariants(chr);
+		else
+			index_chromosome(chr, variants);
 
 		write_chr_desc(chr);
 
