@@ -138,15 +138,25 @@ int init_opts(int argc, char *argv[])
 				exit(0);
 			}
 			if (INDEX_DEPTH < MIN_INDEX_DEPTH) {
-				fprintf(stderr, "ERROR: specified index depth too low. Minimum allowed is 5!\n");
+				fprintf(stderr, "ERROR: specified index depth too low. Minimum allowed is %i!\n", MIN_INDEX_DEPTH);
 				exit(1);
 			}
 			else if (INDEX_DEPTH > MAX_INDEX_DEPTH) {
-				fprintf(stderr, "ERROR: specified index depth too big. Maximum allowed is 12!\n");
+				fprintf(stderr, "ERROR: specified index depth too big. Maximum allowed is %i!\n", MAX_INDEX_DEPTH);
 				exit(1);
 			} 
 		}
 	
+		//depth
+		if(strcmp(argv[i],"-threads")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			if ((NUM_THREADS = atoi(argv[i])) == 0 || NUM_THREADS<=0) {
+				fprintf(stderr, "ERROR: number of threads must be an integer value between larger 0!\n");
+				exit(0);
+			}
+		}
+
 		//verbose
 		if(strcmp(argv[i],"-v")==0){
 			VERBOSE = 1;

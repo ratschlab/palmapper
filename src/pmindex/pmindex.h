@@ -25,6 +25,8 @@ extern char VERBOSE;
 extern char HAS_SLOT;
 extern unsigned int SLOT;
 
+extern int NUM_THREADS ;
+
 extern int INDEX_DEPTH;
 extern long int POWER[MAX_INDEX_DEPTH];
 extern long int BINARY_CODE[5];

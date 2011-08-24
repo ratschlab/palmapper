@@ -2569,7 +2569,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		Variant v ;
 		v.position = -1 ;
 		
-		if ((*it).type == pt_SNP)
+		if (false && (*it).type == pt_SNP)
 		{
 			assert((*it).ref_len==1 && (*it).variant_len==1) ;
 			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
@@ -2993,23 +2993,23 @@ int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 {
 	// todo: speedup by binary search 
 	
-	std::vector<struct pos_table_str *>::iterator first = pos_table_lower_bound(pos_table.begin(), pos_table.end(), position) ;
+	/*std::vector<struct pos_table_str *>::iterator first = pos_table_lower_bound(pos_table.begin(), pos_table.end(), position) ;
 	int p = first - pos_table.begin() ;
 	if (perform_extra_checks)
 		assert(pos_table[p]->pos==position) ;
-	return p ;
+		return p ;*/
 
-	/*for (unsigned int i=0; i<pos_table.size(); i++)
+	for (unsigned int i=0; i<pos_table.size(); i++)
 		if (pos_table[i]->pos == position)
 		{
-			assert(p==(int)i) ;
+			//assert(p==(int)i) ;
 			return i ;
-		}
+		} 
 
 	fprintf(stderr, "ERROR: Position %i not found \n", position) ; 
 	assert(0) ;
 	
-	return -1 ;*/
+	return -1 ;
 }
 
 void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_end_p, struct pos_table_str * pos_table_new_end_p)
