@@ -45,7 +45,8 @@ inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Var
 					char c = (*it).variant_str[0] ;
 					if (c=='A' || c=='C' || c=='G' || c=='T')
 					{
-						assert((*it).position-(int)pos>=0 && (*it).position-(int)pos<INDEX_DEPTH) ;
+						if (perform_extra_checks)
+							assert((*it).position-(int)pos>=0 && (*it).position-(int)pos<INDEX_DEPTH) ;
 						
 						char o=seq[(*it).position-pos] ;
 						seq[(*it).position-pos] = c ;
@@ -71,7 +72,8 @@ inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Var
 					if ((c=='A' || c=='C' || c=='G' || c=='T'))
 					{
 						source_ids[(*it).read_id_num[j]]=true ;
-						assert((*it).position-(int)pos>=0 && (*it).position-(int)pos<INDEX_DEPTH) ;
+						if (perform_extra_checks)
+							assert((*it).position-(int)pos>=0 && (*it).position-(int)pos<INDEX_DEPTH) ;
 						
 						char o=seq[(*it).position-pos] ;
 						seq[(*it).position-pos] = c ;
@@ -133,7 +135,7 @@ int index_chromosome(unsigned int chr, VariantMap & variants)
 	
 	while (spacer < (int)CHR_LENGTH) 
 	{ 
-		if (spacer % 100000 == 0)
+		if (spacer % 1000000 == 0)
 		{
 			fprintf(stdout, "%i (%i, %i)", spacer, num_positions_total, num_seeds_total) ;
 			fflush(stdout) ;
@@ -171,11 +173,13 @@ int index_chromosome(unsigned int chr, VariantMap & variants)
 					
 					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, 4, source_ids, slots) ;
 					int num_slots=slots.size() ;
-					for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
-						assert(seq[i-pos]==CHR_SEQ[i]) ;
 
-					if (slots.size()>10)
-						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld, source_ids=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop), source_ids.size()) ;
+					if (perform_extra_checks)
+						for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
+							assert(seq[i-pos]==CHR_SEQ[i]) ;
+
+					if (slots.size()>100)
+						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop)) ;
 					num_seeds_total += num_slots ;
 
 					for (std::map<int,bool>::iterator it=slots.begin(); it != slots.end(); it++)
