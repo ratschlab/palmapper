@@ -152,6 +152,7 @@ extern int desc_parsing(char *c);
 
 //indec.c
 extern int index_chromosome(unsigned int chr, VariantMap & variants);
+extern int index_chromosome_novariants(unsigned int chr)  ;
 
 //alloc.c
 extern int alloc_bin(int slot);

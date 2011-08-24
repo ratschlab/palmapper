@@ -114,7 +114,7 @@ inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Var
 	return 0 ;
 }
 
-int index_chromosome_old(unsigned int chr, VariantMap & variants) 
+int index_chromosome_novariants(unsigned int chr) 
 {
 	if (VERBOSE) { printf("\tBuilding index ..."); fflush(stdout); }
 
@@ -124,30 +124,9 @@ int index_chromosome_old(unsigned int chr, VariantMap & variants)
 	POS p;
 	
 	HAS_SLOT = 0;
-	assert(variants.genome!=NULL) ;
 
-	assert(variants.genome->chromosome(chr).length()==CHR_LENGTH) ;
-	for (unsigned int i=0; i<CHR_LENGTH; i++)
-		assert(variants.genome->chromosome(chr)[i]==CHR_SEQ[i]) ;
-
-	int num_seeds_total = 0 ;
-	int num_positions_total = 0 ;
-	
 	while (spacer < (int)CHR_LENGTH) 
 	{ 
-		if (spacer % 100000 == 0)
-		{
-			fprintf(stdout, "%i (%i, %i)", spacer, num_positions_total, num_seeds_total) ;
-			fflush(stdout) ;
-		}
-		
-		std::vector<Variant>::iterator curr_start = variants.variantlist[chr].begin() ;
-		while (curr_start != variants.variantlist[chr].end() && (int)(*curr_start).position < (int)pos) 
-			advance(curr_start, 1) ;
-		std::vector<Variant>::iterator curr_stop = curr_start ;
-		while (curr_stop != variants.variantlist[chr].end() && (*curr_stop).position < (int)pos+INDEX_DEPTH)
-			advance(curr_stop, 1) ;
-		
 		if (spacer < (int)pos + INDEX_DEPTH - 1) 
 		{
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') {
@@ -163,65 +142,15 @@ int index_chromosome_old(unsigned int chr, VariantMap & variants)
 		else {
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') 
 			{
-				if (distance(curr_start, curr_stop)>0)
-				{
-					char seq[INDEX_DEPTH] ;
-					strncpy(seq, &CHR_SEQ[pos], INDEX_DEPTH) ;
-
-					std::map<int,bool> source_ids ;
-					std::map<int,bool> slots ;
-					
-					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, 4, source_ids, slots) ;
-					int num_slots=slots.size() ;
-
-					if (perform_extra_checks)
-						for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
-							assert(seq[i-pos]==CHR_SEQ[i]) ;
-
-					if (slots.size()>100)
-						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop)) ;
-					num_seeds_total += num_slots ;
-
-					for (std::map<int,bool>::iterator it=slots.begin(); it != slots.end(); it++)
-					{
-						slot = it->first ;
-						if(INDEX[slot] == NULL) {
-							alloc_bin(slot);
-						}
-						pos2bin(slot, chr);	// 0-initialized
-						
-						POSITION++;
-						HAS_SLOT = 0;
-						
-						if (POSITION >= BLOCK_SIZE) 
-						{
-							if (BLOCK == BLOCK_TABLE_SIZE - 1) 
-							{
-								fprintf(stderr, "ERROR: Too large chromosomes/contigs or too many chromosomes/contigs! Split input file into many smaller ones!\n");
-								exit(0);
-							}
-							BLOCK++;
-							POSITION %= BLOCK_SIZE;
-							
-							p.chr = chr;
-							p.pos = pos - POSITION;
-							BLOCK_TABLE[BLOCK] = p;
-						}
-					}
+				slot = get_slot(CHR_SEQ, pos);
+				
+				if(INDEX[slot] == NULL) {
+					alloc_bin(slot);
 				}
-				else
-				{
-					slot = get_slot(CHR_SEQ, pos);
-					
-					if(INDEX[slot] == NULL) {
-						alloc_bin(slot);
-					}
-					pos2bin(slot, chr);	// 0-initialized
-					POSITION++;
-					HAS_SLOT = 1;
-					num_seeds_total++ ;
-				}
-				num_positions_total++ ;
+				pos2bin(slot, chr);	// 0-initialized
+
+				POSITION++;
+				HAS_SLOT = 1;
 				spacer++;
 				pos++;
 			}
@@ -478,11 +407,11 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 					if (perform_extra_checks)
 						for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
 							assert(seq[i-pos]==CHR_SEQ[i]) ;
-
+					
 					if (slots.size()>1000)
 						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop)) ;
 					num_seeds_total += num_slots ;
-
+					
 					for (std::map<int,bool>::iterator it=slots.begin(); it != slots.end(); it++)
 					{
 						slot = it->first ;
@@ -491,7 +420,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 				}
 				else
 				{
-					HAS_SLOT=0 ;
+					//HAS_SLOT=0 ;
 					
 					slot = get_slot(CHR_SEQ, pos);
 					chr_slots[pos].push_back(slot) ;
