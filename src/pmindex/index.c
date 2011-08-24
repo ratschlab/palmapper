@@ -472,7 +472,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 					std::map<int,bool> source_ids ;
 					std::map<int,bool> slots ;
 					
-					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, 4, source_ids, slots) ;
+					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, 3, source_ids, slots) ;
 					int num_slots=slots.size() ;
 					
 					if (perform_extra_checks)
@@ -489,7 +489,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 						chr_slots[pos].push_back(slot) ;
 					}
 				}
-				//else
+				else
 				{
 					HAS_SLOT=0 ;
 					
