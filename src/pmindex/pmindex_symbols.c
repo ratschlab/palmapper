@@ -34,6 +34,7 @@ BIN **INDEX;//[INDEX_SIZE];
 long int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
 int *USED_SLOTS;//[INDEX_SIZE];
 STORAGE *MEM_MGR;
+int NUM_THREADS=1 ; 
 
 unsigned int LONGEST_CHROMOSOME;
 

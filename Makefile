@@ -8,10 +8,10 @@ SVNVERSION = $(shell svnversion)
 CC = g++
 #CFLAGS = -Wall -ggdb -pg # debug 
 #CFLAGS = -O9 -ggdb -g -pg -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
-CFLAGS = -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+CFLAGS =  -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -pg -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
-LDFLAGS =  #-pg
+LDFLAGS =  -pg
 
 SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
 	$(ObjDir)/palmapper/shogun/Mathematics.o \
@@ -93,7 +93,7 @@ palmapper: src/bwa/libbwa.a bwa src/gzstream/libgzstream.a $(PM_OBJ) src/palmapp
 	ln -sf palmapper genomemapper
 
 pmindex:  $(PMIDX_OBJ) src/pmindex/*.h src/pmindex/pmindex_symbols.c src/gzstream/libgzstream.a
-	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -DPMINDEX -o pmindex $(PMIDX_OBJ) -Lsrc/gzstream -l gzstream -lz -lm
+	$(CC) $(CFLAGS) $(INCLUDE) $(LDFLAGS) -DPMINDEX -o pmindex $(PMIDX_OBJ) -Lsrc/gzstream -l gzstream -lpthread -lz -lm
 	ln -sf pmindex gmindex 
 
 clean:
