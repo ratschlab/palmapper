@@ -3028,14 +3028,9 @@ void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_en
 	pos_table_previous_end_p->del_origs.clear();
 }
 
-inline bool supervariant_cmp(const SuperVariant &a, const SuperVariant &b)
-{
-	return a.position < b.position ;
-}
-
 template <int myverbosity>	
-std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, 
-																	  std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, int &hit_dna_pos, std::vector<bool> &ref_map,	std::vector<variant_cache_t *> &variant_cache) const 
+std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, 
+                                                int &hit_dna_pos, std::vector<bool> &ref_map) const 
 {
 	int seed_ref=hit_dna_pos;
 	
@@ -3178,12 +3173,9 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 		dna[i] = pos_table[i]->nuc ;
 	}
 
-	variant_cache.clear();
-	variant_cache.assign(d_len,NULL);
-
 	
-	std::vector<SuperVariant> super_variants ;
-
+	std::vector<variant_cache_t *> variant_cache(d_len,NULL);
+	
 	int nb_snps = 0 ;
 	int nb_dels = 0 ;
 	
@@ -3191,17 +3183,6 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 	{
 		for (unsigned j = 0; j<pos_table[i]->del_refs.size(); j++)
 		{
-			SuperVariant v ;
-			v.type = pt_deletion ;
-			//Closed interval comprising only new bases for an insertion or deleted bases for deletion
-			v.position = i +1;
-			v.end_position = pos_table[i]->del_refs[j]->pos -1;
-			v.variant_id = variants[pos_table[i]->del_ids[j]].id ;
-			v.SNP[0]='N' ;
-			v.SNP[1]='N' ;
-			super_variants.push_back(v) ;
-			nb_dels++ ;
-
 
 			int start_pos=i +1;
 			int end_pos=pos_table[i]->del_refs[j]->pos -1;
@@ -3216,6 +3197,8 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 						
 			//left side: the end of the deletion is encountered first
 			if ((int)end_pos<=hit_dna_pos){
+				nb_dels++;
+				
 				if (variant_cache[end_pos]==NULL){
 					variant_cache[end_pos]= new variant_cache_t;
 					variant_cache[end_pos]->insertion = -1;
@@ -3226,13 +3209,19 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				if (variants[id].type == pt_insertion){
 					if (variant_cache[start_pos]==NULL){
 						variant_cache[start_pos]= new variant_cache_t;
+						variant_cache[start_pos]->insertion = -1;
 					}	
+					//insertion unique
+					if (perform_extra_checks)
+						assert(variant_cache[start_pos]->insertion <0);
 					variant_cache[start_pos]->insertion = id;
 				}
 				
 			}
 			//right side: the beginning of the deletion is encountered first
 			else if (start_pos >= hit_dna_pos){
+				nb_dels++;
+
 				if (variant_cache[start_pos]==NULL){
 					variant_cache[start_pos]= new variant_cache_t;
 					variant_cache[start_pos]->insertion = -1;
@@ -3240,20 +3229,16 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 				variant_cache[start_pos]->end_positions.push_back(end_pos);
 				variant_cache[start_pos]->id_dels.push_back(id);	
 				if (variants[id].type == pt_insertion){
+					//insertion unique
+					if (perform_extra_checks)
+						assert(variant_cache[start_pos]->insertion <0);
+					
 					variant_cache[start_pos]->insertion = id;
 				}
 			}
 		}
 		for (unsigned j = 0; j<pos_table[i]->snps.size(); j++)
 		{
-			SuperVariant v ;
-			v.type = pt_SNP ;
-			v.position = i ;
-			v.end_position = i ;
-			v.variant_id = variants[pos_table[i]->snp_ids[j]].id ;
-			v.SNP[0]=pos_table[i]->snps[j]->ref_str[0] ;
-			v.SNP[1]=pos_table[i]->snps[j]->variant_str[0] ;
-			super_variants.push_back(v) ;
 			nb_snps++ ;
 
 			if (variant_cache[i]==NULL){
@@ -3274,46 +3259,12 @@ std::vector<SuperVariant> QPalma::create_super_sequence_from_variants(std::vecto
 	}
 
 	if (myverbosity>=1)
-		fprintf(stdout, "* used %ld supervariants\n", super_variants.size()) ;
-	
-	if (myverbosity>=2)
-		fprintf(stdout, "found %lu supervariants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", 
-				super_variants.size(), nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
+		fprintf(stdout, "found %i variants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", 
+				nb_snps+nb_dels, nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
 
-	//sort(super_variants.begin(), super_variants.end(), supervariant_cmp) ;
 	
-	return super_variants ;
+	return variant_cache ;
 }
-
-bool getSuperVariant(std::vector<SuperVariant> super_variants, int super_seq_pos, SuperVariant & sv)
-{
-	for (unsigned i=0;i<super_variants.size();i++){
-		if(super_variants[i].position == super_seq_pos){
-			sv=super_variants[i];
-			return true;
-		}
-	}
-
-	return false;
-}
-
-// int report_variant_at_read_pos(std::vector<Variant> & variants, int id, int read_pos)
-// {
-// 	for (unsigned i=0;i<variants.size();i++)
-// 	{
-// 		if(variants[i].id == id){
-// 			variants[i].read_pos=read_pos;
-// 			variants[i].used_count+=1;
-// 			variants[i].conf_count=0;
-// 			variants[i].non_conf_count=0;
-// 			return 1;
-// 		}
-// 	}
-	
-// 	return 0;
-	
-   
-// }
 
 
 int report_variant_at_read_pos(Variant & variant, int read_pos)
@@ -3330,8 +3281,6 @@ int report_variant_at_read_pos(Variant & variant, int read_pos)
 
 }
 		
-
-
 void QPalma::recover_variants_on_ref(Variant &variant,std::vector<int> positions,char strand, int read_len,Chromosome const &contig_idx) const
 {
 	
@@ -3425,7 +3374,7 @@ int get_end_position (Variant &variant, bool is_ref, int pos)
 }
 
 
-int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std::vector<SuperVariant> & super_variants, std::vector<int> & found_variants, std::string & dna, std::vector<bool> & ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters,	const std::vector<variant_cache_t *> &variant_cache) const
+int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, const std::vector<int> & found_variants, std::string & dna, const std::vector<bool> & ref_map, int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, bool& alignment_passed_filters,	const std::vector<variant_cache_t *> &variant_cache) const
 {
 
 	if (verbosity>=3)
@@ -3493,13 +3442,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, std
 		
 	// 	fprintf(stdout,"V type=%i id=%i ref(%i)=%s var(%i)=%s\n",variants[pos].type,variants[pos].id, variants[pos].ref_len, (char*)variants[pos].ref_str.c_str(),variants[pos].variant_len,(char *)variants[pos].variant_str.c_str());
 	// }
-	
-	
-	SuperVariant sv;
-	sv.end_position=-1;
-	sv.type=pt_unknown;
-	sv.variant_id=-1;
-	
+		
 	//Read position to report for a used variant
 	int read_pos=-1;
 
@@ -4653,7 +4596,7 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 				non_consensus_intron=true ;
 				non_consensus_alignment=true ;
 			}
-			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
+			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)//  // && final_variants.size()==0) // TODO
 				assert(!non_consensus_intron) ;
 		}
 		else
@@ -4682,7 +4625,7 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 				non_consensus_intron=true ;
 				non_consensus_alignment=true ;
 			}
-			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)// && super_variant_list.size()==0) // && final_variants.size()==0) // TODO
+			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS) // && final_variants.size()==0) // TODO
 				assert(!non_consensus_intron) ;
 			
 		}
@@ -4829,7 +4772,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 													* alignment_parameters->matchmatrix_dim[1], prb);
 	
 	
-	std::vector<SuperVariant> super_variant_list ;
 	std::vector<variant_cache_t *> variant_cache;
 	
 	std::vector<bool> ref_map;
@@ -4843,7 +4785,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 		try 
 		{
-			super_variant_list = create_super_sequence_from_variants<myverbosity>(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map,variant_cache) ;
+			variant_cache = create_super_sequence_from_variants<myverbosity>(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
 		}
 		catch (std::bad_alloc)
 		{
@@ -4854,8 +4796,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			aln=NULL ;
 			return -1;
 		}
-		if (variant_list.size()==0)
-			assert(super_variant_list.size()==0) ;
 	}
 
 	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
@@ -4892,7 +4832,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (non_consensus_search)
 		qmm_value+= _config.MIN_NUM_MATCHES_PEN;
 	
-	if (_config.USE_VARIANTS && (int)super_variant_list.size()>0)
+	if (_config.USE_VARIANTS && (int)variant_list.size()>0)
 	{
 		alignment.myalign_fast<true>(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
 							   est_len_p, prb, alignment_parameters->h,
@@ -4956,10 +4896,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	
 	if (_config.USE_VARIANTS && variant_list.size()>0)
 	{
-		used_variants = reconstruct_reference_alignment(variant_list, super_variant_list, found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
+		used_variants = reconstruct_reference_alignment(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
 														dna_align, est_align, result_length, remapping, alignment_variants_valid,variant_cache) ;
-		if (super_variant_list.size()==0)
-			assert(used_variants==0) ;
+
 		
 		for (unsigned int i=0; i< variant_list.size();i++)
 		{
