@@ -262,7 +262,10 @@ bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank)
 		{
 			if (i==0 || i==j.ref_len)
 				genome_str+='|' ;
-			genome_str+=genome->chromosome(chr)[j.position+i] ;
+			if (i>=0 && i<(int)genome->chromosome(chr).length())
+				genome_str+=genome->chromosome(chr)[j.position+i] ;
+			else
+				genome_str+='_' ;
 		}
 
 		for (int i=0; i<j.ref_len; i++)

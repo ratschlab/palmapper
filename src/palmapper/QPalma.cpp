@@ -3471,25 +3471,41 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 
 			//fprintf(stdout,"5: align_ind=%i, ref_map[%i]=%i\n",align_ind,i,ref_map[i]?1:0);
 
-			if(ref_map[i]) {
+			if(ref_map[i]) 
+			{
 				s_align_back.push_back(0);
+
+				if (!(align_ind>=0 && align_ind<result_tmp))
+				{
+					fprintf(stderr, "ERROR: result_tmp/align_ind mismatch %i %i\n", align_ind, result_tmp) ; // BUG-TODO
+					alignment_passed_filters=false ;
+					return 0 ;
+				}
+
+				assert(align_ind>=0 && align_ind<result_tmp) ;
 				dna_align_back.push_back(dna_align[align_ind]);
 				read_align_back.push_back(0);
 
 				//New deletion/substitution start: get end position
 				if (current_variant_end == -1){
 					if (next_v_pos!=-1)
+					{
+						assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
+						assert(i>=0 && i<=ref_map.size()) ;
 						current_variant_end=get_end_position(variants[next_v_pos],ref_map[i],i);
+					}
 				}
 					
 				//End deletion on ref
 				if (current_variant_end == (int)i){
+					assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
 					used_variants+=report_variant_at_read_pos(variants[next_v_pos], read_pos+1);
 
 					//Get new variant position
 					current_variant_end =-1;
 					next_v_pos=-1;
 					it++;
+					assert(it>=0) ;
 					if (it < (int)found_variants.size())
 						next_v_pos=found_variants[it];
 				}
@@ -3501,12 +3517,14 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 				
 				//End deletion on ref for imbalanced substitution
 				if (current_variant_end == (int)i){
+					assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
 					used_variants+=report_variant_at_read_pos(variants[next_v_pos],read_pos+1);
 					current_variant_end =-1;
 
 					//Get new variant position
 					next_v_pos=-1;
 					it++;
+					assert(it>=0) ;
 					if (it < (int)found_variants.size())
 						next_v_pos=found_variants[it];
 				}
@@ -3548,6 +3566,13 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 			//Start new exon
 			if (len_current_exon ==-1)
 				len_current_exon++;
+
+			if (!(align_ind>=0 && align_ind<result_tmp))
+			{
+				fprintf(stderr, "ERROR: result_tmp/align_ind mismatch %i %i\n", align_ind, result_tmp) ; // BUG-TODO
+				alignment_passed_filters=false ;
+				return 0 ;
+			}
 			
 			//Mismatch
 			if (dna_align[align_ind]!=read_align[align_ind] 
@@ -3568,15 +3593,26 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 
 				//SNP: get the original base
 				if (map_back(dna[i])!= dna_align[align_ind]){
+					assert(i>=0) ;// && i<map_back.size()) ;
 					dna_align_back.push_back(map_back(dna[i]));
-					assert(next_v_pos !=-1);
-					used_variants+=report_variant_at_read_pos(variants[next_v_pos], read_pos);
+					if (next_v_pos==-1)
+					{
+						fprintf(stderr, "ERROR: next_v_pos=-1\n") ;
+						//assert(next_v_pos !=-1);  // BUG-TODO
+					}
+					else
+					{
+						assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
+						used_variants+=report_variant_at_read_pos(variants[next_v_pos], read_pos);
+					}
 					next_v_pos=-1;
 					it++;
+					assert(it>=0) ;
 					if (it < (int)found_variants.size())
 						next_v_pos=found_variants[it];
 				}
 				else{
+					assert(align_ind>=0 && align_ind<result_tmp) ;
 					dna_align_back.push_back(dna_align[align_ind]);
 				}
 				
@@ -4916,7 +4952,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		if (_config.USE_VARIANTS && variant_list.size()>0)
 		{
 			used_variants = reconstruct_reference_alignment(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
-															dna_align, est_align, result_length, remapping, alignment_variants_valid,variant_cache) ;
+															dna_align, est_align, result_length, remapping, alignment_variants_valid, variant_cache) ;
 			
 			
 			for (unsigned int i=0; i< variant_list.size();i++)
@@ -4939,7 +4975,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				}
 			}
 		}
-		alignment_valid = alignment_valid && 
+		alignment_valid = alignment_valid && alignment_variants_valid && 
 			determine_exons(exons, dna, positions, remapping, strand, s_align, e_align, min_exon_len, max_intron_len, min_intron_len)  ;
 		
 	}
