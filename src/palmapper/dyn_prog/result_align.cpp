@@ -240,10 +240,10 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  splice_state = 0 ; //exon again
 		  }
 		  else{
-			  for(int d=d<next_seed->deletion_id.size()-1;d>=0;d--){
+			  //for(int d=d<next_seed->deletion_id.size()-1;d>=0;d--){
 				  //fprintf(stdout,"dna pos %i, variant %i",dstart-1,next_seed->deletion_id[d]);	  
-				  vfound_temp.insert(vfound_temp.begin(),next_seed->deletion_id[d]);
-			  }
+			  //}
+			  vfound_temp.insert(vfound_temp.begin(),next_seed->deletion_id.begin(),next_seed->deletion_id.end());
 			  for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
 				  s_align[n] = 5; //Deletion variant
 			  }
