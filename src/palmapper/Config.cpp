@@ -156,7 +156,7 @@ Config::Config() {
 	REPORT_USED_VARIANTS=false ;
 	FILTER_VARIANTS=false ;
 	MERGE_VARIANT_SOURCE_IDS = false ;
-
+	IUPAC_SNPS= false ;
 	USE_VARIANT_FILE_NAME = "" ;
 	REPORT_USED_VARIANT_FILE_NAME = "";
 	REPORT_VARIANTS_FILE_NAME="" ;
@@ -928,6 +928,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				MERGE_VARIANT_SOURCE_IDS = true;
 			}
 
+			//verbose
+			if (strcmp(argv[i], "-use-iupac-snp-variants") == 0) {
+				not_defined = 0;
+				IUPAC_SNPS= true ;
+			}
 			//Variant filename with variants to use for alignments
 			if (strcmp(argv[i], "-use-variants") == 0) {
 				not_defined = 0;
@@ -1500,6 +1505,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 			VERBOSE+=2 ;
 		}
 
+		//verbose
+		if (strcmp(argv[i], "-vvv") == 0) {
+			not_defined = 0;
+			VERBOSE+=3 ;
+		}
 		//scores out
 		if (strcmp(argv[i], "-e") == 0) {
 			not_defined = 0;
@@ -2287,6 +2297,7 @@ int Config::usage() {
 		printf(" -report-junctions STRING              report splice site junctions in gff3 format\n\n");
 
 		printf(" -use-variants STRING                  Use variants provided in a sdi or maf or samtools file to map reads against\n");
+		printf("-use-iupac-snp-variants                Enables the merge of SNPs and DNA base for aligning with variants (no snps reported in this case)\n");
 		printf(" -maf-ref STRING                       Name of the reference genome as it appears in multiple alignments for MAF file given with -use-variants option\n");
 		printf(" -discover-variants                    Switch on the discovery of new variant sequences (deletion, insertion, SNP)\n");
 		printf(" -report-variants STRING               report variants (used and discovered)\n\n");

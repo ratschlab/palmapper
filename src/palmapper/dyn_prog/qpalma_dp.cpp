@@ -9,14 +9,21 @@
 using namespace std;
 
 template
-void Alignment::myalign_fast<true>(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
+void Alignment::myalign_fast<true,true>(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 							 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns,  
 							 int max_gap, int max_mism, int max_edit_op, int min_match, bool remapping,  bool variant_mapping, int no_gap_end,int min_exon_len, int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
 
 
 template
-void Alignment::myalign_fast<false>(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
+void Alignment::myalign_fast<true,false>(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
+							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
+							 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns,  
+							 int max_gap, int max_mism, int max_edit_op, int min_match, bool remapping,  bool variant_mapping, int no_gap_end,int min_exon_len, int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
+
+
+template
+void Alignment::myalign_fast<false,false>(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 							 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns,  
 							 int max_gap, int max_mism, int max_edit_op, int min_match, bool remapping,  bool variant_mapping, int no_gap_end,int min_exon_len, int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
@@ -110,7 +117,7 @@ double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len, in
 
 //Add starting position for alignment according to a long hit (read and dna pos, len) and strand
 
-template<bool use_variants>
+template<bool use_variants, bool snp_merged>
 void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est,    int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 							 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 							 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns,  
@@ -150,10 +157,15 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 	int* max_score_positions = new int[nr_paths*2];
 
 	
-	if (use_variants)
-		fast_fill_matrix<true>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,no_gap_end,min_exon_len,min_intron_len,variant_cache);
+	if (use_variants){
+		if (snp_merged)
+			fast_fill_matrix<true,true>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,no_gap_end,min_exon_len,min_intron_len,variant_cache);
+		else
+			fast_fill_matrix<true,false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,no_gap_end,min_exon_len,min_intron_len,variant_cache);
+	}
+	
 	else
-		fast_fill_matrix<false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,no_gap_end,min_exon_len,min_intron_len,variant_cache);
+		fast_fill_matrix<false,false>(nr_paths, max_score_positions, est_len, dna_len, est, dna, prb, &h, matchmatrix, qualityScores, donor, acceptor,remove_duplicate_scores,seed_i,seed_j,seed_matrix_left, seed_matrix_right, max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity, currentMode,remapping,no_gap_end,min_exon_len,min_intron_len,variant_cache);
 
 	/***************************************************************************/ 
 	// return arguments etc.  

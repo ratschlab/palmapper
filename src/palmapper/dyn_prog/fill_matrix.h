@@ -71,7 +71,7 @@ struct splice_pos{
 
 void clean_seed_matrix_vector(std::vector<SeedElem *>& matrix, int nr_paths);
 
-template<bool use_variants>
+template<bool use_variants, bool snp_merged>
 void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 					  double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
 					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
@@ -122,6 +122,189 @@ inline double getScore(struct penalty_struct* qualityScores, int mlen, int dnaCh
 			   (currentPen->limits[idx]-baseScore)) / (currentPen->limits[idx]-currentPen->limits[idx-1]) ;  
    }
    return score;
+}
+
+
+double getScoreIupac(mode currentMode,double* matchmatrix, penalty_struct* qualityScores, double baseScore, int mlen, char dnaChar, char readChar, int &dnaValue);
+inline double getScoreIupac(mode currentMode,double* matchmatrix, penalty_struct* qualityScores, double baseScore, int mlen, char dnaChar, char readChar, int &dnaValue)
+{
+	double score=-100;
+	int temp[4]={0,0,0,0};
+	int dnaInt= check_char(dnaChar);
+	int readInt = check_char(readChar);
+	
+	switch ( dnaInt )
+	{		
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		temp[dnaInt-1]=1;
+		break;
+	case 5:
+		for (int i=0; i<4; i++)
+			temp[i]=1;
+		break;
+	case 6:
+		temp[1]=1;
+		temp[2]=1;
+		temp[3]=1;
+		break;
+	case 7:
+		temp[0]=1;
+		temp[2]=1;
+		temp[3]=1;
+		break;
+	case 8:
+		temp[0]=1;
+		temp[1]=1;
+		temp[3]=1;
+		break;
+	case 9:
+		temp[2]=1;
+		temp[3]=1;
+		break;
+	case 10:
+		temp[0]=1;
+		temp[1]=1;
+		break;
+	case 11:
+		temp[0]=1;
+		temp[2]=1;
+		break;
+	case 12:
+		temp[1]=1;
+		temp[2]=1;
+		break;
+	case 13:
+		temp[0]=1;
+		temp[1]=1;
+		temp[2]=1;
+		break;
+	case 14:
+		temp[0]=1;
+		temp[3]=1;
+		break;
+	case 15:
+		temp[1]=1;
+		temp[3]=1;
+		break;
+	}
+	
+	double tmpscore=-1000;
+	
+	for (int i=0; i<4; i++)
+	{
+		if (temp[i]==0)
+			continue;
+		
+		if (currentMode == USE_QUALITY_SCORES)
+		{
+			tmpscore = getScore(qualityScores,mlen,i+1,readInt,baseScore);
+		}
+		else{
+			tmpscore =(matchmatrix[mlen* (i+1) +readInt]);
+		}
+		if (tmpscore > score)
+		{
+			dnaValue=i+1;
+			score=tmpscore;	
+		}
+	}
+	return score;
+	
+}
+
+
+double getGapIupac(mode currentMode,double* matchmatrix, penalty_struct* qualityScores, int mlen, char dnaChar,  int &dnaValue);
+inline double getGapIupac(mode currentMode,double* matchmatrix, penalty_struct* qualityScores,  int mlen, char dnaChar,  int &dnaValue)
+{
+	
+	double score=-1000;
+	int temp[4]={0,0,0,0};
+	int dnaInt= check_char(dnaChar);
+	
+	switch ( dnaInt )
+	{		
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		temp[dnaInt-1]=1;
+		break;
+	case 5:
+		for (int i=0; i<4; i++)
+			temp[i]=1;
+		break;
+	case 6:
+		temp[1]=1;
+		temp[2]=1;
+		temp[3]=1;
+		break;
+	case 7:
+		temp[0]=1;
+		temp[2]=1;
+		temp[3]=1;
+		break;
+	case 8:
+		temp[0]=1;
+		temp[1]=1;
+		temp[3]=1;
+		break;
+	case 9:
+		temp[2]=1;
+		temp[3]=1;
+		break;
+	case 10:
+		temp[0]=1;
+		temp[1]=1;
+		break;
+	case 11:
+		temp[0]=1;
+		temp[2]=1;
+		break;
+	case 12:
+		temp[1]=1;
+		temp[2]=1;
+		break;
+	case 13:
+		temp[0]=1;
+		temp[1]=1;
+		temp[2]=1;
+		break;
+	case 14:
+		temp[0]=1;
+		temp[3]=1;
+		break;
+	case 15:
+		temp[1]=1;
+		temp[3]=1;
+		break;
+	}
+	
+	double tmpscore=-1500;
+	
+	for (int i=0; i<4; i++)
+	{
+		if (temp[i]==0)
+			continue;
+
+		if (currentMode == USE_QUALITY_SCORES){
+			tmpscore = matchmatrix[i+1];
+		}
+		else{
+			tmpscore = matchmatrix[mlen* (i+1)];
+		}			
+		if (tmpscore > score)
+		{
+			dnaValue=i+1;
+			score=tmpscore;	
+		}
+	}
+
+	
+	return score;
+	
 }
 
 
