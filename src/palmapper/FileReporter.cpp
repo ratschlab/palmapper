@@ -4,12 +4,16 @@
 #include <palmapper/FileReporter.h>
 #include <palmapper/print.h>
 
+static clock_t last_warning_time = clock();
+
 FileReporter::FileReporter(FILE *out, FILE *sp_out, FILE *variants_out, FILE *left_overs) {
 	_out = out;
 	_sp_out = sp_out;
 	_variants_out = variants_out;
 	_left_overs = left_overs;
 	_lastResult = -1;
+
+	//static clock_t last_warning_time = clock();
 }
 
 void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, VariantMap & variants) 
@@ -46,8 +50,13 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, Vari
 	delete &result;
 
 	Mutex::Locker locker(_mutex);
-	while (readNr >= _lastResult + _nrResults) {
-		printf("Warning: small result buffer may degrade performance\n");
+	while (readNr >= _lastResult + _nrResults) 
+	{
+		if ((clock()-last_warning_time)/CLOCKS_PER_SEC>=5) // wait for at most 5 seq before outputing a new warning
+		{
+			printf("Warning: small result buffer may degrade performance\n");
+			last_warning_time=clock() ;
+		}
 		_roomLeft.wait(_mutex);
 	}
 	int index = readNr % _nrResults;
