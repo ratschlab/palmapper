@@ -3652,9 +3652,9 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 						current_variant_end=get_end_position(variants[insertion_pos],false,i);
 					}
 					
-					
 					//End of insertion: report it
 					if (current_variant_end==(int)i){
+										assert(insertion_pos>=0 && insertion_pos<variants.size()) ; // BUG-TODO
 						used_variants+=report_variant_at_read_pos(variants[insertion_pos], read_pos);
 						current_variant_end=-1;
 						insertion_pos=-1;
