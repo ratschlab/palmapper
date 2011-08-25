@@ -407,7 +407,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 						for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
 							assert(seq[i-pos]==CHR_SEQ[i]) ;
 					
-					if (slots.size()>1000)
+					if (slots.size()>10000)
 						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop)) ;
 					num_seeds_total += num_slots ;
 					
