@@ -99,7 +99,7 @@ class Alignment {
       void cleanup() ;
 	  double init_seed_position (int hit_read, int hit_dna, int hit_len, int& seed_i, int &seed_j, char* read, int read_len, char* dna, int d_len, struct penalty_struct* qualityScores, double* matchmatrix,int mm_len,double* prb);
 
-	  template<bool use_variants>
+	  template<bool use_variants, bool snp_merged>
       void myalign_fast(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est, int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
 			 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
 			 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns, 
