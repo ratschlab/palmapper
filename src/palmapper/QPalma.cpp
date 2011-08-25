@@ -3486,14 +3486,15 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 			{
 				s_align_back.push_back(0);
 
-				if (!(align_ind>=0 && align_ind<result_tmp))
+				if (perform_extra_checks && !(align_ind>=0 && align_ind<result_tmp))
 				{
 					fprintf(stderr, "ERROR: result_tmp/align_ind mismatch %i %i\n", align_ind, result_tmp) ; // BUG-TODO
 					alignment_passed_filters=false ;
 					return 0 ;
 				}
 
-				assert(align_ind>=0 && align_ind<result_tmp) ;
+				if (perform_extra_checks)
+					assert(align_ind>=0 && align_ind<result_tmp) ;
 				dna_align_back.push_back(dna_align[align_ind]);
 				read_align_back.push_back(0);
 
@@ -3502,21 +3503,26 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 					if (current_variant_end == -1){
 						if (next_v_pos!=-1)
 						{  
-							assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
-							assert(i>=0 && i<=ref_map.size()) ;
+							if (perform_extra_checks)
+							{
+								assert(next_v_pos>=0 && next_v_pos<(int)variants.size()) ;
+								assert(i>=0 && i<=ref_map.size()) ;
+							}
 							current_variant_end=get_end_position(variants[next_v_pos],ref_map[i],i);
 						}
 					}
 					//End deletion on ref
 					if (current_variant_end == (int)i){
-						assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
+						if (perform_extra_checks)
+							assert(next_v_pos>=0 && next_v_pos<(int)variants.size()) ;
 						used_variants+=report_variant_at_read_pos(variants[next_v_pos], read_pos+1);
 						
 						//Get new variant position
 						current_variant_end =-1;
 						next_v_pos=-1;
 						it++;
-						assert(it>=0) ;
+						if (perform_extra_checks)
+							assert(it>=0) ;
 						if (it < (int)found_variants.size())
 							next_v_pos=found_variants[it];
 					}
@@ -3532,14 +3538,16 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 				if (report_variants){
 					//End deletion on ref for imbalanced substitution
 					if (current_variant_end == (int)i){
-						assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
+						if (perform_extra_checks)
+							assert(next_v_pos>=0 && next_v_pos<(int)variants.size()) ;
 						used_variants+=report_variant_at_read_pos(variants[next_v_pos],read_pos+1);
 						current_variant_end =-1;
 
 						//Get new variant position
 						next_v_pos=-1;
 						it++;
-						assert(it>=0) ;
+						if (perform_extra_checks)
+							assert(it>=0) ;
 						if (it < (int)found_variants.size())
 							next_v_pos=found_variants[it];
 					}
@@ -3584,7 +3592,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 			if (len_current_exon ==-1)
 				len_current_exon++;
 
-			if (!(align_ind>=0 && align_ind<result_tmp))
+			if (perform_extra_checks && !(align_ind>=0 && align_ind<result_tmp))
 			{
 				fprintf(stderr, "ERROR: result_tmp/align_ind mismatch %i %i\n", align_ind, result_tmp) ; // BUG-TODO
 				alignment_passed_filters=false ;
@@ -3610,23 +3618,26 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 
 				//SNP: get the original base
 				if (map_back(dna[i])!= dna_align[align_ind]){
-					assert(i>=0) ;// && i<map_back.size()) ;
+					if (perform_extra_checks)
+						assert(i>=0) ;// && i<map_back.size()) ;
 					dna_align_back.push_back(map_back(dna[i]));
 
 					if (report_variants){
-						if (next_v_pos==-1)
+						if (perform_extra_checks && next_v_pos==-1)
 						{
 							fprintf(stderr, "ERROR: next_v_pos=-1\n") ;
 							//assert(next_v_pos !=-1);  // BUG-TODO
 						}
 						else
 						{
-							assert(next_v_pos>=0 && next_v_pos<variants.size()) ;
+							if (perform_extra_checks)
+								assert(next_v_pos>=0 && next_v_pos<(int)variants.size()) ;
 							used_variants+=report_variant_at_read_pos(variants[next_v_pos], read_pos);
 						}
 						next_v_pos=-1;
 						it++;
-						assert(it>=0) ;
+						if (perform_extra_checks)
+							assert(it>=0) ;
 						if (it < (int)found_variants.size())
 							next_v_pos=found_variants[it];
 					}
@@ -3634,7 +3645,8 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 
 				}
 				else{
-					assert(align_ind>=0 && align_ind<result_tmp) ;
+					if (perform_extra_checks)
+						assert(align_ind>=0 && align_ind<result_tmp) ;
 					dna_align_back.push_back(dna_align[align_ind]);
 				}
 				
@@ -3644,7 +3656,8 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 
 			//Insertion on ref used
 			else{
-				if (report_variants){
+				if (report_variants)
+				{
 					//Start of a new insertion
 					if (current_variant_end==-1 && variant_cache[i] != NULL && variant_cache[i]->insertion != -1){
 						insertion_pos=variant_cache[i]->insertion;
@@ -3653,8 +3666,16 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 					}
 					
 					//End of insertion: report it
-					if (current_variant_end==(int)i){
-										assert(insertion_pos>=0 && insertion_pos<variants.size()) ; // BUG-TODO
+					if (current_variant_end==(int)i)
+					{
+						if (perform_extra_checks && insertion_pos==-1)
+						{
+							fprintf(stderr, "Error: insertion_pos==-1\n") ;
+							alignment_passed_filters=false ;
+							return 0 ;
+						}
+						if (perform_extra_checks)
+							assert(insertion_pos>=0 && insertion_pos<(int)variants.size()) ; // BUG-TODO
 						used_variants+=report_variant_at_read_pos(variants[insertion_pos], read_pos);
 						current_variant_end=-1;
 						insertion_pos=-1;
@@ -3750,7 +3771,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 			min_exon_len=len_current_exon;
 		len_current_exon=-1;
 	}
-	if (result_length!=(int)dna_align_back.size() || result_length!=(int)read_align_back.size())
+	if (perform_extra_checks && (result_length!=(int)dna_align_back.size() || result_length!=(int)read_align_back.size()))
 	{
 		fprintf(stderr, "ERROR: len mismatch %i!=%ld || %i!=%ld\n", result_length, dna_align_back.size(), result_length, read_align_back.size()) ; 
 		alignment_passed_filters = false ;
@@ -3835,9 +3856,9 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 	bool alignment_valid=true ;
 	int exon_start = -1;
 
-	if (!(dna.length()==positions.size()))
+	if (perform_extra_checks && !(dna.length()==positions.size()))
 	{
-		fprintf(stderr, "len mismatch dna.length()=%ld != %ld=positions.size()\n", dna.length(), positions.size()) ; 
+		fprintf(stderr, "ERROR: len mismatch dna.length()=%ld != %ld=positions.size()\n", dna.length(), positions.size()) ; 
 		assert(dna.length()==positions.size()) ;
 	}
 	
@@ -3916,7 +3937,8 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			if (strand=='-')
 				exon_len*=-1 ;
 			exon_len++ ;
-			assert(exon_len>=1) ;
+			if (perform_extra_checks)
+				assert(exon_len>=1) ;
 			if (exon_len<min_exon_len)
 				min_exon_len = exon_len ;
 			if (intron_location)
@@ -3930,7 +3952,8 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 		}
 	}
 	
-	assert(exon_start==-1) ;
+	if (perform_extra_checks)
+		assert(exon_start==-1) ;
 
 	if (exons.size()==0)
 		alignment_valid=false ;
@@ -4987,16 +5010,10 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	else
 	{  	
-		
 		if (_config.USE_VARIANTS && variant_list.size()>0)
 		{
 			used_variants = reconstruct_reference_alignment(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
-
-															dna_align, est_align, result_length, remapping, alignment_variants_valid,variant_cache,true) ;
-
-
-
-			
+															dna_align, est_align, result_length, remapping, alignment_variants_valid,variant_cache, _config.REPORT_USED_VARIANTS) ;
 			
 			for (unsigned int i=0; i< variant_list.size();i++)
 			{

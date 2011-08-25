@@ -342,7 +342,7 @@ double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_str
 			}
 		}
 	
-		fprintf(stdout,"dnavalue %i snp %i\n",dnaValue,snp_id);
+		//fprintf(stdout,"dnavalue %i snp %i\n",dnaValue,snp_id);
 		return score;
 	}
 	
