@@ -167,7 +167,10 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 
 	if (open_mode == O_RDONLY) {
 		mmap_prot = PROT_READ;
-		mmap_flags = MAP_SHARED | MAP_POPULATE ;
+		mmap_flags = MAP_SHARED ;
+#ifndef __APPLE__
+		mmap_flags |= MAP_POPULATE ;
+#endif
 	} else {
 		mmap_prot = PROT_READ | PROT_WRITE;
 		mmap_flags = MAP_SHARED;
