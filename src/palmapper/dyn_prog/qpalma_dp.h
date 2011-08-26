@@ -14,7 +14,7 @@
 
 bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left, const std::vector<SeedElem*>& seed_matrix_right, int z, int est_len, int dna_len, int* result_length_ptr, 
 			char* est, char* dna, double* prb, int* s_align, int* e_align, int* mparam, double* alignmentscores, int* max_score_positions, 
-					   penalty_struct* qparam, mode currentMode, double score_seed,std::vector<int>& vfound);
+					   penalty_struct* qparam, mode currentMode, double score_seed,std::vector<FoundVariant>& vfound);
 
 
 
@@ -87,7 +87,7 @@ class Alignment {
       char * name;
       INT use_svm;
 	  
-	  std::vector<int> fvariants;
+	  std::vector<FoundVariant> fvariants;
 	  
 
    public:
@@ -109,7 +109,7 @@ class Alignment {
       void getAlignmentResults(int* s_align, int* e_align,
 			       int* mmatrix_p, double* alignscores, double* qScores);
       int getResultLength() { return result_len; }
-	  std::vector<int> getVariants() { return fvariants; }
+	  std::vector<FoundVariant> getVariants() { return fvariants; }
       void getAlignmentArrays(int* dna_align, int* est_align);
       double scoreUnsplicedAlignment(const char * align_seq, double * prb, int read_length, struct penalty_struct* qualityScores, double* matchmatrix, char strand) ;
 };

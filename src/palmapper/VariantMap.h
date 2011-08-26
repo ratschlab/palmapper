@@ -146,9 +146,9 @@ inline ogzstream& operator<<(ogzstream & os, const std::vector<Variant> & list)
 }
 
 struct found_variant_str {
-	int read_position ;
+	int start_pos ;
+	int end_pos ;
 	int id ;
-	enum polytype type ;
 };
 typedef struct found_variant_str FoundVariant;
 

@@ -76,7 +76,7 @@ void increaseFeatureCount(penalty_struct* qparam, int dnaChar, int estChar, doub
 
 
 bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std::vector<SeedElem*>& seed_matrix_right, int z, int est_len, int dna_len, int* result_length_ptr, 
-			char* est, char* dna, double* prb, int* s_align, int* e_align, int* mparam, double* alignmentscores, int* max_score_positions, penalty_struct* qparam, mode currentMode, double score_seed, std::vector<int>& vfound){  
+			char* est, char* dna, double* prb, int* s_align, int* e_align, int* mparam, double* alignmentscores, int* max_score_positions, penalty_struct* qparam, mode currentMode, double score_seed, std::vector<FoundVariant>& vfound){  
 
   const int mlen=6; // length of matchmatrix
 
@@ -106,7 +106,7 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
     // Alignment score: the score at the seed position was counted twice (once for each side)
     alignmentscores[z] = seed_matrix_left[0]->best_scores[z_path_left] + seed_matrix_right[0]->best_scores[z_path_right] - score_seed;
 
-	std::vector<int> vfound_temp;
+	std::vector<FoundVariant> vfound_temp;
 
     /**********************************************************/
     /* LEFT SIDE                                              */
@@ -152,8 +152,11 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  
               //How to output the use of a SNP for a read gap?
 			  if (snpvariant != -1){
-				  //fprintf(stdout,"dna pos %i, variant %i",dstart,snpvariant);	  
-			  	  vfound_temp.push_back(snpvariant);
+				  FoundVariant fv;
+				  fv.start_pos=dstart;
+				  fv.end_pos=dstart;
+				  fv.id=snpvariant;
+			  	  vfound_temp.push_back(fv);
 			  }			  			  
 
 			  if(currentMode == USE_QUALITY_SCORES)
@@ -190,8 +193,11 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  estnum = check_char(est[rstart]); 
 			  
 			  if (snpvariant != -1){
-				  //fprintf(stdout,"dna pos %i, variant %i",dstart,snpvariant);	  
-				  vfound_temp.push_back(snpvariant);
+				  FoundVariant fv;
+				  fv.start_pos=dstart;
+				  fv.end_pos=dstart;
+				  fv.id=snpvariant;
+			  	  vfound_temp.push_back(fv);
 			  }
 			  if(currentMode == USE_QUALITY_SCORES){
 				  prbnum = prb[rstart];
@@ -240,10 +246,14 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  splice_state = 0 ; //exon again
 		  }
 		  else{
-			  //for(int d=d<next_seed->deletion_id.size()-1;d>=0;d--){
-				  //fprintf(stdout,"dna pos %i, variant %i",dstart-1,next_seed->deletion_id[d]);	  
-			  //}
-			  vfound_temp.insert(vfound_temp.begin(),next_seed->deletion_id.begin(),next_seed->deletion_id.end());
+			  for(int d= next_seed->deletion_id.size()-1; d>=0 ;d--){
+				  // if (next_seed->deletion_id.size() >1){
+				  // 	  fprintf(stdout,"left: dna pos %i, variant %i\n",next_seed->deletion_id[d].start_pos,next_seed->deletion_id[d].id);	  
+				  // }
+				  
+				  vfound_temp.insert(vfound_temp.begin(),next_seed->deletion_id[d]);				  
+			  }
+
 			  for (int n=dstart-1;n>=next_seed->dna_pos+1;n--){
 				  s_align[n] = 5; //Deletion variant
 			  }
@@ -309,8 +319,12 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  
 			  //How to output the use of a SNP for a read gap?
 			  if (snpvariant != -1){
-				  //fprintf(stdout,"dna pos %i, variant %i",dstart,snpvariant);	  
-			  	  vfound_temp.push_back(snpvariant);
+				  FoundVariant fv;
+				  fv.start_pos=dstart;
+				  fv.end_pos=dstart;
+				  fv.id=snpvariant;
+			  	  vfound_temp.push_back(fv);
+
 			  }
 
 			  if(currentMode == USE_QUALITY_SCORES)
@@ -347,8 +361,12 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 			  estnum = check_char(est[rstart]); 
 
 			  if (snpvariant != -1){
-				  //fprintf(stdout,"dna pos %i, variant %i",dstart,snpvariant);	  
-				  vfound_temp.push_back(snpvariant);
+				  FoundVariant fv;
+				  fv.start_pos=dstart;
+				  fv.end_pos=dstart;
+				  fv.id=snpvariant;
+			  	  vfound_temp.push_back(fv);
+
 			  }
 	  
 			  if(currentMode == USE_QUALITY_SCORES){
@@ -398,8 +416,10 @@ bool fast_result_align(const std::vector<SeedElem*>& seed_matrix_left,const std:
 		  }
 		  
 		  else{
-			  for(int d=0;d<next_seed->deletion_id.size();d++)
-				  //fprintf(stdout,"dna pos %i, variant %i",dstart-1,next_seed->deletion_id[d]);	  
+			  for(int d=0;d<(int)next_seed->deletion_id.size();d++)
+				  // if(next_seed->deletion_id.size()>1){
+				  // 	  fprintf(stdout,"right: dna pos %i, variant %i\n",next_seed->deletion_id[d].start_pos,next_seed->deletion_id[d].id);	  
+				  // }
 			  vfound.insert(vfound.end(),next_seed->deletion_id.begin(),next_seed->deletion_id.end());
 			  for (int n=dstart+1; n<=next_seed->dna_pos-1;n++){
 				  s_align[n] = 5; //Deletion variant
