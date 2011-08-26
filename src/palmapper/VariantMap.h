@@ -81,7 +81,7 @@ inline igzstream& operator>>(igzstream & os, struct variant_str & a)
 		char buf[size+1] ;
 		os.read(buf, size) ;
 		buf[size]=0 ;
-		a.read_id.assign(buf) ;
+		a.read_id.assign(buf, size) ;
 	}
 
 	return os ;
