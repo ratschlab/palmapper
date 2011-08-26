@@ -107,7 +107,7 @@ inline bool isnotminusinf(double x)
 */
 
 
-int char_map[133]={-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 6, 2, 7, -1, -1, 3, 8, -1, -1, 9, -1, -1, 5, -1, -1, -1, 11, 12, 4, -1, 13, 14, -1, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1} ;
+int char_map[133]={-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 6, 2, 7, -1, -1, 3, 8, -1, -1, 9, -1, 10, 5, -1, -1, -1, 11, 12, 4, -1, 13, 14, -1, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1} ;
 
 
 
@@ -385,11 +385,8 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	
 	//SNP merged with DNA
 	score= getScoreIupac(currentMode,matchmatrix,qualityScores,baseScore,mlen, dnaChar, readChar, dnaValue);
-	if ( variant_cache[position]==NULL || variant_cache[position]->snps.empty())
-		return score;
-
-	snp_id=variant_cache[position]->id_snps[0];
 	return score;
+
 	
 }
 
@@ -437,12 +434,9 @@ double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_str
 	
 	//SNP merged with DNA
 	score= getGapIupac(currentMode,matchmatrix,qualityScores,mlen, dnaChar,  dnaValue);
-	if ( variant_cache[position]==NULL || variant_cache[position]->snps.empty())
-		return score;
-	
-	snp_id=variant_cache[position]->id_snps[0];
 	return score;
-
+	
+	
 }
 
 
@@ -881,6 +875,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 				/*************************************************************/
 				dnaChar = check_char(dna[j]);
 				readChar = check_char(read[i]);
+				
 				assert(dnaChar!=-1 && readChar!=-1);
 
 				if (currentMode == USE_QUALITY_SCORES)
