@@ -299,8 +299,8 @@ int main(int argc, char *argv[])
 			return -1;
 	}
 	
-	//IntervalQuery iq;
-	//iq.cleanup(true) ;
+	IntervalQuery iq;
+	iq.cleanup(true) ;
 
 	if (qpalma != NULL)
 		delete qpalma;

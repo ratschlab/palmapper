@@ -616,14 +616,18 @@ int QPalma::clean_alignment_parameters()
 	if (alignment_parameters==NULL)
 		return -1 ;
 	
+	free(alignment_parameters->h.name) ;
 	free(alignment_parameters->h.limits) ;
 	free(alignment_parameters->h.penalties) ;
+	free(alignment_parameters->a.name) ;
 	free(alignment_parameters->a.limits) ;
 	free(alignment_parameters->a.penalties) ;
+	free(alignment_parameters->d.name) ;
 	free(alignment_parameters->d.limits) ;
 	free(alignment_parameters->d.penalties) ;
 	for (int i=0; i<alignment_parameters->num_qualityPlifs; i++)
 	{
+		free(alignment_parameters->qualityPlifs[i].name) ;
 		free(alignment_parameters->qualityPlifs[i].limits) ;
 		free(alignment_parameters->qualityPlifs[i].penalties) ;
 	}
@@ -3356,7 +3360,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 		}
 		
-		if (!_config.IUPAC_SNPS){
+		if (!_config.IUPAC_SNPS)
+		{
 			for (unsigned j = 0; j<pos_table[i]->snps.size(); j++)
 			{
 				nb_snps++ ;
@@ -3384,21 +3389,24 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 				//Put the original DNA value
 				variant_cache[i]->snps.push_back(dna[i]);
 				variant_cache[i]->id_snps.push_back(pos_table[i]->snp_ids[0]);
+				assert(variant_cache[i]->snps.size()==1) ;
+				
 				char merged_base;
 				int start=0;
 				//fprintf(stdout,"original base %c\n",dna[i]);				
 				//If DNA is 'N', don't include it in merging stuff
-				if (dna[i]=='N'){
+				if (dna[i]=='N')
+				{
 					merged_base = pos_table[i]->snps[0]->variant_str[0];
 					start++;
 				}
-				else{
+				else
+				{
 					merged_base = dna[i];
 				}
 				
 				for (unsigned j = start; j<pos_table[i]->snps.size(); j++)
 				{
-				
 					merged_base = get_IUPAC_code(merged_base, pos_table[i]->snps[j]->variant_str[0]);
 					//fprintf(stdout,"SNP base %c -> %c\n",pos_table[i]->snps[j]->variant_str[0],merged_base);
 				}
@@ -3637,21 +3645,26 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 	{
 
 		//Build reference sequence
-		if (ref_map[i]){
-
+		if (ref_map[i])
+		{
 			//Take the original base if it exists SNP for this position
-			if (_config.IUPAC_SNPS){
-				if (variant_cache[i] != NULL && !variant_cache[i]->snps.empty()){
+			if (_config.IUPAC_SNPS)
+			{
+				if (variant_cache[i] != NULL && !variant_cache[i]->snps.empty())
+				{
+					assert(variant_cache[i]->snps.size()==1) ; // in this case just one special SNP is added (the reference base)
 					dna_back.push_back(variant_cache[i]->snps[0]);
 					original_dna=map_back(variant_cache[i]->snps[0]);
 				}
-				else{
+				else
+				{
 					dna_back.push_back(dna[i]);
 					original_dna=map_back(dna[i]);
 				}
 				
 			}
-			else{
+			else
+			{
 				dna_back.push_back(dna[i]);
 				original_dna=map_back(dna[i]);
 			}
@@ -3674,7 +3687,8 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 
 				if (_config.IUPAC_SNPS)
 					dna_align_back.push_back(original_dna);
-				else{
+				else
+				{
 					assert(original_dna==dna_align[align_ind]);
 					dna_align_back.push_back(dna_align[align_ind]);
 				}
@@ -3793,14 +3807,14 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 				s_align_back.push_back(0);
 
 				//SNP: get the original base
-				if(_config.IUPAC_SNPS){
+				if(_config.IUPAC_SNPS)
+				{
 					dna_align_back.push_back(original_dna);
-  
 				}
 				else{
 					if (map_back(dna[i])!= dna_align[align_ind]){
 						dna_align_back.push_back(map_back(dna[i]));
-
+						
 						if (report_variants){
 							if (perform_extra_checks)
 								assert(next_v != NULL && next_v->id>=0 && next_v->id<(int)variants.size()) ;
