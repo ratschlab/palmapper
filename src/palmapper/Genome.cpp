@@ -657,8 +657,10 @@ int Genome::mmap_full_file(const char *path, void **map, size_t * size_p)
 	open_mode = O_RDONLY;
 	mmap_prot = PROT_READ;
 	mmap_flags = MAP_SHARED ;
+#ifndef __APPLE__
 	if (_config.INDEX_PRECACHE)
 		mmap_flags |= MAP_POPULATE ;
+#endif
 
 	// Open file to get file size
 	ret = open(path, open_mode, 0);
