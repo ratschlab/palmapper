@@ -231,7 +231,7 @@ void Alignment::myalign_fast(char strand, Chromosome const &chr, int nr_paths_p,
 		//penalty_struct* qparam = qualityScoresAllPaths + (numPlifs*z);
 
 		//    printf("before call to fast_result_align...\n");
-		std::vector<int> usedVariants;
+		std::vector<FoundVariant> usedVariants;
 		usedVariants.clear();
 		
 		bool no_more_path = fast_result_align(seed_matrix_left,seed_matrix_right, z, est_len, dna_len, &result_length, est, dna, prb, s_align, e_align, mparam, alignmentscores, max_score_positions, qualityFeaturesAllPaths[z] , currentMode,best_match, usedVariants);
