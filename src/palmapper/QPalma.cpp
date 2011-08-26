@@ -3361,7 +3361,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			{
 				nb_snps++ ;
 
-				if (variant_cache[i]==NULL){
+				if (variant_cache[i]==NULL)
+				{
 					variant_cache[i]= new variant_cache_t;
 					variant_cache[i]->insertion = -1;
 				
@@ -3373,7 +3374,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 		}
 		else{
 			//Merge SNPs and DNA base in dna[i]
-			if ((int)pos_table[i]->snps.size() > 0){
+			if ((int)pos_table[i]->snps.size() > 0)
+			{
 				if (variant_cache[i]==NULL){
 					variant_cache[i]= new variant_cache_t;
 					variant_cache[i]->insertion = -1;
@@ -3397,7 +3399,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 				for (unsigned j = start; j<pos_table[i]->snps.size(); j++)
 				{
 				
-					merged_base = get_IUPAC_code(merged_base,pos_table[i]->snps[j]->variant_str[0]);
+					merged_base = get_IUPAC_code(merged_base, pos_table[i]->snps[j]->variant_str[0]);
 					//fprintf(stdout,"SNP base %c -> %c\n",pos_table[i]->snps[j]->variant_str[0],merged_base);
 				}
 				dna[i]=merged_base;				
