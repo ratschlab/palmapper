@@ -26,10 +26,13 @@ struct sigaction CSignal::oldsigaction[NUMTRAPPEDSIGS];
 bool CSignal::active=false;
 bool CSignal::cancel_computation=false;
 bool CSignal::cancel_immediately=false;
+bool CSignal::block_computations=false;
 
 std::map<pthread_t, std::string> CSignal::current_read_ids ;
 bool CSignal::show_read_ids = false ;
 
+Mutex CSignal::_mutex;
+lang::Signal CSignal::_roomLeft;
 
 CSignal::CSignal()
 : CSGObject()
@@ -59,10 +62,13 @@ void CSignal::handler(int signal)
 {
 	if (signal == SIGINT)
 	{
+		if (block_computations)
+			return ;
+		block_computations=true ;
 		if (show_read_ids)
-			fprintf(stderr, "\nImmediately return to prompt / Prematurely finish computations / Show Read IDs / Do nothing (I/P/S/D)? ");
+			fprintf(stderr, "\nJust exit / Immediately return to prompt / Prematurely finish computations / Show Read IDs / Do nothing (J/I/P/S/D)? ");
 		else
-			fprintf(stderr, "\nImmediately return to prompt / Prematurely finish computations / Do nothing (I/P/D)? ");
+			fprintf(stderr, "\nJust exit / Immediately return to prompt / Prematurely finish computations / Do nothing (J/I/P/D)? ");
 		char answer=fgetc(stdin);
 
 		if (answer == 'I')
@@ -72,12 +78,19 @@ void CSignal::handler(int signal)
 			if (sg_print_error)
 				sg_print_error(stdout, "sg stopped by SIGINT\n");
 		}
+		else if (answer == 'J')
+		{
+			fprintf(stderr, "Exiting.") ;
+			exit(-1) ;
+		}
 		else if (answer == 'P')
 			set_cancel();
 		else if (answer == 'S')
 			do_show_read_ids();
 		else
 			fprintf(stderr, "Continuing...\n");
+		block_computations=false ;
+		_roomLeft.notifyAll();
 	}
 	else if (signal == SIGURG)
 		set_cancel();

@@ -25,10 +25,13 @@ extern void (*sg_cancel_computations)(bool &delayed, bool &immediately);
 #include <vector>
 #include <string>
 #include <map>
+#include <lang/Thread.h>
 
 #ifndef WIN32
 #include <signal.h>
 #define NUMTRAPPEDSIGS 3
+
+using lang::Mutex;
 
 namespace shogun
 {
@@ -97,6 +100,13 @@ class CSignal : public CSGObject
 			if (sg_cancel_computations)
 				sg_cancel_computations(cancel_computation, cancel_immediately);
 #endif
+			if (block_computations)
+			{
+				//fprintf(stderr, "Blocking thread %lu\n", pthread_self()) ;
+				Mutex::Locker locker(_mutex);
+				_roomLeft.wait(_mutex);
+			}
+			
 			if (cancel_immediately)
 				throw ShogunException("Computations have been cancelled immediately");
 
@@ -125,6 +135,11 @@ class CSignal : public CSGObject
 
 		static std::map<pthread_t, std::string> current_read_ids ;
 		static bool show_read_ids ;
+
+		static bool block_computations ;
+
+		static Mutex _mutex;
+		static lang::Signal _roomLeft;
 
 };
 #endif // WIN32

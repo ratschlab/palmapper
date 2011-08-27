@@ -5067,6 +5067,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	std::vector<variant_cache_t *> variant_cache;
 	
 	std::vector<bool> ref_map;
+	int pre_dna_size=dna.size() ;
 	if (_config.USE_VARIANTS && variant_list.size()>0)
 	{
 		
@@ -5089,6 +5090,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			return -1;
 		}
 	}
+	if (dna.size()>100000)
+		fprintf(stdout, "Warning: DNA sequence is long: dna.size()=%i (pre_dna_size=%i)\n", (int)dna.size(), pre_dna_size) ;
 
 	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
 	if (!remapping)
