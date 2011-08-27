@@ -22,10 +22,13 @@ extern void (*sg_cancel_computations)(bool &delayed, bool &immediately);
 #include "ShogunException.h"
 #include "SGObject.h"
 #include "init.h"
+#include <vector>
+#include <string>
+#include <map>
 
 #ifndef WIN32
 #include <signal.h>
-#define NUMTRAPPEDSIGS 2
+#define NUMTRAPPEDSIGS 3
 
 namespace shogun
 {
@@ -78,6 +81,12 @@ class CSignal : public CSGObject
 		/** set cancel flag signals */
 		static void set_cancel(bool immediately=false);
 
+		static void toggle_show_read_ids(bool show_ids) ;
+
+		static void report_current_read_id(std::string read_id)  ;
+		static void do_show_read_ids() ;
+		
+
 		/** cancel computations
 		 *
 		 * @return if computations should be cancelled
@@ -112,6 +121,11 @@ class CSignal : public CSGObject
 
 		/** if shogun should return ASAP */
 		static bool cancel_immediately;
+
+
+		static std::map<pthread_t, std::string> current_read_ids ;
+		static bool show_read_ids ;
+
 };
 #endif // WIN32
 }
