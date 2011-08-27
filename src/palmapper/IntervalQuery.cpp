@@ -487,7 +487,7 @@ void IntervalQuery::cleanup(bool free_static)
 #ifdef CONVERT_SCORE_MAPS
 	if (free_static)
 	{
-		fprintf(stdout, "freeing mmaps\n") ;
+		//fprintf(stdout, "freeing mmaps\n") ;
 		
 		for (unsigned int i=0; i<mmap_ptr_list.size(); i++)
 		{

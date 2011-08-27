@@ -26,7 +26,13 @@ public:
 MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalma &qpalma, Reporter &reporter, JunctionMap &junctionmap, JunctionMap &annotated_junctions, VariantMap & variants)
 	: 	Mapper(genome, genomemaps, queryFile, qpalma, reporter,junctionmap,annotated_junctions, variants) {}
 	void run() {
-		map_reads();
+		try 
+		{
+			map_reads();
+		} 
+		catch (ShogunException & e)
+		{
+		}
 	}
 };
 
