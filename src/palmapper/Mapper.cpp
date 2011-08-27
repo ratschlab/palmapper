@@ -4,6 +4,7 @@
 #include <palmapper/print.h>
 #include <bwa/bwtaln.h>
 #include <bwa/bwtmyaln.h>
+#include <palmapper/shogun/Signal.h>
 
 void Mapper::map_reads_timing(int count_reads, float this_read)
 {
@@ -114,9 +115,10 @@ int Mapper::map_reads()
 
 		count_reads++;
 		Result &result = *new Result(*this);
-		if (!_queryFile.next_read(result._orig,_config.STRAND))
+		if (!_queryFile.next_read(result._orig, _config.STRAND))
 			break;
-		
+
+		CSignal::report_current_read_id(result._orig.id()) ;
 		
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
@@ -131,6 +133,9 @@ int Mapper::map_reads()
 		}
 		if (_config.READ_COUNT_LIMIT && count_reads >= _config.READ_COUNT_LIMIT)
 			break ;
+		if (CSignal::cancel_computations())
+			break ;
+		
 		// progress output, just for user convenience
 		if ((count_reads % 1000 == 0)) {
 			printf("%c", _progressChar);

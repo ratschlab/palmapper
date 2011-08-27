@@ -12,6 +12,7 @@
 #include <palmapper/Mapper.h>
 #include <palmapper/JunctionMap.h>
 #include <palmapper/VariantMap.h>
+#include <palmapper/shogun/Signal.h>
 //#include <wait.h>
 
 Config _config;
@@ -35,6 +36,8 @@ int main(int argc, char *argv[])
 	_config.VersionHeader() ;
 
 	init_shogun() ;
+	CSignal::set_handler() ;
+	CSignal::toggle_show_read_ids(false) ;
 
 	// timing //////////////
 	time_t timer, timer_mid, timer2;
@@ -194,6 +197,8 @@ int main(int argc, char *argv[])
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
 
+	CSignal::toggle_show_read_ids(true) ;
+	
  	unsigned int numThreads = _config.NUM_THREADS;
 	MapperThread *threads[numThreads];
 	std::string threadIds(".+-:=!$'");
@@ -209,6 +214,7 @@ int main(int argc, char *argv[])
 		delete threads[i];
 	}
 	reporter.done();
+	CSignal::toggle_show_read_ids(false) ;
 	
 	if (_config.OUT_FILE_NAME.length() > 0)
 	{
@@ -309,5 +315,7 @@ int main(int argc, char *argv[])
 
 	if (_config.VERBOSE) { printf("Mapping finished\n"); }
 
+	CSignal::unset_handler() ;
+	
 	return 0;
 }

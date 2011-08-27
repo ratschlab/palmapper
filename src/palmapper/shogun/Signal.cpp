@@ -21,11 +21,15 @@
 
 using namespace shogun;
 
-int CSignal::signals[NUMTRAPPEDSIGS]={SIGINT, SIGURG};
+int CSignal::signals[NUMTRAPPEDSIGS]={SIGINT, SIGURG, SIGSEGV};
 struct sigaction CSignal::oldsigaction[NUMTRAPPEDSIGS];
 bool CSignal::active=false;
 bool CSignal::cancel_computation=false;
 bool CSignal::cancel_immediately=false;
+
+std::map<pthread_t, std::string> CSignal::current_read_ids ;
+bool CSignal::show_read_ids = false ;
+
 
 CSignal::CSignal()
 : CSGObject()
@@ -35,14 +39,30 @@ CSignal::CSignal()
 CSignal::~CSignal()
 {
 	if (!unset_handler())
-		SG_PRINT("error uninitalizing signal handler\n");
+		fprintf(stderr, "error uninitalizing signal handler\n");
+}
+
+void CSignal::do_show_read_ids()
+{
+	fprintf(stderr, "Read IDs that were recently processed:\n") ;
+	
+	for (std::map<pthread_t, std::string>::iterator it=current_read_ids.begin(); it!=current_read_ids.end(); it++)
+	{
+		char c=' ' ;
+		if (pthread_self()==it->first)
+			c='*' ;
+		fprintf(stderr, "\t%lu\t%s\t%c\n", it->first, it->second.c_str(), c) ;
+	}
 }
 
 void CSignal::handler(int signal)
 {
 	if (signal == SIGINT)
 	{
-		SG_SPRINT("\nImmediately return to prompt / Prematurely finish computations / Do nothing (I/P/D)? ");
+		if (show_read_ids)
+			fprintf(stderr, "\nImmediately return to prompt / Prematurely finish computations / Show Read IDs / Do nothing (I/P/S/D)? ");
+		else
+			fprintf(stderr, "\nImmediately return to prompt / Prematurely finish computations / Do nothing (I/P/D)? ");
 		char answer=fgetc(stdin);
 
 		if (answer == 'I')
@@ -54,13 +74,24 @@ void CSignal::handler(int signal)
 		}
 		else if (answer == 'P')
 			set_cancel();
+		else if (answer == 'S')
+			do_show_read_ids();
 		else
-			SG_SPRINT("Continuing...\n");
+			fprintf(stderr, "Continuing...\n");
 	}
 	else if (signal == SIGURG)
 		set_cancel();
+	else  if (signal == SIGSEGV)
+	{
+		fprintf(stderr, "\nERROR: SEGSEGV in thread %lu encountered\n\n", pthread_self()) ;
+		if (show_read_ids)
+			do_show_read_ids() ;
+		fprintf(stderr, "\n\nTerminating process.\n\n") ;
+		
+		exit(-1) ;
+	}
 	else
-		SG_SPRINT("unknown signal %d received\n", signal);
+		fprintf(stderr, "unknown signal %d received\n", signal);
 }
 
 bool CSignal::set_handler()
@@ -85,7 +116,7 @@ bool CSignal::set_handler()
 		{
 			if (sigaction(signals[i], &act, &oldsigaction[i]))
 			{
-				SG_SPRINT("Error trapping signals!\n");
+				fprintf(stderr, "Error trapping signals!\n");
 				for (int32_t j=i-1; j>=0; j--)
 					sigaction(signals[i], &oldsigaction[i], NULL);
 
@@ -145,4 +176,16 @@ void CSignal::clear()
 	active=false;
 	memset(&CSignal::oldsigaction, 0, sizeof(CSignal::oldsigaction));
 }
+
+void CSignal::toggle_show_read_ids(bool show_ids)
+{
+	show_read_ids=show_ids ;
+}
+
+void CSignal::report_current_read_id(std::string read_id) 
+{
+	pthread_t id=pthread_self() ;
+	current_read_ids[id]=read_id ;
+}
+
 #endif //WIN32

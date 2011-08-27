@@ -632,6 +632,7 @@ int QPalma::clean_alignment_parameters()
 		free(alignment_parameters->qualityPlifs[i].penalties) ;
 	}
 	free(alignment_parameters->qualityPlifs) ;
+	free(alignment_parameters->matchmatrix) ;
 	free(alignment_parameters) ;
 	alignment_parameters = NULL ;
 
@@ -2651,6 +2652,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int> positions, 
 											   Chromosome const &contig_idx, VariantMap & variants, std::map<int,int> & variantpos) const
 {
+
 	int k=0;
 	while (positions[k]==-2)
 		k++;
@@ -2944,6 +2946,7 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 	struct perform_alignment_t data ;
 	ALIGNMENT* non_consensus_alignment = NULL ;
 	ALIGNMENT* consensus_alignment = NULL ;
+
 	try
 	{
 		{
