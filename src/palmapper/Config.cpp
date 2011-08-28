@@ -81,8 +81,8 @@ Config::Config() {
 	MAP_JUNCTIONS_COVERAGE=2;
 	MAP_JUNCTIONS_PSEUDO_ANNO_COV=10 ;
 
-	QPALMA_USE_MAP = 0 ;
-	QPALMA_USE_MAP_MAX_SIZE = 10000 ;
+	QPALMA_USE_MAP = 1 ;
+	QPALMA_USE_MAP_MAX_SIZE = 1000 ;
 	QPALMA_USE_SPLICE_SITES = 0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_DON = 0.0 ;
 	QPALMA_USE_SPLICE_SITES_THRESH_ACC = 0.0 ;
@@ -1172,6 +1172,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			// use regions around mapped reads for qpalma alignment
+			// disabled: switched on by default
 			/*if (strcmp(argv[i], "-qpalma-use-map") == 0) {
 				not_defined = 0;
 				QPALMA_USE_MAP = 1 ;

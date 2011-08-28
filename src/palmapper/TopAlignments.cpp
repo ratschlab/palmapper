@@ -633,14 +633,14 @@ int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t
 }
 
 
-void TopAlignments::init_top_alignment_indice() 
+void TopAlignments::init_top_alignment_index() 
 {
 	current_ind=0;
 	temp_ind=0;
 	
 }
 
-void TopAlignments::update_top_alignment_indice() 
+void TopAlignments::update_top_alignment_index() 
 {
 	//fprintf(stdout,"temp indice %i\n",temp_ind);
 	

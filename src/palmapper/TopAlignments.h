@@ -80,8 +80,8 @@ public:
 		alignment=NULL ;
 	}
 
-	void init_top_alignment_indice()  ;
-	void update_top_alignment_indice()  ;
+	void init_top_alignment_index()  ;
+	void update_top_alignment_index()  ;
 	alignment_t * add_alignment_record(alignment_t *alignment, int num_alignments);
 	
 
