@@ -4930,7 +4930,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (alignment_parameters->num_qualityPlifs > 0)
 		num_qual_support = alignment_parameters->qualityPlifs[0].len;
 	//Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, true, myverbosity);
-	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, !(_config.NO_QPALMA), 2);
+	Alignment alignment(alignment_parameters->num_qualityPlifs, num_qual_support, !(_config.NO_QPALMA), myverbosity);
 
 	int a_len, d_len ;
 	double * acceptor=NULL, *donor=NULL ;
