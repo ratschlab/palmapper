@@ -146,8 +146,9 @@ public:
 	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int capture_hits_2(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int capture_hits_3(Chromosome const &chr, Hits &hits, Result &result, Read const &read, std::string read_seq[2], std::string read_quality[2], 
-					   int ori, std::vector<region_t*> & current_regions, std::vector<region_t*> & long_regions, 
+					   int ori, std::vector<region_t*> & current_regions, region_t* long_regions, 
 					   bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants, int myverbosity) const;
+	int find_regions_for_long_regions(const region_t *long_region, const std::vector<region_t*> & regions, std::vector<region_t*> & current_regions, const Read & read, int myverbosity) const ;
 	int junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 
 	void perform_alignment_wrapper1(QPalma::perform_alignment_t *data, int myverbosity) const ;
@@ -165,8 +166,9 @@ public:
 	
 protected:
 	
-	bool determine_exons(std::vector<int> & exons, const std::string & dna, const std::vector<int> &positions, bool remapping, char strand, const int *s_align, const int *e_align, 
-						 int & min_exon_len, int & max_intron_len, int & min_intron_len) const ;
+	template <int myverbosity>
+		bool determine_exons(std::vector<int> & exons, const std::string & dna, const std::vector<int> &positions, bool remapping, char strand, const int *s_align, const int *e_align, 
+							 int & min_exon_len, int & max_intron_len, int & min_intron_len) const ;
 	template<int myverbosity, bool discover_variants> 
 		int determine_read_variants(Chromosome const &contig_idx, const int * s_align, const int* e_align, const int *dna_align, const int *est_align, const std::vector<int> & positions, 
 									 const VariantMap & variants, std::vector<Variant> & align_variants, std::vector<int> & aligned_positions,
@@ -194,11 +196,11 @@ protected:
 	bool sort_regions(std::vector<region_t*> & long_regions, enum sortorder_enum sort_order) const ;
 	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) const;
 	int convert_dna_position(int real_position, const std::vector<size_t> & cum_length, const std::vector<region_t *> &current_regions) const;
-	void convert_variants(std::vector<Variant> &variants, int dna_len) const;
+	void reverse_variants(std::vector<Variant> &variants, int dna_len) const;
 	void recover_variants_on_ref(Variant &variant,std::vector<int> positions,char strand,int read_len,Chromosome const &contig_idx) const;
 	int get_first_read_map(Read const &read, bool* read_map) const;
 	void print_hit(HIT *hit) ;
-	void print_region(region_t *region, const char * bla)  ;
+	void print_region(region_t *region, const char * bla) const ;
 	void print_map(Read const &read, bool* read_map, const char *name) ;
 
 	std::vector<Variant> identify_variants(std::string dna, std::vector<int> positions, Chromosome const &contig_idx, VariantMap & variants,std::map<int, int> & variant_positions) const ;

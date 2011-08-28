@@ -334,7 +334,7 @@ restart:
 			read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
 
 		int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
-		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,1000,_annotatedjunctions, _variants);//hits._topAlignments.size() -nb_unspliced);
+		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, 1000, _annotatedjunctions, _variants);//hits._topAlignments.size() -nb_unspliced);
 	}
 
 	if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
@@ -374,7 +374,7 @@ restart:
 						ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
 					
 					if (_config.MAP_JUNCTIONS)
-						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap,hits._topAlignments.size() -nb_unspliced,_annotatedjunctions, _variants);
+						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, hits._topAlignments.size() -nb_unspliced, _annotatedjunctions, _variants);
 
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
