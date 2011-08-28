@@ -18,7 +18,7 @@ const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = true ;
 static const std::string verbose_read_id = "HWI-ST408:6:4:9756:73646#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
-static const int verbose_read_level = 4 ;
+static const int verbose_read_level = 0 ;
 
 void get_vector_IUPAC(char c, std::vector<int> &l)
 {
@@ -2621,7 +2621,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		Variant v ;
 		v.position = -1 ;
 		
-		if (false && (*it).type == pt_SNP)
+		if ((*it).type == pt_SNP)
 		{
 			assert((*it).ref_len==1 && (*it).variant_len==1) ;
 			if ((*it).position-start_pos>=0 && (*it).position-start_pos<end_pos-start_pos && map[(*it).position-start_pos]>=0)
