@@ -37,6 +37,11 @@ struct alignment_parameter_struct {
 	int quality_offset ;
 } ;
 
+enum sortorder_enum 
+{
+	sortorder_startpos,
+	sortorder_length
+} ;
 
 class QPalma
 {
@@ -140,9 +145,12 @@ protected:
 public:
 	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int capture_hits_2(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
+	int capture_hits_3(Chromosome const &chr, Hits &hits, Result &result, Read const &read, std::string read_seq[2], std::string read_quality[2], 
+					   int ori, std::vector<region_t*> & current_regions, std::vector<region_t*> & long_regions, 
+					   bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants, int myverbosity) const;
 	int junctions_remapping(Hits &hits, Result &result, JunctionMap &junctionmap, int nb_spliced_alignments, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 
-	void perform_alignment_wrapper1(QPalma::perform_alignment_t *data) const ;
+	void perform_alignment_wrapper1(QPalma::perform_alignment_t *data, int myverbosity) const ;
 	template<int verbosity, bool discover_variants>
 		void perform_alignment_wrapper2(QPalma::perform_alignment_t *data) const ;
 	
@@ -182,6 +190,8 @@ protected:
 	
 	int get_string_from_region(Chromosome const &chrN, region_t *region, std::string &str) const;
 	void qsort(region_t** output, int size) const;
+	void qsort_length(region_t** output, int size) const;
+	bool sort_regions(std::vector<region_t*> & long_regions, enum sortorder_enum sort_order) const ;
 	void recover_long_regions(Read const &read, std::vector<region_t*> &long_regions_output, std::vector<region_t*> long_regions, std::vector<region_t*> current_regions) const;
 	int convert_dna_position(int real_position, const std::vector<size_t> & cum_length, const std::vector<region_t *> &current_regions) const;
 	void convert_variants(std::vector<Variant> &variants, int dna_len) const;
@@ -193,8 +203,8 @@ protected:
 
 	std::vector<Variant> identify_variants(std::string dna, std::vector<int> positions, Chromosome const &contig_idx, VariantMap & variants,std::map<int, int> & variant_positions) const ;
 
-	int perform_alignment_starter_variant(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, VariantMap & variants) const;
-	int perform_alignment_starter_single(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list,std::map<int, int> & variant_pos) const;
+	int perform_alignment_starter_variant(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, VariantMap & variants, int myverbosity) const;
+	int perform_alignment_starter_single(Result &result, Hits &readMappings, std::string read_string, std::string read_quality, std::string dna, std::vector<region_t *> current_regions, std::vector<int> positions, Chromosome const &contig_idx, char strand, int ori, int hit_read_position, int hit_dna_position, int hit_length, bool non_consensus_search, int &num_alignments_reported, bool remapping, JunctionMap &annotatedjunctions, const VariantMap & variants, std::vector<Variant> & variant_list,std::map<int, int> & variant_pos, int myverbosity) const;
 
 	void delete_long_regions(std::vector<std::vector<region_t *> > *long_regions) const;
 	int get_transcription_direction(int side,int orientation) const;

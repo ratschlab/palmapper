@@ -82,8 +82,8 @@ Genome::Genome(int numChromosomes) {
 		_chromosomes = new Chromosome[NUM_CHROMOSOMES];
 #endif
 
-	load_genome();
 #ifndef PMINDEX 
+	load_genome();
 	init_constants(); // updated
 #endif
 }
