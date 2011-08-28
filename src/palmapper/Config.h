@@ -73,7 +73,7 @@ public:
 	static int const REPORT_REPETITIVE_SEED_COUNT_MANY2 = 100 ;
 	static int const REPORT_MAPPED_REGIONS_MIN_LENGTH = 25 ;
 
-	static int const QPALMA_USE_MAP_WINDOW = 10 ; //Window used to go all away the extended long region to find mapped positions
+	static int const QPALMA_USE_MAP_WINDOW = 1 ; //Window used to go all away the extended long region to find mapped positions
 
 	static int const MAX_EDIT_OPS = 55;
 	static size_t const INDEX_SIZE_12 = 16777216; //4^12
