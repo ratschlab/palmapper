@@ -17,7 +17,7 @@
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = true ;
-static const std::string verbose_read_id = "HWI-ST408:6:4:8591:73738#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
+static const std::string verbose_read_id = "HWI-ST408:6:4:9397:73530#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
 
 void get_vector_IUPAC(char c, std::vector<int> &l)
 {
@@ -1499,8 +1499,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 			num_hits++;
 
 			//TODO: Real length of a hit is i-1
-			bool consider_as_long_hit = (i >= _config.SPLICED_HIT_MIN_LENGTH_LONG) || hit->aligned;
-			if (consider_as_long_hit && num_hits >= _config.SPLICED_MAX_NUM_ALIGNMENTS /*&& !hit->aligned*/) {
+			bool consider_as_long_hit = (i >= _config.SPLICED_HIT_MIN_LENGTH_LONG) || hit->aligned ;
+			if (consider_as_long_hit && num_hits >= _config.SPLICED_MAX_NUM_ALIGNMENTS /*&& !hit->aligned*/) 
+			{
 				consider_as_long_hit = false;
 				if (myverbosity >= 2)
 					fprintf(stdout, "# ignoring long hits from now on\n");
