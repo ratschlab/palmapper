@@ -1,5 +1,5 @@
-// Authors: Bettina Hepp, Uta Schulze, Cheng Soon Ong, Fabio De Bona, Gunnar Raetsch, Geraldine Jean, Soeren Sonnenburg 
-// Copyright (C) 2005-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Authors: Geraldine Jean, Gunnar Raetsch, Bettina Hepp, Uta Schulze, Cheng Soon Ong, Fabio De Bona, Soeren Sonnenburg 
+// Copyright (C) 2005-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include "qpalma_dp.h"
 
@@ -81,7 +81,11 @@ void Alignment::getDNAEST(){}
 */
 
 
-double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len, int &seed_i, int &seed_j, char* read, int read_len, char* dna, int d_len, struct penalty_struct* qualityScores, double* matchmatrix,int mm_len,double* prb)
+double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len, 
+									  int &seed_i, int &seed_j, 
+									  char* read, int read_len, 
+									  char* dna, int d_len, 
+									  struct penalty_struct* qualityScores, double* matchmatrix, int mm_len, double* prb)
 {
 	seed_i=hit_read; 
 	seed_j=hit_dna; 

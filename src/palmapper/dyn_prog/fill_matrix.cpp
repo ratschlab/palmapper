@@ -1712,7 +1712,7 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
   
 	//fprintf(stdout,"Max number of exons %i\n",max_number_introns);
 
-	//  printf("Entering fill_matrix...\n");
+	//printf("Entering fill_matrix...\n");
   
 	/*********************************************************************************************/
 	/*Best score for a matching alignment from a position i in read sequence   */
@@ -1749,7 +1749,7 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	fast_fill_side_unspliced_first<use_variants,snp_merged>(nr_paths_par,seed_matrix_right,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, donor,acceptor,comp_sites,seed_i, 
 															seed_j,best_match_scores,true,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping, vtemp,
 															no_gap_end,min_exon_len,min_intron_len, variant_cache);
-//	fprintf(stdout,"%i right sides of the matrix filled...\n",seed_matrix_right.size());
+	//fprintf(stdout,"%ld right sides of the matrix filled...\n",seed_matrix_right.size());
 	// for(int n=0;n<seed_matrix_right.size();n++){
 	// 	if (((SeedElem*)seed_matrix_right[n])!=NULL)
 	// 		fprintf(stdout,"seed position %i %i %f\n",((SeedElem*)seed_matrix_right[n])->read_pos,((SeedElem*)seed_matrix_right[n])->dna_pos,((SeedElem*)seed_matrix_right[n])->best_scores[0]);
@@ -1760,13 +1760,13 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 															seed_j,best_match_scores,false,true,max_number_introns,max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping, vtemp,
 															no_gap_end,min_exon_len,min_intron_len, variant_cache);
 	comp_sites.clear();
-//	fprintf(stdout,"%i left sides of the matrix filled...\n",seed_matrix_left.size());
+	//fprintf(stdout,"%ld left sides of the matrix filled...\n",seed_matrix_left.size());
   // for(int n=0;n<seed_matrix_left.size();n++){
   //   if (((SeedElem*)seed_matrix_left[n])!=NULL)
   //     fprintf(stdout,"seed position %i %i %f\n",((SeedElem*)seed_matrix_left[n])->read_pos,((SeedElem*)seed_matrix_left[n])->dna_pos,((SeedElem*)seed_matrix_left[n])->best_scores[0]);
   // }
 
-//	fprintf(stdout,"Left and right alignments...END\n");
+	//fprintf(stdout,"Left and right alignments...END\n");
 
  
 	/*********************************************************************************************/
@@ -1799,8 +1799,14 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 				best_right_right++;
 			}
 		}
+		//fprintf(stdout, "best_left_left=%i, best_left_right=%i\n", best_left_left, best_left_right) ;
 	}
-
+	/*else
+		if (seed_matrix_left[0]!=NULL)
+			fprintf(stdout, "seed_matrix_left[0]!=NULL\n") ;
+		else
+		fprintf(stdout, "seed_matrix_right[0]!=NULL\n") ;*/
+	
 	/*********************************************************************************************/
 	/* Display results */
 	/*********************************************************************************************/
