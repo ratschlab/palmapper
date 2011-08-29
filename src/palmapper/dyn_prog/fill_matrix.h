@@ -74,7 +74,7 @@ void clean_seed_matrix_vector(std::vector<SeedElem *>& matrix, int nr_paths);
 template<bool use_variants, bool snp_merged>
 void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 					  double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
-					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, 
+					  std::vector<SeedElem *>& seed_matrix_left, std::vector<SeedElem *>& seed_matrix_right, int max_number_introns, int max_number_deletions,
 					  int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity,mode currentMode, bool remapping,
 					  int no_gap_end, int min_exon_len, int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
 
