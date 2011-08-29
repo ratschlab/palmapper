@@ -2640,14 +2640,14 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 					{
 						if (contig_idx[(*it).position]!=dna[v.position])
 						{
-							fprintf(stdout, "ERROR: sequence mismatch at %i position: %c|%c|%c != %c  (1)\n", v.position, contig_idx[(*it).position-1], contig_idx[(*it).position],contig_idx[(*it).position+1], dna[v.position]) ; 
+							fprintf(stderr, "ERROR: sequence mismatch at %i position: %c|%c|%c != %c  (1)\n", v.position, contig_idx[(*it).position-1], contig_idx[(*it).position],contig_idx[(*it).position+1], dna[v.position]) ; 
 							assert(contig_idx[(*it).position]==dna[v.position]) ;
 						}
 						if (v.ref_str[0]=='A' || v.ref_str[0]=='C' || v.ref_str[0]=='G' || v.ref_str[0]=='T')
 						{
 							if (contig_idx[(*it).position]!=v.ref_str[0])
 							{
-								fprintf(stdout, "ERROR: sequence mismatch: %c != %c  (2)\n", contig_idx[(*it).position], v.ref_str[0]) ; // BUG-TODO
+								fprintf(stderr, "ERROR: sequence mismatch: %c != %c  (2)\n", contig_idx[(*it).position], v.ref_str[0]) ; // BUG-TODO
 								assert(contig_idx[(*it).position]==v.ref_str[0]) ;
 							}
 						}
@@ -4053,7 +4053,7 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			}
 			if (perform_extra_checks && positions[exon_start]<0)
 			{
-				fprintf(stdout, "ERROR: positions[exon_start=%i]=%i\n", exon_start, positions[exon_start]) ; // BUG-TODO
+				fprintf(stderr, "ERROR: positions[exon_start=%i]=%i\n", exon_start, positions[exon_start]) ; // BUG-TODO
 				alignment_valid=false ;
 				//assert(positions[exon_start]>=0) ;
 				return false ;
@@ -4066,7 +4066,7 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			{
 				if (perform_extra_checks && positions[i]<0)
 				{
-					fprintf(stdout, "ERROR: positions[%i]=%i\n", (int)i, (int)positions[i]) ; 
+					fprintf(stderr, "ERROR: positions[%i]=%i\n", (int)i, (int)positions[i]) ; 
 					alignment_valid=false ;
 					assert(positions[i]>=0) ;
 				}
@@ -4078,7 +4078,7 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 			{					
 				if (perform_extra_checks && positions[i-1]<0)
 				{
-					fprintf(stdout, "ERROR: positions[%i-1]=%i\n", (int)i, (int)positions[i-1]) ; 
+					fprintf(stderr, "ERROR: positions[%i-1]=%i\n", (int)i, (int)positions[i-1]) ; 
 					alignment_valid=false ;
 					assert(positions[i-1]>=0) ;
 				}
@@ -4392,7 +4392,7 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 	{
 		if (!(read_pos==(int)read.length()))
 		{
-			fprintf(stdout, "ERROR: len mismatch: %i != %i\n", read_pos, (int)read.length()) ;
+			fprintf(stderr, "ERROR: len mismatch: %i != %i\n", read_pos, (int)read.length()) ;
 			assert(read_pos==(int)read.length()) ;
 			return -1 ;
 		}
@@ -4802,7 +4802,7 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 		
 		if (perform_extra_checks && (istop<4 || istart<2))
 		{
-			fprintf(stdout, "ERROR: istart=%i, istop=%i\n", istart, istop) ; 
+			fprintf(stderr, "ERROR: istart=%i, istop=%i\n", istart, istop) ; 
 			assert(istop>=4 && istart>=2) ;
 			return -1 ;
 		}
