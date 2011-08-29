@@ -4459,10 +4459,14 @@ int QPalma::get_splice_predictions(std::vector<region_t *> &current_regions, Chr
 		cum_length[i + 1] = cum_length[i] + current_regions[i]->end - current_regions[i]->start;
 	}
 
-	
-	if (perform_extra_checks)
-		assert(cum_length[num_intervals]==dna.length());
-
+	if (perform_extra_checks && !(cum_length[num_intervals]==dna.length()))
+	{
+		fprintf(stderr, "ERROR: cum_length[num_intervals]=%ld != %ld=dna.length()\n", cum_length[num_intervals], dna.length()) ; // BUG-TODO
+		delete[] acceptor ;
+		delete[] donor ;
+		return -1 ;
+	}
+	assert(cum_length[num_intervals]==dna.length()) ;
 
 	if (!_config.NO_SPLICE_PREDICTIONS)
 	{
@@ -5034,7 +5038,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		catch (std::bad_alloc)
 		{
 			fprintf(stderr,	"[capture_hits] allocating memory for supersequence failed (dna.length()=%ld, variant_list.size()=%ld)\n", dna.length(), variant_list.size());
-			result.delete_regions();
+			//result.delete_regions();
 			delete[] acceptor ;
 			delete[] donor ;
 			aln=NULL ;
@@ -5043,7 +5047,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	if (myverbosity >= 3)
 		fprintf(stdout, "after supersequence seed_j=%i\n", seed_j) ;
-	if (dna.size()>20000)
+	if (dna.size()>100000)
 		fprintf(stdout, "Warning: DNA sequence for alignment of read %s is long: dna.size()=%i (pre_dna_size=%i)\n", read.id(), (int)dna.size(), pre_dna_size) ;
 
 	/* check whether we have scores for all donor and acceptor positions (first 10% of reads)*/
@@ -5070,6 +5074,17 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		fprintf(stdout, "hit_read=%i setting to 0 to recover\n", hit_read) ;
 		assert(0) ;
 		hit_read = 0 ;
+	}
+
+	if (perform_extra_checks && hit_dna_converted<0)
+	{
+		fprintf(stderr, "ERROR: hit_dna_converted=%i\n", hit_dna_converted) ; // BUG-TODO
+		//result.delete_regions();
+		delete[] acceptor ;
+		delete[] donor ;
+		delete[] aln ;
+		aln=NULL ;
+		return -1 ;
 	}
 	
 	assert (hit_read >= 0);
