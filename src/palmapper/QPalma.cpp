@@ -5031,7 +5031,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 		catch (std::bad_alloc)
 		{
-			fprintf(stderr,	"[capture_hits] allocating memory for supersequence failed\n");
+			fprintf(stderr,	"[capture_hits] allocating memory for supersequence failed (dna.length()=%ld, variant_list.size()=%ld)\n", dna.length(), variant_list.size());
 			result.delete_regions();
 			delete[] acceptor ;
 			delete[] donor ;
