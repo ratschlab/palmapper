@@ -101,9 +101,10 @@ class Alignment {
 
 	  template<bool use_variants, bool snp_merged>
       void myalign_fast(char strand, Chromosome const &chr, int nr_paths_p, char* dna, int dna_len_p, char* est, int est_len_p, double* prb, struct penalty_struct h, double* matchmatrix, int mm_len,
-			 double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
-			 bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns, 
-						int max_gap, int max_mism, int max_edit_op, int min_match,bool remapping, bool variant_mapping, int no_gap_end,int min_exom_len,int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
+						double* donor, int d_len, double* acceptor, int a_len, struct penalty_struct* qualityScores, 
+						bool remove_duplicate_scores, int hit_read, int hit_dna, double best_match, int max_number_introns, int max_number_deletions,
+						int max_gap, int max_mism, int max_edit_op, int min_match,bool remapping, bool variant_mapping, int no_gap_end,
+						int min_exom_len,int min_intron_len, const std::vector<variant_cache_t *> &variant_cache);
 
       void getDNAEST();
       void getAlignmentResults(int* s_align, int* e_align,
