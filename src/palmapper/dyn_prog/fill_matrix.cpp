@@ -1016,10 +1016,10 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						std::vector<FoundVariant> current_variant_ids;
 						current_variant_ids=tabidsdeletions[tabidsdeletions.size()-1];
 						tabidsdeletions.pop_back();
-
+						
 						if ( (right_side && jj>=dna_len) || (!right_side && jj<0))
 							continue;
-
+						
 						if (PERFORM_EXTRA_CHECKS)
 						{
 							assert(jj>=0 && jj<dna_len);
@@ -1041,7 +1041,14 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						}	
 						idsdeletions.clear();						
 						//Maybe here look if the seed was already filled but not sure...
-//						fprintf(stdout, "New fill matrix from deletion: %i-%i\n",j-prev_shift,jj+prev_shift);
+
+						int seed_already_filled=-1;
+						bool continue_searching=true;
+						double tempSplicedScore = main_site_scores[posj]+comp_site_scores[comp_sites[comp_ss]];
+						double currentScore= ((Prev_score*)current_seed->matrices[pmatrices[0]] +matrix_pos)->value ; 	    
+						
+						
+						//fprintf(stdout, "New fill matrix from deletion: %i-%i\n",j-prev_shift,jj+prev_shift);
 						
 						prevMism=((Prev_score*)matrices[0] + matrix_position)->num_mismatches;
 						prevGaps=((Prev_score*)matrices[0] + matrix_position)->num_gaps;
@@ -1079,10 +1086,11 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 								}
 							}
 						}
-						endpositions.clear();
-						idsdeletions.clear();
+						
 					}
-					
+					endpositions.clear();
+					tabidsdeletions.clear();
+
 					
 				}/* END VARIANT DELETION */
 
@@ -1475,7 +1483,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											}	
 											idsdeletions.clear();						
 											//Maybe here look if the seed was already filled but not sure...
-//											fprintf(stdout, "New fill matrix from deletion (from dna gap): %i-%i\n",j-prev_shift,jj+prev_shift);
+											//fprintf(stdout, "New fill matrix from deletion (from dna gap): %i-%i\n",j-prev_shift,jj+prev_shift);
 											
 											prevMism=((Prev_score*)actMatrix + matrix_position-1)->num_mismatches;
 											prevGaps=((Prev_score*)actMatrix + matrix_position-1)->num_gaps;
@@ -1510,9 +1518,10 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 													break;
 												}
 											}
-											endpositions.clear();
-											idsdeletions.clear();
 										}
+										endpositions.clear();
+										tabidsdeletions.clear();
+										
 										
 					
 									}/* END VARIANT DELETION */
@@ -1625,7 +1634,7 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											}	
 											idsdeletions.clear();						
 											//Maybe here look if the seed was already filled but not sure...
-//											fprintf(stdout, "New fill matrix from deletion (from dna gap): %i-%i\n",j-prev_shift,jj+prev_shift);
+											//fprintf(stdout, "New fill matrix from deletion (from dna gap): %i-%i\n",j-prev_shift,jj+prev_shift);
 											
 											prevMism=((Prev_score*)actMatrix + matrix_position-row_len+1)->num_mismatches;
 											prevGaps=((Prev_score*)actMatrix + matrix_position-row_len+1)->num_gaps;
@@ -1660,11 +1669,10 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 													break;
 												}
 											}
-											endpositions.clear();
-											idsdeletions.clear();
 										}
 										
-										
+										endpositions.clear();
+										tabidsdeletions.clear();
 									}/* END VARIANT DELETION */
 									
 

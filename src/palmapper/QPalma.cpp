@@ -4010,6 +4010,8 @@ bool QPalma::determine_exons(std::vector<int> & exons, const std::string & dna, 
 		{
 			if (myverbosity>=2)
 				fprintf(stdout, "Warning: Alignment goes over region boundary. Marking alignment as invalid\n") ;
+			return false;
+			
 			//assert(0) ;
 			
 			//return false;
