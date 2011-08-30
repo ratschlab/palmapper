@@ -32,6 +32,24 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 		} 
 		catch (ShogunException & e)
 		{
+			fprintf(stderr, "ERROR: caught ShogunException: %s in thread %lu.\n", e.get_exception_string(), pthread_self()) ;
+			CSignal::do_show_read_ids() ;
+			fprintf(stderr, "\nExiting\n") ;
+			exit(-1) ;
+		}
+		catch (std::exception & e)
+		{
+			fprintf(stderr, "ERROR: caught std::exception: %s in thread %lu.\n", e.what(), pthread_self()) ;
+			CSignal::do_show_read_ids() ;
+			fprintf(stderr, "\nExiting\n") ;
+			exit(-1) ;
+		}
+		catch (...)
+		{
+			fprintf(stderr, "ERROR: caught unknown exception in thread %lu.\n", pthread_self()) ;
+			CSignal::do_show_read_ids() ;
+			fprintf(stderr, "\nExiting\n") ;
+			exit(-1) ;
 		}
 	}
 };
