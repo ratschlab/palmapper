@@ -2254,7 +2254,7 @@ void *perform_alignment_wrapper(QPalma::perform_alignment_t *data)
 	}
 	catch (std::bad_alloc&)
 	{
-		fprintf(stderr, "thread exception caught\n") ;
+		fprintf(stderr, "Warning: Alignment of read %s failed (out of memory exception caught)\n", data->result->_read.id()) ;
 		data->ret = -1 ; // failed
 	}
 

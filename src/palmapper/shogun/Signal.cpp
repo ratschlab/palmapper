@@ -47,6 +47,9 @@ CSignal::~CSignal()
 
 void CSignal::do_show_read_ids()
 {
+	if (!show_read_ids)
+		return ;
+	
 	fprintf(stderr, "Read IDs that were recently processed:\n") ;
 	
 	for (std::map<pthread_t, std::string>::iterator it=current_read_ids.begin(); it!=current_read_ids.end(); it++)
@@ -100,8 +103,7 @@ void CSignal::handler(int signal)
 			fprintf(stderr, "\nERROR: SEGSEGV in thread %lu encountered\n\n", pthread_self()) ;
 		else
 			fprintf(stderr, "\nERROR: SEGBUS in thread %lu encountered\n\n", pthread_self()) ;
-		if (show_read_ids)
-			do_show_read_ids() ;
+		do_show_read_ids() ;
 		fprintf(stderr, "\n\nTerminating process.\n\n") ;
 		
 		exit(-1) ;
