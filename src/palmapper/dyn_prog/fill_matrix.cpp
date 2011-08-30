@@ -347,6 +347,14 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	
 	if (!snp_merged)
 	{
+		if (PERFORM_EXTRA_CHECKS && use_variants)
+		{
+			if (position <0 || position >= (int)variant_cache.size())
+			{
+				fprintf(stderr,"ERROR: pos %i cache size %i\n", position,  (int)variant_cache.size()); // BUG-TODO
+				return -ALMOST_INFINITY ;
+			}
+		}
 		
 		if (currentMode == USE_QUALITY_SCORES){
 			score = getScore(qualityScores,mlen,dnaInt,readInt,baseScore);
@@ -358,13 +366,7 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 		if ( !use_variants)
 			return score;
  
-		if (PERFORM_EXTRA_CHECKS){
-		
-			if (position <0 || position >= (int)variant_cache.size())
-				fprintf(stdout,"pos %i cache size %i\n", position,  (int)variant_cache.size());
-		
-			assert(position >=0 && position < (int)variant_cache.size());
-		}
+		assert(position >=0 && position < (int)variant_cache.size());
 	
 		if ( variant_cache[position]==NULL)
 			return score;
@@ -575,7 +577,7 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 			// fprintf(stdout,"[check_min_matches] From position %i-%i with %c-%c\n",pos_i,pos_j,read[pos_i],dna[pos_j]);
 			if (pos_i<0 || pos_j<0 || pos_i>=read_len || pos_j>=dna_len)
 			{
-				//fprintf(stdout,"[check_min_matches] out of bounds\n");
+				fprintf(stderr,"ERROR: [check_min_matches] out of bounds\n");
 				conserved_seq=false ;
 				break ;
 			}
@@ -612,8 +614,8 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 		}
 
 		if (!conserved_seq && num>=min_matches+num_N && num_N<=MAX_SPLICE_MISMATCH_NUM_N){
-			if (verbosity>0)
-				fprintf(stdout,"[check_min_matches] PROBLEM with number of matches from position %i-%i (%i for %i) with %i N\n",i,j,num,min_matches,num_N);
+			//if (verbosity>0)
+				fprintf(stderr,"ERROR: [check_min_matches] PROBLEM with number of matches from position %i-%i (%i for %i) with %i N\n",i,j,num,min_matches,num_N);
 		}
 		if (isnotminusinf(prevValue) && conserved_seq)
 		{
@@ -717,7 +719,18 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 	//Best matrix
 	int dnaInt;
 	int snp_id;
-	((Prev_score*)matrices[0]+ max_gap)->value = getBestScoreWithVariants<use_variants,snp_merged>(currentMode, matchmatrix, qualityScores, mlen, dna[seed_dna], read[seed_read], read_scores[seed_read],seed_dna,dnaInt,snp_id, variant_cache);
+
+	if (PERFORM_EXTRA_CHECKS && use_variants)
+	{
+		if (seed_dna <0 || seed_dna >= (int)variant_cache.size())
+		{
+			fprintf(stderr,"ERROR: pos %i cache size %i %s:%i\n", seed_dna,  (int)variant_cache.size(), __FILE__, __LINE__); // BUG-TODO
+			assert(0) ;
+			return ;
+		}
+	}
+	((Prev_score*)matrices[0]+ max_gap)->value = getBestScoreWithVariants<use_variants,snp_merged>(currentMode, matchmatrix, qualityScores, mlen, dna[seed_dna], read[seed_read], read_scores[seed_read],
+																								   seed_dna,dnaInt,snp_id, variant_cache);
 	// if (snp_id != -1){
 	// 	fprintf(stdout,"Found better score with snp id %i\n",snp_id);
 	// }
@@ -893,6 +906,16 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 				else
 					putativeValue=0;
 
+				if (PERFORM_EXTRA_CHECKS && use_variants)
+				{
+					if (j <0 || j >= (int)variant_cache.size())
+					{
+						fprintf(stderr, "ERROR: pos %i cache size %i %s:%i\n", j,  (int)variant_cache.size(), __FILE__, __LINE__); // BUG-TODO
+						assert(0) ;
+						return ;
+					}
+				}
+
 				//Least good best global score known
 				globalValue= current_seed->best_scores[nr_paths_par-1];
 	
@@ -906,7 +929,9 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 					prevMism=((Prev_score*)actMatrix +matrix_prev_position)->num_mismatches;
 	
 					if (isnotminusinf(prevValue)){
-						tempValue = prevValue + getBestScoreWithVariants<use_variants,snp_merged>(currentMode, matchmatrix, qualityScores, mlen, dna[j], read[i], baseScore,  j, dnaInt,snp_id, variant_cache);
+
+						tempValue = prevValue + getBestScoreWithVariants<use_variants,snp_merged>(currentMode, matchmatrix, qualityScores, mlen, dna[j], read[i], baseScore,  
+																								  j, dnaInt,snp_id, variant_cache);
 						// if (snp_id != -1){
 						// 	//fprintf(stdout,"Found better score with snp id %i\n",snp_id);
 						// }
@@ -1788,8 +1813,8 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	/*********************************************************************************************/
 
 	memset(max_score_positions,0,sizeof(int)*2*nr_paths_par);
-	if(seed_matrix_left[0]!=NULL && seed_matrix_right[0]!=NULL){ 
-   
+	if(seed_matrix_left.size()>=1 && seed_matrix_left[0]!=NULL && seed_matrix_right.size()>=1 && seed_matrix_right[0]!=NULL)
+	{ 
 		int best_left_left=1;
 		int best_left_right=0;
 		int best_right_left=0;
