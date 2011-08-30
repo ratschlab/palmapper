@@ -2973,7 +2973,7 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 	}
 	catch (std::bad_alloc&)
 	{
-	    fprintf(stdout, "WARNING: Thread creating failed\n") ;
+	    fprintf(stderr, "WARNING: perform_alignment failed with out of memory\n") ;
 		delete consensus_alignment ;
 		delete non_consensus_alignment ;
 	    

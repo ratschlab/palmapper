@@ -123,7 +123,15 @@ int Mapper::map_reads()
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;
-		map_read(result, start_time);
+		try
+		{
+			map_read(result, start_time);
+		}
+		catch (std::bad_alloc)
+		{
+			fprintf(stderr, "Alignment of read %s failed (out of memory)\n", result._orig.id()) ;
+			continue ;
+		}
 		time3 += clock()-start_time ;
 		_reporter.report(result,_junctionmap,_variants);
 		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
