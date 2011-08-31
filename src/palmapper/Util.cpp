@@ -34,7 +34,10 @@ void *operator new(size_t size) {
 	static std::bad_alloc ex;
 	void *ret = operator new(size, std::nothrow);
 	if (ret == NULL)
+	{
+		assert(0) ;
 		throw ex;
+	}
 	return ret;
 	}
 
