@@ -642,8 +642,8 @@ void print_restricted_matrix(Prev_score* matrices[],int nr_paths, int matrix_len
 }
 
 
-template <bool use_variants, bool snp_merged>
-void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool right_side,bool first_seed,int max_number_introns,	int max_number_deletions, int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity, mode currentMode, bool remapping, std::vector<FoundVariant> deletion_id, int no_gap_end,int min_exon_len,int min_intron_len, const std::vector<variant_cache_t*> & variant_cache)
+template <bool use_variants, bool snp_merged, bool right_side,int nr_paths_par>
+void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, double* matchmatrix, penalty_struct* qualityScores, double* main_site_scores, double* comp_site_scores, std::vector<int>& comp_sites,	int seed_read, int seed_dna, double* best_match_scores, bool first_seed,int max_number_introns,	int max_number_deletions, int max_gap, int max_mism, int max_edit_op, int min_match, int verbosity, mode currentMode, bool remapping, std::vector<FoundVariant> deletion_id, int no_gap_end,int min_exon_len,int min_intron_len, const std::vector<variant_cache_t*> & variant_cache)
 {
 
 //	fprintf(stdout,"START: Fill %s side of the matrix from position %i-%i (%i-%i) (%i,%i,%i,num_intron=%i)...\n",(right_side==true)?"right":"left",seed_read, seed_dna,read_len, dna_len,max_gap,max_mism,max_edit_op, max_number_introns);
@@ -1073,12 +1073,12 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 						prevMism=((Prev_score*)matrices[0] + matrix_position)->num_mismatches;
 						prevGaps=((Prev_score*)matrices[0] + matrix_position)->num_gaps;
 						int seed_index=seed_matrix.size();
-						fast_fill_side_unspliced_first<use_variants,snp_merged>(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
-																				main_site_scores, comp_site_scores, comp_sites, i-prev_shift,
-																				jj, best_match_scores, right_side,false,
-																				max_number_introns,max_number_deletions-1,max_gap-prevGaps,max_mism-prevMism,
-																				max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
-																				remapping, current_variant_ids, no_gap_end,min_exon_len,min_intron_len, variant_cache);
+						fast_fill_side_unspliced_first<use_variants,snp_merged,right_side,nr_paths_par>(seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
+																						   main_site_scores, comp_site_scores, comp_sites, i-prev_shift,
+																						   jj, best_match_scores, false,
+																						   max_number_introns,max_number_deletions-1,max_gap-prevGaps,max_mism-prevMism,
+																						   max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
+																						   remapping, current_variant_ids, no_gap_end,min_exon_len,min_intron_len, variant_cache);
 						
 						
 						
@@ -1311,13 +1311,13 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 												//Number of this seedElem in the vector seedMatrix (because of recursive calls that add new seedElem)
 												seed_already_filled=seed_matrix.size();
 												std::vector<FoundVariant> vtemp;
-												fast_fill_side_unspliced_first<use_variants,snp_merged>(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
-																										main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
-																										comp_sites[comp_ss]-prev_shift, best_match_scores, right_side,false,
-																										max_number_introns-1,max_number_deletions,max_gap-prevGaps,
-																										max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, 
-																										verbosity,currentMode, remapping,vtemp, no_gap_end,min_exon_len,min_intron_len,
-																										variant_cache);
+												fast_fill_side_unspliced_first<use_variants,snp_merged,right_side,nr_paths_par>(seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
+																												   main_site_scores, comp_site_scores, comp_sites, posi-prev_shift,
+																												   comp_sites[comp_ss]-prev_shift, best_match_scores, false,
+																												   max_number_introns-1,max_number_deletions,max_gap-prevGaps,
+																												   max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, 
+																												   verbosity,currentMode, remapping,vtemp, no_gap_end,min_exon_len,min_intron_len,
+																												   variant_cache);
 											}
 
 											//Keep best scores
@@ -1508,12 +1508,12 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											prevMism=((Prev_score*)actMatrix + matrix_position-1)->num_mismatches;
 											prevGaps=((Prev_score*)actMatrix + matrix_position-1)->num_gaps;
 											int seed_index=seed_matrix.size();
-											fast_fill_side_unspliced_first<use_variants,snp_merged>(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
-																									main_site_scores, comp_site_scores, comp_sites, i-prev_shift,
-																									jj, best_match_scores, right_side,false,
-																									max_number_introns,max_number_deletions-1,max_gap-prevGaps,
-																									max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
-																									remapping,current_variant_ids, no_gap_end,min_exon_len,min_intron_len, variant_cache);
+											fast_fill_side_unspliced_first<use_variants,snp_merged,right_side,nr_paths_par>(seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
+																											   main_site_scores, comp_site_scores, comp_sites, i-prev_shift,
+																											   jj, best_match_scores, false,
+																											   max_number_introns,max_number_deletions-1,max_gap-prevGaps,
+																											   max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
+																											   remapping,current_variant_ids, no_gap_end,min_exon_len,min_intron_len, variant_cache);
 											
 											
 											//Keep best scores						
@@ -1659,12 +1659,12 @@ void fast_fill_side_unspliced_first(int nr_paths_par,  std::vector<SeedElem*> &s
 											prevMism=((Prev_score*)actMatrix + matrix_position-row_len+1)->num_mismatches;
 											prevGaps=((Prev_score*)actMatrix + matrix_position-row_len+1)->num_gaps;
 											int seed_index=seed_matrix.size();
-											fast_fill_side_unspliced_first<use_variants,snp_merged>(nr_paths_par, seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
-																									main_site_scores, comp_site_scores, comp_sites, i,
-																									jj, best_match_scores, right_side,false,
-																									max_number_introns,max_number_deletions-1,max_gap-prevGaps,
-																									max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
-																									remapping,current_variant_ids,no_gap_end,min_exon_len,min_intron_len, variant_cache);
+											fast_fill_side_unspliced_first<use_variants,snp_merged,right_side,nr_paths_par>(seed_matrix, read_len, dna_len, read, dna, prb, functions, matchmatrix, qualityScores, 
+																											   main_site_scores, comp_site_scores, comp_sites, i,
+																											   jj, best_match_scores, false,
+																											   max_number_introns,max_number_deletions-1,max_gap-prevGaps,
+																											   max_mism-prevMism,max_edit_op-(prevGaps+prevMism),min_match, verbosity,currentMode, 
+																											   remapping,current_variant_ids,no_gap_end,min_exon_len,min_intron_len, variant_cache);
 											
 											
 											//Keep best scores						
@@ -1781,12 +1781,14 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	/*********************************************************************************************/
 	//fprintf(stdout,"Left and right alignments from %i-%i...\n",seed_i,seed_j);
 
+	assert(nr_paths_par==1) ;
+
 	std::vector<int> comp_sites;
 	std::vector<FoundVariant> vtemp;
-	fast_fill_side_unspliced_first<use_variants,snp_merged>(nr_paths_par,seed_matrix_right,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, donor,acceptor,comp_sites,seed_i, 
-															seed_j,best_match_scores,true,true,max_number_introns,max_number_deletions, max_gap,max_mism,max_edit_op,min_match, 
-															verbosity,currentMode,remapping, vtemp,
-															no_gap_end,min_exon_len,min_intron_len, variant_cache);
+	fast_fill_side_unspliced_first<use_variants,snp_merged,true,1>(seed_matrix_right,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, donor,acceptor,comp_sites,seed_i, 
+																 seed_j,best_match_scores,true,max_number_introns,max_number_deletions, max_gap,max_mism,max_edit_op,min_match, 
+																 verbosity,currentMode,remapping, vtemp,
+																 no_gap_end,min_exon_len,min_intron_len, variant_cache);
 	//fprintf(stdout,"%ld right sides of the matrix filled...\n",seed_matrix_right.size());
 	// for(int n=0;n<seed_matrix_right.size();n++){
 	// 	if (((SeedElem*)seed_matrix_right[n])!=NULL)
@@ -1794,10 +1796,10 @@ void fast_fill_matrix(int nr_paths_par, int*max_score_positions, int read_len, i
 	// }
  
 	comp_sites.clear();
-	fast_fill_side_unspliced_first<use_variants,snp_merged>(nr_paths_par,seed_matrix_left,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, acceptor,donor,comp_sites,seed_i, 
-															seed_j,best_match_scores,false,true,max_number_introns,max_number_deletions, 
-															max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping, vtemp,
-															no_gap_end,min_exon_len,min_intron_len, variant_cache);
+	fast_fill_side_unspliced_first<use_variants,snp_merged,false,1>(seed_matrix_left,read_len,dna_len, read, dna, prb,functions, matchmatrix,qualityScores, acceptor,donor,comp_sites,seed_i, 
+																  seed_j,best_match_scores,true,max_number_introns,max_number_deletions, 
+																  max_gap,max_mism,max_edit_op,min_match, verbosity,currentMode,remapping, vtemp,
+																  no_gap_end,min_exon_len,min_intron_len, variant_cache);
 	comp_sites.clear();
 	//fprintf(stdout,"%ld left sides of the matrix filled...\n",seed_matrix_left.size());
   // for(int n=0;n<seed_matrix_left.size();n++){
