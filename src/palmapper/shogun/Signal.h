@@ -29,7 +29,7 @@ extern void (*sg_cancel_computations)(bool &delayed, bool &immediately);
 
 #ifndef WIN32
 #include <signal.h>
-#define NUMTRAPPEDSIGS 4
+#define NUMTRAPPEDSIGS 5
 
 using lang::Mutex;
 

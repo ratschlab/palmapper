@@ -21,7 +21,7 @@
 
 using namespace shogun;
 
-int CSignal::signals[NUMTRAPPEDSIGS]={SIGINT, SIGURG, SIGSEGV, SIGBUS};
+int CSignal::signals[NUMTRAPPEDSIGS]={SIGINT, SIGURG, SIGSEGV, SIGBUS, SIGABRT};
 struct sigaction CSignal::oldsigaction[NUMTRAPPEDSIGS];
 bool CSignal::active=false;
 bool CSignal::cancel_computation=false;
@@ -87,7 +87,10 @@ void CSignal::handler(int signal)
 			exit(-1) ;
 		}
 		else if (answer == 'P')
+		{
+			fprintf(stderr, "Notifying threads to cancel computations\n") ;
 			set_cancel();
+		}
 		else if (answer == 'S')
 			do_show_read_ids();
 		else
@@ -97,12 +100,14 @@ void CSignal::handler(int signal)
 	}
 	else if (signal == SIGURG)
 		set_cancel();
-	else  if (signal == SIGSEGV || signal==SIGBUS)
+	else  if (signal == SIGSEGV || signal==SIGBUS || signal==SIGABRT)
 	{
 		if (signal == SIGSEGV)
 			fprintf(stderr, "\nERROR: SEGSEGV in thread %lu encountered\n\n", pthread_self()) ;
-		else
+		else if (signal==SIGBUS)
 			fprintf(stderr, "\nERROR: SEGBUS in thread %lu encountered\n\n", pthread_self()) ;
+		else
+			fprintf(stderr, "\nERROR: SIGABRT in thread %lu encountered\n\n", pthread_self()) ;
 		do_show_read_ids() ;
 		fprintf(stderr, "\n\nTerminating process.\n\n") ;
 		
