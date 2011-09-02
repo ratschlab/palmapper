@@ -117,6 +117,8 @@ int Mapper::map_reads()
 		Result &result = *new Result(*this);
 		if (!_queryFile.next_read(result._orig, _config.STRAND))
 			break;
+		if (_config.ONLY_READ_ID.size()>0 && result._orig.id()!=_config.ONLY_READ_ID)
+			continue ;
 
 		CSignal::report_current_read_id(result._orig.id()) ;
 		

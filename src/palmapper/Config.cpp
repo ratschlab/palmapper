@@ -1902,6 +1902,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		//align only specific read
+		if (strcmp(argv[i], "-only-read") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", argv[i]);
+				usage();
+				exit(1);
+			}
+			i++;
+			ONLY_READ_ID=strdup(argv[i]);
+		}
+
 		//nr of unallowed chars in reads
 		/*if(strcmp(argv[i],"-n")==0){
 		 not_defined = 0;
