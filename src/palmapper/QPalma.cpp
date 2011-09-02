@@ -17,7 +17,7 @@
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = true ;
-static const std::string verbose_read_id = "HWI-ST408:6:4:10225:73663#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
+static const std::string verbose_read_id = "ILLUMINA-DB1410_0031:8:12:18149:16623#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
 static const int verbose_read_level = 3 ;
 
 void get_vector_IUPAC(char c, std::vector<int> &l)
@@ -5086,10 +5086,22 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln=NULL ;
 		return -1 ;
 	}
+
+	if (perform_extra_checks && (seed_j<0 || seed_j>=(int)dna.size())) 
+	{
+		fprintf(stderr, "ERROR: seed_j=%i\n", seed_j) ; // BUG-TODO
+		//result.delete_regions();
+		delete[] acceptor ;
+		delete[] donor ;
+		delete[] aln ;
+		aln=NULL ;
+		return -1 ;
+	}
 	
 	assert (hit_read >= 0);
 	assert (hit_dna_converted >= 0);
 	assert (seed_j >= 0);
+	assert (seed_j >= 0 && seed_j<(int)dna.size());
 	
 	int qmm_value=MIN_NUM_MATCHES;
 	if (non_consensus_search)

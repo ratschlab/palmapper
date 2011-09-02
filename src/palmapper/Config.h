@@ -124,7 +124,7 @@ public:
 	std::string READ_ID_PREFIX ;
 	unsigned int FIRST_READ_NR;
 	unsigned int LAST_READ_NR;
-
+	std::string ONLY_READ_ID ;
 
 	unsigned int INDEX_DEPTH_EXTRA_THRESHOLD;
 	unsigned int SEED_HIT_CANCEL_THRESHOLD;
