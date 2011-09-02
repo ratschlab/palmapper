@@ -166,7 +166,7 @@ Config::Config() {
 	FILTER_VARIANT_MAXNONCONFRATIO=10.0 ;
 	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	VARIANT_SNP_TAKE_LINES.push_back("*") ;
-	DP_MAX_DELETIONS = 4 ;
+	DP_MAX_DELETIONS = 2 ;
 
 	REPORT_SNP_TERMINAL_DIST = 10 ;
 	REPORT_INDEL_TERMINAL_DIST = 15 ;
@@ -1006,6 +1006,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				FILTER_VARIANT_MINCONFCOUNT=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_MINCONFCOUNT>=0) ;
 				FILTER_VARIANTS=true ;
+			}
+
+			if (strcmp(argv[i], "-max-dp-deletions") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option %s\n", argv[i]) ;
+					usage();
+					exit(1);
+				}
+				i++;
+				DP_MAX_DELETIONS=atoi(argv[i]) ;
+				assert(DP_MAX_DELETIONS>=0) ;
 			}
 
 			if (strcmp(argv[i], "-filter-variants-maxnonconfratio") == 0) {
