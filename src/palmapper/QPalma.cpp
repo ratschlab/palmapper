@@ -5089,7 +5089,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	if (perform_extra_checks && (seed_j<0 || seed_j>=(int)dna.size())) 
 	{
-		fprintf(stderr, "ERROR: seed_j=%i \not\in [0,%ld]\n", seed_j, dna.size()) ; // BUG-TODO
+		fprintf(stderr, "ERROR: seed_j=%i not in [0,%ld]\n", seed_j, dna.size()) ; // BUG-TODO
 		//result.delete_regions();
 		delete[] acceptor ;
 		delete[] donor ;
