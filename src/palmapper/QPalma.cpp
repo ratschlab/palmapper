@@ -18,7 +18,7 @@ const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = true ;
 static const std::string verbose_read_id = "ILLUMINA-DB1410_0031:8:12:18149:16623#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
-static const int verbose_read_level = 3 ;
+static const int verbose_read_level = 0 ;
 
 void get_vector_IUPAC(char c, std::vector<int> &l)
 {
@@ -1469,7 +1469,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 
 	int myverbosity=verbosity ;
 	
-	if (std::string(result._read.id())==verbose_read_id)
+	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
 		myverbosity=verbose_read_level ;
 
 	// clean up data generated for the previous read
@@ -2053,7 +2053,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 
 	int myverbosity=verbosity ;
 	
-	if (std::string(result._read.id())==verbose_read_id)
+	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
 		myverbosity=verbose_read_level ;
 
 	Read const &read(hits.getRead());
@@ -2154,7 +2154,7 @@ int QPalma::capture_hits_3(Chromosome const &chr, Hits &hits, Result &result, Re
 {
 	int num_alignments_reported=0 ;
 
-	if (std::string(result._read.id())==verbose_read_id)
+	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
 		myverbosity=verbose_read_level ;
 
 	//Iterate all long regions and start alignment
@@ -2277,7 +2277,7 @@ void QPalma::perform_alignment_wrapper1(QPalma::perform_alignment_t *data, int m
 	if (data->remapping)
 		discover_variants = false ;
 
-	if (std::string(data->result->_read.id())==verbose_read_id)
+	if (myverbosity!=verbose_read_level && std::string(data->result->_read.id())==verbose_read_id)
 		myverbosity=verbose_read_level ;
 	
 	switch(myverbosity)
@@ -5089,7 +5089,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	if (perform_extra_checks && (seed_j<0 || seed_j>=(int)dna.size())) 
 	{
-		fprintf(stderr, "ERROR: seed_j=%i\n", seed_j) ; // BUG-TODO
+		fprintf(stderr, "ERROR: seed_j=%i \not\in [0,%ld]\n", seed_j, dna.size()) ; // BUG-TODO
 		//result.delete_regions();
 		delete[] acceptor ;
 		delete[] donor ;
