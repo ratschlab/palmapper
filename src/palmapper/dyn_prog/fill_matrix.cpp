@@ -1021,7 +1021,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 					std::vector<FoundVariant> idsdeletions;
 					//fprintf(stdout,"position after match: %i\n",j-prev_shift);
 
-					if (max_number_deletions>=0)
+					if (max_number_deletions>=1)
 						idsdeletions = getDeletionsfromVariants<use_variants>(j-prev_shift,endpositions, variant_cache,right_side);
 					
 					std::vector<std::vector<FoundVariant> > tabidsdeletions;
@@ -1055,7 +1055,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 							assert (jj>j-prev_shift);
 						}
 						
-						if (max_number_deletions>=0)
+						if (max_number_deletions>=1)
 							idsdeletions = getDeletionsfromVariants<use_variants>(jj,endpositions, variant_cache,right_side);
 						
 						for (int d=0;d<(int)idsdeletions.size();d++){
@@ -1462,7 +1462,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 										std::vector<int> endpositions;
 										std::vector<FoundVariant> idsdeletions;
 //										fprintf(stdout,"position after gap dna: %i\n",j);
-										if (max_number_deletions>=0)
+										if (max_number_deletions>=1)
 											idsdeletions = getDeletionsfromVariants<use_variants>(j,endpositions, variant_cache,right_side);
 										std::vector<std::vector<FoundVariant> > tabidsdeletions;
 										//Prepare to allow to jump over several consecutive deletions
@@ -1493,7 +1493,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 													assert (jj>j);
 											}
 											
-											if (max_number_deletions>=0)
+											if (max_number_deletions>=1)
 												idsdeletions = getDeletionsfromVariants<use_variants>(jj,endpositions, variant_cache,right_side);
 											for (int d=0;d<(int)idsdeletions.size();d++){
 												std::vector<FoundVariant> vtemp=current_variant_ids;
@@ -1613,7 +1613,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 										std::vector<int> endpositions;
 										std::vector<FoundVariant> idsdeletions;
 //										fprintf(stdout,"position after gap read: %i\n",j-prev_shift);
-										if (max_number_deletions>=0)
+										if (max_number_deletions>=1)
 											idsdeletions = getDeletionsfromVariants<use_variants>(j-prev_shift,endpositions, variant_cache,right_side);
 										std::vector<std::vector<FoundVariant> > tabidsdeletions;
 										//Prepare to allow to jump over several consecutive deletions
@@ -1644,7 +1644,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 													assert (jj>j-prev_shift);
 											}
 
-											if (max_number_deletions>=0)
+											if (max_number_deletions>=1)
 												idsdeletions = getDeletionsfromVariants<use_variants>(jj,endpositions, variant_cache,right_side);
 											for (int d=0;d<(int)idsdeletions.size();d++){
 												std::vector<FoundVariant> vtemp=current_variant_ids;
