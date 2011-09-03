@@ -163,7 +163,8 @@ Config::Config() {
 	MAF_REF_NAME="";
 
 	FILTER_VARIANT_MINCONFCOUNT=0 ;
-	FILTER_VARIANT_MAXNONCONFRATIO=10.0 ;
+	FILTER_VARIANT_MAXNONCONFRATIO=100.0 ;
+	FILTER_VARIANT_MAP_WINDOW=-1 ;
 	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	VARIANT_SNP_TAKE_LINES.push_back("*") ;
 	DP_MAX_DELETIONS = 2 ;
@@ -1005,6 +1006,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				FILTER_VARIANT_MINCONFCOUNT=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_MINCONFCOUNT>=0) ;
+				FILTER_VARIANTS=true ;
+			}
+
+			if (strcmp(argv[i], "-filter-variants-map-window") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option %s\n", argv[i]) ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_VARIANT_MAP_WINDOW=atoi(argv[i]) ;
 				FILTER_VARIANTS=true ;
 			}
 

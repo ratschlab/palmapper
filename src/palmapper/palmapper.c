@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 			return -1;
 
 		if (_config.FILTER_VARIANTS)
-			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES, 100, *genomemaps) ;
+			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES, _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
 	}
 
 	QPalma *qpalma = NULL;
