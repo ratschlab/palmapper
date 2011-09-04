@@ -71,7 +71,7 @@ static const int MAX_SPLICE_MISMATCH_NUM_N=2 ;
 
 #define D_USE_QUALITY_SCORES 1
 
-#define PERFORM_EXTRA_CHECKS true
+#define PERFORM_EXTRA_CHECKS false
 
 inline bool myisfinite(double x)
 {

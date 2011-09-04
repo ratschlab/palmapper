@@ -16,7 +16,7 @@
 
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
-static const bool perform_extra_checks = true ;
+static const bool perform_extra_checks = false ;
 static const std::string verbose_read_id = "ILLUMINA-DB1410_0031:8:12:18149:16623#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
 static const int verbose_read_level = 0 ;
 
@@ -2656,7 +2656,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 				}
 			}
 		}
-		if ((*it).type == pt_insertion)
+		if ((*it).type == pt_insertion && _config.DP_MAX_DELETIONS>0)
 		{
 			assert((*it).variant_len>0 && (*it).ref_len==0) ;
 			if ((*it).position-start_pos>0 && (*it).position-start_pos<=end_pos-start_pos && map[(*it).position-start_pos]>=0)
@@ -2670,7 +2670,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 				found = true ;
 			}
 		}
-		if ((*it).type == pt_deletion || (*it).type == pt_substitution)
+		if (((*it).type == pt_deletion || (*it).type == pt_substitution) && _config.DP_MAX_DELETIONS>0)
 		{
 			assert((*it).ref_len>0) ;
 			v=*it ;
