@@ -6,7 +6,7 @@
 #include <vector>
 
 #define MAX_INDEX_DEPTH 15
-#define VERSION "0.4"
+#define VERSION "0.5"
 
 enum OutputFormatEnum
 {
