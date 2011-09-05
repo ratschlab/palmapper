@@ -32,7 +32,7 @@ public:
 	void report(Mapper::Result &result, JunctionMap &junctionmap, VariantMap& variants);
 
 private:
-	static int const _nrResults = 1024*10;
+	static int const _nrResults = 1024*100;
 	static void print(FILE *file, std::string &str);
 	Mutex _mutex;
 	lang::Signal _roomLeft;
