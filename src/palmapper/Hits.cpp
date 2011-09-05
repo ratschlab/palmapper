@@ -14,7 +14,7 @@
 
 #include <iostream>
 
-static const bool perform_extra_checks = false ;
+static const bool perform_extra_checks = true ;
 
 template int Hits::map_short_read<index_bwt>(Read& read, unsigned int num) ;
 template int Hits::map_short_read<index_array>(Read& read, unsigned int num) ;

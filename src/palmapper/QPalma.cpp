@@ -16,7 +16,7 @@
 
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
-static const bool perform_extra_checks = false ;
+static const bool perform_extra_checks = true ;
 static const std::string verbose_read_id = "ILLUMINA-DB1410_0031:8:12:18149:16623#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
 static const int verbose_read_level = 0 ;
 
