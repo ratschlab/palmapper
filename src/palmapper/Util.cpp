@@ -35,8 +35,9 @@ void *operator new(size_t size) {
 	void *ret = operator new(size, std::nothrow);
 	if (ret == NULL)
 	{
-		assert(0) ;
-		throw ex;
+	  fprintf(stderr, "Warning: allocation of %ld bytes failed\n", size) ;
+	  //assert(0) ;
+	  throw ex;
 	}
 	return ret;
 	}

@@ -644,6 +644,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		//lock
+		if (strcmp(argv[i], "-lock") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -q\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			LOCK_FILE_NAME=strdup(argv[i]);
+		}
+
 		//query file
 		if (strcmp(argv[i], "-q") == 0) {
 			not_defined = 0;

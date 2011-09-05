@@ -6,6 +6,10 @@
 
 #include "palmapper.h"
 #include "print.h"
+#include <stdio.h>
+#include <stdarg.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #include <lang/Thread.h>
 #include <palmapper/FileReporter.h>
@@ -71,7 +75,24 @@ int main(int argc, char *argv[])
 
 	// initialize variables
 	_config.parseCommandLine(argc, argv);
-	
+
+	int lockfile=-232 ;
+	if (_config.LOCK_FILE_NAME.size()>0)
+	  {
+	    lockfile=open(_config.LOCK_FILE_NAME.c_str(), O_WRONLY | O_CREAT | O_EXCL, 255 );
+	    close(lockfile);
+	    if (lockfile<0 && errno==EEXIST)
+	      {
+		//another process is holding the lock
+		fprintf(stderr, "The lock file %s is locked; try again later\n", _config.LOCK_FILE_NAME.c_str());
+		exit(-99) ;
+	      }
+	    else if (lockfile<0)
+	      {
+		fprintf(stderr, "Unable to lock the lock file %s (%i)\n", _config.LOCK_FILE_NAME.c_str(), lockfile);
+		exit(-99) ;
+	      }	      
+	  }
 
 	Genome genome;
 
@@ -340,6 +361,9 @@ int main(int argc, char *argv[])
 	if (_config.VERBOSE) { printf("Mapping finished\n"); }
 
 	CSignal::unset_handler() ;
+
+	if (_config.LOCK_FILE_NAME.size()>0)
+	  remove(_config.LOCK_FILE_NAME.c_str()) ;
 	
 	return 0;
 }
