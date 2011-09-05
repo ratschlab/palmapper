@@ -21,7 +21,7 @@
 
 using namespace shogun;
 
-int CSignal::signals[NUMTRAPPEDSIGS]={SIGINT, SIGURG, SIGSEGV, SIGBUS, SIGABRT};
+int CSignal::signals[NUMTRAPPEDSIGS]={SIGINT, SIGURG, SIGSEGV, SIGBUS, SIGABRT, SIGTERM};
 struct sigaction CSignal::oldsigaction[NUMTRAPPEDSIGS];
 bool CSignal::active=false;
 bool CSignal::cancel_computation=false;
@@ -33,6 +33,9 @@ bool CSignal::show_read_ids = false ;
 
 Mutex CSignal::_mutex;
 lang::Signal CSignal::_roomLeft;
+
+void palmapper_cleanup() ;
+
 
 CSignal::CSignal()
 : CSGObject()
@@ -84,6 +87,7 @@ void CSignal::handler(int signal)
 		else if (answer == 'J')
 		{
 			fprintf(stderr, "Exiting.") ;
+			palmapper_cleanup() ;
 			exit(-1) ;
 		}
 		else if (answer == 'P')
@@ -111,7 +115,13 @@ void CSignal::handler(int signal)
 		do_show_read_ids() ;
 		fprintf(stderr, "\n\nTerminating process.\n\n") ;
 		
+		palmapper_cleanup() ;
 		exit(-1) ;
+	}
+	else  if (signal == SIGTERM)
+	{
+	  palmapper_cleanup() ;
+	  exit(-1) ;
 	}
 	else
 		fprintf(stderr, "unknown signal %d received\n", signal);

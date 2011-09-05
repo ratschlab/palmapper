@@ -19,10 +19,17 @@
 #include <palmapper/shogun/Signal.h>
 //#include <wait.h>
 
+
 Config _config;
 Statistics _stats;
 
 using namespace lang;
+
+void palmapper_cleanup() 
+{
+  if (_config.LOCK_FILE_NAME.size()>0)
+    remove(_config.LOCK_FILE_NAME.c_str()) ;
+}
 
  
 class MapperThread : public Thread, public Mapper {
@@ -362,8 +369,7 @@ int main(int argc, char *argv[])
 
 	CSignal::unset_handler() ;
 
-	if (_config.LOCK_FILE_NAME.size()>0)
-	  remove(_config.LOCK_FILE_NAME.c_str()) ;
+	palmapper_cleanup() ;
 	
 	return 0;
 }

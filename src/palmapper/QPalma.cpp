@@ -2507,7 +2507,17 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						}
 
 						if (perform_extra_checks)
-							assert (hit_read_position>=0 && hit_len >0);
+						  {
+						    assert (hit_read_position>=0) ;
+						    if (!(hit_len >0))
+						      {
+							fprintf(stderr, "ERROR: hitlen=%i\n", hit_len) ; // BUG-TODO
+							hit_len=0 ;
+							result.delete_regions();
+							delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+							return -1 ;
+						      }
+						  }
 						if (verbosity>3)
 						{
 							fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
