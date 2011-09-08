@@ -15,10 +15,11 @@ struct t_prealigned
 	std::vector<int> aligned_positions ;
 	std::string contig, cigar ;
 	std::vector<std::string> paired_info ;
-	char strand ;
 	unsigned char quality ;
 	unsigned int sam_flags ;
 	unsigned int start_position ;
+	char orientation ;
+	//unsigned char strand ;
 } ;
 
 class Read {

@@ -127,7 +127,10 @@ int Mapper::map_reads()
 			printf("%i..", count_reads) ;
 		try
 		{
-			map_read(result, start_time);
+			if (_config.REALIGN_READS)
+				realign_read(result, start_time) ;
+			else
+				map_read(result, start_time);
 		}
 		catch (std::bad_alloc)
 		{

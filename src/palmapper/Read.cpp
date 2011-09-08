@@ -49,10 +49,11 @@ Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
 		prealigned_info->contig=src.prealigned_info->contig ;
 		prealigned_info->cigar=src.prealigned_info->cigar ;
 		prealigned_info->paired_info=src.prealigned_info->paired_info ;
-		prealigned_info->strand=src.prealigned_info->strand ;
 		prealigned_info->quality=src.prealigned_info->quality ;
 		prealigned_info->sam_flags=src.prealigned_info->sam_flags ;
 		prealigned_info->start_position=src.prealigned_info->start_position ;
+		prealigned_info->orientation=src.prealigned_info->orientation ;
+		//prealigned_info->strand=src.prealigned_info->strand ;
 	}
 }
 
@@ -309,6 +310,9 @@ int Read::read_short_read()
 				exit(0);
 			}
 			prealigned_info->sam_flags = atol(tmp);
+			prealigned_info->orientation = '+' ;
+			if (prealigned_info->sam_flags & 16)
+				prealigned_info->orientation = '-'  ;
 
 			char *tok = strtok_r(NULL, "\t", &saveptr); 
 			if (tok == NULL) {
@@ -365,24 +369,26 @@ int Read::read_short_read()
 				return -1;
 			}
 			strcpy(READ, tok);
-			READ_LENGTH = strlen(tok);
+			READ_LENGTH = strlen(READ);
 			if (READ_LENGTH < _config.INDEX_DEPTH) {
 				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
 				return -1;
 			}
 
 			// optional read qualities:
+			char const *qual = strtok_r(NULL, "\t\n", &saveptr);
 			for (int i = 0; i < _maxNrQualities; ++i) {
-				char const *qual = strtok_r('\0', "\t\n", &saveptr);
 				if (qual == NULL)
 					break;
 				//TODO Jörg removed the length test: intentionally?
 				if (::strlen(qual) !=  READ_LENGTH)
-					fprintf(stderr, "WARNING: quality length != read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", READ_ID, _queryFile.line_nr());
+					fprintf(stderr, "WARNING: quality length=%ld != %i=read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", ::strlen(qual), READ_LENGTH, READ_ID, _queryFile.line_nr());
 				::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
 			}
-			
+
 			reconstruct_exons_from_cigar() ;
+
+			
 
 			READ_FORMAT = 3;
 		}
@@ -497,42 +503,55 @@ void Read::reconstruct_exons_from_cigar()
 
     size_t cig_pos = prealigned_info->cigar.find_first_of("HSMIDN");
 	int genome_pos = prealigned_info->start_position;
-
-	prealigned_info->exon.push_back(-1) ;
-	prealigned_info->exon.push_back(-1) ;
+	//fprintf(stdout, "cigar='%s'\n", prealigned_info->cigar.c_str()) ;
+	
+	prealigned_info->exons.push_back(-1) ;
+	prealigned_info->exons.push_back(-1) ;
+	int prev_pos=0 ;
     while (cig_pos != std::string::npos) 
 	{
-        unsigned int length = atoi(prealigned_info->cigar.substr(0, op_pos).c_str());
+		//size_t op_pos = prealigned_info->cigar.find_first_of("HSMIDN", cig_pos + 1);
+		
+        unsigned int slength = atoi(prealigned_info->cigar.substr(prev_pos, cig_pos).c_str());
+		//fprintf(stdout, "'%s' -> %i %c\n", prealigned_info->cigar.substr(prev_pos, cig_pos).c_str(), slength, prealigned_info->cigar.at(cig_pos)) ;
+
         switch (prealigned_info->cigar.at(cig_pos)) 
         {
         case 'M': 
             if (prealigned_info->exons[prealigned_info->exons.size()-2]==-1)
-				prealigned_info->exons[prealigned_info->exons.size()-2].push_back(genome_pos) ;
-            for (unsigned int idx = 0; idx < length; idx++)
+				prealigned_info->exons[prealigned_info->exons.size()-2] = genome_pos ;
+            for (unsigned int idx = 0; idx < slength; idx++)
                 prealigned_info->aligned_positions.push_back(genome_pos++);
-			prealigned_info->exons[prealigned_info->exons.size()-1].push_back(genome_pos-1) ;
+			prealigned_info->exons[prealigned_info->exons.size()-1] = genome_pos-1 ;
 			break;
 		case 'D': 
-			genome_pos += length; 
+			genome_pos += slength; 
 			prealigned_info->exons[prealigned_info->exons.size()-1] = genome_pos-1 ; // extend last exon
 			break;
         case 'N': 
-			genome_pos += length; 
-			prealigned_info->exon.push_back(-1) ;
-			prealigned_info->exon.push_back(-1) ;
+			genome_pos += slength; 
+			prealigned_info->exons.push_back(-1) ;
+			prealigned_info->exons.push_back(-1) ;
 			break;
         case 'I': 
-            for (unsigned int idx = 0; idx < length; idx++)
-                prealigned_info->aligned_positions.push_back(-1);
+            if (prealigned_info->exons[prealigned_info->exons.size()-2]==-1)
+				prealigned_info->exons[prealigned_info->exons.size()-2] = genome_pos ;
+            if (prealigned_info->exons[prealigned_info->exons.size()-1]==-1)
+				prealigned_info->exons[prealigned_info->exons.size()-1] = genome_pos ;
+            for (unsigned int idx = 0; idx < slength; idx++)
+                prealigned_info->aligned_positions.push_back(genome_pos);
 			break;
         case 'S': case 'H': break;
         }
+		prev_pos=cig_pos+1 ;
         cig_pos = prealigned_info->cigar.find_first_of("HSMIDN", cig_pos + 1);
     }
-	for (unsigned int i=0; i<prealigned_info->exon.size(); i++)
-		assert(prealigned_info->exon[i]>=0) ;
-	for (unsigned int i=0; i<prealigned_info->exon.size()-1; i++)
-		assert(prealigned_info->exon[i]<prealigned_info->exon[i+1]) ;
-
+	for (unsigned int i=0; i<prealigned_info->exons.size(); i++)
+	{
+		//fprintf(stderr, "exons[%i]=%i\n", i, prealigned_info->exons[i]) ;
+		assert(prealigned_info->exons[i]>=0) ;
+	}
+	for (unsigned int i=0; i<prealigned_info->exons.size()-1; i++)
+		assert(prealigned_info->exons[i]<=prealigned_info->exons[i+1]) ;
 }
 
