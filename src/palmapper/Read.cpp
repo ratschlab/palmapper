@@ -287,7 +287,7 @@ int Read::read_short_read()
 		READ_FORMAT = 1;
 	}
 	else 
-		if (_location.has_extension(".sam"))
+		if (_location.has_extension(".sam") || _config.REALIGN_READS)
 		{
 			prealigned_info = new struct t_prealigned ;
 			
@@ -496,32 +496,43 @@ void Read::reconstruct_exons_from_cigar()
 	// prealigned_info->exons and prealigned_info->aligned_positions
 
     size_t cig_pos = prealigned_info->cigar.find_first_of("HSMIDN");
-    unsigned int genome_pos = prealigned_info->start_position;
-    while (cig_pos != std::string::npos) {
+	int genome_pos = prealigned_info->start_position;
 
+	prealigned_info->exon.push_back(-1) ;
+	prealigned_info->exon.push_back(-1) ;
+    while (cig_pos != std::string::npos) 
+	{
         unsigned int length = atoi(prealigned_info->cigar.substr(0, op_pos).c_str());
         switch (prealigned_info->cigar.at(cig_pos)) 
         {
-        case 'M': {
-            prealigned_info->exons.push_back(genome_pos);
+        case 'M': 
+            if (prealigned_info->exons[prealigned_info->exons.size()-2]==-1)
+				prealigned_info->exons[prealigned_info->exons.size()-2].push_back(genome_pos) ;
             for (unsigned int idx = 0; idx < length; idx++)
-            {
                 prealigned_info->aligned_positions.push_back(genome_pos++);
-            }
-            prealigned_info->exons.push_back(genome_pos-1);
-        }; break;
-        case 'N': case 'D': genome_pos += length; break;
-        case 'I': {
+			prealigned_info->exons[prealigned_info->exons.size()-1].push_back(genome_pos-1) ;
+			break;
+		case 'D': 
+			genome_pos += length; 
+			prealigned_info->exons[prealigned_info->exons.size()-1] = genome_pos-1 ; // extend last exon
+			break;
+        case 'N': 
+			genome_pos += length; 
+			prealigned_info->exon.push_back(-1) ;
+			prealigned_info->exon.push_back(-1) ;
+			break;
+        case 'I': 
             for (unsigned int idx = 0; idx < length; idx++)
-            {
                 prealigned_info->aligned_positions.push_back(-1);
-            }
-        }; break;
+			break;
         case 'S': case 'H': break;
         }
         cig_pos = prealigned_info->cigar.find_first_of("HSMIDN", cig_pos + 1);
     }
+	for (unsigned int i=0; i<prealigned_info->exon.size(); i++)
+		assert(prealigned_info->exon[i]>=0) ;
+	for (unsigned int i=0; i<prealigned_info->exon.size()-1; i++)
+		assert(prealigned_info->exon[i]<prealigned_info->exon[i+1]) ;
 
-	//assert(0) ;
 }
 
