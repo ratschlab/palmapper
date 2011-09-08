@@ -1942,46 +1942,59 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			curr_read = &read ;
 
 		fprintf(MY_OUT_FP, "%s", curr_align->read_id) ;
-		uint32_t flag=0 ;
 
 		// Read orientation output always depends on the left strand -> reverse orientation if found on negative strand
-		
 		char transcription_direction;
 		char read_orientation;
 		determine_transcription_direction(curr_align->strand,curr_align->orientation,_config.STRAND,transcription_direction,read_orientation);
+
+		uint32_t flag=0 ;
+		if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
+		{
+			//Read reversed and complemented compared to the forward strand
+			flag+=((read_orientation=='-')*16) ;
+			
+			//For several fragments: First corresponds to left reads and last corresponds to right reads
+			flag+=((_config.STRAND==1)*64) ;
+			flag+=((_config.STRAND==0)*128) ;
+			
+			/* flag+=_config.SEQUENCING_WAS_PAIRED ;
+			 * flag+=(curr_read.MAPPED_AS_PAIR*2) ;
+			 * flag+=(IS_UNMAPPED*4) ;
+			 * flag+=(curr_read.MATE_IS_UNMAPPED*8) ;
+			 * flag+=(curr_read.STRAND_OF_MATE*32) ;
+			 * flag+=(curr_read.FIRST_IN_PAIR)?64:128 ;
+			 */
+			flag+=((top_alignments.size()>1)*256) ;
+		}
+		else
+		{
+			flag = curr_read->prealigned_info->sam_flags ;
+			// TODO: check whether all flags are consistent
+		}
 		
-		//Read reversed and complemented compared to the forward strand
-		flag+=((read_orientation=='-')*16) ;
-
-		//For several fragments: First corresponds to left reads and last corresponds to right reads
-		flag+=((_config.STRAND==1)*64) ;
-		flag+=((_config.STRAND==0)*128) ;
-
-		/* flag+=_config.SEQUENCING_WAS_PAIRED ;
-		 * flag+=(curr_read.MAPPED_AS_PAIR*2) ;
-		 * flag+=(IS_UNMAPPED*4) ;
-		 * flag+=(curr_read.MATE_IS_UNMAPPED*8) ;
-		 * flag+=(curr_read.STRAND_OF_MATE*32) ;
-		 * flag+=(curr_read.FIRST_IN_PAIR)?64:128 ;
-		 */
-		flag+=((top_alignments.size()>1)*256) ;
-
 		fprintf(MY_OUT_FP, "\t%d\t%s\t%d", 
 				flag, 
 				curr_align->chromosome->desc(),
 				curr_align->exons[0] + 1) ; 
-		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MAQQUALITY)
+
+		if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
 		{
-			fprintf(stderr, "MAQ quality not implemented yet\n") ;
-			exit(-1) ;
+			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MAQQUALITY)
+			{
+				fprintf(stderr, "MAQ quality not implemented yet\n") ;
+				exit(-1) ;
+			}
+			else
+			{
+				if (j<=254)
+					fprintf(MY_OUT_FP, "\t%i", 254 - j);
+				else
+					fprintf(MY_OUT_FP, "\t0");
+			}
 		}
 		else
-		{
-			if (j<=254)
-				fprintf(MY_OUT_FP, "\t%i", 254 - j);
-			else
-				fprintf(MY_OUT_FP, "\t0");
-		}
+			fprintf(MY_OUT_FP, "\t%i", curr_read->prealigned_info->quality);
 		
 		//	double qpalma_score = best->qpalma_score ;
         
@@ -2139,7 +2152,14 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 
 		//		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
-		fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
+		if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
+			fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
+		else
+			fprintf(MY_OUT_FP, "\t%s\t%s\t%s\t%s", cigar, 
+					curr_read->prealigned_info->paired_info[0].c_str(), 
+					curr_read->prealigned_info->paired_info[1].c_str(), 
+					curr_read->prealigned_info->paired_info[2].c_str()) ; 
+
 		/*		else
 				{
 				// reverse order of cigar
