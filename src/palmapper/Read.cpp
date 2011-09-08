@@ -511,7 +511,13 @@ void Read::reconstruct_exons_from_cigar()
             prealigned_info->exons.push_back(genome_pos-1);
         }; break;
         case 'N': case 'D': genome_pos += length; break;
-        case 'I': case 'S': case 'H': break;
+        case 'I': {
+            for (unsigned int idx = 0; idx < length; idx++)
+            {
+                prealigned_info->aligned_positions.push_back(-1);
+            }
+        }; break;
+        case 'S': case 'H': break;
         }
         cig_pos = prealigned_info->cigar.find_first_of("HSMIDN", cig_pos + 1);
     }
