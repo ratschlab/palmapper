@@ -1514,14 +1514,32 @@ int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_
 		return -1;
 	}  
 	new_lregion->start = best_start ;
-	new_lregion->end = best_end ;
+	new_lregion->end = best_end+1 ;
 	new_lregion->from_map = false ;
-	new_lregion->read_pos = 0 ; // TODO // hit->readpos ;
-	new_lregion->hit_len = best_end-best_start ;
+	new_lregion->read_pos = -1 ; 
+	for (size_t ii=0; ii < read.length(); ii++)
+		if (prealigned_info.aligned_positions[ii]==best_start)
+		{
+			new_lregion->read_pos = ii ;
+			//break ;
+		}
+	assert(new_lregion->read_pos>=0) ;
+	
+	new_lregion->hit_len = new_lregion->end-new_lregion->start ;
 	
 	for (size_t ii = 0; ii < read.length(); ii++)
-		new_lregion->read_map[ii] = true ;
-	long_regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_lregion);
+		if (prealigned_info.aligned_positions[ii]>=best_start && prealigned_info.aligned_positions[ii]<=best_end)
+			new_lregion->read_map[ii] = true ;
+		else
+			new_lregion->read_map[ii] = false ;
+	
+	int contig_no=genome->find_desc(prealigned_info.contig.c_str()) ;
+	if (contig_no<0)
+	{
+		fprintf(stderr, "ERROR: Contig name %s not found\n", prealigned_info.contig.c_str()) ;
+		return -1 ;
+	}
+	long_regions[ori_map(prealigned_info.orientation)][contig_no].push_back(new_lregion);
 
 	for (unsigned int i=0; i<prealigned_info.exons.size(); i+=2)
 	{
@@ -1539,16 +1557,30 @@ int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_
 		}  
 		
 		new_region->start = prealigned_info.exons[i] ;
-		new_region->end = prealigned_info.exons[i+1];
+		new_region->end = prealigned_info.exons[i+1]+1;
 		
 		new_region->from_map = false ;
 		for (size_t ii = 0; ii < read.length(); ii++)
 			new_region->read_map[ii] = true ;
+
+		for (size_t ii = 0; ii < read.length(); ii++)
+			if (prealigned_info.aligned_positions[ii]>=new_region->start && prealigned_info.aligned_positions[ii]<=new_region->end)
+				new_region->read_map[ii] = true ;
+			else
+				new_region->read_map[ii] = false ;
 		
-		new_region->read_pos = 0 ; // TODO // hit->readpos ;
+		new_region->read_pos = -1 ; 
+		for (size_t ii=0; ii < read.length(); ii++)
+			if (prealigned_info.aligned_positions[ii]==new_region->start)
+			{
+				new_lregion->read_pos = ii ;
+				//break ;
+			}
+		assert(new_lregion->read_pos>=0) ;
+		
 		new_region->hit_len = new_region->end-new_region->start ;
 			
-		regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_region);
+		regions[ori_map(prealigned_info.orientation)][contig_no].push_back(new_region);
 	}
 
 	if (myverbosity >= 1)
@@ -5265,8 +5297,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		fprintf(stdout, "# read: %s\n", read_string.c_str());
 	if (hit_read<0)
 	{
-		fprintf(stdout, "hit_read=%i setting to 0 to recover\n", hit_read) ;
-		assert(0) ;
+		fprintf(stderr, "ERROR: hit_read=%i setting to 0 to recover\n", hit_read) ;
+		//assert(0) ;
 		hit_read = 0 ;
 	}
 
