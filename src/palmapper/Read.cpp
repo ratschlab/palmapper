@@ -29,6 +29,7 @@ Read::Read(QueryFile &queryFile)
 	READ_ID[0] = '\0';
 	orig_read = NULL ;
 	_nr = -1;
+	prealigned_info=NULL ;
 }
 
 Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
@@ -40,9 +41,24 @@ Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
 	::strcpy(READ_ID, src.READ_ID);
 	orig_read = &src;
 	_nr = src._nr;
+	if (src.prealigned_info!=NULL)
+	{
+		prealigned_info = new struct t_prealigned ;
+		prealigned_info->exons=src.prealigned_info->exons ;
+		prealigned_info->aligned_positions=src.prealigned_info->aligned_positions ;
+		prealigned_info->contig=src.prealigned_info->contig ;
+		prealigned_info->cigar=src.prealigned_info->cigar ;
+		prealigned_info->paired_info=src.prealigned_info->paired_info ;
+		prealigned_info->strand=src.prealigned_info->strand ;
+		prealigned_info->quality=src.prealigned_info->quality ;
+		prealigned_info->sam_flags=src.prealigned_info->sam_flags ;
+		prealigned_info->start_position=src.prealigned_info->start_position ;
+	}
 }
 
 Read::~Read() {
+	if (prealigned_info)
+		delete prealigned_info ;
 }
 
 void Read::copyFrom(Read const &src, unsigned cutStart, unsigned cutEnd) {
@@ -81,6 +97,8 @@ int Read::read_short_read()
 	char *tmp;
 	int linelen;
 
+	char * saveptr=NULL ;
+	
 	do {
 		if (!_queryFile.next_line(line, sizeof(line)))
 			return 1;
@@ -93,7 +111,10 @@ int Read::read_short_read()
 	}
 
 	_location = _queryFile.getLocation();
-
+	if (prealigned_info!=NULL)
+		delete prealigned_info ;
+	prealigned_info=NULL ;
+	
 	if (line[0] == '@') {
 		/////// FastQ input ///////
 
@@ -265,82 +286,182 @@ int Read::read_short_read()
 		//READ_QUALITY[0] = (char*)"";
 		READ_FORMAT = 1;
 	}
-	else {
-		/////// Flatfile input ///////
-		char const *rid = strtok(line, "\t");
-		if (rid == NULL) {
-			fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", _queryFile.line_nr());
-			exit(0);
-		}
-		if ((int)strlen(rid) == linelen) {
-			fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
-			exit(0);
-		}
-		strcpy(READ_ID, rid);
-
-		char *tok = strtok(NULL, "\t");
-		if (tok == NULL) {
-			fprintf(stderr, "ERROR: Read sequence is empty, line %lu!\n", _queryFile.line_nr());
-			exit(0);
-		}
-
-		if (strlen(tok) > _config.MAX_READ_LENGTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
-			return -1;
-		}
-		//printf("%s sp: %d\n",READ,(int) strcspn(READ, "A"));
-		if (strcspn(tok, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
-			return -1;
-		}
-
-		strcpy(READ, tok);
-		READ_LENGTH = strlen(tok);
-		if (READ_LENGTH < _config.INDEX_DEPTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
-			return -1;
-		}
-
-		tmp = strtok(NULL, "\t");
-		if (tmp == NULL) {
-			fprintf(stderr, "ERROR: Paired-end flag is empty, line %lu!\n", _queryFile.line_nr());
-			exit(0);
-		}
-		READ_PE_FLAG = atoi(tmp);
-
-		// optional read qualities:
-		for (int i = 0; i < _maxNrQualities; ++i) {
-			char const *qual = strtok('\0', "\t\n");
-			if (qual == NULL)
-				break;
-			//TODO Jörg removed the length test: intentionally?
-			if (::strlen(qual) !=  READ_LENGTH)
-				fprintf(stderr, "WARNING: quality length != read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", READ_ID, _queryFile.line_nr());
-			::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
-		}
-
-		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
-			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
-			READ_QUALITY[0][_config.FIXTRIM_STRATEGY_LEN] = '\0';
-			READ_QUALITY[1][_config.FIXTRIM_STRATEGY_LEN] = '\0';
-			READ_QUALITY[2][_config.FIXTRIM_STRATEGY_LEN] = '\0';
-			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
-		}
-
-		//Fixtrim left and right strategy
-		int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
-		if (trimborders >0){
-			if (READ_LENGTH - trimborders < _config.INDEX_DEPTH){
-				cerr <<	"ERROR: fixtrim alignment length too short\n";
-				exit(0) ;
-			}
-			copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN,_config.FIXTRIMRIGHT_STRATEGY_LEN);
+	else 
+		if (_location.has_extension(".sam"))
+		{
+			prealigned_info = new struct t_prealigned ;
 			
+			/////// SAM input file ///////
+			char const *rid = strtok_r(line, "\t", &saveptr);
+			if (rid == NULL) {
+				fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			if ((int)strlen(rid) == linelen) {
+				fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			strcpy(READ_ID, rid);
+
+			tmp = strtok_r(NULL, "\t", &saveptr);
+			if (tmp == NULL) {
+				fprintf(stderr, "ERROR: SAM flags are empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			prealigned_info->sam_flags = atol(tmp);
+
+			char *tok = strtok_r(NULL, "\t", &saveptr); 
+			if (tok == NULL) {
+				fprintf(stderr, "ERROR: sam contig name field is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			prealigned_info->contig=std::string(tok) ;
+
+						
+			tmp = strtok_r(NULL, "\t", &saveptr);
+			if (tmp == NULL) {
+				fprintf(stderr, "ERROR: sam position field is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			prealigned_info->start_position = atoi(tmp);
+
+
+			tmp = strtok_r(NULL, "\t", &saveptr);
+			if (tmp == NULL) {
+				fprintf(stderr, "ERROR: sam quality field is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			prealigned_info->quality = atoi(tmp);
+
+			tok = strtok_r(NULL, "\t", &saveptr);
+			if (tok == NULL) {
+				fprintf(stderr, "ERROR: sam cigar field is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			prealigned_info->cigar=std::string(tok) ;
+
+			for (int k=0; k<3; k++)
+			{
+				tok = strtok_r(NULL, "\t", &saveptr);
+				if (tok == NULL) {
+					fprintf(stderr, "ERROR: paired field %i is empty, line %lu!\n", k, _queryFile.line_nr());
+					exit(0);
+				}
+				prealigned_info->paired_info.push_back(std::string(tok)) ;
+			}
+
+			tok = strtok_r(NULL, "\t", &saveptr);
+			if (tok == NULL) {
+				fprintf(stderr, "ERROR: Read sequence is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			
+			if (strlen(tok) > _config.MAX_READ_LENGTH) {
+				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
+				return -1;
+			}
+			if (strcspn(tok, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
+				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
+				return -1;
+			}
+			strcpy(READ, tok);
+			READ_LENGTH = strlen(tok);
+			if (READ_LENGTH < _config.INDEX_DEPTH) {
+				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
+				return -1;
+			}
+
+			// optional read qualities:
+			for (int i = 0; i < _maxNrQualities; ++i) {
+				char const *qual = strtok_r('\0', "\t\n", &saveptr);
+				if (qual == NULL)
+					break;
+				//TODO Jörg removed the length test: intentionally?
+				if (::strlen(qual) !=  READ_LENGTH)
+					fprintf(stderr, "WARNING: quality length != read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", READ_ID, _queryFile.line_nr());
+				::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
+			}
+			
+			reconstruct_exons_from_cigar() ;
+
+			READ_FORMAT = 3;
 		}
-
-		READ_FORMAT = 2;
-	}
-
+		else {
+			/////// Flatfile input ///////
+			char const *rid = strtok_r(line, "\t", &saveptr);
+			if (rid == NULL) {
+				fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			if ((int)strlen(rid) == linelen) {
+				fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			strcpy(READ_ID, rid);
+			
+			char *tok = strtok_r(NULL, "\t", &saveptr);
+			if (tok == NULL) {
+				fprintf(stderr, "ERROR: Read sequence is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			
+			if (strlen(tok) > _config.MAX_READ_LENGTH) {
+				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
+				return -1;
+			}
+			//printf("%s sp: %d\n",READ,(int) strcspn(READ, "A"));
+			if (strcspn(tok, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
+				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
+				return -1;
+			}
+			
+			strcpy(READ, tok);
+			READ_LENGTH = strlen(tok);
+			if (READ_LENGTH < _config.INDEX_DEPTH) {
+				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
+				return -1;
+			}
+			
+			tmp = strtok_r(NULL, "\t", &saveptr);
+			if (tmp == NULL) {
+				fprintf(stderr, "ERROR: Paired-end flag is empty, line %lu!\n", _queryFile.line_nr());
+				exit(0);
+			}
+			READ_PE_FLAG = atoi(tmp);
+			
+			// optional read qualities:
+			for (int i = 0; i < _maxNrQualities; ++i) {
+				char const *qual = strtok_r('\0', "\t\n", &saveptr);
+				if (qual == NULL)
+					break;
+				//TODO Jörg removed the length test: intentionally?
+				if (::strlen(qual) !=  READ_LENGTH)
+					fprintf(stderr, "WARNING: quality length != read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", READ_ID, _queryFile.line_nr());
+				::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
+			}
+			
+			if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
+				READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
+				READ_QUALITY[0][_config.FIXTRIM_STRATEGY_LEN] = '\0';
+				READ_QUALITY[1][_config.FIXTRIM_STRATEGY_LEN] = '\0';
+				READ_QUALITY[2][_config.FIXTRIM_STRATEGY_LEN] = '\0';
+				READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
+			}
+			
+			//Fixtrim left and right strategy
+			int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
+			if (trimborders >0){
+				if (READ_LENGTH - trimborders < _config.INDEX_DEPTH){
+					cerr <<	"ERROR: fixtrim alignment length too short\n";
+					exit(0) ;
+				}
+				copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN,_config.FIXTRIMRIGHT_STRATEGY_LEN);
+				
+			}
+			
+			READ_FORMAT = 2;
+		}
+	
 	return 0;
 }
 
@@ -348,13 +469,29 @@ void Read::printOn(std::ostream &out) const {
 	out << READ_ID << " in " << _location;
 }
 
-void Read::printOn(FILE *file) const {
+void Read::printOn(FILE *file) const 
+{
 	if (READ_FORMAT == 0)
 		fprintf(file, "@%s\n%s\n+\n%s\n", READ_ID, READ, READ_QUALITY[0]);
 	else if (READ_FORMAT == 1)
 		fprintf(file, ">%s\n%s\n", READ_ID, READ);
+	else if (READ_FORMAT == 3)
+	{
+		assert(prealigned_info!=NULL) ;
+		
+		fprintf(file, "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", READ_ID, prealigned_info->sam_flags, prealigned_info->contig.c_str(), 
+				prealigned_info->start_position, prealigned_info->quality, prealigned_info->cigar.c_str(), 
+				prealigned_info->paired_info[0].c_str(), prealigned_info->paired_info[1].c_str(), prealigned_info->paired_info[2].c_str(), 
+				READ, READ_QUALITY[0]);
+	}
 	else
 		fprintf(file, "%s\t%s\t%d\t%s\t%s\t%s\n", READ_ID, READ,
 				READ_PE_FLAG, READ_QUALITY[0], READ_QUALITY[1], READ_QUALITY[2]);
 
 }
+
+void Read::reconstruct_exons_from_cigar()
+{
+	
+}
+

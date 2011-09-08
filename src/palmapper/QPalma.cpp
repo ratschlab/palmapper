@@ -1461,6 +1461,190 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 }
 
 
+int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_search,JunctionMap &annotatedjunctions, VariantMap & variants) const
+{
+	Read const &read(hits.getRead());
+
+	assert(read.prealigned_info!=NULL) ;
+	struct t_prealigned & prealigned_info = *read.prealigned_info ;
+
+	clock_t start_time = clock();
+
+	int myverbosity=verbosity ;
+	
+	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
+		myverbosity=verbose_read_level ;
+
+	// clean up data generated for the previous read
+
+	result.cleanup();
+
+	int32_t num_hits = 0; // TODO debugging only
+	int32_t num_hits_dropped = 0; // TODO debugging only
+  
+	// Examine all hits and construct a list of region where these hits map.
+	// regions is a list of region clusters per chromosome, sorted by start position
+  
+	result.long_regions[0] = result.regions[0];
+	result.long_regions[1] = result.regions[1];
+	std::vector<std::vector<region_t *> > * const regions = result.regions;
+	std::vector<std::vector<region_t *> > * const long_regions = result.long_regions;
+  
+	int best_start=-1, best_end=-1, max_len=0 ;
+	for (unsigned int i=0; i<prealigned_info.exons.size(); i+=2)
+	{
+		if (prealigned_info.exons[i+1]-prealigned_info.exons[i]>max_len)
+		{
+			max_len = prealigned_info.exons[i+1]-prealigned_info.exons[i] ;
+			best_start=prealigned_info.exons[i] ;
+			best_end = prealigned_info.exons[i+1] ;
+		}
+	}
+	assert(best_start>=0 && best_end>=0) ;
+
+	region_t *new_lregion=NULL;
+	try {
+		new_lregion = new region_t();
+		new_lregion->read_map = new bool[read.length()];
+	} catch (std::bad_alloc&) 
+	{
+		fprintf(stderr, "[recapture_hits] allocating memory for read_map failed\n");
+		result.delete_regions();
+		delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+		return -1;
+	}  
+	new_lregion->start = best_start ;
+	new_lregion->end = best_end ;
+	new_lregion->from_map = false ;
+	new_lregion->read_pos = 0 ; // TODO // hit->readpos ;
+	new_lregion->hit_len = best_end-best_start ;
+	
+	for (size_t ii = 0; ii < read.length(); ii++)
+		new_lregion->read_map[ii] = true ;
+	long_regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_lregion);
+
+	for (unsigned int i=0; i<prealigned_info.exons.size(); i+=2)
+	{
+		// Create first region for this hit
+		region_t *new_region = NULL;
+		try {
+			new_region = new region_t();
+			new_region->read_map = new bool[read.length()];
+		} catch (std::bad_alloc&) 
+		{
+			fprintf(stderr, "[recapture_hits] allocating memory for read_map failed\n");
+			result.delete_regions();
+			delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+			return -1;
+		}  
+		
+		new_region->start = prealigned_info.exons[i] ;
+		new_region->end = prealigned_info.exons[i+1];
+		
+		new_region->from_map = false ;
+		for (size_t ii = 0; ii < read.length(); ii++)
+			new_region->read_map[ii] = true ;
+		
+		new_region->read_pos = 0 ; // TODO // hit->readpos ;
+		new_region->hit_len = new_region->end-new_region->start ;
+			
+		regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_region);
+	}
+
+	if (myverbosity >= 1)
+		fprintf(stdout,	"# [capture_hits] Captured %d hits, dropped %i hits for read %s\n",
+				num_hits - num_hits_dropped, num_hits_dropped, read.id());
+  
+	// sort regions by starting position
+	for (int ori = 0; ori < 2; ori++)
+		for (int32_t chrN = 0; chrN < (int)regions[ori].size(); chrN++) 
+		{
+			if (regions[ori][chrN].size() == 0)
+				continue;
+			bool ret=sort_regions(regions[ori][chrN], sortorder_startpos) ;
+			ret = ret && sort_regions(long_regions[ori][chrN], sortorder_startpos) ;
+			if (!ret)
+			{
+				fprintf(stderr, "[capture_hits] allocating memory for sort_regions failed\n");
+				result.delete_regions();
+				delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+				return -1;
+			}
+		}
+
+
+	// TODO: deduplicate code from capture_hits
+
+	// Surround the regions with a buffer of size _config.SPLICED_CLUSTER_TOLERANCE.
+	// If any of them overlap before/after extension, merge them to
+	// avoid duplicating subsequences.
+	//
+    for (int ori = 0; ori < 2; ori++){
+		for (int32_t chrN = 0; chrN < (int)regions[ori].size(); chrN++)
+		{
+			Chromosome const &chromosome = genome->chromosome(chrN);
+			size_t nbr_regions=regions[ori][chrN].size();
+			if (nbr_regions == 0)
+				continue;
+			if (nbr_regions == 1) 
+			{
+				// Nothing to merge, just extend the one existing region to include a buffer.
+				result.add_buffer_to_region(ori, chromosome, 0);
+				continue;
+			}
+	
+			for (int i = 0; i < (int)nbr_regions; i++) 
+				result.add_buffer_to_region(ori, chromosome, i);
+	
+			for (int nregion = 0; nregion < (int)nbr_regions - 1; nregion++) 
+			{
+				if (regions[ori][chrN][nregion]->erased)
+					continue;
+				size_t next = nregion + 1;
+				while (next < nbr_regions && regions[ori][chrN][next]->erased)
+					next++;
+				if (next >= nbr_regions || regions[ori][chrN][next]->erased)
+					continue;
+	    
+				if ((int32_t) ((regions[ori][chrN][nregion])->end) >= (int32_t) ((regions[ori][chrN][next])->start))
+				{
+					if (myverbosity>=2)
+					{
+						print_region(regions[ori][chrN][nregion], "region 1 for merge")  ;
+						print_region(regions[ori][chrN][next], "region 2 for merge")  ;
+					} ;
+
+					// regions[ori] are overlapping or adjacent. Merge them into one.
+					if ((regions[ori][chrN][nregion])->end < (regions[ori][chrN][next])->end)
+						(regions[ori][chrN][nregion])->end = (regions[ori][chrN][next])->end;
+		
+					// merge the two read_maps
+					for (size_t i = 0; i < read.length(); i++)
+						regions[ori][chrN][nregion]->read_map[i] = regions[ori][chrN][nregion]->read_map[i]
+							|| regions[ori][chrN][next]->read_map[i];
+		
+					// Get rid of the extra region.
+					regions[ori][chrN][next]->erased = true;
+					delete[] regions[ori][chrN][next]->read_map; 
+					regions[ori][chrN][next]->read_map = NULL;
+		
+					// consider this as a map-region, only if any both were generated from a map (important for downstream filtering)
+					regions[ori][chrN][nregion]->from_map = regions[ori][chrN][nregion]->from_map && regions[ori][chrN][next]->from_map ;
+
+					if (myverbosity>=2)
+						print_region(regions[ori][chrN][nregion], "region merged")  ;
+		
+					// make sure this item is looked at again to merge it with the next item if necessary
+					nregion-- ;
+				}
+			}
+		}
+	}
+
+	_stats.qpalma_region_align_time += clock() - start_time;
+	return 0;
+}
+
 int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_search,JunctionMap &annotatedjunctions, VariantMap & variants) const
 {
 	Read const &read(hits.getRead());

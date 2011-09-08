@@ -144,6 +144,7 @@ protected:
 
 public:
 	int capture_hits(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
+	int recapture_hits(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int capture_hits_2(Hits &hits, Result &result, bool const non_consensus_search, JunctionMap &annotatedjunctions, VariantMap & variants) const;
 	int capture_hits_3(Chromosome const &chr, Hits &hits, Result &result, Read const &read, std::string read_seq[2], std::string read_quality[2], 
 					   int ori, std::vector<region_t*> & current_regions, region_t* long_regions, 

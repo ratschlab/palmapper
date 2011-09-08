@@ -70,6 +70,7 @@ protected:
 	int init_operators() ;
 	int init_alignment_structures(Config * config);
 	void map_read(Result &result, clock_t start_time);
+	void realign_read(Result &result, clock_t start_time);
 	GenomeArr GENOME;
 
 	Genome const &_genome;

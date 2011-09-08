@@ -47,6 +47,8 @@ Config::Config() {
 	ADAPTERTRIM_STRATEGY_MIN_LEN = 40 ;
 	ADAPTERTRIM_STRATEGY_LOG = std::string("") ;
 
+	REALIGN_READS=false ;
+
 	//int SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[2] ;
 	HITLEN_LIMIT = 0;
 	VERBOSE = 0;
@@ -648,7 +650,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-lock") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
-				fprintf(stderr, "ERROR: Argument missing for option -q\n") ;
+				fprintf(stderr, "ERROR: Argument missing for option -lock\n") ;
 				usage();
 				exit(1);
 			}
@@ -1056,6 +1058,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 				FILTER_VARIANT_MAXNONCONFRATIO=atof(argv[i]) ;
 				assert(FILTER_VARIANT_MAXNONCONFRATIO>=0) ;
 				FILTER_VARIANTS=true ;
+			}
+
+			//report repetitive seeds
+			if (strcmp(argv[i], "-realign-reads") == 0) {
+				not_defined = 0;
+				REALIGN_READS = 1 ;
 			}
 
 			//report repetitive seeds

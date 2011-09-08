@@ -9,6 +9,18 @@
 #include <palmapper/Statistics.h>
 #include <palmapper/Util.h>
 
+struct t_prealigned
+{
+	std::vector<int> exons ;
+	std::vector<int> aligned_positions ;
+	std::string contig, cigar ;
+	std::vector<std::string> paired_info ;
+	char strand ;
+	unsigned char quality ;
+	unsigned int sam_flags ;
+	unsigned int start_position ;
+} ;
+
 class Read {
 	friend class QueryFile;
 public:
@@ -278,6 +290,11 @@ private:
 	Read const * orig_read ;
 
 	static int PRB_QUALITY_OFFSET ;
+
+public:
+	struct t_prealigned * prealigned_info ;
+	void reconstruct_exons_from_cigar() ;
+	
 };
 
 inline std::ostream &operator<<(std::ostream &out, Read const &read) {

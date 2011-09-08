@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <string.h>
 
 #include <vector>
 
@@ -22,6 +23,13 @@ public:
 		}
 
 		void printOn(std::ostream &out) const;
+		bool has_extension(const char * ext) const
+		{
+			if (_filename!=NULL && ext!=NULL && _filename->size()>=strlen(ext) && _filename->substr(_filename->size()-strlen(ext))==std::string(ext))
+				return true ;
+			return false ;
+		}
+		
 	private:
 		std::string const *_filename;
 		unsigned long _lineNr;

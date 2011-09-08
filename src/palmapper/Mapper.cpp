@@ -174,6 +174,7 @@ int Mapper::map_reads()
 	return(0);
 }
 
+
 void Mapper::map_read(Result &result, clock_t start_time) {
 	QPalma const *qpalma = &result._qpalma._qpalma;
 	unsigned int rtrim_cut = 0 ;
@@ -503,6 +504,93 @@ restart:
 		result._state = MappingFailed;
 	}
 }
+
+void Mapper::realign_read(Result &result, clock_t start_time) 
+{
+	QPalma const *qpalma = &result._qpalma._qpalma;
+	int read_mapped;
+	int cancel = 0 ;
+	bool FILTER_STAT = false ;
+
+	GENOME.clear();
+
+	Hits &hits(result._readMappings);
+
+
+	new(&result._work) Read(result._orig);
+	Read &read(result._work);
+
+	char const *READ = read.data();
+	if (_config.VERBOSE>1)
+		printf("# _read.id()=%s READ=%s\n", read.id(), READ) ;
+
+	int num_N=0 ;
+	for (unsigned int i=0; i < read.length(); i++)
+		if (READ[i]!='A' && READ[i]!='C' && READ[i]!='G' && READ[i]!='T')
+			num_N++ ;
+
+	if (_config.STATISTICS) _stats.HITS_PER_READ = 0;
+
+	hits.HITS_IN_SCORE_LIST = 0;
+
+
+	read_mapped = 0 ;
+
+	hits._topAlignments.start_top_alignment_record();
+
+	//Number of unspliced alignments found
+	int nb_unspliced= hits._topAlignments.size();
+	
+	try
+	{
+		int ret = qpalma->recapture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
+		
+		ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
+		
+		if (_config.MAP_JUNCTIONS)
+			ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, hits._topAlignments.size() -nb_unspliced, _annotatedjunctions, _variants);
+		
+		if (ret<0)
+			cancel=4 ;
+		if (_config.VERBOSE)
+			fprintf(stdout, "capture_hits generated %i alignments\n", ret) ;
+		if (FILTER_STAT)
+			_stats.qpalma_filter_stat(result._qpalma.qpalma_filter_reason, ret>0) ;
+	}
+	catch (std::bad_alloc&)
+	{
+		fprintf(stderr, "[map_reads] allocating memory in capture_hits failed\n") ;
+		cancel=5 ;
+	}
+
+	if (!cancel)
+	{
+		//fprintf(stdout, "topAligment.size()=%i\n", hits._topAlignments.size()) ;
+		if (hits._topAlignments.size()>0) 
+		{
+			_stats.READS_MAPPED++ ;
+			result._rtrim_cut = 0;
+			result._polytrim_cut_start = 0 ;
+			result._polytrim_cut_end = 0 ;
+			result._state = ReadMapped;
+			return;
+		}
+		result._state = NothingFound;
+	}
+	else
+	{
+		if (read_mapped && _config.VERBOSE)
+			fprintf(stderr, "lost unspliced alignments\n") ;
+	}
+
+
+	if (cancel)
+	{
+		fprintf(stderr, "read %s could not be mapped (cancel=%i): %s\n", read.id(), cancel, READ) ;
+		result._state = MappingFailed;
+	}
+}
+
 
 int Mapper::init_operators() {
 	return (0);
