@@ -495,8 +495,6 @@ void Read::reconstruct_exons_from_cigar()
 	// use prealigned_info->cigar and prealigned_info->start_position to fill
 	// prealigned_info->exons and prealigned_info->aligned_positions
 
-    // I was not completely sure what should go into exons and aligned_positions
-    // now exons has the first coordinate of each exon and aligned_positions the successive posistion of all exons
     size_t cig_pos = prealigned_info->cigar.find_first_of("HSMIDN");
     unsigned int genome_pos = prealigned_info->start_position;
     while (cig_pos != std::string::npos) {
@@ -510,6 +508,7 @@ void Read::reconstruct_exons_from_cigar()
             {
                 prealigned_info->aligned_positions.push_back(genome_pos++);
             }
+            prealigned_info->exons.push_back(genome_pos-1);
         }; break;
         case 'N': case 'D': genome_pos += length; break;
         case 'I': case 'S': case 'H': break;
