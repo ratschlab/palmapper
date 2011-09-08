@@ -492,6 +492,9 @@ void Read::printOn(FILE *file) const
 
 void Read::reconstruct_exons_from_cigar()
 {
-	
+	// use prealigned_info->cigar and prealigned_info->start_position to fill
+	// prealigned_info->exons and prealigned_info->aligned_positions
+
+	assert(0) ;
 }
 
