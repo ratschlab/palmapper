@@ -1463,19 +1463,15 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 
 int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_search,JunctionMap &annotatedjunctions, VariantMap & variants) const
 {
-	Read const &read(hits.getRead());
-
-	assert(read.prealigned_info!=NULL) ;
-	struct t_prealigned & prealigned_info = *read.prealigned_info ;
-
+		
 	clock_t start_time = clock();
-
+	
 	int myverbosity=verbosity ;
 	
 	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
 		myverbosity=verbose_read_level ;
 
-	// clean up data generated for the previous read
+	Read const &read(hits.getRead());
 
 	result.cleanup();
 
@@ -1489,65 +1485,28 @@ int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_
 	result.long_regions[1] = result.regions[1];
 	std::vector<std::vector<region_t *> > * const regions = result.regions;
 	std::vector<std::vector<region_t *> > * const long_regions = result.long_regions;
-  
-	int best_start=-1, best_end=-1, max_len=0 ;
-	for (unsigned int i=0; i<prealigned_info.exons.size(); i+=2)
-	{
-		if (prealigned_info.exons[i+1]-prealigned_info.exons[i]>max_len)
-		{
-			max_len = prealigned_info.exons[i+1]-prealigned_info.exons[i] ;
-			best_start=prealigned_info.exons[i] ;
-			best_end = prealigned_info.exons[i+1] ;
-		}
-	}
-	assert(best_start>=0 && best_end>=0) ;
 
-	region_t *new_lregion=NULL;
-	try {
-		new_lregion = new region_t();
-		new_lregion->read_map = new bool[read.length()];
-	} catch (std::bad_alloc&) 
+	for (unsigned int nump=0; nump<read.prealigned_info.size(); nump++)
 	{
-		fprintf(stderr, "[recapture_hits] allocating memory for read_map failed\n");
-		result.delete_regions();
-		delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-		return -1;
-	}  
-	new_lregion->start = best_start ;
-	new_lregion->end = best_end+1 ;
-	new_lregion->from_map = false ;
-	new_lregion->read_pos = -1 ; 
-	for (size_t ii=0; ii < read.length(); ii++)
-		if (prealigned_info.aligned_positions[ii]==best_start)
+		struct t_prealigned & prealigned_info = *read.prealigned_info[nump] ;
+		// clean up data generated for the previous read
+		
+		int best_start=-1, best_end=-1, max_len=0 ;
+		for (unsigned int i=0; i<prealigned_info.exons.size(); i+=2)
 		{
-			new_lregion->read_pos = ii ;
-			//break ;
+			if (prealigned_info.exons[i+1]-prealigned_info.exons[i]>max_len)
+			{
+				max_len = prealigned_info.exons[i+1]-prealigned_info.exons[i] ;
+				best_start=prealigned_info.exons[i] ;
+				best_end = prealigned_info.exons[i+1] ;
+			}
 		}
-	assert(new_lregion->read_pos>=0) ;
-	
-	new_lregion->hit_len = new_lregion->end-new_lregion->start ;
-	
-	for (size_t ii = 0; ii < read.length(); ii++)
-		if (prealigned_info.aligned_positions[ii]>=best_start && prealigned_info.aligned_positions[ii]<=best_end)
-			new_lregion->read_map[ii] = true ;
-		else
-			new_lregion->read_map[ii] = false ;
-	
-	int contig_no=genome->find_desc(prealigned_info.contig.c_str()) ;
-	if (contig_no<0)
-	{
-		fprintf(stderr, "ERROR: Contig name %s not found\n", prealigned_info.contig.c_str()) ;
-		return -1 ;
-	}
-	long_regions[ori_map(prealigned_info.orientation)][contig_no].push_back(new_lregion);
-
-	for (unsigned int i=0; i<prealigned_info.exons.size(); i+=2)
-	{
-		// Create first region for this hit
-		region_t *new_region = NULL;
+		assert(best_start>=0 && best_end>=0) ;
+		
+		region_t *new_lregion=NULL;
 		try {
-			new_region = new region_t();
-			new_region->read_map = new bool[read.length()];
+			new_lregion = new region_t();
+			new_lregion->read_map = new bool[read.length()];
 		} catch (std::bad_alloc&) 
 		{
 			fprintf(stderr, "[recapture_hits] allocating memory for read_map failed\n");
@@ -1555,34 +1514,78 @@ int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_
 			delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 			return -1;
 		}  
-		
-		new_region->start = prealigned_info.exons[i] ;
-		new_region->end = prealigned_info.exons[i+1]+1;
-		
-		new_region->from_map = false ;
-		for (size_t ii = 0; ii < read.length(); ii++)
-			new_region->read_map[ii] = true ;
-
-		for (size_t ii = 0; ii < read.length(); ii++)
-			if (prealigned_info.aligned_positions[ii]>=new_region->start && prealigned_info.aligned_positions[ii]<=new_region->end)
-				new_region->read_map[ii] = true ;
-			else
-				new_region->read_map[ii] = false ;
-		
-		new_region->read_pos = -1 ; 
+		int delta=-1 ;
+		new_lregion->start = best_start + delta ;
+		new_lregion->end = best_end+1 + delta ;
+		new_lregion->from_map = false ;
+		new_lregion->read_pos = -1 ; 
 		for (size_t ii=0; ii < read.length(); ii++)
-			if (prealigned_info.aligned_positions[ii]==new_region->start)
+			if (prealigned_info.aligned_positions[ii]==best_start)
 			{
 				new_lregion->read_pos = ii ;
-				//break ;
+				break ;
 			}
 		assert(new_lregion->read_pos>=0) ;
 		
-		new_region->hit_len = new_region->end-new_region->start ;
+		new_lregion->hit_len = new_lregion->end-new_lregion->start ;
+		
+		for (size_t ii = 0; ii < read.length(); ii++)
+			if (prealigned_info.aligned_positions[ii]>=best_start && prealigned_info.aligned_positions[ii]<=best_end)
+				new_lregion->read_map[ii] = true ;
+			else
+				new_lregion->read_map[ii] = false ;
+		
+		int contig_no=genome->find_desc(prealigned_info.contig.c_str()) ;
+		if (contig_no<0)
+		{
+			fprintf(stderr, "ERROR: Contig name %s not found\n", prealigned_info.contig.c_str()) ;
+			return -1 ;
+		}
+		long_regions[ori_map(prealigned_info.orientation)][contig_no].push_back(new_lregion);
+		
+		for (unsigned int i=0; i<prealigned_info.exons.size(); i+=2)
+		{
+			// Create first region for this hit
+			region_t *new_region = NULL;
+			try {
+				new_region = new region_t();
+				new_region->read_map = new bool[read.length()];
+			} catch (std::bad_alloc&) 
+			{
+				fprintf(stderr, "[recapture_hits] allocating memory for read_map failed\n");
+				result.delete_regions();
+				delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+				return -1;
+			}  
 			
-		regions[ori_map(prealigned_info.orientation)][contig_no].push_back(new_region);
+			new_region->start = prealigned_info.exons[i] ;
+			new_region->end = prealigned_info.exons[i+1]+1;
+			
+			new_region->from_map = false ;
+			for (size_t ii = 0; ii < read.length(); ii++)
+				new_region->read_map[ii] = true ;
+			
+			for (size_t ii = 0; ii < read.length(); ii++)
+				if (prealigned_info.aligned_positions[ii]>=new_region->start && prealigned_info.aligned_positions[ii]<=new_region->end)
+					new_region->read_map[ii] = true ;
+				else
+					new_region->read_map[ii] = false ;
+			
+			new_region->read_pos = -1 ; 
+			for (size_t ii=0; ii < read.length(); ii++)
+				if (prealigned_info.aligned_positions[ii]==new_region->start)
+				{
+					new_region->read_pos = ii ;
+					break ;
+				}
+			//assert(new_region->read_pos>=0) ;
+			
+			new_region->hit_len = new_region->end-new_region->start ;
+			
+			regions[ori_map(prealigned_info.orientation)][contig_no].push_back(new_region);
+		}
 	}
-
+	
 	if (myverbosity >= 1)
 		fprintf(stdout,	"# [capture_hits] Captured %d hits, dropped %i hits for read %s\n",
 				num_hits - num_hits_dropped, num_hits_dropped, read.id());
@@ -2443,7 +2446,7 @@ int QPalma::capture_hits_3(Chromosome const &chr, Hits &hits, Result &result, Re
 		//fprintf(stdout,	"2)hit read position %i\n", read.length()-(hit_read_position+hit_len));					  
 		
 		int ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], current_seq, current_regions, 
-													current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+													current_positions, chr, '-', 1-ori, read.length()-(hit_read_position+hit_len)+1,
 													long_region->end-1, hit_len, non_consensus_search, num_alignments_reported, false,
 													annotatedjunctions, variants, myverbosity); // end nucleotide in dna not included
 		if (ret < 0)
@@ -2764,7 +2767,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 							
 							ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
 																	current_seq, current_regions, current_positions, 
-																	chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+																	chr, '-', 1-ori, read.length()-(hit_read_position+hit_len)+1,
 																	rend /*this_long_regions[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
 																	annotatedjunctions, variants, verbosity);
 						}
@@ -5298,7 +5301,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (hit_read<0)
 	{
 		fprintf(stderr, "ERROR: hit_read=%i setting to 0 to recover\n", hit_read) ;
-		//assert(0) ;
+		assert(0) ;
 		hit_read = 0 ;
 	}
 

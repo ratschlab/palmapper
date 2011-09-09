@@ -1949,7 +1949,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		determine_transcription_direction(curr_align->strand,curr_align->orientation,_config.STRAND,transcription_direction,read_orientation);
 
 		uint32_t flag=0 ;
-		if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
+		if (true) // (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
 		{
 			//Read reversed and complemented compared to the forward strand
 			flag+=((read_orientation=='-')*16) ;
@@ -1967,19 +1967,19 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			 */
 			flag+=((top_alignments.size()>1)*256) ;
 		}
-		else
+		/*else
 		{
 			flag = curr_read->prealigned_info->sam_flags ;
 			// TODO: check whether all flags are consistent
-		}
+			}*/
 		
 		fprintf(MY_OUT_FP, "\t%d\t%s\t%d", 
 				flag, 
 				curr_align->chromosome->desc(),
 				curr_align->exons[0] + 1) ; 
 
-		if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
-		{
+		/*if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
+		  {*/
 			if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MAQQUALITY)
 			{
 				fprintf(stderr, "MAQ quality not implemented yet\n") ;
@@ -1992,9 +1992,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				else
 					fprintf(MY_OUT_FP, "\t0");
 			}
-		}
-		else
-			fprintf(MY_OUT_FP, "\t%i", curr_read->prealigned_info->quality);
+			//}
+	/*else
+	  fprintf(MY_OUT_FP, "\t%i", curr_read->prealigned_info->quality);*/
 		
 		//	double qpalma_score = best->qpalma_score ;
         
@@ -2152,13 +2152,13 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 
 		//		if (curr_align->orientation=='+' || curr_align->exons.size() < 3)
-		if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
+		//if (curr_read->prealigned_info==NULL || !_config.REALIGN_READS)
 			fprintf(MY_OUT_FP, "\t%s\t*\t0\t0", cigar) ; 
-		else
+		/*else
 			fprintf(MY_OUT_FP, "\t%s\t%s\t%s\t%s", cigar, 
 					curr_read->prealigned_info->paired_info[0].c_str(), 
 					curr_read->prealigned_info->paired_info[1].c_str(), 
-					curr_read->prealigned_info->paired_info[2].c_str()) ; 
+					curr_read->prealigned_info->paired_info[2].c_str()) ; */
 
 		/*		else
 				{

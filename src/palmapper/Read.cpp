@@ -29,7 +29,7 @@ Read::Read(QueryFile &queryFile)
 	READ_ID[0] = '\0';
 	orig_read = NULL ;
 	_nr = -1;
-	prealigned_info=NULL ;
+	//prealigned_info=NULL ;
 }
 
 Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
@@ -41,25 +41,28 @@ Read::Read(Read const &src, unsigned cutStart, unsigned cutEnd)
 	::strcpy(READ_ID, src.READ_ID);
 	orig_read = &src;
 	_nr = src._nr;
-	if (src.prealigned_info!=NULL)
+
+	prealigned_info.clear() ;
+	for (unsigned int i=0; i<src.prealigned_info.size(); i++)
 	{
-		prealigned_info = new struct t_prealigned ;
-		prealigned_info->exons=src.prealigned_info->exons ;
-		prealigned_info->aligned_positions=src.prealigned_info->aligned_positions ;
-		prealigned_info->contig=src.prealigned_info->contig ;
-		prealigned_info->cigar=src.prealigned_info->cigar ;
-		prealigned_info->paired_info=src.prealigned_info->paired_info ;
-		prealigned_info->quality=src.prealigned_info->quality ;
-		prealigned_info->sam_flags=src.prealigned_info->sam_flags ;
-		prealigned_info->start_position=src.prealigned_info->start_position ;
-		prealigned_info->orientation=src.prealigned_info->orientation ;
-		//prealigned_info->strand=src.prealigned_info->strand ;
+		struct t_prealigned * myprealigned_info = new struct t_prealigned ;
+		myprealigned_info->exons=src.prealigned_info[i]->exons ;
+		myprealigned_info->aligned_positions=src.prealigned_info[i]->aligned_positions ;
+		myprealigned_info->contig=src.prealigned_info[i]->contig ;
+		myprealigned_info->cigar=src.prealigned_info[i]->cigar ;
+		myprealigned_info->paired_info=src.prealigned_info[i]->paired_info ;
+		myprealigned_info->quality=src.prealigned_info[i]->quality ;
+		myprealigned_info->sam_flags=src.prealigned_info[i]->sam_flags ;
+		myprealigned_info->start_position=src.prealigned_info[i]->start_position ;
+		myprealigned_info->orientation=src.prealigned_info[i]->orientation ;
+		prealigned_info.push_back(myprealigned_info) ;
 	}
 }
 
 Read::~Read() {
-	if (prealigned_info)
-		delete prealigned_info ;
+	for (unsigned int i=0; i<prealigned_info.size(); i++)
+		delete prealigned_info[i] ;
+	prealigned_info.clear() ;
 }
 
 void Read::copyFrom(Read const &src, unsigned cutStart, unsigned cutEnd) {
@@ -112,9 +115,9 @@ int Read::read_short_read()
 	}
 
 	_location = _queryFile.getLocation();
-	if (prealigned_info!=NULL)
-		delete prealigned_info ;
-	prealigned_info=NULL ;
+	for (unsigned int i=0; i<prealigned_info.size(); i++)
+		delete prealigned_info[i] ;
+	prealigned_info.clear() ;
 	
 	if (line[0] == '@') {
 		/////// FastQ input ///////
@@ -290,105 +293,133 @@ int Read::read_short_read()
 	else 
 		if (_location.has_extension(".sam") || _config.REALIGN_READS)
 		{
-			prealigned_info = new struct t_prealigned ;
-			
-			/////// SAM input file ///////
-			char const *rid = strtok_r(line, "\t", &saveptr);
-			if (rid == NULL) {
-				fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			if ((int)strlen(rid) == linelen) {
-				fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			strcpy(READ_ID, rid);
+			std::string this_read_id="" ;
+			size_t pos = ftell(_queryFile._file) ;
 
-			tmp = strtok_r(NULL, "\t", &saveptr);
-			if (tmp == NULL) {
-				fprintf(stderr, "ERROR: SAM flags are empty, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			prealigned_info->sam_flags = atol(tmp);
-			prealigned_info->orientation = '+' ;
-			if (prealigned_info->sam_flags & 16)
-				prealigned_info->orientation = '-'  ;
-
-			char *tok = strtok_r(NULL, "\t", &saveptr); 
-			if (tok == NULL) {
-				fprintf(stderr, "ERROR: sam contig name field is empty, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			prealigned_info->contig=std::string(tok) ;
-
-						
-			tmp = strtok_r(NULL, "\t", &saveptr);
-			if (tmp == NULL) {
-				fprintf(stderr, "ERROR: sam position field is empty, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			prealigned_info->start_position = atoi(tmp);
-
-
-			tmp = strtok_r(NULL, "\t", &saveptr);
-			if (tmp == NULL) {
-				fprintf(stderr, "ERROR: sam quality field is empty, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			prealigned_info->quality = atoi(tmp);
-
-			tok = strtok_r(NULL, "\t", &saveptr);
-			if (tok == NULL) {
-				fprintf(stderr, "ERROR: sam cigar field is empty, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			prealigned_info->cigar=std::string(tok) ;
-
-			for (int k=0; k<3; k++)
+			while (true)
 			{
-				tok = strtok_r(NULL, "\t", &saveptr);
-				if (tok == NULL) {
-					fprintf(stderr, "ERROR: paired field %i is empty, line %lu!\n", k, _queryFile.line_nr());
+				/////// SAM input file ///////
+				char const *rid = strtok_r(line, "\t", &saveptr);
+				if (rid == NULL) {
+					fprintf(stderr, "ERROR: Read ID is empty, line %lu!\n", _queryFile.line_nr());
 					exit(0);
 				}
-				prealigned_info->paired_info.push_back(std::string(tok)) ;
-			}
+				if ((int)strlen(rid) == linelen) {
+					fprintf(stderr, "ERROR: wrong read input data format, line %lu!\n", _queryFile.line_nr());
+					exit(0);
+				}
+				if (this_read_id.length()>0 && this_read_id!=rid)
+				{
+					fseek(_queryFile._file, pos, SEEK_SET) ;
+					break ;
+				}
+				this_read_id=rid ;
+				
+				struct t_prealigned * myprealigned_info = new struct t_prealigned ;
 
-			tok = strtok_r(NULL, "\t", &saveptr);
-			if (tok == NULL) {
-				fprintf(stderr, "ERROR: Read sequence is empty, line %lu!\n", _queryFile.line_nr());
-				exit(0);
-			}
-			
-			if (strlen(tok) > _config.MAX_READ_LENGTH) {
-				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
-				return -1;
-			}
-			if (strcspn(tok, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
-				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
-				return -1;
-			}
-			strcpy(READ, tok);
-			READ_LENGTH = strlen(READ);
-			if (READ_LENGTH < _config.INDEX_DEPTH) {
-				fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
-				return -1;
-			}
+				strcpy(READ_ID, rid);
+				
+				tmp = strtok_r(NULL, "\t", &saveptr);
+				if (tmp == NULL) {
+					fprintf(stderr, "ERROR: SAM flags are empty, line %lu!\n", _queryFile.line_nr());
+					exit(0);
+				}
+				myprealigned_info->sam_flags = atol(tmp);
+				myprealigned_info->orientation = '+' ;
+				//if (myprealigned_info->sam_flags & 16)
+				//	myprealigned_info->orientation = '-'  ;
+				
+				char *tok = strtok_r(NULL, "\t", &saveptr); 
+				if (tok == NULL) {
+					fprintf(stderr, "ERROR: sam contig name field is empty, line %lu!\n", _queryFile.line_nr());
+					exit(0);
+				}
+				myprealigned_info->contig=std::string(tok) ;
+				
+				
+				tmp = strtok_r(NULL, "\t", &saveptr);
+				if (tmp == NULL) {
+					fprintf(stderr, "ERROR: sam position field is empty, line %lu!\n", _queryFile.line_nr());
+					exit(0);
+				}
+				myprealigned_info->start_position = atoi(tmp);
+				
+				
+				tmp = strtok_r(NULL, "\t", &saveptr);
+				if (tmp == NULL) {
+					fprintf(stderr, "ERROR: sam quality field is empty, line %lu!\n", _queryFile.line_nr());
+					exit(0);
+				}
+				myprealigned_info->quality = atoi(tmp);
+				
+				tok = strtok_r(NULL, "\t", &saveptr);
+				if (tok == NULL) {
+					fprintf(stderr, "ERROR: sam cigar field is empty, line %lu!\n", _queryFile.line_nr());
+					exit(0);
+				}
+				myprealigned_info->cigar=std::string(tok) ;
+				
+				for (int k=0; k<3; k++)
+				{
+					tok = strtok_r(NULL, "\t", &saveptr);
+					if (tok == NULL) {
+						fprintf(stderr, "ERROR: paired field %i is empty, line %lu!\n", k, _queryFile.line_nr());
+						exit(0);
+					}
+					myprealigned_info->paired_info.push_back(std::string(tok)) ;
+				}
+				
+				tok = strtok_r(NULL, "\t", &saveptr);
+				if (tok == NULL) {
+					fprintf(stderr, "ERROR: Read sequence is empty, line %lu!\n", _queryFile.line_nr());
+					exit(0);
+				}
+				
+				if (strlen(tok) > _config.MAX_READ_LENGTH) {
+					fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
+					return -1;
+				}
+				if (strcspn(tok, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
+					fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
+					return -1;
+				}
+				strcpy(READ, tok);
+				READ_LENGTH = strlen(READ);
+				if (READ_LENGTH < _config.INDEX_DEPTH) {
+					fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
+					return -1;
+				}
+				
+				// optional read qualities:
+				char const *qual = strtok_r(NULL, "\t\n", &saveptr);
+				for (int i = 0; i < _maxNrQualities; ++i) {
+					if (qual == NULL)
+						break;
+					//TODO Jörg removed the length test: intentionally?
+					if (::strlen(qual) !=  READ_LENGTH)
+						fprintf(stderr, "WARNING: quality length=%ld != %i=read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", ::strlen(qual), READ_LENGTH, READ_ID, _queryFile.line_nr());
+					::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
+				}
+				
+				reconstruct_exons_from_cigar(myprealigned_info) ;
+				
+				prealigned_info.push_back(myprealigned_info) ;
+				
+				do {
+					if (!_queryFile.next_line(line, sizeof(line)))
+						return 1;
+				} while (strcspn(line, " \n\t") == 0);
+				
+				linelen = strlen(line);
+				if (linelen < 3) {
+					cerr << "ERROR: at " << _queryFile.getLocation() << " Unknown read input format! Do all the reads have an identifier?\n";
+					exit(0);
+				}
+				
+				_location = _queryFile.getLocation();
+				pos = ftell(_queryFile._file) ;
 
-			// optional read qualities:
-			char const *qual = strtok_r(NULL, "\t\n", &saveptr);
-			for (int i = 0; i < _maxNrQualities; ++i) {
-				if (qual == NULL)
-					break;
-				//TODO Jörg removed the length test: intentionally?
-				if (::strlen(qual) !=  READ_LENGTH)
-					fprintf(stderr, "WARNING: quality length=%ld != %i=read length for read %s in line %lu (going ahead with possibly indeterministic values)\n", ::strlen(qual), READ_LENGTH, READ_ID, _queryFile.line_nr());
-				::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
 			}
-
-			reconstruct_exons_from_cigar() ;
-
-			
 
 			READ_FORMAT = 3;
 		}
@@ -483,12 +514,13 @@ void Read::printOn(FILE *file) const
 		fprintf(file, ">%s\n%s\n", READ_ID, READ);
 	else if (READ_FORMAT == 3)
 	{
-		assert(prealigned_info!=NULL) ;
-		
-		fprintf(file, "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", READ_ID, prealigned_info->sam_flags, prealigned_info->contig.c_str(), 
-				prealigned_info->start_position, prealigned_info->quality, prealigned_info->cigar.c_str(), 
-				prealigned_info->paired_info[0].c_str(), prealigned_info->paired_info[1].c_str(), prealigned_info->paired_info[2].c_str(), 
-				READ, READ_QUALITY[0]);
+		for (unsigned int i=0; i<prealigned_info.size(); i++)
+		{
+			fprintf(file, "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", READ_ID, prealigned_info[i]->sam_flags, prealigned_info[i]->contig.c_str(), 
+					prealigned_info[i]->start_position, prealigned_info[i]->quality, prealigned_info[i]->cigar.c_str(), 
+					prealigned_info[i]->paired_info[0].c_str(), prealigned_info[i]->paired_info[1].c_str(), prealigned_info[i]->paired_info[2].c_str(), 
+					READ, READ_QUALITY[0]);
+		}
 	}
 	else
 		fprintf(file, "%s\t%s\t%d\t%s\t%s\t%s\n", READ_ID, READ,
@@ -496,62 +528,53 @@ void Read::printOn(FILE *file) const
 
 }
 
-void Read::reconstruct_exons_from_cigar()
+void Read::reconstruct_exons_from_cigar(struct t_prealigned * myprealigned_info)
 {
-	// use prealigned_info->cigar and prealigned_info->start_position to fill
-	// prealigned_info->exons and prealigned_info->aligned_positions
+	// use myprealigned_info->cigar and myprealigned_info->start_position to fill
+	// myprealigned_info->exons and myprealigned_info->aligned_positions
 
-    size_t cig_pos = prealigned_info->cigar.find_first_of("HSMIDN");
-	int genome_pos = prealigned_info->start_position;
-	//fprintf(stdout, "cigar='%s'\n", prealigned_info->cigar.c_str()) ;
+    size_t cig_pos = myprealigned_info->cigar.find_first_of("HSMIDN");
+	int genome_pos = myprealigned_info->start_position;
+	//fprintf(stdout, "cigar='%s'\n", myprealigned_info->cigar.c_str()) ;
 	
-	prealigned_info->exons.push_back(-1) ;
-	prealigned_info->exons.push_back(-1) ;
 	int prev_pos=0 ;
     while (cig_pos != std::string::npos) 
 	{
-		//size_t op_pos = prealigned_info->cigar.find_first_of("HSMIDN", cig_pos + 1);
-		
-        unsigned int slength = atoi(prealigned_info->cigar.substr(prev_pos, cig_pos).c_str());
-		//fprintf(stdout, "'%s' -> %i %c\n", prealigned_info->cigar.substr(prev_pos, cig_pos).c_str(), slength, prealigned_info->cigar.at(cig_pos)) ;
+        unsigned int slength = atoi(myprealigned_info->cigar.substr(prev_pos, cig_pos).c_str());
 
-        switch (prealigned_info->cigar.at(cig_pos)) 
+        switch (myprealigned_info->cigar.at(cig_pos)) 
         {
         case 'M': 
-            if (prealigned_info->exons[prealigned_info->exons.size()-2]==-1)
-				prealigned_info->exons[prealigned_info->exons.size()-2] = genome_pos ;
+			myprealigned_info->exons.push_back(genome_pos) ;
             for (unsigned int idx = 0; idx < slength; idx++)
-                prealigned_info->aligned_positions.push_back(genome_pos++);
-			prealigned_info->exons[prealigned_info->exons.size()-1] = genome_pos-1 ;
+                myprealigned_info->aligned_positions.push_back(genome_pos++);
+			myprealigned_info->exons.push_back(genome_pos-1) ;
 			break;
 		case 'D': 
 			genome_pos += slength; 
-			prealigned_info->exons[prealigned_info->exons.size()-1] = genome_pos-1 ; // extend last exon
+			myprealigned_info->exons.push_back(genome_pos) ;
+			myprealigned_info->exons.push_back(genome_pos) ;
 			break;
         case 'N': 
 			genome_pos += slength; 
-			prealigned_info->exons.push_back(-1) ;
-			prealigned_info->exons.push_back(-1) ;
 			break;
         case 'I': 
-            if (prealigned_info->exons[prealigned_info->exons.size()-2]==-1)
-				prealigned_info->exons[prealigned_info->exons.size()-2] = genome_pos ;
-            if (prealigned_info->exons[prealigned_info->exons.size()-1]==-1)
-				prealigned_info->exons[prealigned_info->exons.size()-1] = genome_pos ;
+			myprealigned_info->exons.push_back(genome_pos) ;
+			myprealigned_info->exons.push_back(genome_pos) ;
             for (unsigned int idx = 0; idx < slength; idx++)
-                prealigned_info->aligned_positions.push_back(genome_pos);
+                myprealigned_info->aligned_positions.push_back(-1);
 			break;
         case 'S': case 'H': break;
         }
 		prev_pos=cig_pos+1 ;
-        cig_pos = prealigned_info->cigar.find_first_of("HSMIDN", cig_pos + 1);
+        cig_pos = myprealigned_info->cigar.find_first_of("HSMIDN", cig_pos + 1);
     }
-	for (unsigned int i=0; i<prealigned_info->exons.size(); i++)
+	for (unsigned int i=0; i<myprealigned_info->exons.size(); i++)
 	{
-		//fprintf(stderr, "exons[%i]=%i\n", i, prealigned_info->exons[i]) ;
-		assert(prealigned_info->exons[i]>=0) ;
+		//fprintf(stderr, "exons[%i]=%i\n", i, myprealigned_info->exons[i]) ;
+		assert(myprealigned_info->exons[i]>=0) ;
 	}
-	for (unsigned int i=0; i<prealigned_info->exons.size()-1; i++)
-		assert(prealigned_info->exons[i]<=prealigned_info->exons[i+1]) ;
+	for (unsigned int i=0; i<myprealigned_info->exons.size()-1; i++)
+		assert(myprealigned_info->exons[i]<=myprealigned_info->exons[i+1]) ;
 }
 

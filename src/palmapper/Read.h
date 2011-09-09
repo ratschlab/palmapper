@@ -293,8 +293,8 @@ private:
 	static int PRB_QUALITY_OFFSET ;
 
 public:
-	struct t_prealigned * prealigned_info ;
-	void reconstruct_exons_from_cigar() ;
+	std::vector<struct t_prealigned *> prealigned_info ;
+	void reconstruct_exons_from_cigar(struct t_prealigned * myprealigned_info) ;
 	
 };
 
