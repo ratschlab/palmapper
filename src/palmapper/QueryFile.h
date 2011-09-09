@@ -66,11 +66,12 @@ public:
 
 	static int determine_read_length(std::vector<std::string> const &filenames,std::vector<int> const &strands);
 
+	FILE *_file;
+
 private:
 
 	bool open_next_file();
 
-	FILE *_file;
 	int _lineNr;
 	unsigned int _maxReadLen;
 	std::vector<std::string> const &_filenames;
