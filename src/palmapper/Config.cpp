@@ -159,6 +159,7 @@ Config::Config() {
 	FILTER_VARIANTS=false ;
 	MERGE_VARIANT_SOURCE_IDS = false ;
 	IUPAC_SNPS= false ;
+	USE_VARIANTS_EDITOP_FILTER=false ;
 	USE_VARIANT_FILE_NAME = "" ;
 	REPORT_USED_VARIANT_FILE_NAME = "";
 	REPORT_VARIANTS_FILE_NAME="" ;
@@ -950,7 +951,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 				IUPAC_SNPS= true ;
 			}
 			//Variant filename with variants to use for alignments
-			if (strcmp(argv[i], "-use-variants") == 0) {
+			if (strcmp(argv[i], "-use-variants") == 0) 
+			{
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
 					fprintf(stderr, "ERROR: Argument missing for option -use-variants\n") ;
@@ -960,6 +962,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				USE_VARIANT_FILE_NAME.assign(argv[i]);
 				USE_VARIANTS = true ;
+			}
+
+			if (strcmp(argv[i], "-use-variants-editop-filter") == 0) 
+			{
+				not_defined = 0;
+				USE_VARIANTS_EDITOP_FILTER = true ;
 			}
 
 			if (strcmp(argv[i], "-report-used-variants") == 0) {
