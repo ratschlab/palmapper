@@ -5489,7 +5489,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 															dna_align, est_align, result_length, remapping, 
 															alignment_passed_filters_var, alignment_gaps_var, alignment_mismatches_var,
 															variant_cache, _config.REPORT_USED_VARIANTS) ;
-
+			
 			for (unsigned int i=0; i< variant_list.size();i++)
 			{
 				recover_variants_on_ref(variant_list[i], positions, strand, est_len_p,contig_idx);
@@ -5505,14 +5505,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 				fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);				
 				for (unsigned int v=0; v<variant_list.size();v++){
 					if (variant_list[v].used_count >=1)
-					fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s used_count=%i non_used_count=%i\n",variant_list[v].type,variant_list[v].position,variant_list[v].read_pos, (char *)variant_list[v].read_id.c_str(),variant_list[v].used_count,variant_list[v].non_used_count);
+						fprintf(stdout,"variant to report: type=%i, position=%i, read pos=%i read_id=%s used_count=%i non_used_count=%i\n",variant_list[v].type,variant_list[v].position,variant_list[v].read_pos, (char *)variant_list[v].read_id.c_str(),variant_list[v].used_count,variant_list[v].non_used_count);
 				}
 			}
-		}
-		else
-			alignment_passed_filters_var = true ;
 
-		alignment_valid = alignment_valid && alignment_passed_filters_var ;
+			alignment_valid = alignment_valid && alignment_passed_filters_var ;
+		}
+
 		if (alignment_valid)
 			determine_exons_successful = determine_exons<myverbosity>(exons, dna, positions, remapping, strand, s_align, e_align, min_exon_len, max_intron_len, min_intron_len)  ;
 		alignment_valid =  alignment_valid && determine_exons_successful ;
@@ -5545,13 +5544,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			
 			alignment_passed_filters_ref = (ret==0) && alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches_ref,alignment_gaps_ref,exons.size()/2,min_exon_len,remapping) ;
 
-			if (considered_variants)
-			{
-				alignment_passed_filters_var= alignment_passed_filters_var && 
-					alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches_var,alignment_gaps_var,exons.size()/2,min_exon_len,remapping) ;
-				//assert(alignment_variants_valid==alignment_passed_filters_var || remapping) ;
-			}
-			else 
+			if (!considered_variants)
 				alignment_passed_filters_var = alignment_passed_filters_ref ;
 		}
 		
