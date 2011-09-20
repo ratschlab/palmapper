@@ -35,6 +35,9 @@
 
 #include "fill_matrix.h"
 
+static const float variant_penalty = 0.0001 ; // prefer non-variant alignments
+
+
 template
 void fast_fill_matrix<true,true>(int nr_paths_par, int*max_score_positions, int read_len, int dna_len, char* read, char* dna, double* prb, penalty_struct* functions, 
 								 double* matchmatrix, penalty_struct* qualityScores, double* donor, double* acceptor, bool remove_duplicate_scores,int seed_i, int seed_j, 
@@ -374,7 +377,7 @@ double getBestScoreWithVariants(mode currentMode, double* matchmatrix, penalty_s
 	
 		for(unsigned int j=0; j<variant_cache[position]->snps.size();j++){
 			int dnaValuetmp=-1;
-			double tmpscore= getScoreIupac(currentMode,matchmatrix,qualityScores,baseScore,mlen, variant_cache[position]->snps[j], readChar, dnaValuetmp);
+			double tmpscore= getScoreIupac(currentMode,matchmatrix,qualityScores,baseScore,mlen, variant_cache[position]->snps[j], readChar, dnaValuetmp) - variant_penalty ;
 		
 			if (tmpscore > score)
 			{
@@ -423,7 +426,7 @@ double getBestGapWithVariants(mode currentMode, double* matchmatrix, penalty_str
 		//Take variants into account and output the best score among the different possibilities (match first I guess)
 		for(unsigned int j=0; j<variant_cache[position]->snps.size();j++){
 			int dnaValuetmp=-1;
-			double tmpscore= getGapIupac(currentMode,matchmatrix,qualityScores,mlen, variant_cache[position]->snps[j],  dnaValuetmp);
+			double tmpscore= getGapIupac(currentMode,matchmatrix,qualityScores,mlen, variant_cache[position]->snps[j],  dnaValuetmp) - variant_penalty ;
 		
 			if (tmpscore > score)
 			{
@@ -488,6 +491,8 @@ void clean_seed_matrix_vector(std::vector<SeedElem*> &matrix, int nr_paths){
 
 
 // Sort best_scores and best_score_pos for the input seed_matrix
+// TODO: replace "bubble sort" with a more efficient routine
+// (not sure this is correct this routine is correct ... )
 void sort_best_scores(SeedElem* seed, int nr_paths){
 
 	double last_score=seed->best_scores[nr_paths-1];
@@ -510,6 +515,8 @@ void sort_best_scores(SeedElem* seed, int nr_paths){
 
 
 // Sort paths for a given position in the matrix according to scores
+// TODO: replace "bubble sort" with a more efficient routine
+// (not sure this is correct this routine is correct ... )
 void sort_best_paths(Prev_score*matrices[], int nr_paths,int matrix_position){
 
 	double last_score=((Prev_score*)matrices[nr_paths-1]+matrix_position)->value;
@@ -745,7 +752,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
   	((Prev_score*)matrices[0]+ max_gap)->snp_int =dnaInt;
 	//Other matrices: score at -INF
 	for(int z=1; z<nr_paths_par;z++){
-		((Prev_score*)matrices[z]+ max_gap)->value = log(0.0); // -inf
+		((Prev_score*)matrices[z]+ max_gap)->value = -ALMOST_INFINITY; // -inf
 		((Prev_score*)matrices[z]+ max_gap)->prev_i = 0; //seed_read+prev_shift;
 		((Prev_score*)matrices[z]+ max_gap)->prev_j = 0; //seed_dna+prev_shift;
 		((Prev_score*)matrices[z]+ max_gap)->prev_matrix_no = 0;
@@ -765,10 +772,10 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 	current_seed->max_introns=max_number_introns;
 	current_seed->deletion_id=deletion_id;
 	current_seed->best_scores= new double[nr_paths_par];
-	current_seed->best_prev_score= log(0.0);
+	current_seed->best_prev_score= -ALMOST_INFINITY;
 	current_seed->best_score_pos=new PosScore*[nr_paths_par];
 	for(int z =0; z<nr_paths_par;z++){
-		current_seed->best_scores[z]=log(0.0);
+		current_seed->best_scores[z]=-ALMOST_INFINITY;
 		PosScore * pscore= new PosScore();    
 		pscore->read_pos=0;
 		pscore->dna_pos=0;
@@ -813,7 +820,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 				//Diagonal not active or position out of bounds
 				if(disabled_diagonal[nj] || (right_side && (j<seed_dna || j>=dna_len))||(!right_side &&(j>seed_dna || j<0))){
 					for(int z=0;z<nr_paths_par;z++){
-						((Prev_score*)matrices[z] + matrix_position)->value = log(0.0) ;
+						((Prev_score*)matrices[z] + matrix_position)->value = -ALMOST_INFINITY ;
 						((Prev_score*)matrices[z] + matrix_position)->prev_i = 0;
 						((Prev_score*)matrices[z] + matrix_position)->prev_j = 0;
 						((Prev_score*)matrices[z] + matrix_position)->prev_matrix_no = 0;
@@ -974,7 +981,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 						}
 						//Too much mismatches/edit operations or better alignment with intron: desactivation of the diagonal
 						else{
-							((Prev_score*)actMatrix + matrix_position)->value = log(0.0) ;
+							((Prev_score*)actMatrix + matrix_position)->value = -ALMOST_INFINITY ;
 							((Prev_score*)actMatrix + matrix_position)->prev_i = 0;
 							((Prev_score*)actMatrix + matrix_position)->prev_j = 0;
 							((Prev_score*)actMatrix + matrix_position)->prev_matrix_no = 0;
@@ -988,7 +995,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 						}
 					}
 					else{
-						((Prev_score*)actMatrix + matrix_position)->value = log(0.0) ;
+						((Prev_score*)actMatrix + matrix_position)->value = -ALMOST_INFINITY ;
 						((Prev_score*)actMatrix + matrix_position)->prev_i = 0;
 						((Prev_score*)actMatrix + matrix_position)->prev_j = 0;
 						((Prev_score*)actMatrix + matrix_position)->prev_matrix_no = 0;
@@ -1007,7 +1014,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 				
 				
                 /******************************************************************************************/
-				/* VARIANT DELETION                                                                       */
+				/* DELETION VARIANTS                                                                      */
 				/* Search for deletions from the next position                                            */
 				/* Call recursively like a particular intron                                              */
 				/******************************************************************************************/
@@ -1086,9 +1093,9 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 						for (int zz=0; zz<nr_paths_par;zz++){								
 							for (int z=0; z<nr_paths_par;z++){								
 								double priorScore= ((Prev_score*)current_seed->matrices[z] +matrix_position)->value ; 	    
-								if(priorScore+seed_matrix[seed_index]->best_scores[zz] > current_seed->best_scores[nr_paths_par-1]){											
+								if(priorScore+seed_matrix[seed_index]->best_scores[zz] - variant_penalty > current_seed->best_scores[nr_paths_par-1]){											
 									//fprintf(stdout, "Found better score with deletion: %i-%i (id=%i) Previous:%i-%i Next:%i-%i\n",j-prev_shift,endpositions[d],idsdeletions[d],i,j,i-prev_shift,jj);
-									current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz];
+									current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz] - variant_penalty;
 									current_seed->best_score_pos[nr_paths_par-1]->read_pos=i;
 									current_seed->best_score_pos[nr_paths_par-1]->dna_pos=j;
 									current_seed->best_score_pos[nr_paths_par-1]->num_gaps=((Prev_score*)current_seed->matrices[z] +matrix_position)->num_gaps + seed_matrix[seed_index]->best_score_pos[zz]->num_gaps;
@@ -1097,7 +1104,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 									current_seed->best_score_pos[nr_paths_par-1]->next_seed=seed_matrix[seed_index];
 									current_seed->best_score_pos[nr_paths_par-1]->path_number=zz;
 									current_seed->best_score_pos[nr_paths_par-1]->path_number_matrices=z;
-									current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore;
+									current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore - variant_penalty ;
 									// Resort best_score_pos and best_scores
 									sort_best_scores(current_seed, nr_paths_par);
 								}
@@ -1271,7 +1278,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 												if ((seed_matrix[num_seed]->max_gaps>=max_gap-prevGaps && seed_matrix[num_seed]->max_mm>=max_mism-prevMism)&&
 													(seed_matrix[num_seed]->best_score_pos[0]->num_gaps<=max_gap-prevGaps && seed_matrix[num_seed]->best_score_pos[0]->num_mm<=max_mism-prevMism)){
 												
-													if (seed_matrix[num_seed]->best_scores[0] > log(0.0) && tempSplicedScore+currentScore >= seed_matrix[num_seed]->best_prev_score){
+													if (seed_matrix[num_seed]->best_scores[0] > -ALMOST_INFINITY && tempSplicedScore+currentScore >= seed_matrix[num_seed]->best_prev_score){
 														continue_searching=true;
 														seed_already_filled=num_seed;
 														break;
@@ -1519,9 +1526,9 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 											//Keep best scores						
 											for (int zz=0; zz<nr_paths_par;zz++){								
 												double priorScore= ((Prev_score*)actMatrix +matrix_position-1)->value ; 	    
-												if(priorScore+seed_matrix[seed_index]->best_scores[zz] > current_seed->best_scores[nr_paths_par-1]){											
+												if(priorScore+seed_matrix[seed_index]->best_scores[zz] - variant_penalty > current_seed->best_scores[nr_paths_par-1]){											
 													//fprintf(stdout, "Found better score with deletion: %i-%i (id=%i) Previous:%i-%i Next:%i-%i\n",j-prev_shift,endpositions[d],idsdeletions[d],i,j,i-prev_shift,jj);
-													current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz];
+													current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz] - variant_penalty ;
 													current_seed->best_score_pos[nr_paths_par-1]->read_pos=i;
 													current_seed->best_score_pos[nr_paths_par-1]->dna_pos=j+prev_shift;
 													current_seed->best_score_pos[nr_paths_par-1]->num_gaps=prevGaps + seed_matrix[seed_index]->best_score_pos[zz]->num_gaps;
@@ -1530,7 +1537,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 													current_seed->best_score_pos[nr_paths_par-1]->next_seed=seed_matrix[seed_index];
 													current_seed->best_score_pos[nr_paths_par-1]->path_number=zz;
 													current_seed->best_score_pos[nr_paths_par-1]->path_number_matrices=z;
-													current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore;
+													current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore - variant_penalty ;
 													// Resort best_score_pos and best_scores
 													sort_best_scores(current_seed, nr_paths_par);
 												}
@@ -1670,9 +1677,9 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 											//Keep best scores						
 											for (int zz=0; zz<nr_paths_par;zz++){								
 												double priorScore= ((Prev_score*)actMatrix +matrix_position-row_len+1)->value ; 	    
-												if(priorScore+seed_matrix[seed_index]->best_scores[zz] > current_seed->best_scores[nr_paths_par-1]){											
+												if(priorScore+seed_matrix[seed_index]->best_scores[zz] - variant_penalty > current_seed->best_scores[nr_paths_par-1]){											
 													//fprintf(stdout, "Found better score with deletion: %i-%i (id=%i) Previous:%i-%i Next:%i-%i\n",j-prev_shift,endpositions[d],idsdeletions[d],i,j,i-prev_shift,jj);
-													current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz];
+													current_seed->best_scores[nr_paths_par-1]=priorScore+seed_matrix[seed_index]->best_scores[zz] - variant_penalty;
 													current_seed->best_score_pos[nr_paths_par-1]->read_pos=i+prev_shift;
 													current_seed->best_score_pos[nr_paths_par-1]->dna_pos=j;
 													current_seed->best_score_pos[nr_paths_par-1]->num_gaps=prevGaps + seed_matrix[seed_index]->best_score_pos[zz]->num_gaps;
@@ -1681,7 +1688,7 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 													current_seed->best_score_pos[nr_paths_par-1]->next_seed=seed_matrix[seed_index];
 													current_seed->best_score_pos[nr_paths_par-1]->path_number=zz;
 													current_seed->best_score_pos[nr_paths_par-1]->path_number_matrices=z;
-													current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore;
+													current_seed->best_score_pos[nr_paths_par-1]->partial_score=priorScore - variant_penalty;
 													// Resort best_score_pos and best_scores
 													sort_best_scores(current_seed, nr_paths_par);
 												}
