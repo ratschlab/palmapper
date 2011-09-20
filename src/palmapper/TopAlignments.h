@@ -17,10 +17,15 @@ typedef struct alignment_t {
 	double qpalma_score;
 	double sort_key;
 	
-	uint32_t num_matches;
-	uint32_t num_mismatches;
-	uint32_t qual_mismatches;
-	uint32_t num_gaps;
+	uint32_t num_matches_ref;
+	uint32_t num_mismatches_ref;
+	uint32_t qual_mismatches_ref;
+	uint32_t num_gaps_ref;
+
+	bool considered_variants ;
+	uint32_t num_mismatches_var;
+	uint32_t num_gaps_var;
+
 	char read_anno[4*Config::MAX_READ_LENGTH] ;
 	std::vector<int> exons;
 	Chromosome const *chromosome;

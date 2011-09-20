@@ -426,10 +426,16 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	alignment_t *best = new alignment_t ;
 	best->qpalma_score = 1000 ;
 	best->sort_key = random()/RAND_MAX ;
-	best->num_matches = num_matches ;
-	best->num_mismatches = num_mismatches ;
-	best->qual_mismatches = qual_mismatches ;
-	best->num_gaps = num_gaps ;
+
+	best->num_matches_ref = num_matches ;
+	best->num_mismatches_ref = num_mismatches ;
+	best->qual_mismatches_ref = qual_mismatches ;
+	best->num_gaps_ref = num_gaps ;
+
+	best->considered_variants=false ;
+	best->num_mismatches_var = num_mismatches ;
+	best->num_gaps_var = num_gaps ;
+
 	best->chromosome = best_hit->chromosome ;
 	best->orientation = best_hit->orientation ;
 	best->strand='+' ;
@@ -545,7 +551,7 @@ int TopAlignments::spliced_is_overlapping(alignment_t *a1, alignment_t *a2)
 
 int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2) 
 {
-	if (a1->num_matches!=a2->num_matches) 
+	if (a1->num_matches_ref!=a2->num_matches_ref) 
 		return 0 ;
 
 	if (a1->strand==a2->strand && a1->orientation==a2->orientation)
@@ -577,9 +583,12 @@ bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2)
 		return false ;
 		}*/ // cant use this due to the remapping scoring
 	
-	if (a1->num_matches!=a2->num_matches){
+	if (a1->num_matches_ref!=a2->num_matches_ref){
 		return false ;
 	}
+	/*if (a1->num_matches_var!=a2->num_matches_var){
+		return false ;
+		}*/
 	if (a1->orientation!=a2->orientation){
 		return false ;
 	}
@@ -813,7 +822,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 			for (unsigned int i=0; i<top_alignments.size(); i++)
 				if (top_alignments[i]->exons.size()>2)
 					genomemaps->report_spliced_read(*top_alignments[i]->chromosome, top_alignments[i]->exons, 
-													top_alignments[i]->num_matches, i) ;
+													top_alignments[i]->num_matches_ref, i) ;
 		}
 		if (_config.REPORT_MAPPED_READS)
 		{
@@ -821,7 +830,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 			{
 				if (top_alignments[i]->exons.size()<=2) 
 					genomemaps->report_mapped_read(*top_alignments[i]->chromosome, top_alignments[i]->exons[0], top_alignments[i]->exons[1], 
-												   top_alignments[i]->num_matches, i) ;
+												   top_alignments[i]->num_matches_ref, i) ;
 			}
 		}
 		
@@ -868,8 +877,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 							int ret=variants.update_variant((*it).second,top_alignments[i]->chromosome->nr(),top_alignments[i]->found_variants[j]);
 							if (ret == 0)
 							{
-								fprintf(stderr,"[end_top_alignment_record] WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);							
-							}
+								fprintf(stderr,"[end_top_alignment_record] WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);														}
 						}
 					}
 				}
@@ -1015,9 +1023,16 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					//fprintf(stdout,"   Ignore alignment: already present\n");
 					if (temp_ind<i)
 						temp_ind=i;
-					
-					if (alignment!=top_alignments[i])
+					if (alignment==top_alignments[i])
+						return NULL ;
+					if (alignment->qpalma_score>top_alignments[i]->qpalma_score)
+					{
+						free_alignment_record(top_alignments[i]) ;
+						top_alignments[i]=alignment ;
+					}
+					else
 						free_alignment_record(alignment) ;
+
 					return NULL ;
 				}
 
@@ -1200,7 +1215,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			best->exons[0],
 			best->exons[best->exons.size()-1],
 			best->read_id,
-			best->num_matches,
+			best->num_matches_ref,
 			transcription_direction,
 			top_unspliced_alignments,
 			top_spliced_alignments,
@@ -1297,7 +1312,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 		{
 			if (read_orientation=='+')
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
-						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, read_orientation, read_anno, read_qual) ;
+						qpalma_score, best->num_matches_ref, best->num_gaps_ref, best->min_exon_len, best->max_intron_len, read_orientation, read_anno, read_qual) ;
 			else
 			{
 				// reverse order of quality 
@@ -1307,7 +1322,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 				qual[read_len]=0 ;
 				
 				fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s;quality=%s", 
-						qpalma_score, best->num_matches, best->num_gaps, best->min_exon_len, best->max_intron_len, read_orientation, read_anno, qual) ;
+						qpalma_score, best->num_matches_ref, best->num_gaps_ref, best->min_exon_len, best->max_intron_len, read_orientation, read_anno, qual) ;
 			}
 			if (_config.POLYTRIM_STRATEGY)
 			{
@@ -1339,7 +1354,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 				second->chromosome->desc(),
 				second->exons[0],
 				second->exons[second->exons.size() - 1],
-				second->num_matches,
+				second->num_matches_ref,
 				transcription_direction,
 				int(second->exons.size() / 2));
 
@@ -1362,7 +1377,8 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			assert(second->exons[i] - second->exons[0] >  0 ) ;
 		}
 
-		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s",	second->qpalma_score, second->num_matches, second->num_gaps, second->min_exon_len, best->max_intron_len, read_orientation, second->read_anno) ;
+		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s",	
+				second->qpalma_score, second->num_matches_ref, second->num_gaps_ref, second->min_exon_len, best->max_intron_len, read_orientation, second->read_anno) ;
 
 		if (_config.POLYTRIM_STRATEGY)
 		{
@@ -1860,14 +1876,14 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 	for (unsigned int j=0; j<top_alignments.size(); j++)
     {
-		if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 0)
+		if (top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref == 0)
 			H0 += 1 ;
-		if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 1)
+		if (top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref == 1)
 			H1 += 1 ;
-		if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches == 2)
+		if (top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref == 2)
 			H2 += 1 ;
-		if (top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches < min_edit_ops)
-			min_edit_ops = top_alignments[j]->num_gaps + top_alignments[j]->num_mismatches ;
+		if (top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref < min_edit_ops)
+			min_edit_ops = top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref ;
 		if (top_alignments[j]->qpalma_score > max_qpalma_score)
 			max_qpalma_score = top_alignments[j]->qpalma_score ;
     }
@@ -2220,7 +2236,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		}
 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS)
-			fprintf(MY_OUT_FP, "\tNM:i:%i", curr_align->num_mismatches + curr_align->num_gaps) ;
+			fprintf(MY_OUT_FP, "\tNM:i:%i", curr_align->num_mismatches_ref + curr_align->num_gaps_ref) ;
 		if (H0 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
 			fprintf(MY_OUT_FP, "\tH0:i:%i", H0) ;
 		if (H1 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
@@ -2272,15 +2288,22 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 
 		if (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_MORESAMFLAGS)
 		{
-			fprintf(MY_OUT_FP, "\tXQ:i:%i", curr_align->qual_mismatches) ;
+			fprintf(MY_OUT_FP, "\tXQ:i:%i", curr_align->qual_mismatches_ref) ;
 			fprintf(MY_OUT_FP, "\tXN:i:%i", (int)curr_align->exons.size()/2) ;
 			fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
 			fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
 			fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
 			fprintf(MY_OUT_FP, "\tXD:f:%2.3f", max_qpalma_score-curr_align->qpalma_score) ;
-			fprintf(MY_OUT_FP, "\tXd:i:%i", curr_align->num_mismatches + curr_align->num_gaps - min_edit_ops) ;
+			fprintf(MY_OUT_FP, "\tXd:i:%i", curr_align->num_mismatches_ref + curr_align->num_gaps_ref - min_edit_ops) ;
 			//fprintf(MY_OUT_FP, "\tXr:i:%i", curr_align->remapped + (curr_align->exons.size()>2)) ;
+
 		}
+		if (_config.USE_VARIANTS)
+		{
+			fprintf(MY_OUT_FP, "\tXM:i:%i", curr_align->num_mismatches_var) ;
+			fprintf(MY_OUT_FP, "\tXG:i:%i", curr_align->num_gaps_var) ;
+		}
+		
 		fprintf(MY_OUT_FP, "\n") ;
 
     }
