@@ -130,6 +130,7 @@ void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & a
 			map[j-start_pos] = true ;
 	}
 
+	lock() ;
 	std::vector<Variant>::iterator it = my_lower_bound(variantlist[chr->nr()].begin(), variantlist[chr->nr()].end(), start_pos) ;
 	
 	for (; it!=variantlist[chr->nr()].end(); it++)
@@ -174,6 +175,8 @@ void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & a
 				(*it).non_conf_count++ ;
 				}
 	}
+	unlock() ;
+	
 }
 
 void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count, int non_used_count, const std::string & read_id, int read_pos, int read_len, const char* flank)
@@ -225,10 +228,11 @@ int VariantMap::update_variant(int index, int chr, const Variant &v,const char *
 	
 	if (v.variant_len>max_variant_len)
 		return 0;
-	
+
+	lock() ;
+
 	for (unsigned int i=index; i<variantlist[chr].size(); i++)
 	{
-		
 		if (v.id == variantlist[chr][i].id){
 			variantlist[chr][i].used_count += v.used_count ;
 			variantlist[chr][i].non_used_count += v.non_used_count ;
@@ -242,13 +246,15 @@ int VariantMap::update_variant(int index, int chr, const Variant &v,const char *
 				variantlist[chr][i].read_pos = v.read_pos;
 				variantlist[chr][i].read_len = v.read_len;
 			}
+			unlock() ;
 			return 1;
 		}
 		
 		if (v.position > variantlist[chr][i].position)
 			break;
 	}
-	
+
+	unlock() ;
 	return 0;
 	
 }
@@ -336,12 +342,12 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 	if (j.variant_len>max_variant_len)
 		return ;
 	
+	lock() ;
 
 	if (insert_unsorted || variantlist[chr].empty())
 	{
 		j.id=next_variant_id;
 
-		lock() ;
 		next_variant_id++;
 		variantlist[chr].push_back(j);
 
@@ -358,7 +364,6 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 		if (variant_cmp(j, *it)<0)
 		{
 			j.id=next_variant_id;
-			lock() ;
 			next_variant_id++;
 			variantlist[chr].insert(it, j);
 			unlock() ;
@@ -381,6 +386,7 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 			}
 			if (merge_variant_source_ids)
 				(*it).read_id = (*it).read_id + "," + j.read_id ;
+			unlock() ;
 			return;
 		}
 		continue;
@@ -388,9 +394,9 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 
 	j.id=next_variant_id;
 
-	lock() ;
 	next_variant_id++;
 	variantlist[chr].push_back(j);
+
 	unlock() ;
 
 	return ;

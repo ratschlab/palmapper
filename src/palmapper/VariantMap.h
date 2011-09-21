@@ -253,6 +253,7 @@ public:
 #ifdef PMINDEX
 	int get_read_id_num()
 	{
+		lock() ;
 		int counter=0 ;
 		std::map<std::string,int> map ;
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
@@ -292,6 +293,8 @@ public:
 				
 			}
 		}
+		unlock() ;
+		
 		return counter ;
 	}
 #endif
