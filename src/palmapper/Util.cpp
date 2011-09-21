@@ -2,8 +2,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <iostream>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <cxxabi.h>
 
 #include <palmapper/Util.h>
+
+
 
 bool Util::doInit() {
 	POWER[0] = 1;
@@ -36,7 +42,8 @@ void *operator new(size_t size) {
 	if (ret == NULL)
 	{
 	  fprintf(stderr, "Warning: allocation of %ld bytes failed\n", size) ;
-	  //assert(0) ;
+	  print_stacktrace(stderr, 10) ;
+
 	  throw ex;
 	}
 	return ret;

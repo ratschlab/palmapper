@@ -18,6 +18,7 @@
 
 #include "io.h"
 #include "Signal.h"
+#include <palmapper/Util.h>
 
 using namespace shogun;
 
@@ -112,6 +113,8 @@ void CSignal::handler(int signal)
 			fprintf(stderr, "\nERROR: SEGBUS in thread %lu encountered\n\n", pthread_self()) ;
 		else
 			fprintf(stderr, "\nERROR: SIGABRT in thread %lu encountered\n\n", pthread_self()) ;
+		print_stacktrace(stderr) ;
+		
 		do_show_read_ids() ;
 		fprintf(stderr, "\n\nTerminating process.\n\n") ;
 		
