@@ -52,7 +52,7 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, Vari
 	Mutex::Locker locker(_mutex);
 	while (readNr >= _lastResult + _nrResults) 
 	{
-		if ((clock()-last_warning_time)/CLOCKS_PER_SEC>=5) // wait for at most 5 seq before outputing a new warning
+		if ((clock()-last_warning_time)/CLOCKS_PER_SEC>=5) // wait for at most 5 seconds before outputing a new warning
 		{
 			printf("Warning: small result buffer may degrade performance\n");
 			last_warning_time=clock() ;
