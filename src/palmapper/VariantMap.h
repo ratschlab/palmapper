@@ -169,6 +169,7 @@ enum VariantInputEnum {
 	samtools,
 	snp,
 	bingz,
+	info,
 	unknown,
 };
 
@@ -462,9 +463,10 @@ public:
 
 protected:
 	
-	int init_from_samtools(const  std::string &gff_fname);
-	int init_from_snp(const  std::string &gff_fname, const std::vector<std::string> & take_lines);
-	int init_from_sdi(const  std::string &gff_fname);
+	int init_from_samtools(const  std::string &sam_fname);
+	int init_from_snp(const  std::string &snp_fname, const std::vector<std::string> & take_lines);
+	int init_from_sdi(const  std::string &sdi_fname);
+	int init_from_info(const  std::string &info_fname);
 	int init_from_maf(const  std::string &gff_fname, const std::string &ref_genome);
 	pthread_mutex_t variant_mutex;
 
