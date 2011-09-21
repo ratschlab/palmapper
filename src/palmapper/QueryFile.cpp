@@ -52,6 +52,7 @@ bool QueryFile::next_read(Read &read, int &strand) {
 
 bool QueryFile::next_read(Read &read) {
 	Mutex::Locker locker(_mutex);
+
 	while (read.read_short_read() > 0) {
 		if (!open_next_file()) {
 			if (_readCount == 0)
@@ -62,7 +63,7 @@ bool QueryFile::next_read(Read &read) {
 	read._nr = _readCount++;
 	if (read.length() > _maxReadLen)
 		_maxReadLen = read.length();
-	return true;
+	return true ;
 }
 
 
