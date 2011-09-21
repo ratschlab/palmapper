@@ -8,10 +8,10 @@ SVNVERSION = $(shell svnversion)
 CC = g++
 #CFLAGS = -Wall -ggdb -pg # debug 
 #CFLAGS = -O9 -ggdb -g -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
-CFLAGS =  -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+CFLAGS =  -O9 -g -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
-LDFLAGS =  # -pg
+LDFLAGS =  -g # -pg
 
 SHOGUN_OBJ = $(ObjDir)/palmapper/shogun/init.o \
 	$(ObjDir)/palmapper/shogun/Mathematics.o \
@@ -111,27 +111,27 @@ release_gm:
 	make clean; mkdir -p ../release; cd ..; rsync -av $(CurrentDir) release; cd release; rm -rf */.settings */.cproject */.project */.svn */*/.svn */*/*/.svn; tar czvf ../genomemapper.$(SVNVERSION).tar.gz .; cd ..; rm -rf release
 
 # generic rule for compiling c++
-$(ObjDir)/%.o : $(SrcDir)/%.cpp $(SrcDir)/%.h
+$(ObjDir)/%.o : $(SrcDir)/%.cpp $(SrcDir)/%.h Makefile
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
-$(ObjDir)/%.o : $(SrcDir)/%.cpp
+$(ObjDir)/%.o : $(SrcDir)/%.cpp Makefile
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
-$(ObjDir)/pmindex/%.o : $(SrcDir)/palmapper/%.cpp
+$(ObjDir)/pmindex/%.o : $(SrcDir)/palmapper/%.cpp Makefile
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -DPMINDEX -o $@ -c $<
 
-$(ObjDir)/pmindex/%.o : $(SrcDir)/pmindex/%.c
+$(ObjDir)/pmindex/%.o : $(SrcDir)/pmindex/%.c Makefile
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -DPMINDEX -o $@ -c $<
 
-$(ObjDir)/%.o : $(SrcDir)/%.c
+$(ObjDir)/%.o : $(SrcDir)/%.c Makefile
 	@echo Compiling $<
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
