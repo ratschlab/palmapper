@@ -5461,7 +5461,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 
 	int alignment_gaps_var = 0;
 	int alignment_mismatches_var = 0 ;
-	bool alignment_passed_filters_var = false ;
+	bool alignment_passed_filters_var ;
 
 	int used_variants=0;
 	//bool alignment_variants_valid=true;
@@ -5543,9 +5543,6 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 																			  alignment_matches_ref, alignment_gaps_ref, alignment_mismatches_ref, alignment_qual_mismatches_ref) ;
 			
 			alignment_passed_filters_ref = (ret==0) && alignment_pass_filters(min_intron_len,max_intron_len,alignment_mismatches_ref,alignment_gaps_ref,exons.size()/2,min_exon_len,remapping) ;
-
-			if (!considered_variants)
-				alignment_passed_filters_var = alignment_passed_filters_ref ;
 		}
 		
 		if (myverbosity >= 2)
@@ -5634,10 +5631,10 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->exons = exons;
 		aln->chromosome = &contig_idx;
 		aln->strand = strand;
-		if (_config.USE_VARIANTS_EDITOP_FILTER)
-			aln->passed_filters=alignment_passed_filters_var ;
-		else
+		if (!_config.USE_VARIANTS_EDITOP_FILTER || !considered_variants)
 			aln->passed_filters=alignment_passed_filters_ref ;
+		else
+			aln->passed_filters=alignment_passed_filters_var ;
 		aln->non_consensus_alignment = non_consensus_alignment ; 
 		aln->remapped = remapping ;
 		aln->found_variants = variant_list ;
