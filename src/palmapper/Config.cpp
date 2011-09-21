@@ -1916,7 +1916,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//last read to be mapped
-		if (strcmp(argv[i], "-to") == 0) {
+		/* // NOT IMPLEMENTED YET
+		  if (strcmp(argv[i], "-to") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr, "ERROR: Argument missing for option -to\n") ;
@@ -1933,10 +1934,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr, "ERROR: last read number must be greater than first read number (-to and -from options)\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//first read to be mapped
-		if (strcmp(argv[i], "-from") == 0) {
+		/* // NOT IMPLEMENTED YET
+		  if (strcmp(argv[i], "-from") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr, "ERROR: Argument missing for option -from\n") ;
@@ -1953,7 +1955,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr, "ERROR: last read number must be greater than first read number (-to and -from options)\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//align only specific read
 		if (strcmp(argv[i], "-only-read") == 0) {
