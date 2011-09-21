@@ -114,6 +114,7 @@ int Mapper::map_reads()
 	for (;;) {
 
 		count_reads++;
+
 		Result &result = *new Result(*this);
 		if (!_queryFile.next_read(result._orig, _config.STRAND))
 			break;
@@ -121,6 +122,12 @@ int Mapper::map_reads()
 			continue ;
 
 		CSignal::report_current_read_id(result._orig.id()) ;
+		/*if (result._orig.getNr()< (int)_config.FIRST_READ_NR || result._orig.getNr() > (int)_config.LAST_READ_NR)
+		{
+			result._state = TooShortAfterTrimming;
+			_reporter.report(result,_junctionmap,_variants);
+			continue ;
+			}*/
 		
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
