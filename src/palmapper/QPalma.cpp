@@ -1745,6 +1745,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 				new_lregion->from_map = false ;
 				new_lregion->read_pos = hit->readpos ;
 				new_lregion->hit_len = 0 ;
+				new_lregion->erased = false ;
 				
 				for (size_t ii = 0; ii < read.length(); ii++)
 					new_lregion->read_map[ii] = false ;
@@ -1773,10 +1774,10 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 				//if (perform_extra_checks)
 				//	assert(long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->islong) ;
 				
-				int32_t rs = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->start - _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS ;
+				int32_t rs = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->start - _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS - read.length() ;
 				if (rs < 0)
 					rs = 0;
-				int32_t re = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->end + _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS ;
+				int32_t re = long_regions[ori_map(hit->orientation)][hit->chromosome->nr()][nregion]->end + _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS + read.length();
 				if (((int)hit->start >= rs) && ((int)hit->end <= re)) 
 				{
 					found = true;
@@ -1806,7 +1807,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 				delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 				return -1;
 			}  
-			
+			new_region->erased = false ;
 			new_region->start = hit->start;
 			new_region->end = hit->start;
 			new_region->from_map = false ;
@@ -1854,10 +1855,10 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 					continue;
 				for (int i=0; i<(int)long_regions[ori][chrN].size(); i++)
 				{
-					int start = long_regions[ori][chrN][i]->start - _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS ;
+					int start = long_regions[ori][chrN][i]->start - _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS - read.length();
 					if (start<0)
 						start=0 ;
-					int end = long_regions[ori][chrN][i]->end + _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS ;
+					int end = long_regions[ori][chrN][i]->end + _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS + read.length();
 					if (end>(int)chromosome.length())
 						end=chromosome.length();
 					int midpoint = (end+start)/2 ;
@@ -1914,7 +1915,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 								delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 								return -1;
 							}
-			  
+							new_region->erased=false ;
 							new_region->start = positions[jj] - _config.INDEX_DEPTH ;
 							new_region->end = positions[jj] + _config.INDEX_DEPTH ;
 							for (size_t ii = 0; ii < read.length(); ii++)
@@ -1968,7 +1969,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 										delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 										return -1;
 									}
-				  
+									new_region->erased = false ;
 									new_region->start = region_start - _config.INDEX_DEPTH ;
 									if (end-p<=Config::QPALMA_USE_MAP_WINDOW)
 										new_region->end = end-1 + _config.INDEX_DEPTH ;
@@ -2060,7 +2061,10 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 					// regions[ori] are overlapping or adjacent. Merge them into one.
 					if ((regions[ori][chrN][nregion])->end < (regions[ori][chrN][next])->end)
 						(regions[ori][chrN][nregion])->end = (regions[ori][chrN][next])->end;
-		
+					
+					if (perform_extra_checks)
+						assert(regions[ori][chrN][nregion]->start <= regions[ori][chrN][next]->start) ;
+					
 					// merge the two read_maps
 					for (size_t i = 0; i < read.length(); i++)
 						regions[ori][chrN][nregion]->read_map[i] = regions[ori][chrN][nregion]->read_map[i]
@@ -2144,7 +2148,7 @@ int QPalma::find_regions_for_long_regions(const region_t *long_region, const std
 
 		if (regions[nregion]->start > midpoint)
 		{
-			if (regions[nregion]->start-midpoint > _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS)
+			if (regions[nregion]->start-midpoint > _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS + (int)read.length())
 				continue ;
 
 			if (right_covered_region>_config.QPALMA_USE_MAP_MAX_SIZE)
@@ -2152,7 +2156,7 @@ int QPalma::find_regions_for_long_regions(const region_t *long_region, const std
 				if (!regions[nregion]->from_map)
 				{
 					if (perform_extra_checks)
-						assert(regions[nregion]->start-midpoint <= _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS);
+						assert(regions[nregion]->start-midpoint <= _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS + (int)read.length());
 					
 					added_map_regions++ ;
 					added_map_total_len += regions[nregion]->end - regions[nregion]->start;
@@ -2197,7 +2201,7 @@ int QPalma::find_regions_for_long_regions(const region_t *long_region, const std
 		}
 		if (regions[nregion]->start <= midpoint)
 		{
-			if (midpoint - regions[nregion]->start > _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS) 
+			if (midpoint - regions[nregion]->end > _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS + (int)read.length()) 
 				continue ;
 			
 			if (left_covered_region > _config.QPALMA_USE_MAP_MAX_SIZE)
@@ -2205,7 +2209,7 @@ int QPalma::find_regions_for_long_regions(const region_t *long_region, const std
 				if (!regions[nregion]->from_map)
 				{
 					if (perform_extra_checks)
-						assert(midpoint - regions[nregion]->start <= _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS) ;
+						assert(midpoint - regions[nregion]->end <= _config.SPLICED_LONGEST_INTRON_LENGTH*_config.SPLICED_MAX_INTRONS + (int)read.length()) ;
 					added_map_regions++ ;
 					added_map_total_len += regions[nregion]->end - regions[nregion]->start;
 					current_regions.push_back(regions[nregion]) ;
@@ -2833,6 +2837,8 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		}
 	}
 
+	variants.lock() ;
+	
 	std::vector<Variant>::iterator it = my_lower_bound(variants.variantlist[chr].begin(), variants.variantlist[chr].end(), start_pos-100) ;
 	int num_found_variants = 0 ;
 	int num_found_SNP_variants = 0 ;
@@ -3029,6 +3035,7 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 		
 	}
 	//fprintf(stdout, "%i\t%i\t%i found\n", num_found_SNP_variants, num_found_variants, num_checked_variants) ;
+	variants.unlock() ;
 	
 	return variant_list ;
 }
@@ -5342,9 +5349,10 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		hit_read = 0 ;
 	}
 
-	if (perform_extra_checks && hit_dna_converted<0)
+	if (perform_extra_checks && (hit_dna_converted<0 || hit_dna_converted>=(int)dna.size()))
 	{
-		fprintf(stderr, "ERROR: hit_dna_converted=%i\n", hit_dna_converted) ; // BUG-TODO
+		fprintf(stderr, "ERROR: hit_dna_converted=%i, dnalen=%ld, strand=%c, ori=%i, remapping=%i\n", hit_dna_converted, dna.size(), strand, ori, remapping) ; // BUG-TODO
+		assert(0) ;
 		//result.delete_regions();
 		delete[] acceptor ;
 		delete[] donor ;
@@ -5352,10 +5360,14 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln=NULL ;
 		return -1 ;
 	}
-
+	if (hit_dna_converted<0)
+		hit_dna_converted=0 ;
+	if (hit_dna_converted>=(int)dna.size())
+		hit_dna_converted=dna.size()-1 ;
+	
 	if (perform_extra_checks && (seed_j<0 || seed_j>=(int)dna.size())) 
 	{
-		fprintf(stderr, "ERROR: seed_j=%i not in [0,%ld]\n", seed_j, dna.size()) ; // BUG-TODO
+		fprintf(stderr, "ERROR: seed_j=%i not in [0,%ld], strand=%c, ori=%i, remapping=%i\n", seed_j, dna.size(), strand, ori, remapping) ; // BUG-TODO
 		//result.delete_regions();
 		delete[] acceptor ;
 		delete[] donor ;
@@ -5363,6 +5375,10 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln=NULL ;
 		return -1 ;
 	}
+	if (seed_j<0)
+		seed_j=0 ;
+	if (seed_j>=(int)dna.size())
+		seed_j=dna.size()-1 ;
 	
 	assert (hit_read >= 0);
 	assert (hit_dna_converted >= 0);
