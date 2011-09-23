@@ -40,9 +40,13 @@ VariantMap::~VariantMap()
 
 void VariantMap::filter_variants_junctions(JunctionMap & junctionmap)
 {
-	fprintf(stdout, "Filtering variants in intronic regions...\n") ;
+	fprintf(stdout, "Filtering/penalizing variants in intronic regions...\n") ;
 	int nbchr = genome->nrChromosomes();
-	int N=0, T=0 ;
+	int N=0, T=0, P=0 ;
+
+	const int intron_win=10 ;
+	const int grey_win=2 ;
+	const int inner_intron_penalty=10 ;
 	
     for (int i=0; i<nbchr; i++)
     {
@@ -52,47 +56,26 @@ void VariantMap::filter_variants_junctions(JunctionMap & junctionmap)
 		std::deque<Junction>::iterator it=junctions.begin() ;
 		for (;it!=junctions.end(); it++)
 		{
-			//const int exon_win = 20 ;
-			const int intron_win=10 ;
-			const int grey_win=2 ;
-			
-			/*for (int k=(*it).start-exon_win; k<(*it).start-grey_win; k++)
-			{
-				if (k<0) continue ;
-				if (map[k]==0)
-					map[k]=2 ; // exon
-				else if (map[k]==1)
-					map[k]=-1 ; // undecided
-					}*/
 			for (int k=(*it).start-grey_win; k<(*it).end && k<(*it).start+intron_win; k++)
 			{
 				if (k<0)
 					continue ;
+				map[k]=1 ; // intron
+			}
+			for (int k=(*it).start+intron_win; k<(*it).end-intron_win; k++)
+			{
 				if (map[k]==0)
-					map[k]=1 ; // intron
-				else if (map[k]==2)
-					map[k]=-1 ; // undecided
+					map[k] = 2 ; // inner intron
 			}
 			for (int k=(*it).end+grey_win-1; k>(*it).start && k>(*it).end-intron_win; k--)
 			{
 				if (k>=(int)map.size())
 					continue ;
-				if (map[k]==0)
-					map[k]=1 ; // intron
-				else if (map[k]==2)
-					map[k]=-1 ; // undecided
+				map[k]=1 ; // intron
 			}
-			/*for (int k=(*it).end+grey_win; k<(*it).end+exon_win; k++)
-			{
-				if (k>=(int)map.size()) continue ;
-				if (map[k]==0)
-					map[k]=2 ; // exon
-				else if (map[k]==1)
-					map[k]=-1 ; // undecided
-					}*/
 		}
 		
-		int n=0, t=0;
+		int n=0, t=0, p=0;
 		std::vector<Variant> filtered ;
 		for (unsigned int j=0; j<variantlist[i].size(); j++)
 		{
@@ -101,21 +84,29 @@ void VariantMap::filter_variants_junctions(JunctionMap & junctionmap)
 			for (int l=variantlist[i][j].position; l<=variantlist[i][j].end_position && !take ; l++)
 				if (l>=0 && l<(int)map.size() && (map[l]!=1))
 					take = true ;
+			bool apply_penalty=true ;
+			for (int l=variantlist[i][j].position; l<=variantlist[i][j].end_position && apply_penalty ; l++)
+				if (l>=0 && l<(int)map.size() && (map[l]==0))
+					apply_penalty = false ;
 			if (take)
 			{
-				//if (14727==variantlist[i][j].position && i==0)
-				//	assert(0) ;
 				t++ ;
+				if (apply_penalty)
+				{
+					p++ ;
+					variantlist[i][j].non_conf_count+=inner_intron_penalty ;
+				}
 				filtered.push_back(variantlist[i][j]) ;
 			}
 		}
-		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants\n", genome->chromosome(i).desc(), n, t) ;
+		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants (%i with penalty)\n", genome->chromosome(i).desc(), n, t, p) ;
 		variantlist[i].clear() ;
 		variantlist[i]=filtered ;
 		N+=n ;
 		T+=t ;
+		P+=p ;
 	}
-	fprintf(stdout, "All: analyzed %i variants, accepted %i variants\n", N, T) ;
+	fprintf(stdout, "All: analyzed %i variants, accepted %i variants (%i with penalty)\n", N, T, P) ;
 }
 
 void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) 
