@@ -1067,7 +1067,7 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 			if (variant_str.size()==0)
 				variant_str+='-' ;
 			
-			fprintf(fd,"%s\tvariant\t%i\t%i\t%s\t%s\t%i\t%i\t%i\t%i\t%s\t%i/%i\t%s\n",
+			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%i\t%i\t%s\t%i/%i\t%s\n",
 					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).used_count,(*it).non_used_count, 
 					(*it).read_id.c_str(),(*it).read_pos+1, (*it).read_len, (*it).id<=known_variants_limit?"known":"discovered");
 			nb_variants++;
