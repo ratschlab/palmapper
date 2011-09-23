@@ -38,6 +38,85 @@ VariantMap::~VariantMap()
 	delete[] variantlist;	
 }
 
+void VariantMap::filter_variants_junctions(JunctionMap & junctionmap)
+{
+	fprintf(stdout, "Filtering variants in intronic regions...\n") ;
+	int nbchr = genome->nrChromosomes();
+	int N=0, T=0 ;
+	
+    for (int i=0; i<nbchr; i++)
+    {
+		//fprintf(stdout, ".") ;
+		std::vector<short int> map(genome->chromosome(i).length(), 0) ;
+		std::deque<Junction> & junctions = junctionmap.junctionlist[i] ;
+		std::deque<Junction>::iterator it=junctions.begin() ;
+		for (;it!=junctions.end(); it++)
+		{
+			//const int exon_win = 20 ;
+			const int intron_win=10 ;
+			const int grey_win=2 ;
+			
+			/*for (int k=(*it).start-exon_win; k<(*it).start-grey_win; k++)
+			{
+				if (k<0) continue ;
+				if (map[k]==0)
+					map[k]=2 ; // exon
+				else if (map[k]==1)
+					map[k]=-1 ; // undecided
+					}*/
+			for (int k=(*it).start-grey_win; k<(*it).end && k<(*it).start+intron_win; k++)
+			{
+				if (k<0)
+					continue ;
+				if (map[k]==0)
+					map[k]=1 ; // intron
+				else if (map[k]==2)
+					map[k]=-1 ; // undecided
+			}
+			for (int k=(*it).end+grey_win-1; k>(*it).start && k>(*it).end-intron_win; k--)
+			{
+				if (k>=(int)map.size())
+					continue ;
+				if (map[k]==0)
+					map[k]=1 ; // intron
+				else if (map[k]==2)
+					map[k]=-1 ; // undecided
+			}
+			/*for (int k=(*it).end+grey_win; k<(*it).end+exon_win; k++)
+			{
+				if (k>=(int)map.size()) continue ;
+				if (map[k]==0)
+					map[k]=2 ; // exon
+				else if (map[k]==1)
+					map[k]=-1 ; // undecided
+					}*/
+		}
+		
+		int n=0, t=0;
+		std::vector<Variant> filtered ;
+		for (unsigned int j=0; j<variantlist[i].size(); j++)
+		{
+			n++ ;
+			bool take=false ;
+			for (int l=variantlist[i][j].position; l<=variantlist[i][j].end_position && !take ; l++)
+				if (l>=0 && l<(int)map.size() && (map[l]!=1))
+					take = true ;
+			if (take)
+			{
+				//if (14727==variantlist[i][j].position && i==0)
+				//	assert(0) ;
+				t++ ;
+				filtered.push_back(variantlist[i][j]) ;
+			}
+		}
+		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants\n", genome->chromosome(i).desc(), n, t) ;
+		variantlist[i].clear() ;
+		variantlist[i]=filtered ;
+		N+=n ;
+		T+=t ;
+	}
+	fprintf(stdout, "All: analyzed %i variants, accepted %i variants\n", N, T) ;
+}
 
 void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) 
 {
@@ -997,7 +1076,7 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 			if (variant_str.size()==0)
 				variant_str+='-' ;
 			
-			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%i\t%i\t%s\t%i/%i\t%s\n",
+			fprintf(fd,"%s\tvariant\t%i\t%i\t%s\t%s\t%i\t%i\t%i\t%i\t%s\t%i/%i\t%s\n",
 					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).used_count,(*it).non_used_count, 
 					(*it).read_id.c_str(),(*it).read_pos+1, (*it).read_len, (*it).id<=known_variants_limit?"known":"discovered");
 			nb_variants++;
