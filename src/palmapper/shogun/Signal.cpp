@@ -83,11 +83,12 @@ void CSignal::handler(int signal)
 			unset_handler();
 			set_cancel(true);
 			if (sg_print_error)
-				sg_print_error(stdout, "sg stopped by SIGINT\n");
+				sg_print_error(stdout, "palmapper stopped by SIGINT\n");
 		}
 		else if (answer == 'J')
 		{
 			fprintf(stderr, "Exiting.") ;
+			set_cancel(true);
 			palmapper_cleanup() ;
 			exit(-1) ;
 		}
@@ -117,6 +118,8 @@ void CSignal::handler(int signal)
 		
 		do_show_read_ids() ;
 		fprintf(stderr, "\n\nTerminating process.\n\n") ;
+
+		set_cancel(true);
 		
 		palmapper_cleanup() ;
 		exit(-1) ;
