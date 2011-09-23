@@ -183,6 +183,8 @@ int main(int argc, char *argv[])
 		if (ret!=0)
 			return -1;
 
+		if (_config.FILTER_VARIANT_JUNCTIONS)
+			variants.filter_variants_junctions(junctionmap) ;
 		if (_config.FILTER_VARIANTS)
 			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES, _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
 	}
@@ -258,10 +260,13 @@ int main(int argc, char *argv[])
 		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
 		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
 		printf("Starting thread %d\n", i);
-		threads[i]->launch();
-		//threads[i]->run();
+		if (numThreads>1)
+			threads[i]->launch();
+		else
+			threads[i]->run();
 	}
 	for (unsigned int i = 0; i < numThreads; ++i) {
+		if (numThreads>1)
 	        threads[i]->join();
 		delete threads[i];
 	}
