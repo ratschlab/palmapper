@@ -248,6 +248,13 @@ int Genome::load_genome()
 #ifndef PMINDEX
 int Genome::load_genome()
 {	
+
+	if (_config.NO_LOAD_GENOME)
+	{
+		fprintf(stdout, "Not loading genome sequence...\n") ;
+		return 0 ;
+	}
+	
 	FILE *genome_fp = fopen(_config.GENOME_FILE_NAME.c_str(), "r");
 	if (genome_fp == NULL) {
 		fprintf(stderr, "ERROR : Couldn't open genome file %s\n",
@@ -350,10 +357,12 @@ int Genome::build_index()
 		// handle meta information
 		read_meta_index_header(META_INDEX_FP);  // updated
 		alloc_index_memory(); // updated		
-		read_meta_index(META_INDEX_FP); // updated
+		if (!_config.NO_LOAD_GENOME)
+			read_meta_index(META_INDEX_FP); // updated
 		
 		// mmap map files into memory
-		mmap_indices(); // updated
+		if (!_config.NO_LOAD_GENOME)
+			mmap_indices(); // updated
 		
 		// handle index information
 		read_chr_index(CHR_INDEX_FP);
