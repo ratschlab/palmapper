@@ -152,6 +152,7 @@ Config::Config() {
 	non_consensus_search_gap=1 ;
 	non_consensus_search_discount=1 ;
 
+	NO_LOAD_GENOME = false ;
 	USE_VARIANTS = false ;
 	DISCOVER_VARIANTS=false ;
 	REPORT_VARIANTS=false ;
@@ -168,6 +169,7 @@ Config::Config() {
 	FILTER_VARIANT_MINCONFCOUNT=0 ;
 	FILTER_VARIANT_MAXNONCONFRATIO=100.0 ;
 	FILTER_VARIANT_MAP_WINDOW=-1 ;
+	FILTER_VARIANT_JUNCTIONS=false ;
 	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	VARIANT_SNP_TAKE_LINES.push_back("*") ;
 	DP_MAX_DELETIONS = 2 ;
@@ -945,11 +947,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				MERGE_VARIANT_SOURCE_IDS = true;
 			}
 
+			if (strcmp(argv[i], "-no-load-genome") == 0) {
+				not_defined = 0;
+				NO_LOAD_GENOME = true ;
+			}
+
 			//verbose
 			if (strcmp(argv[i], "-use-iupac-snp-variants") == 0) {
 				not_defined = 0;
 				IUPAC_SNPS= true ;
 			}
+
 			//Variant filename with variants to use for alignments
 			if (strcmp(argv[i], "-use-variants") == 0) 
 			{
@@ -1040,6 +1048,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				i++;
 				FILTER_VARIANT_MAP_WINDOW=atoi(argv[i]) ;
+				FILTER_VARIANTS=true ;
+			}
+			if (strcmp(argv[i], "-filter-variants-junctions") == 0) {
+				not_defined = 0;
+				FILTER_VARIANT_JUNCTIONS=true ;
 				FILTER_VARIANTS=true ;
 			}
 
