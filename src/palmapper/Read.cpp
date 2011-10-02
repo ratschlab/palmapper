@@ -95,6 +95,7 @@ void Read::copyFrom(Read const &src, unsigned cutStart, unsigned cutEnd) {
  *
  *	\return A status code; 0 on success
  */
+
 int Read::read_short_read()
 {
 	char line[10000];
@@ -294,7 +295,9 @@ int Read::read_short_read()
 		if (_location.has_extension(".sam") || _config.REALIGN_READS)
 		{
 			std::string this_read_id="" ;
-			size_t pos = ftell(_queryFile._file) ;
+			size_t pos ;
+			//pos = ftell(_queryFile._file) ;
+			pos = gztell(_queryFile._file) ;
 
 			while (true)
 			{
@@ -310,7 +313,8 @@ int Read::read_short_read()
 				}
 				if (this_read_id.length()>0 && this_read_id!=rid)
 				{
-					fseek(_queryFile._file, pos, SEEK_SET) ;
+					//fseek(_queryFile._file, pos, SEEK_SET) ;
+					gzseek(_queryFile._file, pos, SEEK_SET) ;
 					break ;
 				}
 				this_read_id=rid ;
@@ -417,7 +421,10 @@ int Read::read_short_read()
 				}
 				
 				_location = _queryFile.getLocation();
-				pos = ftell(_queryFile._file) ;
+
+				//pos = ftell(_queryFile._file) ;
+				pos = gztell(_queryFile._file) ;
+
 
 			}
 

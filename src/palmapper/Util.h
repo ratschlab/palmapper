@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <cxxabi.h>
 
+#include <zlib.h>
+
 #include <palmapper/Config.h>
 
 class Util {
@@ -23,6 +25,7 @@ public:
 	}
 
 	static FILE *openFile(char const *name, char const *mode);
+	static gzFile gzopenFile(char const *name, char const *mode);
 
 	static void skip_comment_lines(FILE* fd)
 		{
