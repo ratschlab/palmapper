@@ -2,11 +2,17 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <zlib.h>
 
 #include <vector>
 
 #include <lang/Thread.h>
 
+enum QueryFileType 
+{
+	uncompressed,
+	gzipped
+} ;
 
 using lang::Mutex;
 
@@ -66,7 +72,7 @@ public:
 
 	static int determine_read_length(std::vector<std::string> const &filenames,std::vector<int> const &strands);
 
-	FILE *_file;
+	gzFile _file;
 
 private:
 

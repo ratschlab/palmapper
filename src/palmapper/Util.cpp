@@ -33,6 +33,15 @@ FILE *Util::openFile(char const *name, char const *mode) {
 	return ret;
 }
 
+gzFile Util::gzopenFile(char const *name, char const *mode) {
+	gzFile ret = gzopen(name, mode);
+	if (ret == NULL) {
+		fprintf(stderr, "ERROR : Couldn't open file %s for %s\n", name, mode);
+		exit(1);
+	}
+	return ret;
+}
+
 #ifndef __APPLE__ 
 // this goes wrong with Mac's gcc
 

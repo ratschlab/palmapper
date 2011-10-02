@@ -15,11 +15,11 @@ QueryFile::QueryFile(std::vector<std::string> const &filenames,std::vector<int> 
 
 
 QueryFile::~QueryFile() {
-	::fclose(_file);
+	::gzclose(_file);
 }
 
 bool QueryFile::next_line(char *buf, int maxLen) {
-	if (::fgets(buf, maxLen, _file) == NULL)
+	if (::gzgets(_file, buf, maxLen) == NULL)
 		return false;
 	++_lineNr;
 	return true;
@@ -36,6 +36,7 @@ Read *QueryFile::next_read() {
 
 bool QueryFile::next_read(Read &read, int &strand) {
 	Mutex::Locker locker(_mutex);
+
 	while (read.read_short_read() > 0) {
 		if (!open_next_file()) {
 			if (_readCount == 0)
@@ -71,8 +72,10 @@ bool QueryFile::open_next_file() {
 	if (++_currentFile >= _filenames.size())
 		return false;
 	if (_file != NULL)
-		::fclose(_file);
-	_file = Util::openFile(_filenames[_currentFile], "r");
+		::gzclose(_file);
+	_file=NULL ;
+
+	_file = Util::gzopenFile(_filenames[_currentFile].c_str(), "r");
 	_lineNr = 0;
 	_maxReadLen = 0;
 	_current_strand=_strands[_currentFile];
