@@ -35,6 +35,10 @@ using namespace std;
 // this switch defines whether the float score maps should be converted to unsigned short int
 // to save memory
 #define CONVERT_SCORE_MAPS
+#define SCORE_MAPS_TYPE unsigned char
+#define SCORE_MAPS_RANGE 255
+//#define SCORE_MAPS_TYPE unsigned short int
+//#define SCORE_MAPS_RANGE 65535
 
 #define MAXLINE 255
 /* #define DEBUG 1 */
@@ -141,6 +145,7 @@ int IntervalQuery::find_interval(unsigned *pos_map, off_t num_entries,
 int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, off_t *size, bool convert)
 {
 	static size_t mmap_total_size = 0 ;
+	static size_t alloc_total_size = 0 ;
 	
 	std::string filename_s ;
 
@@ -221,18 +226,22 @@ int IntervalQuery::mmap_file(const char *filename, int open_mode, void **map, of
 	{
 		// convert float score files to short, unmap memory and use new memory block
 		float *map_f = (float*) *map ;
-		unsigned short int *map_i = (unsigned short int*) malloc((*size*sizeof(unsigned short int))/sizeof(float)) ;
+		SCORE_MAPS_TYPE *map_i = (SCORE_MAPS_TYPE*) malloc((*size*sizeof(SCORE_MAPS_TYPE))/sizeof(float)) ; 
+
+		alloc_total_size += (*size*sizeof(SCORE_MAPS_TYPE))/sizeof(float) ;
+		//fprintf(stderr, "splice site alloc total size: %ld \n", alloc_total_size) ;
+		
 		for (size_t i=0; i< *size/sizeof(float); i++)
 		{
 			assert(map_f[i]>=0.0 && map_f[i]<=1.0) ;
-			map_i[i] = map_f[i]*65535 ;
+			map_i[i] = map_f[i]*SCORE_MAPS_RANGE ;
 		}
 		munmap(*map, *size);
 		//fprintf(stderr, "##munmap %ld size %ld\n", (size_t)*map, *size) ;
 		mmap_total_size = mmap_total_size - *size ;
 		//fprintf(stderr, "mmap total size: %ld -\n", mmap_total_size) ;
 
-		*size = ((*size)*sizeof(unsigned short int))/sizeof(float) ;
+		*size = ((*size)*sizeof(SCORE_MAPS_TYPE))/sizeof(float) ;
 		*map = map_i ;
 
 		mmap_total_size+=*size ;
@@ -274,8 +283,8 @@ int IntervalQuery::interval_query(char* basename, char** score_names, unsigned i
 	unsigned i, j = 0;
 
 #ifdef CONVERT_SCORE_MAPS
-	unsigned short int **score_maps = NULL;
-	assert(sizeof(unsigned short int)==2) ;
+	SCORE_MAPS_TYPE **score_maps = NULL;
+	assert((sizeof(SCORE_MAPS_TYPE)==2 && SCORE_MAPS_RANGE==65535) || (sizeof(SCORE_MAPS_TYPE)==1 && SCORE_MAPS_RANGE==255)) ;
 #else
 	float **score_maps = NULL;
 #endif
@@ -303,7 +312,7 @@ int IntervalQuery::interval_query(char* basename, char** score_names, unsigned i
 		goto out;
 
 #ifdef CONVERT_SCORE_MAPS
-	score_maps = new unsigned short int*[num_scores] ;//(float**) malloc(num_scores * sizeof(void *));
+	score_maps = new SCORE_MAPS_TYPE*[num_scores] ;//(float**) malloc(num_scores * sizeof(void *));
 #else
 	score_maps = new float*[num_scores] ;//(float**) malloc(num_scores * sizeof(void *));
 #endif
@@ -428,7 +437,7 @@ int IntervalQuery::interval_query(char* basename, char** score_names, unsigned i
 			  else
 		      {
 #ifdef CONVERT_SCORE_MAPS
-				  score_ptr[i * total_num_pos + (k + m)] = ((double) score_maps[i][lindex_ + m])/65535 ;
+				  score_ptr[i * total_num_pos + (k + m)] = ((double) score_maps[i][lindex_ + m])/SCORE_MAPS_RANGE ;
 #else
 				  score_ptr[i * total_num_pos + (k + m)] = (double) score_maps[i][lindex_ + m] ;
 #endif
