@@ -100,6 +100,7 @@ public:
 	QPalma(Genome* genome_, GenomeMaps* genomemaps_, int verbosity_=2) ;
 	~QPalma() ;
 
+	double estimate_splice_score_threshold(std::string file_template, double splice_site_threshold) ;
 	int map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report) ;
 protected:
 	void add_const_to_plif(struct penalty_struct & p, double INDEL_PENALTY) ;
@@ -216,6 +217,7 @@ protected:
 
 	template <int myverbosity>
 std::vector<variant_cache_t *> create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int & a_len, double *&donor, int & d_len, int &hit_dna_converted, std::vector<bool> &ref_map) const ; 
+	template <int myverbosity>
 	int reconstruct_reference_alignment(std::vector<Variant> & variants,const std::vector<FoundVariant> & found_variants, std::string & dna, const std::vector<bool> & ref_map, int * &s_align, int & s_len, int * &e_align, int & e_len,int * &dna_align,int * &read_align,int & result_length,bool remapping, bool& alignment_passed_filters, int &alignment_gaps, int &alignment_mm, const std::vector<variant_cache_t *> &variant_cache, bool report_variants) const ;
 
 
@@ -341,13 +343,19 @@ public:
 			case '-':
 				str[i] = '-';
 				break;
+			case '.':
+				str[i] = 'N';
+				break;
 			default:
 				if (c >= 'a' && c <= 'z')
 					str[i] = 'n';
 				else if (c >= 'A' && c <= 'Z')
 					str[i] = 'N';
 				else
+				{
+					fprintf(stderr, "Invalid letter %c in %s\n", c, str.c_str()) ;
 					assert(0);
+				}
 			}
 		}
 		
