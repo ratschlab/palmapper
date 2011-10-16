@@ -101,6 +101,7 @@ void CSignal::handler(int signal)
 			do_show_read_ids();
 		else
 			fprintf(stderr, "Continuing...\n");
+
 		block_computations=false ;
 		_roomLeft.notifyAll();
 	}
