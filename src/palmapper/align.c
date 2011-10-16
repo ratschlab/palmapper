@@ -24,9 +24,9 @@ int check_mm(Read const &read, Chromosome const &chr, int genome_pos, int readpo
 	}
 	else {
 		if ( (ori == 1  && (chr[genome_pos] != read.data()[readpos])) ||
-		(ori == -1 && get_compl_base(chr[genome_pos]) != read.data()[readpos]) ||
-		!(unique_base(read.data()[readpos]))
-		)
+			 (ori == -1 && get_compl_base(chr[genome_pos]) != read.data()[readpos]) ||
+			 !(unique_base(read.data()[readpos]))
+			)
 		{
 			return 1;
 		} else {
