@@ -1,3 +1,6 @@
+// Authors: Gunnar Raetsch, Geraldine Jean, Andre Kahles, Lisa Thalheim, Dominik Diesch
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+
 #include <sys/time.h>
 #include <assert.h>
 #include <limits.h>
@@ -15,6 +18,9 @@
 #include <palmapper/Hits.h>
 #include <palmapper/TopAlignments.h>
 #include <palmapper/Util.h>
+
+static const std::string verbose_read_id = "MICHAELJACKSON_0007:5:19:12043:1731#0/1" ;
+static const int verbose_read_level = 0 ;
 
 TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
 	top_alignments(),
@@ -909,6 +915,10 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 		return NULL;
 	assert(num_alignments>0);
 
+	int my_verbosity=verbosity ;
+	if (alignment->read_id==verbose_read_id)
+		my_verbosity=verbose_read_level ;
+
 	if (_config._personality != Palmapper || !alignment->spliced)
 		num_unspliced_alignments += num_alignments;
 	else
@@ -925,8 +935,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 	}
 
 
-	if (verbosity >= 2)
-		printf("entering alignment with score %f\n", alignment->qpalma_score);
+	if (my_verbosity >= 2)
+		printf("add_alignment_record: entering alignment of read %s with score %f (passed filters: %i)\n", alignment->read_id, alignment->qpalma_score, alignment->passed_filters);
  
 	// Go through the list and see whether we can find a hit that has a worse
 	// score than this one.
@@ -958,6 +968,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 		current_ind=0;
 		if (alignment->passed_filters)
 			num_filtered++;
+		if (my_verbosity >= 2)
+			fprintf(stdout,"add_alignment_record: alignment of read %s added to empty list\n", alignment->read_id);
 		return alignment ;
     }
 	else
@@ -976,7 +988,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 		//Nothing to compare: add before
 		if ( (chr < current_chr) || (chr==current_chr && endalign < current_start))
 		{
-			//fprintf(stdout,"   Add first\n");
+			if (my_verbosity >= 2)
+				fprintf(stdout,"add_alignment_record: read %s -> add first\n", alignment->read_id);
 			top_alignments.insert(it+current_ind,1,alignment);
 			if (alignment->passed_filters)
 				num_filtered++;
@@ -988,21 +1001,24 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 			//fprintf(stdout,"   Start comparing with %i\n", i);
 			while (i< (int)top_alignments.size())
 			{
-				//fprintf(stdout,"   Compare with %i\n", i);
-				// for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
-				// 	fprintf(stdout, "# exon %i: %i - %i (%i)\n", (int)j / 2,  top_alignments[i]->exons[j],  top_alignments[i]->exons[j+ 1], top_alignments[i]->chromosome->nr());
+				if (my_verbosity >= 3)
+				{
+					fprintf(stdout,"add_alignment_record: read %s ->  compare with %i/%i\n", alignment->read_id, i, (int)top_alignments.size());
+					for (size_t j = 0; j < top_alignments[i]->exons.size(); j += 2)
+						fprintf(stdout, "# exon %i: %i - %i (%i)\n", (int)j / 2,  top_alignments[i]->exons[j],  top_alignments[i]->exons[j+ 1], top_alignments[i]->chromosome->nr());
+				}
 				//Adapt pointer
 				if (chr!=current_chr && chr==(int)top_alignments[i]->chromosome->nr()){
 					current_chr = chr;
 					current_ind = i;
 				}
-				
 		
 				//Alignment to compare is further away: no conflict possible
 				if ((chr==(int)top_alignments[i]->chromosome->nr() && endalign < top_alignments[i]->exons[0]) 
 					|| (int)top_alignments[i]->chromosome->nr() > chr)
 				{
-					//fprintf(stdout,"   Add before because no conflict possible\n");
+					if (my_verbosity >= 2)
+						fprintf(stdout,"add_alignment_record: read %s -> Add before because no conflict possible\n", alignment->read_id);
 					top_alignments.insert(it+i,1,alignment);
 					if (temp_ind<i)
 						temp_ind=i;
@@ -1013,14 +1029,13 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 						num_filtered++;
 					return alignment;
 				}
-	
-					
-					
+						
 				int ret;
 				// Alignment already present
 				if (alignment_is_equal(alignment,top_alignments[i]))
 				{
-					//fprintf(stdout,"   Ignore alignment: already present\n");
+					if (my_verbosity >= 2)
+						fprintf(stdout,"add_alignment_record: read %s -> Ignore alignment: already present\n", alignment->read_id);
 					if (temp_ind<i)
 						temp_ind=i;
 					if (alignment==top_alignments[i])
@@ -1032,17 +1047,18 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					}
 					else
 						free_alignment_record(alignment) ;
-
+					
 					return NULL ;
 				}
-
+				
 				if (false)
 				{
 					//Overlapping consensus alignments: keep the one which passes filters with best score
 					ret=spliced_is_overlapping(alignment, top_alignments[i]);
 					if (ret==-1)
 					{
-						//fprintf(stdout,"   Replace alignment: spliced overlapping\n");
+						if (my_verbosity >= 2)
+							fprintf(stdout,"add_alignment_record: read %s -> Replace alignment: spliced overlapping\n", alignment->read_id);
 						if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 							num_filtered++;
 						free_alignment_record(top_alignments[i]) ;
@@ -1054,7 +1070,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					}
 					if (ret==1)
 					{
-						//fprintf(stdout,"   Ignore alignment: spliced overlapping\n");
+						if (my_verbosity >= 2)
+							fprintf(stdout,"add_alignment_record: read %s -> Replace alignment: spliced overlapping\n", alignment->read_id);
 						if (temp_ind<i)
 							temp_ind=i;
 						
@@ -1068,7 +1085,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				
 				if (ret==-1)
 				{
-					//fprintf(stdout,"   Replace alignment: consensus and non consensus\n");
+					if (my_verbosity >= 2)
+						fprintf(stdout,"add_alignment_record: read %s -> Replace alignment: consensus and non consensus\n", alignment->read_id);
 					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 						num_filtered++;
 					free_alignment_record(top_alignments[i]) ;
@@ -1079,7 +1097,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					return alignment;		
 				}
 				if (ret==1){
-					//fprintf(stdout,"   Ignore alignment: consensus and non consensus\n");
+					if (my_verbosity >= 2)
+						fprintf(stdout,"add_alignment_record: read %s -> Ignore alignment: consensus and non consensus\n", alignment->read_id);
 					if (temp_ind<i)
 						temp_ind=i;
 					
@@ -1091,7 +1110,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				ret=alignment_is_opposite(alignment,top_alignments[i]);
 				if (ret==-1)
 				{
-					//fprintf(stdout,"   Replace alignment: opposite\n");
+					if (my_verbosity >= 2)
+						fprintf(stdout,"add_alignment_record: read %s -> Replace alignment: opposite\n", alignment->read_id);
 					if (!top_alignments[i]->passed_filters && alignment->passed_filters)
 						num_filtered++;
 					free_alignment_record(top_alignments[i]) ;
@@ -1104,7 +1124,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				}
 				if (ret==1)
 				{
-					//fprintf(stdout,"   Ignore alignment: opposite\n");
+					if (my_verbosity >= 2)
+						fprintf(stdout,"add_alignment_record: read %s -> Ignore alignment: opposite\n", alignment->read_id);
 					if (temp_ind<i)
 						temp_ind=i;
 					
@@ -1118,7 +1139,8 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 			}//End while i
 				
 			//Alignment is without conflict and from a further chromosome or position compared to the others
-			//fprintf(stdout,"   Add at the end\n");
+			if (my_verbosity >= 2)
+				fprintf(stdout,"add_alignment_record: read %s -> Add at the end\n", alignment->read_id);
 			top_alignments.push_back(alignment);
 			temp_ind=top_alignments.size()-1;
 			
