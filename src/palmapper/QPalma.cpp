@@ -1,5 +1,5 @@
-// Authors: Gunnar Raetsch, Geraldine Jean, Lisa Thalheim
-// Copyright (C) 2009-2010 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Authors: Geraldine Jean, Gunnar Raetsch, Lisa Thalheim, Dominik Diesch
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include <assert.h>
 #include <string>
@@ -17,10 +17,10 @@
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = true ;
-static const std::string verbose_read_id = "ILLUMINA-DB1410_0031:8:12:18149:16623#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
+static const std::string verbose_read_id = "MICHAELJACKSON_0007:5:19:12043:1731#0/1" ;//HWI-ST408:6:4:11297:73709#0/1" ;
 static const int verbose_read_level = 0 ;
 
-void get_vector_IUPAC(char c, std::vector<int> &l)
+inline void get_vector_IUPAC(char c, std::vector<int> &l)
 {
 	c=toupper(c);
 
@@ -93,7 +93,7 @@ void get_vector_IUPAC(char c, std::vector<int> &l)
 
 
 
-char get_IUPAC_code(char c1, char c2)
+inline char get_IUPAC_code(char c1, char c2)
 {
 	
 	std::vector<int> temp(4,0);
@@ -453,11 +453,15 @@ int QPalma::compare_double(const void *a, const void *b)
 	return (int) (*ia - *ib);
 }
 
-int QPalma::map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report)
+double QPalma::estimate_splice_score_threshold(std::string file_template, double splice_site_threshold) 
 {
 	char basename[1000] ;
+
+	size_t max_len=0 ;
+	int max_chr = 0 ;
+	char max_strand='+' ;
 	
-	for (int chr=0; chr<(int)genome->nrChromosomes() && (chr==0 || do_report); chr++)
+	for (int chr=0; chr<(int)genome->nrChromosomes(); chr++)
 	{
 		char strand='+' ;
 		
@@ -475,8 +479,127 @@ int QPalma::map_splice_sites(std::string file_template, char type, float &splice
 				fprintf(stderr, "%s does not exist\n", posname) ;
 				return -1 ;
 			}
+			fseek(fd, 0, SEEK_END) ;
+			size_t s=ftell(fd) ;
+			if (s>max_len)
+			{
+				max_len=s ;
+				max_chr=chr;
+				max_strand=strand;
+			}
+			
 			fclose(fd) ;
 
+			if (strand=='+')
+				strand='-' ;
+			else
+				break ;
+		}
+	}
+	//fprintf(stdout, "Using chr=%i strand=%c for threshold estimates\n", max_chr, max_strand) ;
+
+	IntervalQuery iq;
+	const int num_scores = 1;
+	const char *score_names[num_scores] = { "Conf_cum" };
+	const int num_intervals = 1 ;
+	int interval_matrix[num_intervals * 2];
+	int cum_length[num_intervals + 1];
+	cum_length[0] = 0;
+	interval_matrix[0] = 0 ;
+	interval_matrix[1] = genome->chromosome(max_chr).length();
+	
+	// acc
+	sprintf(basename, file_template.c_str(), max_chr+1, max_strand) ;
+	
+	int acc_size = iq.query(basename, (char**) score_names, num_scores,
+							interval_matrix, num_intervals);
+	assert(acc_size>0) ;
+	
+	int* acc_pos = NULL ;
+	int* acc_index = NULL ;
+	double* acc_score = NULL ;
+	try
+	{
+		acc_pos = new int[acc_size] ;
+		acc_index = new int[acc_size] ;
+		acc_score = new double[acc_size] ;
+	}
+	catch (std::bad_alloc&)
+	{
+		fprintf(stderr, "[map_splice_sites] Could not allocate memory\n");
+		delete[] acc_pos ;
+		delete[] acc_index ;
+		delete[] acc_score ;
+		return -1;
+	}
+	
+	iq.getResults(acc_pos, acc_index, acc_score);
+	iq.cleanup();
+	
+	try
+	{
+		std::vector<double> acc_score2(acc_size, 0.0) ;
+
+		for (int i=0; i<acc_size; i++)
+			acc_score2[i]=acc_score[i] ;
+
+		std::sort(acc_score2.begin(), acc_score2.end()) ; 
+		
+		if (_config.VERBOSE)
+			fprintf(stdout, "estimate_threshold: min=%1.3f  max=%1.3f %1.2f%% percentile=%1.3f\n", acc_score2[0], acc_score2[acc_size-1], splice_site_threshold*100, acc_score2[acc_size-1-(int)(acc_size*splice_site_threshold)]) ;
+		
+		return acc_score2[acc_size-1-(int)(acc_size*splice_site_threshold)] ;
+	}
+	catch (std::bad_alloc&)
+	{
+		fprintf(stderr, "[map_splice_sites] Could not allocate memory\n");
+		delete[] acc_pos ;
+		delete[] acc_index ;
+		delete[] acc_score ;
+		return -1;
+	}
+	
+
+}
+
+int QPalma::map_splice_sites(std::string file_template, char type, float &splice_site_threshold, bool estimate_thresh, bool do_report)
+{
+	
+	if (estimate_thresh)
+	{
+		splice_site_threshold=estimate_splice_score_threshold(file_template, splice_site_threshold) ;
+		if (splice_site_threshold==-1)
+			return -1 ;
+	}
+
+	/*
+	  This part is disabled. The splice site map is not used anymore. (Is this efficient????)
+
+	char basename[1000] ;
+
+	if (!do_report)
+		return 0 ;
+	
+	for (int chr=0; chr<(int)genome->nrChromosomes(); chr++)
+	{
+		char strand='+' ;
+		
+		while (1)
+		{
+			sprintf(basename, file_template.c_str(), chr+1, strand) ;
+			char posname[1000] ;
+			sprintf(posname, "%s.pos", basename) ;
+			char confcumname[1000] ;
+			sprintf(confcumname, "%s.Conf_cum", basename) ;
+			
+			FILE *fd=fopen(posname, "r") ;
+			if (fd==NULL)
+			{
+				fprintf(stderr, "%s does not exist\n", posname) ;
+				return -1 ;
+			}
+			fclose(fd) ;
+			
 			fd=fopen(confcumname, "r") ;
 			if (fd==NULL)
 			{
@@ -524,43 +647,17 @@ int QPalma::map_splice_sites(std::string file_template, char type, float &splice
 				
 				iq.getResults(acc_pos, acc_index, acc_score);
 				iq.cleanup();
-
-				if (strand=='+' && chr==0 && estimate_thresh)
-				{
-					std::vector<double> acc_score2 ;
-					
-					try
+				
+				int num_reported = 0 ;
+				if (do_report)
+					for (int i=0; i<acc_size; i++)
 					{
-						for (int i=0; i<acc_size; i++)
-							acc_score2.push_back(acc_score[i]) ;
+						if (acc_score[i]>splice_site_threshold)
+						{
+							num_reported++ ;
+							report_splice_site(chr, acc_pos[i], strand, type) ;
+						}
 					}
-					catch (std::bad_alloc&)
-					{
-						fprintf(stderr, "[map_splice_sites] Could not allocate memory\n");
-						delete[] acc_pos ;
-						delete[] acc_index ;
-						delete[] acc_score ;
-						return -1;
-					}
-					
-					std::sort(acc_score2.begin(), acc_score2.end()) ; 
-					
-					if (_config.VERBOSE)
-						fprintf(stdout, "estimate_threshold: min=%1.3f  max=%1.3f %1.2f%% percentile=%1.3f\n", acc_score2[0], acc_score2[acc_size-1], splice_site_threshold*100, acc_score2[acc_size-1-(int)(acc_size*splice_site_threshold)]) ;
-					
-					splice_site_threshold=acc_score2[acc_size-1-(int)(acc_size*splice_site_threshold)] ;
-				}
-
-				/*int num_reported = 0 ;
-				  if (do_report)
-				  for (int i=0; i<acc_size; i++)
-				  {
-				  if (acc_score[i]>splice_site_threshold)
-				  {
-				  num_reported++ ;
-				  report_splice_site(chr, acc_pos[i], strand, type) ;
-				  }
-				  }*/
 				
 				delete[] acc_pos ;
 				delete[] acc_index ;
@@ -575,6 +672,7 @@ int QPalma::map_splice_sites(std::string file_template, char type, float &splice
 				break ;
 		}
 	}
+	*/
 
 	return 0 ;
 	
@@ -2543,9 +2641,14 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 	// }
 	const int junction_tol = 10 ; // the hit may overlap by this length with the junction
 	
+	int myverbosity=verbosity ;
+	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
+		myverbosity=verbose_read_level ;
+	if (myverbosity>=2)
+		fprintf(stdout, "remapping read %s\n", result._read.id()) ;
+
 	Read const &read(hits.getRead());
 
-   	
 	// Current regions correspond to regions around the junction
 	std::vector<region_t *> current_regions;
 	//Positions are real positions corresponding to current regions
@@ -2556,7 +2659,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
  	std::string read_seq[2];
 	read_seq[0] = std::string(read.data(), read.length());
 	read_seq[1] = reverse(complement(read_seq[0]));
-	if (verbosity >= 3) {
+	if (myverbosity >= 3) {
 		fprintf(stdout, "# read[0]: %s\n", read_seq[0].c_str());
 		fprintf(stdout, "# read[1]: %s\n", read_seq[1].c_str());
 	}
@@ -2564,7 +2667,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 	std::string read_quality[2];
 	read_quality[0] = std::string(read.quality(0), read.length());
 	read_quality[1] = reverse(read_quality[0]);
-	if (verbosity >= 3)
+	if (myverbosity >= 3)
 		fprintf(stdout, "# readqual[0]: %s\n", read_quality[0].c_str());
   
 
@@ -2592,7 +2695,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 				int rstart_=this_long_regions[nregion]->start;
 				int rend_=this_long_regions[nregion]->end;
 				
-				if (verbosity>4)
+				if (myverbosity>4)
 					fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart_, rend_, chrN, ori);
 
 				// find a lower bound on the index with binary search
@@ -2624,12 +2727,16 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					
 					//Continue only if the strand with the splice junction is consistent with the transcription direction
 					if ((transcription_direction==1 && strand=='-') || (transcription_direction==-1 && strand=='+') )		
-						break;
+					{
+						if (myverbosity>=3)
+							fprintf(stdout, "junction_remapping: skipping junction at %ld:%i-%i on strand %c with transcription direction %i\n", chrN, (*it).start, (*it).end, strand, transcription_direction) ;
+						//break;
+						it++;
+						continue ;
+					}
 					
 					if ((unsigned int)int2_end >= chr.length())
 						int2_end=chr.length()-1;
-
-
 
 					if (rstart < int1_start)
 						break; //no overlapping -> next long region
@@ -2648,7 +2755,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 							rstart=int2_start ;
 						}
 						
-					 	if (verbosity>4)
+					 	if (myverbosity>4)
 						{
 							fprintf(stdout, "try to align\n") ;
 							fprintf(stdout, "    junction: (%i-%i)-(%i-%i) (%ld,%c)\n",int1_start,int1_end,int2_start,int2_end,chrN,strand);
@@ -2741,7 +2848,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 							return -1 ;
 						      }
 						  }
-						if (verbosity>3)
+						if (myverbosity>3)
 						{
 							fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
 							fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*this_long_regions[nregion]->start*/, hit_len);					  
@@ -2762,7 +2869,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 																	chr, '+', ori, hit_read_position, 
 																	rstart /*this_long_regions[nregion]->start*/, 
 																	hit_len, false, num_alignments_reported, true,
-																	annotatedjunctions, variants, verbosity);
+																	annotatedjunctions, variants, myverbosity);
 						}
 						else
 						{
@@ -2773,7 +2880,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 																	current_seq, current_regions, current_positions, 
 																	chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
 																	rend /*this_long_regions[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
-																	annotatedjunctions, variants, verbosity);
+																	annotatedjunctions, variants, myverbosity);
 						}
 						
 						if (ret < 0)
@@ -3592,9 +3699,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 	}
 
 	if (myverbosity>=1)
-		fprintf(stdout, "found %i variants (%i snps, %i dels; nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", 
+		fprintf(stdout, "found %i variants (%i snps, %i dels from nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", 
 				nb_snps+nb_dels, nb_snps, nb_dels, nbv_dels, nbv_snp, nbv_ins, nbv_subst) ;
-
 	
 	return variant_cache ;
 }
@@ -3706,14 +3812,14 @@ int get_end_position (Variant &variant, bool is_ref, int pos)
 	
 }
 
-
+template <int myverbosity>
 int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, const std::vector<FoundVariant> & found_variants, std::string & dna, const std::vector<bool> & ref_map, 
 											int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, 
 											bool& alignment_passed_filters,	int &alignment_gaps, int &alignment_mm, 
 											const std::vector<variant_cache_t *> &variant_cache, bool report_variants) const
 {
 
-	if (verbosity>=3)
+	if (myverbosity>=3)
 	{
 		fprintf(stdout, "DNA: %s\n",(char*)dna.c_str());
 		fprintf(stdout,"ref_map: ");	
@@ -3800,7 +3906,8 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 	int original_dna=-1;
 
 	//Gap on DNA from alignment: keep them
-	while(align_ind+1<result_tmp && dna_align[align_ind+1]==0){
+	while(align_ind+1<result_tmp && dna_align[align_ind+1]==0)
+	{
 		alignment_gaps++;
 		dna_align_back.push_back(dna_align[align_ind+1]);
 		read_align_back.push_back(read_align[align_ind+1]);
@@ -4189,7 +4296,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 		alignment_passed_filters = alignment_pass_filters(min_intron_len,max_intron_len,alignment_mm,alignment_gaps,num_exons,min_exon_len,remapping);
 	}
 	
-	if (verbosity>=3)
+	if (myverbosity>=3)
 	{
 		fprintf(stdout, "DNA: %s\n",(char*)dna.c_str());
 		
@@ -4211,7 +4318,7 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 		fprintf(stdout,"\n length=%i\n",result_length);	
 	}
 	
-	if (verbosity>=1)
+	if (myverbosity>=1)
 	{
 		
 		fprintf(stdout,"Alignment with variants (valid=%i)has: %i mm %i gaps; %i<=intron<=%i; %i<=exon num_exon==%i\n",
@@ -4392,7 +4499,7 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 
 	// check for possibly wrong indels
 	bool possibly_wrong_indel=false ;
-	if (verbosity>=1)
+	if (myverbosity>=1)
 		for (int i = 0; i < result_length; i++)
 		{
 			const int window=3 ;
@@ -5501,10 +5608,10 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		{
 			considered_variants=true ;
 			
-			used_variants = reconstruct_reference_alignment(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
-															dna_align, est_align, result_length, remapping, 
-															alignment_passed_filters_var, alignment_gaps_var, alignment_mismatches_var,
-															variant_cache, _config.REPORT_USED_VARIANTS) ;
+			used_variants = reconstruct_reference_alignment<myverbosity>(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
+																		 dna_align, est_align, result_length, remapping, 
+																		 alignment_passed_filters_var, alignment_gaps_var, alignment_mismatches_var,
+																		 variant_cache, _config.REPORT_USED_VARIANTS) ;
 			
 			for (unsigned int i=0; i< variant_list.size();i++)
 			{
@@ -5516,7 +5623,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 					variant_list[i].non_used_count += 1;
 			}
 			
-			if (verbosity>=1)
+			if (myverbosity>=1)
 			{
 				fprintf(stdout,"Number of variants used for the alignment of %s: %i\n",read.id(),used_variants);				
 				for (unsigned int v=0; v<variant_list.size();v++){
@@ -5575,6 +5682,11 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			if (considered_variants)
 				fprintf(stdout, "# alignment with %i exons on superseq. (%i, %i, %i, %c, %i)\n", (int)exons.size()/2, 
 						(int)alignment_mismatches_var, (int)alignment_gaps_var, (int)alignment_mismatches_var+alignment_gaps_var, strand, ori) ;
+
+			if (false && perform_extra_checks) // BUG-TODO (debug this without compiler optimization, gdb seems to have a bug and shows wrong value for alignment_gaps_var)
+			{
+				assert(alignment_gaps_var<=alignment_gaps_ref) ;
+			}
 		}
 
 		if (!considered_variants)
@@ -5583,29 +5695,21 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			alignment_gaps_var = alignment_gaps_ref ;
 			alignment_mismatches_var = alignment_mismatches_ref ;
 		}
-			
-		//fprintf(stdout, "read_anno = %s\n", read_anno.c_str()) ;
-
-	    /*if (exons.size() == 2 && strand=='+' && ori==0)
-	      {
-	      fprintf(stderr, "unspliced alignscore=%2.4f\n", alignscore) ;
-	      
-	      float score2=score_unspliced(read_anno_ref.c_str()) ;
-	      //float score2=alignment.scoreUnsplicedAlignment(read_anno_ref.c_str(), prb, _read.lenght(), alignment_parameters->qualityPlifs, alignment_parameters->matchmatrix) ;
-	      fprintf(stderr, "recomputed alignscore=%2.4f\n", score2) ;
-	      }*/
-
-			
-		try 
+		//assert(alignment_mismatches_var<=alignment_mismatches_ref || alignment_gaps_ref>alignment_gaps_var) ;
+		if (alignment_gaps_var>alignment_gaps_ref)
 		{
-			aln = new ALIGNMENT();
-		} 
-		catch (std::bad_alloc&) 
-		{
-			fprintf(stderr,	"[capture_hits] allocating memory for aligment failed\n");
-			aln = NULL ;
+			alignment_gaps_var=alignment_gaps_ref ; // BUG-TODO: reconstruct_reference_alignment counts gaps wrongly
+			if (myverbosity>=0)
+				fprintf(stderr, "Warning: BUG-TODO: reconstruct_reference_alignment counts gaps wrongly, using number of gaps in ref alignment instead \n") ;
 		}
-		
+		if (alignment_mismatches_var>alignment_mismatches_ref)
+		{
+			alignment_mismatches_var=alignment_mismatches_ref ; // BUG-TODO: reconstruct_reference_alignment may count mismatches wrongly
+			if (myverbosity>=0)
+				fprintf(stderr, "Warning: BUG-TODO: reconstruct_reference_alignment may count mismatches wrongly, using number of mismatches in ref alignment instead \n") ;
+		}
+
+		aln = new ALIGNMENT();
 		{
 			int ret=-1 ;
 			if (aln)
