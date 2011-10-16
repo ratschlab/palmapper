@@ -634,7 +634,7 @@ void Genome::mmap_indices()
 
 	INDEX_FWD_MMAP = (STORAGE_ENTRY *)fwd;
 
-    if (_config.INDEX_PRECACHE)
+    if (false &&_config.INDEX_PRECACHE)
     {
         STORAGE_ENTRY buffer[1024] ;
 
@@ -667,8 +667,8 @@ int Genome::mmap_full_file(const char *path, void **map, size_t * size_p)
 	mmap_prot = PROT_READ;
 	mmap_flags = MAP_PRIVATE ;
 #ifndef __APPLE__
-	//if (_config.INDEX_PRECACHE)
-	//	mmap_flags |= MAP_POPULATE ;
+	if (_config.INDEX_PRECACHE)
+		mmap_flags |= MAP_POPULATE ;
 #endif
 
 	// Open file to get file size
