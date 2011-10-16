@@ -147,9 +147,12 @@ int Read::read_short_read()
 		// R E A D
 		strncpy(READ, line, strcspn(line, " \t\n"));
 		//READ[36]=0 ;
+		bool OK=true ;
+		
 		if (strlen(READ) > _config.MAX_READ_LENGTH) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is longer than the max read length (=%zu)! It will be omitted!\n\n", READ_ID, _queryFile.line_nr(), _config.MAX_READ_LENGTH);
-			return -1;
+			OK=false ;
+			//return -1;
 		}
 		else if (strlen(READ) == 0) {
 			cerr << "ERROR: Cannot find read sequence of read " << *this;
@@ -157,12 +160,14 @@ int Read::read_short_read()
 		}
 		if (strcspn(READ, "aAcCgGtTnNrRyYmMkKwWsSbBdDhHvV") != 0) {
 			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu contains non-IUPAC characters! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
-			return -1;
+			OK=false ;
+			//return -1;
 		}
 
 		if (strlen(READ) < _config.INDEX_DEPTH) {
-			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());
-			return -1;
+			fprintf(stderr, "\n!!! WARNING: Read '%s' in line %lu is shorter than the specified seedlength! It will be omitted!\n\n", READ_ID, _queryFile.line_nr());	
+			OK=false ;
+			//return -1;
 		}
 
 		do {
@@ -184,6 +189,9 @@ int Read::read_short_read()
 				exit(0);
 			}
 		} while (strcspn(line, " \t\n") == 0);
+
+		if (!OK)
+			return -1  ;
 
 		// Q U A L I T Y
 		if (strlen(line) > 0)
