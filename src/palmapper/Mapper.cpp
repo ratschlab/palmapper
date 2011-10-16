@@ -310,11 +310,7 @@ restart:
 			time2b += clock()-start_time ;
 
 			if (!_config.REPORT_REPETITIVE_SEEDS)
-			{
-				//fprintf(stdout, "performing hits.browse_hits\n") ;
 				ret = hits.browse_hits();
-				//fprintf(stdout, "ret=%i\n",ret) ;
-			}
 			
 			if (ret<0)
 				cancel = 3 ;
@@ -362,7 +358,7 @@ restart:
 	{
 		hits._topAlignments.start_top_alignment_record();
 
-		if (!_config.NO_GENOMEMAPPER)
+		if (!_config.NO_GENOMEMAPPER && !_config.MAP_JUNCTIONS_ONLY)
 		{
 			read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
 			if (_config.VERBOSE>1)
@@ -380,7 +376,7 @@ restart:
 				read.printOn(_TRIGGERED_LOG_FP);
 		}
 
-		if (_config.SPLICED_HITS && (trigger  || FILTER_STAT || _config.MAP_JUNCTIONS))
+		if (_config.SPLICED_HITS && (trigger || FILTER_STAT || _config.MAP_JUNCTIONS || _config.MAP_JUNCTIONS_ONLY))
 			{
 			  num_spliced_alignments_triggered++ ;
 			  
@@ -390,13 +386,16 @@ restart:
 			  try
 			    {
 					int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
+						
+					if (!_config.MAP_JUNCTIONS_ONLY)
+					{
+						if (trigger  || FILTER_STAT)
+							ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
+					}
 					
-					if (trigger  || FILTER_STAT)
-						ret = qpalma->capture_hits_2(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
-					
-					if (_config.MAP_JUNCTIONS)
+					if (_config.MAP_JUNCTIONS || _config.MAP_JUNCTIONS_ONLY)
 						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, hits._topAlignments.size() -nb_unspliced, _annotatedjunctions, _variants);
-
+					
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
 						cancel=4 ;
