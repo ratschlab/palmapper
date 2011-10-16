@@ -58,7 +58,9 @@ Config::Config() {
 	INDEX_DEPTH = 0;
 	INDEX_DEPTH_EXTRA = 1 ;
 	INDEX_DEPTH_EXTRA_THRESHOLD = 1000000000 ;
+	INDEX_SEED_STEP = 1 ;
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
+
 	OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	OUTPUT_FORMAT_FLAGS = OUTPUT_FORMAT_FLAGS_DEFAULT ;
 	OUTPUT_FORMAT_OPTION = OUTPUT_FORMAT_OPTION_DEFAULT ;
@@ -82,6 +84,7 @@ Config::Config() {
 	MAP_JUNCTIONS=0;
 	MAP_JUNCTIONS_COVERAGE=2;
 	MAP_JUNCTIONS_PSEUDO_ANNO_COV=10 ;
+	MAP_JUNCTIONS_ONLY=false ;
 
 	QPALMA_USE_MAP = 1 ;
 	QPALMA_USE_MAP_MAX_SIZE = 1000 ;
@@ -1013,6 +1016,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				MAP_JUNCTIONS = 1 ;
 			}
 
+			if (strcmp(argv[i], "-junction-remapping-only") == 0) {
+				not_defined = 0;
+				MAP_JUNCTIONS_ONLY = true ;
+			}
+
 
 			if (strcmp(argv[i], "-junction-remapping-coverage") == 0) {
 				not_defined = 0;
@@ -1600,6 +1608,25 @@ int Config::parseCommandLine(int argc, char *argv[])
 		if (strcmp(argv[i], "-non-consensus-search") == 0) {
 			not_defined = 0;
 			non_consensus_search = 1;
+		}
+
+		//output format flags
+		if (strcmp(argv[i], "-index-seed-step") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -index-seed-step\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			int tmp = atoi(argv[i]);
+			if (tmp < 1 || tmp>14) 
+			{
+				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=14\n") ;
+				usage();
+				exit(1);
+			}
+			INDEX_SEED_STEP = tmp;
 		}
 
 		// extend the seed-length if too many seed-matches were found

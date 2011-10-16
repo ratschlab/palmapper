@@ -123,6 +123,7 @@ public:
 	int PRINT_SEQ;
 	unsigned int INDEX_DEPTH;
 	unsigned int INDEX_DEPTH_EXTRA;
+	unsigned int INDEX_SEED_STEP ;
 	std::string READ_ID_PREFIX ;
 	unsigned int FIRST_READ_NR;
 	unsigned int LAST_READ_NR;
@@ -171,6 +172,7 @@ public:
 	int MAP_JUNCTIONS;
 	int MAP_JUNCTIONS_COVERAGE;
 	int MAP_JUNCTIONS_PSEUDO_ANNO_COV ;
+	bool MAP_JUNCTIONS_ONLY ;
 	
 	std::string ANNOTATED_SPLICE_SITES_FILE;
 	int SCORE_ANNOTATED_SPLICE_SITES ;
