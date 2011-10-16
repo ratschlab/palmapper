@@ -8,6 +8,8 @@
 #include "pmindex.h"
 #include "pmindex_symbols.c" 
 
+int seed_hit_cancel_threshold = -1 ;
+
 int load_chromosomes();
 char* get_seq(unsigned int n);
 
@@ -58,6 +60,11 @@ int main(int argc, char *argv[])
 	end = clock();
 	elapsed = ((double) (end - start)) / CLOCKS_PER_SEC;
 	if (VERBOSE) printf ("Time needed: %g s\n",elapsed);
+
+	fclose(CHR_INDEX_FP) ;
+	fclose(MAPFWD_INDEX_FP) ;
+	fclose(META_INDEX_FP) ;
+	//fclose(GENOME_OUT_FP) ;
 	
 	return EXIT_SUCCESS;
 }

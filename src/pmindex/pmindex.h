@@ -169,4 +169,6 @@ extern int write_chr_desc(unsigned int chr);
 //printindex.c
 extern void printindex();
 
+extern int seed_hit_cancel_threshold ;
+
 #endif

@@ -205,7 +205,9 @@ int write_meta_index(unsigned int num_chr)
 		if ( INDEX[i] != NULL ) {	
 
 			bin = INDEX[i];
-                        num = bin->num_pos;
+			num = bin->num_pos;
+			if (seed_hit_cancel_threshold!=-1 && num>(unsigned int)seed_hit_cancel_threshold)
+				continue ;
 
 			//Slot
 			if (fwrite(&i, sizeof(int), 1, META_INDEX_FP) == 0) {
@@ -219,46 +221,46 @@ int write_meta_index(unsigned int num_chr)
 			maxnr = (num > maxnr)? num : maxnr;
 
 			//CONTENT
-                        if (num <= BIN_SIZE) {
-
-                                if (fwrite(&bin->ids[0], sizeof(ID), num, MAPFWD_INDEX_FP) == 0) {
-                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                        exit(0);
-                                }
-
-                        } else {
-
-                                if (fwrite(&(bin->ids[0]), sizeof(ID), BIN_SIZE, MAPFWD_INDEX_FP) == 0) {
-                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                        exit(0);
-                                }
-                                num -= BIN_SIZE;
-
-                                bin_ext = &(bin->bin_ext);
-
-                                while (*bin_ext != NULL) {
-                                        if (num > BIN_SIZE_EXT) {
-
-                                                if (fwrite(&((*bin_ext)->ids[0]), sizeof(ID), BIN_SIZE_EXT, MAPFWD_INDEX_FP) == 0) {
-                                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                                        exit(0);
-                                                }
-                                                num -= BIN_SIZE_EXT;
-                                                bin_ext = &((*bin_ext)->bin_ext);
-
-                                        } else { //write out last entries and finish
-
-                                                if (fwrite(&((*bin_ext)->ids[0]), sizeof(ID), num, MAPFWD_INDEX_FP) == 0) {
-                                                        fprintf(stderr, "ERROR: cant access harddisc for index file\n");
-                                                        exit(0);
-                                                }
-                                                *bin_ext = NULL;
-
-                                        }
-                                }
-                        }
+			if (num <= BIN_SIZE) {
+				
+				if (fwrite(&bin->ids[0], sizeof(ID), num, MAPFWD_INDEX_FP) == 0) {
+					fprintf(stderr, "ERROR: cant access harddisc for index file\n");
+					exit(0);
+				}
+				
+			} else {
+				
+				if (fwrite(&(bin->ids[0]), sizeof(ID), BIN_SIZE, MAPFWD_INDEX_FP) == 0) {
+					fprintf(stderr, "ERROR: cant access harddisc for index file\n");
+					exit(0);
+				}
+				num -= BIN_SIZE;
+				
+				bin_ext = &(bin->bin_ext);
+				
+				while (*bin_ext != NULL) {
+					if (num > BIN_SIZE_EXT) {
+						
+						if (fwrite(&((*bin_ext)->ids[0]), sizeof(ID), BIN_SIZE_EXT, MAPFWD_INDEX_FP) == 0) {
+							fprintf(stderr, "ERROR: cant access harddisc for index file\n");
+							exit(0);
+						}
+						num -= BIN_SIZE_EXT;
+						bin_ext = &((*bin_ext)->bin_ext);
+						
+					} else { //write out last entries and finish
+						
+						if (fwrite(&((*bin_ext)->ids[0]), sizeof(ID), num, MAPFWD_INDEX_FP) == 0) {
+							fprintf(stderr, "ERROR: cant access harddisc for index file\n");
+							exit(0);
+						}
+						*bin_ext = NULL;
+						
+					}
+				}
+			}
 		}
-
+		
 	}
 
 	if (VERBOSE) printf("... done\n");
