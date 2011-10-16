@@ -157,6 +157,16 @@ int init_opts(int argc, char *argv[])
 			}
 		}
 
+		//threads
+		if(strcmp(argv[i],"-seed-hit-cancel-threshold")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			if ((seed_hit_cancel_threshold = atoi(argv[i])) == 0 || seed_hit_cancel_threshold<=0) {
+				fprintf(stderr, "ERROR: value given for -seed-hit-cancel-threshold an integer value between larger 0!\n");
+				exit(0);
+			}
+		}
+
 		//maximal number of combinations of source ids
 		if(strcmp(argv[i],"-max-variant-source-combinations")==0){
 			if(i+1 > argc - 1){ usage(); exit(1); }
