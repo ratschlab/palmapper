@@ -402,7 +402,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 //fprintf(stderr, "%s\t%d\n",get_seq(_read,SLOTS[reverse]), index_entry.num);
 				
 #ifndef BinaryStream_MAP
-				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				if (index_entry_num>0)
+					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #else
 				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
 #endif
@@ -534,7 +535,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 						TIME_CODE(_stats.hits_part1 += clock()-start_time; _stats.hits_part1_cnt++ ;) ;
 						continue ;
 					}
-					INDEX_DEPTH = _config.INDEX_DEPTH + _config.INDEX_DEPTH_EXTRA ;
+					INDEX_DEPTH = _config.INDEX_DEPTH ; // + _config.INDEX_DEPTH_EXTRA ;
 					oldlength = INDEX_DEPTH-1;
 				}
 				
@@ -661,21 +662,26 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 				TIME_CODE(_stats.hits_part2 += clock()-start_time; _stats.hits_part2_cnt++ ;) ;
 				TIME_CODE(start_time = clock()) ;
+
 				// HIT EXTENSION
 
 				//Check left (for plus strand) and right (for minus strand) neighbor at the genomeposition of the hit if there is a hit to join.
-				if (genome_pos > 0 && readpos > 1) {
+				const unsigned int neighbor_step = _config.INDEX_SEED_STEP ;
+				if (genome_pos + direction*neighbor_step >= 0 && genome_pos + neighbor_step*direction < genome_chr.length() && readpos > neighbor_step) 
+				{
 					if (read_num == num) {
-						printf("Now checking if left neighbor exists and is willing to join %i\t%i\t%i\n",genome_pos, genome_pos+direction,strand);
+						printf("Now checking if left neighbor exists and is willing to join %i\t%i\t%i\n",genome_pos, genome_pos+neighbor_step*direction,strand);
 					}
 
-					if (*(GENOME + (genome_pos + direction)) != NULL) { // Is there a chromosome director?
+					if (*(GENOME + (genome_pos + direction*neighbor_step)) != NULL) 
+					{ // Is there a chromosome director?
 						if (read_num == num) {
 							printf("  Found a neighbored chromosome director\n");
 						}
-						chromosome_director_neighbor = *(GENOME + (genome_pos + direction));
+						chromosome_director_neighbor = *(GENOME + (genome_pos + direction*neighbor_step));
 
-						if (chromosome_director_neighbor->genome_pos == genome_pos + direction) {
+						if (chromosome_director_neighbor->genome_pos == genome_pos + direction*neighbor_step) 
+						{
 
 							// is there a mapping entry in the right chromosome solt, mr. director?
 							// Search for chromosome_director_neighbor for the correct chromosome and strand
@@ -705,14 +711,14 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 									if (neighbor->hit!=NULL) 
 										printhit(_read, neighbor->hit); else printf("null\n"); 
 								}
-								if (neighbor->readpos == mapping_entry->readpos-1) 
+								if (neighbor->readpos == mapping_entry->readpos-neighbor_step) 
 								{ // is the neighbored mapping entry also neighbored in the read?
 									hit = neighbor->hit;
 									if (hit != NULL) {
 										oldlength = hit->end - hit->start + 1;
 										mapping_entry->hit = neighbor->hit;
-										if (!reverse) hit->end++;
-										else hit->start--;
+										if (!reverse) hit->end+=neighbor_step;
+										else hit->start-=neighbor_step;
 										if (read_num == num) printhit(_read, hit);
 										if (perform_extra_checks)
 											assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
@@ -736,74 +742,89 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					{
 						// TODO: fix heuristics for missing seeds due to seed-hit-cancel strategy
 						if (read_num == num) printf("Now checking if hit can be extended over mismatch\n");
-						mmoffset = reverse? (int)INDEX_DEPTH + 1 : -(int)INDEX_DEPTH - 1;
 
-						if ( (genome_pos + mmoffset > 0) && (genome_pos + mmoffset < genome_chr.length()) && (*(GENOME + (genome_pos + mmoffset)) != NULL) ) {
-							chromosome_director_neighbor = *(GENOME + (genome_pos + mmoffset));
-
-
-							if  (chromosome_director_neighbor->genome_pos == genome_pos + mmoffset) {
-
-								// is there a mapping entry in the right chromosome solt, mr. director?
-								c = 0;
-								// Search for chromosome_director for the correct chromosome
-								while (chromosome_director_neighbor->next != NULL && 
-									   (chromosome_director_neighbor->chromosome != (int)genome_chr.nr() ||
-										(chromosome_director_neighbor->chromosome == (int)genome_chr.nr() && 
-										 chromosome_director_neighbor->strand != strand)))
+						// TODO: extend for non-1-stepping 
+						// GR: tried to do it, look for use of variable mismatch_step, leads to assertions in browse_hits
+						bool found = false ;
+						//for (unsigned int mismatch_step=1; mismatch_step<neighbor_step && !found; mismatch_step++)
+						unsigned int mismatch_step=1; 
+						{
+							mmoffset = reverse? (int)INDEX_DEPTH + mismatch_step : -(int)INDEX_DEPTH - mismatch_step;
+							
+							if ( (genome_pos + mmoffset > 0) && (genome_pos + mmoffset < genome_chr.length()) && (*(GENOME + (genome_pos + mmoffset)) != NULL) ) 
+							{
+								chromosome_director_neighbor = *(GENOME + (genome_pos + mmoffset));
+								
+								if  (chromosome_director_neighbor->genome_pos == genome_pos + mmoffset) 
 								{
-									if (_config.STATISTICS && c == 0) _stats.listocc++;
-									if (_config.STATISTICS) _stats.listcount++;
-									chromosome_director_neighbor = chromosome_director_neighbor->next;
-								}
-
-								if (chromosome_director_neighbor->chromosome == (int)genome_chr.nr() && 
-									chromosome_director_neighbor->strand == strand) {
-									neighbor = chromosome_director_neighbor->mapping_entries;
-									if (read_num == num) printf("MM neighbor hit: ");
-									if (read_num == num) printhit(_read, neighbor->hit);
-									if (read_num == num) printf("  Found a potential entry, readops(neighbor)=%d, (actual)=%d\n",neighbor->readpos,readpos);
-									if (neighbor->readpos == mapping_entry->readpos - INDEX_DEPTH - 1) {
-										if (read_num == num) printf("  Readpos matches\n");
-
-										if ((neighbor->hit)->mismatches < _numEditOps && (neighbor->hit)->mismatches-(neighbor->hit)->gaps < _config.NUM_MISMATCHES) {
-											hit = neighbor->hit;
-
-											oldlength = hit->end - hit->start + 1;
-											mapping_entry->hit = neighbor->hit;
-											if (read_num == num) printf("  Fancy! Mismatches < 4\n");
-
-											if (!reverse) {
-												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos-1,readpos-2,1,conversion)) {
-													hit->edit_op[hit->mismatches].pos = readpos - 1;
-													hit->edit_op[hit->mismatches].mm = 1;
-													if (perform_extra_checks)
-														assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
-													hit->mismatches++;
-													if (perform_extra_checks)
-														assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
-													if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
-												}
-												//hit->end = hit->end + _config.INDEX_DEPTH + 1; // this version leads to the assertion below
-												hit->end = genome_pos + INDEX_DEPTH;
+									// is there a mapping entry in the right chromosome solt, mr. director?
+									c = 0;
+									// Search for chromosome_director for the correct chromosome
+									while (chromosome_director_neighbor->next != NULL && 
+										   (chromosome_director_neighbor->chromosome != (int)genome_chr.nr() ||
+											(chromosome_director_neighbor->chromosome == (int)genome_chr.nr() && 
+											 chromosome_director_neighbor->strand != strand)))
+									{
+										if (_config.STATISTICS && c == 0) _stats.listocc++;
+										if (_config.STATISTICS) _stats.listcount++;
+										chromosome_director_neighbor = chromosome_director_neighbor->next;
+									}
+									
+									if (chromosome_director_neighbor->chromosome == (int)genome_chr.nr() && 
+										chromosome_director_neighbor->strand == strand) 
+									{
+										neighbor = chromosome_director_neighbor->mapping_entries;
+										if (read_num == num) printf("MM neighbor hit: ");
+										if (read_num == num) printhit(_read, neighbor->hit);
+										if (read_num == num) printf("  Found a potential entry, readops(neighbor)=%d, (actual)=%d\n",neighbor->readpos,readpos);
+										
+										if (neighbor->readpos == mapping_entry->readpos - INDEX_DEPTH - mismatch_step) {
+											found = true ;
+											if (read_num == num) printf("  Readpos matches\n");
+											
+											if ((neighbor->hit)->mismatches < _numEditOps && (neighbor->hit)->mismatches-(neighbor->hit)->gaps < _config.NUM_MISMATCHES) 
+											{
+												hit = neighbor->hit;
 												
-												if (perform_extra_checks)
-													assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+1) ;
-											}
-											else {
-												if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr,genome_pos+INDEX_DEPTH,readpos-2,-1, conversion)) {
-													hit->edit_op[hit->mismatches].pos = ((int)_read.length()) - readpos + 2;
-													hit->edit_op[hit->mismatches].mm = 1;
+												oldlength = hit->end - hit->start + 1;
+												mapping_entry->hit = neighbor->hit;
+												if (read_num == num) printf("  Fancy! Mismatches < 4\n");
+												
+												if (!reverse) 
+												{
+													if (_config.NOT_MAXIMAL_HITS && check_mm(_read, genome_chr, genome_pos-mismatch_step, readpos-2, 1, conversion)) 
+													{
+														hit->edit_op[hit->mismatches].pos = readpos - mismatch_step ;
+														hit->edit_op[hit->mismatches].mm = 1;
+														if (perform_extra_checks)
+															assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
+														hit->mismatches++;
+														if (perform_extra_checks)
+															assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
+														if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
+													}
+													//hit->end = hit->end + _config.INDEX_DEPTH + 1; // this version leads to the assertion below
+													hit->end = genome_pos + INDEX_DEPTH + mismatch_step - 1;
+													
 													if (perform_extra_checks)
-														assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
-													hit->mismatches++;
-													if (perform_extra_checks)
-														assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
-													if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
+														assert((int)hit->end-(int)hit->start+(int)hit->readpos<=((int)_read.length())+(int)mismatch_step) ;
 												}
-												hit->start = genome_pos+1;
+												else {
+													if (_config.NOT_MAXIMAL_HITS && check_mm(_read,genome_chr, genome_pos+INDEX_DEPTH+mismatch_step-1, readpos-2, -1, conversion)) 
+													{
+														hit->edit_op[hit->mismatches].pos = ((int)_read.length()) - readpos + mismatch_step + 1;
+														hit->edit_op[hit->mismatches].mm = 1;
+														if (perform_extra_checks)
+															assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
+														hit->mismatches++;
+														if (perform_extra_checks)
+															assert(hit->mismatches<=Config::MAX_EDIT_OPS) ;
+														if (read_num == num) printf("  Mismatch at pos %d, #mm=%d\n",hit->edit_op[hit->mismatches-1].pos, hit->mismatches);
+													}
+													hit->start = genome_pos+mismatch_step;
+												}
+												if (read_num == num) printhit(_read, hit);
 											}
-											if (read_num == num) printhit(_read, hit);
 										}
 									}
 								}
@@ -1911,6 +1932,9 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 	SLOTS[1] = 0;
 	HAS_SLOT = 0;
 
+	const unsigned int neighbor_step = _config.INDEX_SEED_STEP ;
+	int step_cnt = 0 ;
+
 	while (spacer < read.length())
 	{		
 		char * read_data = read.data() ;
@@ -1964,6 +1988,9 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 //return 1;
 				}
 				else {
+
+					step_cnt++ ;
+
 					get_slots<index_type>(read, readpos);
 					//fprintf(stdout, "map_short_read: slot=%i HAS_SLOT=%i readpos=%i seq=%s\n", slot, HAS_SLOT, readpos, get_seq(slot)) ;
 					
@@ -1975,17 +2002,20 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 						continue ;
 					}
 					TIME_CODE_TOTAL(clock_t seed2genome_start=clock() ;);
-					
-					// Create or extend hit:
-					int ret = seed2genome<index_type>(num, readpos + 1, 0);
-				
-					TIME_CODE_TOTAL(_stats.hits_seed2genome += clock() - seed2genome_start ;
-									_stats.hits_seed2genome_cnt++ ;);
-					
-					if (ret<0)
+
+					if ( (step_cnt-1) % neighbor_step==0 )
 					{
-						fprintf(stderr, "seed2genome<0 (2)\n") ;
-						return ret ;
+						// Create or extend hit:
+						int ret = seed2genome<index_type>(num, readpos + 1, 0);
+				
+						TIME_CODE_TOTAL(_stats.hits_seed2genome += clock() - seed2genome_start ;
+										_stats.hits_seed2genome_cnt++ ;);
+						
+						if (ret<0)
+						{
+							fprintf(stderr, "seed2genome<0 (2)\n") ;
+							return ret ;
+						}
 					}
 				}				
 				
