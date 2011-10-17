@@ -790,7 +790,18 @@ void fast_fill_side_unspliced_first(std::vector<SeedElem*> &seed_matrix, int rea
 	}
 	current_seed->matrices=matrices;
 	seed_matrix.push_back(current_seed);
-  
+	//if (seed_matrix.size()==100000)
+	//	fprintf(stdout, "seed_matrix.size()=100000\n") ;
+	if (seed_matrix.size()==1000000)
+	{
+		fprintf(stdout, "Warning: seed_matrix.size()=1000000, aborting alignment\n") ; // BUG-TODO
+		throw std::bad_alloc() ;
+	}
+	//if (seed_matrix.size()==10000000)
+	//	fprintf(stdout, "seed_matrix.size()=10000000\n") ;
+	//if (seed_matrix.size()==100000000)
+	//	fprintf(stdout, "seed_matrix.size()=100000000\n") ;
+	
 
 	//Can align all read nucleotides: all read nucleotides are covered by the band
 	if (j_len+max_gap >= i_len){
