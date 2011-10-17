@@ -5699,13 +5699,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		if (alignment_gaps_var>alignment_gaps_ref)
 		{
 			alignment_gaps_var=alignment_gaps_ref ; // BUG-TODO: reconstruct_reference_alignment counts gaps wrongly
-			if (myverbosity>=0)
+			if (myverbosity>=1)
 				fprintf(stderr, "Warning: BUG-TODO: reconstruct_reference_alignment counts gaps wrongly, using number of gaps in ref alignment instead \n") ;
 		}
 		if (alignment_mismatches_var>alignment_mismatches_ref)
 		{
 			alignment_mismatches_var=alignment_mismatches_ref ; // BUG-TODO: reconstruct_reference_alignment may count mismatches wrongly
-			if (myverbosity>=0)
+			if (myverbosity>=1)
 				fprintf(stderr, "Warning: BUG-TODO: reconstruct_reference_alignment may count mismatches wrongly, using number of mismatches in ref alignment instead \n") ;
 		}
 
