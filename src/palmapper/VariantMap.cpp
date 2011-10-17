@@ -1109,12 +1109,12 @@ int VariantMap::stats_to_file(const std::string &stats, int max_len)  const
 	fprintf(fd, "* %i deletions (%1.2f%%)\n", num_del, (100.0*num_del)/nb_variants) ;
 	for (int i=1; i<max_len+1; i++)
 		if (num_del_dist[i]>0)
-			fprintf(fd, "\t%i\t%i\t%1.2f%%\n", i, num_del_dist[i], (100.0*num_del_dist[i])/num_del) ;
+			fprintf(fd, "D\t%i\t%i\t%1.2f%%\n", i, num_del_dist[i], (100.0*num_del_dist[i])/num_del) ;
 	fprintf(fd, "D\t>%i\t%i\t%1.2f%%\n", max_len, num_del_dist[max_len+1], (100.0*num_del_dist[max_len+1])/num_del) ;
 	fprintf(fd, "* %i insertions (%1.2f%%)\n", num_ins, (100.0*num_ins)/nb_variants) ;
 	for (int i=1; i<max_len+1; i++)
 		if (num_ins_dist[i]>0)
-			fprintf(fd, "\t%i\t%i\t%1.2f%%\n", i, num_ins_dist[i], (100.0*num_ins_dist[i])/num_ins) ;
+			fprintf(fd, "I\t%i\t%i\t%1.2f%%\n", i, num_ins_dist[i], (100.0*num_ins_dist[i])/num_ins) ;
 	fprintf(fd, "I\t>%i\t%i\t%1.2f%%\n", max_len, num_ins_dist[max_len+1], (100.0*num_ins_dist[max_len+1])/num_ins) ;
 
 	if (fd!=stdout)
