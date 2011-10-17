@@ -263,6 +263,12 @@ void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, 
 	else if (variant_len>0 && ref_len>0)
 		pt = pt_substitution ;
 
+	if (variant_len>=32768 || ref_len>=32768)
+    {
+        fprintf(stderr, "Drop variant with invalid lengths %i/%i\n", variant_len, ref_len) ;
+		return ;
+    }
+		
 	Variant j;
 	int end = pos+ref_len ;
 
@@ -293,7 +299,6 @@ inline int min(int a, int b)
 
 int VariantMap::update_variant(int index, int chr, const Variant &v,const char *flank)
 {
-
 	if (validate_variants)
 		if (!validate_variant(v, chr, flank))
 			return 0;
@@ -413,6 +418,11 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank)
 
 	if (j.variant_len>max_variant_len)
 		return ;
+	if (j.variant_len<0 || j.ref_len<0)
+	{
+		fprintf(stderr, "Drop variant with invalid lengths %i/%i\n", j.variant_len, j.ref_len) ;
+		return ;
+	}
 	
 	lock() ;
 
@@ -493,7 +503,8 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 		
 		if (fgets(buf, 250000, fd)==NULL)
 			break ; 
-
+		//fprintf(stdout, "%s", buf) ; 
+		
 		//Scan sdi line
 		//int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;  
 
@@ -512,8 +523,9 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
 		{
 			if (feof(fd))
 				break ;
-			fprintf(stdout, "sdi line only contained %i columns (5 expected), aborting (%s)\n", num, chr_name) ;
-		}
+			fprintf(stdout, "sdi line only contained %i columns (5 expected), aborting (%s)\nftell=%ld\n%s\n", num, chr_name, ftell(fd), buf) ;
+			exit(1) ;
+		} 
 
 		int chr_idx = genome->find_desc(chr_name) ;
 		if (chr_idx==-1) 
@@ -1078,11 +1090,18 @@ int VariantMap::stats_to_file(const std::string &stats, int max_len)  const
 		
 		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
 		{			
+			if ((*it).ref_len<0 || (*it).variant_len<0)
+			{
+				fprintf(stderr, "dropping variant with invalid sizes %i/%i\n", (*it).ref_len, (*it).variant_len) ;
+				continue ;
+			}
+			
 			if ((*it).type==pt_SNP)
 				num_snp++ ;
 			if ((*it).type==pt_deletion)
 			{
 				num_del++ ;
+				assert((*it).ref_len>=0) ;
 				if ((*it).ref_len>max_len)
 					num_del_dist[max_len+1]++ ;
 				else
@@ -1091,6 +1110,7 @@ int VariantMap::stats_to_file(const std::string &stats, int max_len)  const
 			if ((*it).type==pt_insertion)
 			{
 				num_ins++ ;
+				assert((*it).variant_len>=0) ;
 				if ((*it).variant_len>max_len)
 					num_ins_dist[max_len+1]++ ;
 				else
