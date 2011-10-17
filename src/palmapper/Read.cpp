@@ -209,12 +209,11 @@ int Read::read_short_read()
 		READ_LENGTH = strlen(READ);
 		
 		//Fixtrim global strategy
-		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
+		/*if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
 			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_QUALITY[0][_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
-		}
-
+			}*/
 
 		//Fixtrim left and right strategy
 		int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
@@ -224,9 +223,10 @@ int Read::read_short_read()
 				exit(0) ;
 			}
 			copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN,_config.FIXTRIMRIGHT_STRATEGY_LEN);
-			
 		}
 		
+		if (READ_LENGTH>_config.FIXTRIM_STRATEGY_LEN)
+			copyFrom(*this, 0, READ_LENGTH-_config.FIXTRIM_STRATEGY_LEN) ;
 		
 
 		// O T H E R
@@ -276,10 +276,10 @@ int Read::read_short_read()
 
 		READ_LENGTH = strlen(READ);
 
-		if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
+		/*if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
 			READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
 			READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
-		}
+			}*/
 
 		//Fixtrim left and right strategy
 		int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
@@ -289,8 +289,10 @@ int Read::read_short_read()
 				exit(0) ;
 			}
 			copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN, _config.FIXTRIMRIGHT_STRATEGY_LEN);
-			
 		}
+
+		if (READ_LENGTH>_config.FIXTRIM_STRATEGY_LEN)
+			copyFrom(*this, 0, READ_LENGTH-_config.FIXTRIM_STRATEGY_LEN) ;
 
 		READ_PE_FLAG = 0;
 		strcpy(READ_QUALITY[0], READ) ;
@@ -492,13 +494,13 @@ int Read::read_short_read()
 				::strncpy(READ_QUALITY[i], qual, READ_LENGTH);
 			}
 			
-			if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
+			/*if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
 				READ[_config.FIXTRIM_STRATEGY_LEN] = '\0';
 				READ_QUALITY[0][_config.FIXTRIM_STRATEGY_LEN] = '\0';
 				READ_QUALITY[1][_config.FIXTRIM_STRATEGY_LEN] = '\0';
 				READ_QUALITY[2][_config.FIXTRIM_STRATEGY_LEN] = '\0';
 				READ_LENGTH = _config.FIXTRIM_STRATEGY_LEN;
-			}
+				}*/
 			
 			//Fixtrim left and right strategy
 			int trimborders= _config.FIXTRIMRIGHT_STRATEGY_LEN + _config.FIXTRIMLEFT_STRATEGY_LEN;
@@ -508,8 +510,10 @@ int Read::read_short_read()
 					exit(0) ;
 				}
 				copyFrom(*this, _config.FIXTRIMLEFT_STRATEGY_LEN,_config.FIXTRIMRIGHT_STRATEGY_LEN);
-				
 			}
+
+			if (READ_LENGTH>_config.FIXTRIM_STRATEGY_LEN)
+				copyFrom(*this, 0, READ_LENGTH-_config.FIXTRIM_STRATEGY_LEN) ;
 			
 			READ_FORMAT = 2;
 		}

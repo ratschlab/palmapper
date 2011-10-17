@@ -202,6 +202,7 @@ public:
 	void insert_variant(Variant & j, int chr, const char* flank="NN") ;
 	int init_from_files(std::string &sdi_fname);
 
+	int stats_to_file(const std::string &stats_fname, int max_len) const ;
 	int report_to_file(const std::string &sdi_fname) const ;
 	int report_to_sdi(const std::string &sdi_fname) const ;
 	int report_to_bin(const std::string &sdi_fname) const 

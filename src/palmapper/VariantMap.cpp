@@ -25,8 +25,10 @@ VariantMap::VariantMap(Genome const &genome_, bool p_merge_variant_source_ids)
 	validate_variants=false ;
 	exit_on_validation_error=false ;
 	insert_unsorted=false ;
-	max_variant_len=50 ;
 
+#ifndef PMINDEX
+	max_variant_len = _config.FILTER_VARIANT_VLEN ;
+#endif
 	merge_variant_source_ids=p_merge_variant_source_ids ;
 }
 
@@ -1022,7 +1024,46 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 	if (!fd)
 		return -1 ;	
 
-	const int max_len=10 ;
+	fprintf(fd,"#chromosome\tposition\tlen_diff\tref_seq\tvariant_seq\tconf_count\tnon_conf_count\tused_count\tnon_used_count\tsource\tread position/len\tstatus\n");
+	
+	for (unsigned int i=0; i<genome->nrChromosomes(); i++)
+	{
+		const char * chr= genome->get_desc(i);
+		std::vector<Variant>::iterator it;
+		
+		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
+		{			
+			std::string ref_str = (*it).ref_str ;
+			if (ref_str.size()==0)
+				ref_str+='-' ;
+			std::string variant_str = (*it).variant_str ;
+			if (variant_str.size()==0)
+				variant_str+='-' ;
+			
+			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%i\t%i\t%s\t%i/%i\t%s\n",
+					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).used_count,(*it).non_used_count, 
+					(*it).read_id.c_str(),(*it).read_pos+1, (*it).read_len, (*it).id<=known_variants_limit?"known":"discovered");
+			nb_variants++;
+		}
+	}
+	fclose(fd) ;
+	
+	return 0;
+	
+}
+
+int VariantMap::stats_to_file(const std::string &stats, int max_len)  const
+{
+	int nb_variants=0;
+	
+	fprintf(stdout, "report genome variants stats to file %s\n", stats.c_str()) ;
+	
+	FILE * fd=stdout ;
+	if (!stats.empty())
+		fd=Util::openFile(stats.c_str(), "w") ;
+	if (!fd)
+		return -1 ;	
+
 	int num_del=0 ;
 	int num_ins=0 ;
 	int num_snp=0 ;
@@ -1030,11 +1071,9 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 	std::vector<int> num_del_dist(max_len+2, 0) ;
 	std::vector<int> num_ins_dist(max_len+2, 0) ;
 
-	fprintf(fd,"#chromosome\tposition\tlen_diff\tref_seq\tvariant_seq\tconf_count\tnon_conf_count\tused_count\tnon_used_count\tsource\tread position/len\tstatus\n");
-	
 	for (unsigned int i=0; i<genome->nrChromosomes(); i++)
 	{
-		const char * chr= genome->get_desc(i);
+		//const char * chr= genome->get_desc(i);
 		std::vector<Variant>::iterator it;
 		
 		for (it=variantlist[i].begin(); it!=variantlist[i].end(); it++)
@@ -1060,32 +1099,26 @@ int VariantMap::report_to_sdi(const std::string &sdi_fname)  const
 			if ((*it).type==pt_substitution)
 				num_sub++ ;
 			
-			std::string ref_str = (*it).ref_str ;
-			if (ref_str.size()==0)
-				ref_str+='-' ;
-			std::string variant_str = (*it).variant_str ;
-			if (variant_str.size()==0)
-				variant_str+='-' ;
-			
-			fprintf(fd,"%s\t%i\t%i\t%s\t%s\t%i\t%i\t%i\t%i\t%s\t%i/%i\t%s\n",
-					chr, (*it).position+1, (*it).variant_len-(*it).ref_len, ref_str.c_str(), variant_str.c_str(), (*it).conf_count, (*it).non_conf_count, (*it).used_count,(*it).non_used_count, 
-					(*it).read_id.c_str(),(*it).read_pos+1, (*it).read_len, (*it).id<=known_variants_limit?"known":"discovered");
 			nb_variants++;
 		}
 	}
-	fclose(fd) ;
 	
-	fprintf(stdout, "reported %i variants\n", nb_variants) ;	
-	fprintf(stdout, "* %i SNPs\n", num_snp) ;
-	fprintf(stdout, "* %i substitutions\n", num_sub) ;
-	fprintf(stdout, "* %i deletions\n\t", num_del) ;
-	for (int i=0; i<max_len+1; i++)
-		fprintf(stdout, "%i:%i ", i, num_del_dist[i]) ;
-	fprintf(stdout, " >%i:%i\n", max_len, num_del_dist[max_len+1]) ;
-	fprintf(stdout, "* %i insertions\n\t", num_ins) ;
-	for (int i=0; i<max_len+1; i++)
-		fprintf(stdout, "%i:%i ", i, num_ins_dist[i]) ;
-	fprintf(stdout, " >%i:%i\n", max_len, num_ins_dist[max_len+1]) ;
+	fprintf(fd, "reported %i variants\n", nb_variants) ;	
+	fprintf(fd, "* %i SNPs (%1.2f%%)\n", num_snp, (100.0*num_snp)/nb_variants) ;
+	fprintf(fd, "* %i substitutions (%1.2f%%)\n", num_sub, (100.0*num_sub)/nb_variants) ;
+	fprintf(fd, "* %i deletions (%1.2f%%)\n", num_del, (100.0*num_del)/nb_variants) ;
+	for (int i=1; i<max_len+1; i++)
+		if (num_del_dist[i]>0)
+			fprintf(fd, "\t%i\t%i\t%1.2f%%\n", i, num_del_dist[i], (100.0*num_del_dist[i])/num_del) ;
+	fprintf(fd, "D\t>%i\t%i\t%1.2f%%\n", max_len, num_del_dist[max_len+1], (100.0*num_del_dist[max_len+1])/num_del) ;
+	fprintf(fd, "* %i insertions (%1.2f%%)\n", num_ins, (100.0*num_ins)/nb_variants) ;
+	for (int i=1; i<max_len+1; i++)
+		if (num_ins_dist[i]>0)
+			fprintf(fd, "\t%i\t%i\t%1.2f%%\n", i, num_ins_dist[i], (100.0*num_ins_dist[i])/num_ins) ;
+	fprintf(fd, "I\t>%i\t%i\t%1.2f%%\n", max_len, num_ins_dist[max_len+1], (100.0*num_ins_dist[max_len+1])/num_ins) ;
+
+	if (fd!=stdout)
+		fclose(fd) ;
 	
 	return 0;
 	
