@@ -172,6 +172,7 @@ Config::Config() {
 	FILTER_VARIANT_MINCONFCOUNT=0 ;
 	FILTER_VARIANT_MAXNONCONFRATIO=100.0 ;
 	FILTER_VARIANT_MAP_WINDOW=-1 ;
+	FILTER_VARIANT_VLEN = 50 ;
 	FILTER_VARIANT_JUNCTIONS=false ;
 	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	VARIANT_SNP_TAKE_LINES.push_back("*") ;
@@ -452,11 +453,11 @@ int Config::checkConfig()
 		fprintf(stdout, "WARNING: non-consensus search is slow with more than one intron per alignment\n") ;
 	}
 
-	if (FIXTRIM_STRATEGY_LEN< 10000000 && (FIXTRIMLEFT_STRATEGY_LEN>0 || FIXTRIMRIGHT_STRATEGY_LEN>0))
+	/*if (FIXTRIM_STRATEGY_LEN< 10000000 && (FIXTRIMLEFT_STRATEGY_LEN>0 || FIXTRIMRIGHT_STRATEGY_LEN>0))
 	{
 		fprintf(stderr,	"ERROR: -fixtrim and -fixtrim[right|left] options cannot be combined\n");
 		exit(1) ;
-	}
+		}*/
 
 	return 0 ;
 }
@@ -909,6 +910,19 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			//Report variants 
+			if (strcmp(argv[i], "-stats-variants") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -stats-variants\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				REPORT_VARIANTS_STATS_FILE_NAME=strdup(argv[i]) ;
+				REPORT_VARIANTS = true ;
+			}
+
+			//Report variants 
 			if (strcmp(argv[i], "-variant-snp-sources") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1032,6 +1046,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				MAP_JUNCTIONS_COVERAGE=atoi(argv[i]) ;
 				assert(MAP_JUNCTIONS_COVERAGE>=0) ;
+			}
+
+			if (strcmp(argv[i], "-filter-variants-varlen") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-variants-varlen\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_VARIANT_VLEN=atoi(argv[i]) ;
+				assert(FILTER_VARIANT_VLEN>=0) ;
 			}
 
 			if (strcmp(argv[i], "-filter-variants-minconf") == 0) {

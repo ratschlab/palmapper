@@ -360,6 +360,17 @@ int main(int argc, char *argv[])
 		int ret=variants.report_to_file(_config.REPORT_VARIANTS_FILE_NAME); 
 		if (ret!=0)
 			return -1;
+
+		ret=variants.stats_to_file("",10); 
+		if (ret!=0)
+			return -1;
+
+		if (!_config.REPORT_VARIANTS_STATS_FILE_NAME.empty())
+		{
+			ret=variants.stats_to_file(_config.REPORT_VARIANTS_STATS_FILE_NAME, 1000); 
+			if (ret!=0)
+				return -1;
+		}
 	}
 	
 	IntervalQuery iq;
