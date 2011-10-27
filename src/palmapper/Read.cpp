@@ -298,6 +298,9 @@ int Read::read_short_read()
 		strcpy(READ_QUALITY[0], READ) ;
 		memset(READ_QUALITY[0], 'g', strlen(READ)) ;
 
+		for (int i=0; i<READ_LENGTH; i++)
+			READ[i]=toupper(READ[i]) ;
+		
 		//READ_QUALITY[0] = (char*)"";
 		READ_FORMAT = 1;
 	}
