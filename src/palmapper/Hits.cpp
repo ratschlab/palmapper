@@ -1656,8 +1656,6 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 					// for each mapping position
 					if (index_entry.num) {
 						
-						STORAGE_ENTRY se_buffer[index_entry.num];
-						
 						int index_entry_num=index_entry.num ;
 						if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) { // && !REPORT_REPETITIVE_SEEDS)
 							index_entry_num=0 ;
@@ -1668,7 +1666,13 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 							if (rev) seed_already_inspected_rev[run] = true;
 							else seed_already_inspected_fwd[run] = true;
 						}
-						
+						if (index_entry_num*sizeof(STORAGE_ENTRY)>8000000)
+						{
+							fprintf(stderr, "Warning: number of seed matches too large (%i). Using only first 100.000 matches to avoid a stack overflow\n", index_entry_num) ;
+							index_entry_num=100000 ;
+						}
+						STORAGE_ENTRY se_buffer[index_entry_num];
+												
 						TIME_CODE(time_t start_time = clock() ;) ;
 
 						if (index_type&index_array)
