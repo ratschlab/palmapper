@@ -83,6 +83,7 @@ Config::Config() {
 	MAP_JUNCTIONS_FILE = std::string("") ;
 	MAP_JUNCTIONS=0;
 	MAP_JUNCTIONS_COVERAGE=2;
+	MAP_JUNCTIONS_MIN_SEGMENT_LENGTH=6 ;
 	MAP_JUNCTIONS_PSEUDO_ANNO_COV=10 ;
 	MAP_JUNCTIONS_ONLY=false ;
 
@@ -173,6 +174,7 @@ Config::Config() {
 	FILTER_VARIANT_MAXNONCONFRATIO=100.0 ;
 	FILTER_VARIANT_MAP_WINDOW=-1 ;
 	FILTER_VARIANT_VLEN = 50 ;
+	FILTER_VARIANT_MAXLEN=-1 ;
 	FILTER_VARIANT_JUNCTIONS=false ;
 	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	VARIANT_SNP_TAKE_LINES.push_back("*") ;
@@ -1047,6 +1049,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				MAP_JUNCTIONS_COVERAGE=atoi(argv[i]) ;
 				assert(MAP_JUNCTIONS_COVERAGE>=0) ;
 			}
+			if (strcmp(argv[i], "-junction-remapping-min-spliced-segment-len") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -junction-remapping-min-spliced-segment-len\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAP_JUNCTIONS_MIN_SEGMENT_LENGTH=atoi(argv[i]) ;
+				assert(MAP_JUNCTIONS_MIN_SEGMENT_LENGTH>=0) ;
+			}
 
 			if (strcmp(argv[i], "-filter-variants-varlen") == 0) {
 				not_defined = 0;
@@ -1058,6 +1071,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				FILTER_VARIANT_VLEN=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_VLEN>=0) ;
+			}
+			if (strcmp(argv[i], "-filter-variants-maxlen") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-variants-varlen\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_VARIANT_MAXLEN=atoi(argv[i]) ;
+				assert(FILTER_VARIANT_VLEN>=0) ;
+				FILTER_VARIANTS=true ;
 			}
 
 			if (strcmp(argv[i], "-filter-variants-minconf") == 0) {
@@ -2401,7 +2426,7 @@ int Config::usage() {
 		printf(" -fixtrim INT            shortens the read to a fixed length\n");
 		printf(" -fixtrimleft INT        Removes the given number of first nucleotides of each read (can be used with -fixtrimright but not -fixtrim)\n");
 		printf(" -fixtrimright INT       Removes the given number of last nucleotides of each read  (can be used with -fixtrimleft but not -fixtrim)\n");
-		printf(" -adaptertrim INT        trims away known adapter sequences, read is dropped, when shorter than parameter\n\n");
+		//printf(" -adaptertrim INT        trims away known adapter sequences, read is dropped, when shorter than parameter\n\n");
 		//printf(" -adaptertrim-log STRING    \n");
 
 
