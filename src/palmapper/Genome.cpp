@@ -634,7 +634,7 @@ void Genome::mmap_indices()
 
 	INDEX_FWD_MMAP = (STORAGE_ENTRY *)fwd;
 
-    if (false &&_config.INDEX_PRECACHE)
+    if (_config.INDEX_PRECACHE)
     {
         STORAGE_ENTRY buffer[1024] ;
 
