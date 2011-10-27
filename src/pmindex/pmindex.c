@@ -40,11 +40,14 @@ int main(int argc, char *argv[])
 	if (VERBOSE) { printf("Start loading\n"); }
 
 	Genome genome(0) ; 
-	VariantMap variants(genome) ;
 	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
 	{
 		fprintf(stdout, "loading complete genome\n") ;
 		genome.load_genome() ;
+	}
+	VariantMap variants(genome) ;
+	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
+	{
 		std::string fnames = std::string(GENOME_VARIANTS_FILE_NAME) ;
 		variants.init_from_files(fnames) ;
 		int cnt=variants.get_read_id_num() ;
