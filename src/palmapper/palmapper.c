@@ -71,8 +71,6 @@ int main(int argc, char *argv[])
 	_config.VersionHeader() ;
 
 	init_shogun() ;
-	CSignal::set_handler() ;
-	CSignal::toggle_show_read_ids(false) ;
 
 	// timing //////////////
 	time_t timer, timer_mid, timer2;
@@ -148,8 +146,8 @@ int main(int argc, char *argv[])
 	FileReporter reporter(OUT_FP, SP_OUT_FP, USED_VARIANTS_FP, LEFTOVER_FP);
 
 	// junction maps
-	JunctionMap junctionmap(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
-	JunctionMap annotated_junctions(genome, _config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
+	JunctionMap junctionmap(genome, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);
+	JunctionMap annotated_junctions(genome, _config.MAP_JUNCTIONS_PSEUDO_ANNO_COV, _config.ACC_CONSENSUS,_config.DON_CONSENSUS,_config.ACC_CONSENSUS_REV,_config.DON_CONSENSUS_REV);	
 
 	if ( _config.OUTPUT_FORMAT == OUTPUT_FORMAT_BAM)
 	{
@@ -162,12 +160,14 @@ int main(int argc, char *argv[])
 		int ret=junctionmap.init_from_gffs(_config.MAP_JUNCTIONS_FILE);
 		if (ret!=0)
 			return -1;
+		junctionmap.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH);
 	}
 	
 	if (_config.SCORE_ANNOTATED_SPLICE_SITES){
 		int ret=annotated_junctions.init_from_gffs(_config.ANNOTATED_SPLICE_SITES_FILE);
 		if (ret!=0)
 			return -1;
+		annotated_junctions.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH);
 	}
 
 	// genomemaps
@@ -186,7 +186,8 @@ int main(int argc, char *argv[])
 		if (_config.FILTER_VARIANT_JUNCTIONS)
 			variants.filter_variants_junctions(junctionmap) ;
 		if (_config.FILTER_VARIANTS)
-			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES, _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
+			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES, 
+									 _config.FILTER_VARIANT_MAXLEN, _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
 	}
 
 	QPalma *qpalma = NULL;
@@ -251,6 +252,7 @@ int main(int argc, char *argv[])
 
  	if (_config.VERBOSE) { printf("Mapping reads\n"); }
 
+	CSignal::set_handler() ;
 	CSignal::toggle_show_read_ids(true) ;
 	
  	unsigned int numThreads = _config.NUM_THREADS;
@@ -382,7 +384,7 @@ int main(int argc, char *argv[])
 		delete genomemaps;
 
 	if (_config.VERBOSE) { printf("Mapping finished\n"); }
-
+	
 	CSignal::unset_handler() ;
 
 	palmapper_cleanup() ;
