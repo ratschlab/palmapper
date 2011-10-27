@@ -880,7 +880,7 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 						}
 						else
 						{
-							int ret=variants.update_variant((*it).second,top_alignments[i]->chromosome->nr(),top_alignments[i]->found_variants[j]);
+							int ret=variants.update_variant((*it).second, top_alignments[i]->chromosome->nr(), top_alignments[i]->found_variants[j]);
 							if (ret == 0)
 							{
 								fprintf(stderr,"[end_top_alignment_record] WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);														}
