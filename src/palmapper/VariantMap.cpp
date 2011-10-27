@@ -111,10 +111,12 @@ void VariantMap::filter_variants_junctions(JunctionMap & junctionmap)
 	fprintf(stdout, "All: analyzed %i variants, accepted %i variants (%i with penalty)\n", N, T, P) ;
 }
 
-void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int filter_by_map, const GenomeMaps & genomemaps) 
+void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int max_len, int filter_by_map, const GenomeMaps & genomemaps) 
 {
 	fprintf(stdout, "Filtering variants, requiring\n* %i as minimum confirmation count\n* %1.2f as the ratio of confirmed vs. non-confirmed\n* Accepting %ld specific sources (independent of conditions above)\n", 
 			min_conf_count, max_nonconf_ratio, accept_sources.size()) ;
+	if (max_len>0)
+		fprintf(stdout, "* requiring variation to be shorter than %i bp\n", max_len) ;
 	if (filter_by_map>=0)
 		fprintf(stdout, "* requiring variation next to mapped read or annotated exon with distance at most %i bp\n", filter_by_map) ;
 
@@ -152,6 +154,10 @@ void VariantMap::filter_variants(int min_conf_count, double max_nonconf_ratio, s
 				if (!map)
 					take=false ;
 			}
+			if (take && max_len>=0)
+				if (variantlist[i][j].variant_len>max_len || variantlist[i][j].ref_len>max_len)
+					take=false ;
+			
 			if (take)
 			{
 				t++ ;
