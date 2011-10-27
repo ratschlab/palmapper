@@ -72,14 +72,15 @@ bool compare_exons(Exon ex1,Exon ex2)
 }
 
 
-JunctionMap::JunctionMap(Genome const &genome_, int min_coverage_, int anno_pseudo_coverage_, std::vector<const char*> ACC_CONSENSUS_, std::vector<const char*> DON_CONSENSUS_, std::vector<const char*> ACC_CONSENSUS_REV_, std::vector<const char*> DON_CONSENSUS_REV_ )
+JunctionMap::JunctionMap(Genome const &genome_, int anno_pseudo_coverage_, 
+						 std::vector<const char*> ACC_CONSENSUS_, std::vector<const char*> DON_CONSENSUS_, 
+						 std::vector<const char*> ACC_CONSENSUS_REV_, std::vector<const char*> DON_CONSENSUS_REV_ )
 {
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
 	
 	junctionlist = new std::deque<Junction>[nbchr];
 	
-	min_coverage=min_coverage_;
 	anno_pseudo_coverage = anno_pseudo_coverage_ ;
 	
 	ACC_CONSENSUS= ACC_CONSENSUS_;
@@ -101,7 +102,7 @@ JunctionMap::~JunctionMap()
 }
 
 
-void JunctionMap::filter_junctions()
+void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
 {
 	lock() ;
 
@@ -131,7 +132,16 @@ void JunctionMap::filter_junctions()
 		while (!list.empty() and it!=list.end())
 		{
 			assert((*it).coverage>=0);
-			if ( (*it).coverage!=0 && (((*it).coverage<min_coverage) || (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && (!(*it).consensus) ) ))
+
+			bool take = true ;
+			if ((*it).junction_qual<min_junction_qual)
+				take = false ;
+			if ((*it).coverage<min_coverage)
+				take = false ;
+			if (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) &&  (!(*it).consensus))
+				take = false ;
+			
+			if (!take)
 			{
 				if ((*it).consensus)
 					filtered_consensus++ ;
@@ -593,8 +603,6 @@ int JunctionMap::init_from_gffs(std::string &gff_fname)
 	int ret=init_from_gff(filename);
 	if (ret!=0)
 		return  ret;
-	
-	filter_junctions();
 	
 	return ret;
 	
