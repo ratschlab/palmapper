@@ -170,6 +170,8 @@ int Mapper::map_reads()
 	map_reads_timing(count_reads) ;
 	_stats.qpalma_timing();
 
+	CSignal::report_current_read_id("") ;
+
 	if (_config.STATISTICS)
 	{
 		printf("\n\n    MAP_FAST  = %d\n", c_map_fast);
