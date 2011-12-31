@@ -321,8 +321,8 @@ restart:
 				hits.ALL_HIT_STRATEGY = 0;		// resetting _config.ALL_HIT_STRATEGY
 		} else
 		{
-			if (_config.VERBOSE)
-				printf("skipping map_short_read\n") ;
+			//if (_config.VERBOSE)
+			//		printf("skipping map_short_read\n") ;
 		}
 	}
 	else

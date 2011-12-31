@@ -1107,7 +1107,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				}
 				
 				// Opposite alignments:
-				ret=alignment_is_opposite(alignment,top_alignments[i]);
+				ret= alignment_is_opposite(alignment,top_alignments[i]);
 				if (ret==-1)
 				{
 					if (my_verbosity >= 2)
