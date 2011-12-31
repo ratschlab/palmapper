@@ -80,6 +80,9 @@ Genome::Genome(int numChromosomes) {
 #ifdef PMINDEX
 	if (NUM_CHROMOSOMES>0)
 		_chromosomes = new Chromosome[NUM_CHROMOSOMES];
+	else
+		_chromosomes = NULL ;
+	
 #endif
 
 #ifndef PMINDEX 
