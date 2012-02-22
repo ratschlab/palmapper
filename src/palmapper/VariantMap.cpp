@@ -761,6 +761,8 @@ int VariantMap::init_from_snp(const std::string &sdi_fname, const std::vector<st
 		}
 		int num = sscanf(buf,"Chromosome,Position,%100000s", list);
 		if (num<1)
+			num = sscanf(buf,"Chromosome,Positions,%100000s", list);
+		if (num<1)
 		{
 			fprintf(stderr, "SNP header only contained %i columns (>=3 expected), aborting \n%s\n", num, buf) ;
 			exit(-1) ;
