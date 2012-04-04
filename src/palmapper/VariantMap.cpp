@@ -1183,7 +1183,7 @@ int VariantMap::init_from_files(std::string &fnames)
 			if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
 				ext=maf;
 #endif
-			if (extension.compare("indel")==0 ||extension.compare("samtools")==0)
+			if (extension.compare("indel")==0 || extension.compare("samtools")==0 || extension.compare("var")==0)
 				ext=samtools;
 			if (extension.compare("snp")==0 ||extension.compare("SNP")==0)
 				ext=snp;
