@@ -25,8 +25,8 @@ struct variant_str
 	int id ;
 	int position ;
 	int end_position ;
-	short int ref_len ;
-	short int variant_len ;
+	int ref_len ;
+	int variant_len ;
 	enum polytype type ;
 	short int read_pos;
 	short int read_len;
@@ -168,9 +168,11 @@ enum VariantInputEnum {
 	sdi,
 	maf,
 	samtools,
-	snp,
+	snpcsv,
+	svcsv,
 	bingz,
 	info,
+	snpinfo,
 	unknown,
 };
 
@@ -194,12 +196,13 @@ public:
 	int insert_variants_from_multiple_alignments(std::string & ref_align,int ref_len, std::vector<std::string> & variant_align, std::vector<std::string> & variant_name, 
 												 int start_position, int ref_chr_len, int chr_idx, char strand);
 	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count,int non_used_count, 
-						const std::string & read_id, int read_pos, int read_len, const char* flank="NN");
+						const std::string & read_id, int read_pos, int read_len, const char* flank="NN", 
+						bool update_only=false, bool ignore_variant_str_in_cmp=false);
 	int update_variant(int index, int chr, const Variant &v,const char *flank="NN");
 	
 	
 	bool validate_variant(const Variant & j, int chr, const char *flank="NN") const ;
-	void insert_variant(Variant & j, int chr, const char* flank="NN") ;
+	void insert_variant(Variant & j, int chr, const char* flank="NN", bool update_only=false, bool ignore_variant_str_in_cmp=false) ;
 	int init_from_files(std::string &sdi_fname);
 
 	int stats_to_file(const std::string &stats_fname, int max_len) const ;
@@ -302,8 +305,9 @@ public:
 	}
 #endif
 
-	void filter_variants(int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int max_len, int filter_by_map, const GenomeMaps & genomemaps) ;
+	void filter_variants(int min_source_count, int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int max_len, int filter_by_map, const GenomeMaps & genomemaps) ;
 	void filter_variants_junctions(JunctionMap & junctions) ;
+	void unique_variant_source_ids() ;
 	
 	void lock() 
 	{ 
@@ -324,23 +328,36 @@ public:
 		return true ;
 	}
 
-	static int variant_cmp(const Variant &a, const Variant &b) 
+	static int variant_cmp(const Variant &a, const Variant &b, bool ignore_variant_str=false) 
 	{
 		if (a.position<b.position)
 			return -1  ;
 		if (a.position>b.position)
 			return 1  ;
+
+		/* special case of updating an existing indel */
+		if (a.ref_str=="*" && a.variant_str=="*")
+			return 0 ;
+		if (b.ref_str=="*" && b.variant_str=="*")
+			return 0 ;
+
 		if (a.end_position<b.end_position)
 			return -1 ;
 		if (a.end_position>b.end_position)
 			return 1 ;
-		if (a.ref_str<b.ref_str)
+		
+		if ((a.ref_str.size()!=1 || b.ref_str.size()!=1) || 
+			((toupper(a.ref_str[0])=='A' || toupper(a.ref_str[0])=='C' || toupper(a.ref_str[0])=='G' || toupper(a.ref_str[0])=='T') &&
+			 (toupper(b.ref_str[0])=='A' || toupper(b.ref_str[0])=='C' || toupper(b.ref_str[0])=='G' || toupper(b.ref_str[0])=='T')))
+		{
+			if (a.ref_str<b.ref_str)
+				return -1 ;
+			if (a.ref_str>b.ref_str)
+				return 1 ;
+		}
+		if (!ignore_variant_str && a.variant_str<b.variant_str)
 			return -1 ;
-		if (a.ref_str>b.ref_str)
-			return 1 ;
-		if (a.variant_str<b.variant_str)
-			return -1 ;
-		if (a.variant_str>b.variant_str)
+		if (!ignore_variant_str && a.variant_str>b.variant_str)
 			return 1 ;
 		return 0 ;
 	}
@@ -467,9 +484,10 @@ public:
 protected:
 	
 	int init_from_samtools(const  std::string &sam_fname);
-	int init_from_snp(const  std::string &snp_fname, const std::vector<std::string> & take_lines);
+	int init_from_csv(const  std::string &snp_fname, const std::vector<std::string> & take_lines, VariantInputEnum ext);
 	int init_from_sdi(const  std::string &sdi_fname);
 	int init_from_info(const  std::string &info_fname);
+	int init_from_snp_info(const  std::string &info_fname);
 	int init_from_maf(const  std::string &gff_fname, const std::string &ref_genome);
 	pthread_mutex_t variant_mutex;
 
