@@ -152,7 +152,7 @@ void VariantMap::unique_variant_source_ids()
 			for (unsigned int p=0; p<sources.size(); p++)
 			{
 				if (p>0)
-					read_id+="|" ;
+					read_id+="," ;
 				read_id+=sources[p] ;
 			}
 			variantlist[i][j].read_id=read_id ;
