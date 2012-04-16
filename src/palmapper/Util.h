@@ -27,23 +27,26 @@ public:
 	static FILE *openFile(char const *name, char const *mode);
 	static gzFile gzopenFile(char const *name, char const *mode);
 
-	static void skip_comment_lines(FILE* fd)
+	static int skip_comment_lines(FILE* fd)
 		{
 			const int buffer_len=5000 ;
 			char buffer[buffer_len] ;
+			int line_num=0 ;
 			
 			while (!feof(fd))
 			{
 				long pos = ftell(fd) ;
 				if (fgets(buffer, buffer_len, fd) == NULL)
-					return;
+					return line_num ;
 				if (buffer[0]!='#' && buffer[0]!=0)
 				{
 					fseek(fd, pos, SEEK_SET) ;
 					break ;
 				}
+				line_num++ ;
 				//fprintf(stdout, "skipped comment line: %s\n", buffer) ;
 			}
+			return line_num ;
 		}
 
 	static std::string read_line(FILE* fd)
