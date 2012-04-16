@@ -186,8 +186,11 @@ int main(int argc, char *argv[])
 		if (_config.FILTER_VARIANT_JUNCTIONS)
 			variants.filter_variants_junctions(junctionmap) ;
 		if (_config.FILTER_VARIANTS)
-			variants.filter_variants(_config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, _config.FILTER_VARIANT_SOURCES, 
-									 _config.FILTER_VARIANT_MAXLEN, _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
+			variants.filter_variants(_config.FILTER_VARIANT_MINSOURCECOUNT, _config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, 
+									 _config.FILTER_VARIANT_SOURCES, _config.FILTER_VARIANT_MAXLEN, 
+									 _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
+		if (_config.UNIQUE_VARIANT_SOURCE_IDS)
+			variants.unique_variant_source_ids() ;
 	}
 
 	QPalma *qpalma = NULL;
