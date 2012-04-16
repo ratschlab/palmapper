@@ -163,6 +163,7 @@ Config::Config() {
 	REPORT_USED_VARIANTS=false ;
 	FILTER_VARIANTS=false ;
 	MERGE_VARIANT_SOURCE_IDS = false ;
+	UNIQUE_VARIANT_SOURCE_IDS = false ;
 	IUPAC_SNPS= false ;
 	USE_VARIANTS_EDITOP_FILTER=false ;
 	USE_VARIANT_FILE_NAME = "" ;
@@ -170,6 +171,7 @@ Config::Config() {
 	REPORT_VARIANTS_FILE_NAME="" ;
 	MAF_REF_NAME="";
 
+	FILTER_VARIANT_MINSOURCECOUNT=0 ;
 	FILTER_VARIANT_MINCONFCOUNT=0 ;
 	FILTER_VARIANT_MAXNONCONFRATIO=100.0 ;
 	FILTER_VARIANT_MAP_WINDOW=-1 ;
@@ -947,7 +949,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 					else
 						source = sources.substr(previousfound);
 					VARIANT_SNP_TAKE_LINES.push_back(source) ;
-
+					//fprintf(stdout, "%s\n", source.c_str()) ;
+					
 					if (found<=0)
 						break ;
 					
@@ -964,6 +967,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-merge-variant-source-ids") == 0) {
 				not_defined = 0;
 				MERGE_VARIANT_SOURCE_IDS = true;
+			}
+			if (strcmp(argv[i], "-merge-variant-source-ids-unique") == 0) {
+				not_defined = 0;
+				MERGE_VARIANT_SOURCE_IDS = true;
+				UNIQUE_VARIANT_SOURCE_IDS = true;
 			}
 
 			if (strcmp(argv[i], "-no-load-genome") == 0) {
@@ -1095,6 +1103,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				FILTER_VARIANT_MINCONFCOUNT=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_MINCONFCOUNT>=0) ;
+				FILTER_VARIANTS=true ;
+			}
+			if (strcmp(argv[i], "-filter-variants-minsourcecount") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-variants-minsourcefreq\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_VARIANT_MINSOURCECOUNT=atoi(argv[i]) ;
+				assert(FILTER_VARIANT_MINSOURCECOUNT>=0) ;
 				FILTER_VARIANTS=true ;
 			}
 
