@@ -198,8 +198,6 @@ public:
 	void insert_variant(int chr, int pos, int ref_len, int variant_len, const std::string & ref_str, const std::string & variant_str, int conf_count, int non_conf_count, int used_count,int non_used_count, 
 						const std::string & read_id, int read_pos, int read_len, const char* flank="NN", 
 						bool update_only=false, bool ignore_variant_str_in_cmp=false);
-	int update_variant(int index, int chr, const Variant &v,const char *flank="NN");
-	
 	
 	bool validate_variant(const Variant & j, int chr, const char *flank="NN") const ;
 	void insert_variant(Variant & j, int chr, const char* flank="NN", bool update_only=false, bool ignore_variant_str_in_cmp=false) ;
@@ -464,8 +462,10 @@ public:
 		variants.push_back(v) ;
 	}
 	
-	void report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons, int no_gap_end) ;
-
+	void report_non_variant(int rank, int total, const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons, int no_gap_end) ;
+	void report_variant(int rank, int total, Variant & j, int chr, const char* flank="NN", bool update_only=false, bool ignore_variant_str_in_cmp=false) ;
+	int update_variant(int rank, int total, int index, int chr, const Variant &v,const char *flank="NN");
+	
 	void check_variant_order() const
 	{
 		for (int i=0; i<(int)genome->nrChromosomes(); i++)
