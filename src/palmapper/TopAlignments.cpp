@@ -859,18 +859,18 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 
 		if (_config.DISCOVER_VARIANTS || _config.USE_VARIANTS)
 		{
-			for (unsigned int i=0; i < top_alignments.size() && i < 1; i++)
+			for (unsigned int i=0; i < top_alignments.size(); i++)
 			{
 				if (_config.DISCOVER_VARIANTS)
 				{
 					for (unsigned j=0; j<top_alignments[i]->align_variants.size(); j++)
-						variants.insert_variant(top_alignments[i]->align_variants[j], top_alignments[i]->chromosome->nr()) ;
-					variants.report_non_variant(top_alignments[i]->chromosome, top_alignments[i]->aligned_positions, top_alignments[i]->exons, _config.NO_GAP_END) ; 
+						variants.report_variant(i, top_alignments.size(), top_alignments[i]->align_variants[j], top_alignments[i]->chromosome->nr()) ;
+					variants.report_non_variant(i, top_alignments.size(), top_alignments[i]->chromosome, top_alignments[i]->aligned_positions, top_alignments[i]->exons, _config.NO_GAP_END) ; 
 				}
 				if (_config.USE_VARIANTS)
 				{
-					for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++){
-						
+					for (unsigned j=0; j<top_alignments[i]->found_variants.size(); j++)
+					{
 						//	variants.insert_variant(top_alignments[i]->found_variants[j], top_alignments[i]->chromosome->nr()) ;
 						std::map<int,int>::iterator it = top_alignments[i]->variant_positions.find(top_alignments[i]->found_variants[j].id); // TODO: Efficiency
 						if (it == top_alignments[i]->variant_positions.end())
@@ -880,10 +880,11 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 						}
 						else
 						{
-							int ret=variants.update_variant((*it).second, top_alignments[i]->chromosome->nr(), top_alignments[i]->found_variants[j]);
+							int ret=variants.update_variant(i, top_alignments.size(), (*it).second, top_alignments[i]->chromosome->nr(), top_alignments[i]->found_variants[j]);
 							if (ret == 0)
 							{
-								fprintf(stderr,"[end_top_alignment_record] WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);														}
+								fprintf(stderr,"[end_top_alignment_record] WARNING: variant with id %i not updated\n",top_alignments[i]->found_variants[j].id);														
+							}
 						}
 					}
 				}

@@ -248,8 +248,19 @@ void VariantMap::filter_variants(int min_source_count, int min_conf_count, doubl
 	fprintf(stdout, "All: analyzed %i variants, accepted %i variants\n", N, T) ;
 }
 
-void VariantMap::report_non_variant(const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons, int no_gap_end) 
+void VariantMap::report_variant(int rank, int total, Variant & j, int chr, const char* flank, bool update_only, bool ignore_variant_str_in_cmp)
 {
+	if (rank!=0)
+		return ;
+	
+	insert_variant(j, chr, flank, update_only, ignore_variant_str_in_cmp) ;
+}
+
+void VariantMap::report_non_variant(int rank, int total, const Chromosome * chr, std::vector<int> & aligned_positions, std::vector<int> & exons, int no_gap_end) 
+{
+	if (rank!=0)
+		return ;
+
 	if (aligned_positions.size()==0)
 		return ;
 	int start_pos = aligned_positions[0] ;
@@ -394,8 +405,11 @@ inline int min(int a, int b)
 	return b ;
 }
 
-int VariantMap::update_variant(int index, int chr, const Variant &v,const char *flank)
+int VariantMap::update_variant(int rank, int total, int index, int chr, const Variant &v,const char *flank)
 {
+	if (rank!=0)
+		return 0 ;
+	
 	if (validate_variants)
 		if (!validate_variant(v, chr, flank))
 			return 0;
