@@ -408,7 +408,7 @@ inline int min(int a, int b)
 int VariantMap::update_variant(int rank, int total, int index, int chr, const Variant &v,const char *flank)
 {
 	if (rank!=0)
-		return 0 ;
+		return -1 ;
 	
 	if (validate_variants)
 		if (!validate_variant(v, chr, flank))
