@@ -16,7 +16,7 @@
 
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
-static const bool perform_extra_checks = true ;
+static const bool perform_extra_checks = false ;
 static const std::string verbose_read_id = "HWI-EAS302_0016:5:1:3308:1024#0/1" ;
 static const int verbose_read_level = 0 ;
 
@@ -4296,12 +4296,26 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 		
 		if (_config.NUM_MISMATCHES==0 && alignment_mm>0)
 		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
-			fprintf(stderr, "Warning: _config.NUM_MISMATCHES==0 && alignment_mm=%i -> setting to 0\n", alignment_mm); // BUG-TODO
+			if (myverbosity>=1 || perform_extra_checks)
+				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==0 && alignment_mm=%i -> setting to 0\n", alignment_mm); // BUG-TODO
 			alignment_mm=0 ;
+		}
+		if (_config.NUM_MISMATCHES==1 && alignment_mm>1)
+		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
+			if (myverbosity>=1 || perform_extra_checks)
+				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==1 && alignment_mm=%i -> setting to 1\n", alignment_mm); // BUG-TODO
+			alignment_mm=1 ;
+		}
+		if (_config.NUM_MISMATCHES==2 && alignment_mm>2)
+		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
+			if (myverbosity>=1 || perform_extra_checks)
+				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==2 && alignment_mm=%i -> setting to 2\n", alignment_mm); // BUG-TODO
+			alignment_mm=2 ;
 		}
 		if (_config.NUM_GAPS==0 && alignment_gaps>0)
 		{ // same here for gaps
-			fprintf(stderr, "Warning: _config.NUM_GAPS==0 && alignment_gaps=%i -> setting to 0\n", alignment_gaps); // BUG-TODO
+			if (myverbosity>=1 || perform_extra_checks)
+				fprintf(stderr, "Warning: _config.NUM_GAPS==0 && alignment_gaps=%i -> setting to 0\n", alignment_gaps); // BUG-TODO
 			alignment_gaps=0 ;
 		}
 
@@ -5711,13 +5725,13 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		if (alignment_gaps_var>alignment_gaps_ref)
 		{
 			alignment_gaps_var=alignment_gaps_ref ; // BUG-TODO: reconstruct_reference_alignment counts gaps wrongly
-			if (myverbosity>=0)
+			if (myverbosity>=1 || perform_extra_checks)
 				fprintf(stderr, "Warning: BUG-TODO: reconstruct_reference_alignment counts gaps wrongly, using number of gaps in ref alignment instead \n") ;
 		}
 		if (alignment_mismatches_var>alignment_mismatches_ref)
 		{
 			alignment_mismatches_var=alignment_mismatches_ref ; // BUG-TODO: reconstruct_reference_alignment may count mismatches wrongly
-			if (myverbosity>=0)
+			if (myverbosity>=1  || perform_extra_checks)
 				fprintf(stderr, "Warning: BUG-TODO: reconstruct_reference_alignment may count mismatches wrongly, using number of mismatches in ref alignment instead (%s)\n", read.id()) ;
 		}
 
