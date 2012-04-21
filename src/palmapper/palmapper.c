@@ -136,10 +136,10 @@ int main(int argc, char *argv[])
 	}
     FILE *LEFTOVER_FP = _config.LEFTOVER_FILE_NAME.length() > 0 ? Util::openFile(_config.LEFTOVER_FILE_NAME, "w+") : NULL;
 
-	FILE *USED_VARIANTS_FP = NULL;
+	gzFile USED_VARIANTS_FP = NULL;
 	if (_config.REPORT_USED_VARIANTS)
 	{
-		USED_VARIANTS_FP= Util::openFile(_config.REPORT_USED_VARIANT_FILE_NAME, "w") ;
+		USED_VARIANTS_FP= gzopen(_config.REPORT_USED_VARIANT_FILE_NAME.c_str(), "wb9") ; // Util::openFile(_config.REPORT_USED_VARIANT_FILE_NAME, "w") ;
 	}
 
 	QueryFile queryFile(_config.QUERY_FILE_NAMES,_config.QUERY_FILE_STRANDS);
@@ -187,8 +187,9 @@ int main(int argc, char *argv[])
 			variants.filter_variants_junctions(junctionmap) ;
 		if (_config.FILTER_VARIANTS)
 			variants.filter_variants(_config.FILTER_VARIANT_MINSOURCECOUNT, _config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, 
-									 _config.FILTER_VARIANT_SOURCES, _config.FILTER_VARIANT_MAXLEN, 
-									 _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
+									 0,
+									 _config.FILTER_VARIANT_SOURCES, _config.FILTER_VARIANT_REQSOURCES,
+									 _config.FILTER_VARIANT_MAXLEN, _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
 		if (_config.UNIQUE_VARIANT_SOURCE_IDS)
 			variants.unique_variant_source_ids() ;
 	}
@@ -277,7 +278,7 @@ int main(int argc, char *argv[])
 	}
 	reporter.done();
 	CSignal::toggle_show_read_ids(false) ;
-	
+		
 	if (_config.OUT_FILE_NAME.length() > 0)
 	{
 		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
@@ -311,7 +312,7 @@ int main(int argc, char *argv[])
 
 	if (_config.REPORT_USED_VARIANTS)
 	{
-		fclose(USED_VARIANTS_FP);
+		gzclose(USED_VARIANTS_FP);
 	}
 
 	if (_config.TRANSCRIBE_GFF)
@@ -362,6 +363,13 @@ int main(int argc, char *argv[])
 
 	if (_config.REPORT_VARIANTS)
 	{
+		if (_config.FILTER_VARIANTS)
+			variants.filter_variants(_config.FILTER_VARIANT_MINSOURCECOUNT, _config.FILTER_VARIANT_MINCONFCOUNT, _config.FILTER_VARIANT_MAXNONCONFRATIO, 
+									 _config.FILTER_VARIANT_MINUSECOUNT,
+									 _config.FILTER_VARIANT_SOURCES, _config.FILTER_VARIANT_REQSOURCES,
+									 _config.FILTER_VARIANT_MAXLEN, 
+									 _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
+
 		int ret=variants.report_to_file(_config.REPORT_VARIANTS_FILE_NAME); 
 		if (ret!=0)
 			return -1;

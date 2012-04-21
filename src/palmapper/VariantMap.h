@@ -303,7 +303,9 @@ public:
 	}
 #endif
 
-	void filter_variants(int min_source_count, int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int max_len, int filter_by_map, const GenomeMaps & genomemaps) ;
+	void filter_variants(int min_source_count, int min_conf_count, double max_nonconf_ratio, 
+						 int min_use_count, std::vector<std::string> & accept_sources, std::vector<std::string> & required_sources, 
+						 int max_len, int filter_by_map, const GenomeMaps & genomemaps) ;
 	void filter_variants_junctions(JunctionMap & junctions) ;
 	void unique_variant_source_ids() ;
 	
