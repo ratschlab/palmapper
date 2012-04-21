@@ -3,6 +3,7 @@
 #include <palmapper/Mapper.h>
 #include <palmapper/JunctionMap.h>
 #include <palmapper/VariantMap.h>
+#include <zlib.h>
 
 class FileReporter : public Mapper::Reporter {
 	struct Entry {
@@ -15,7 +16,7 @@ class FileReporter : public Mapper::Reporter {
 	};
 
 public:
-	FileReporter(FILE *out, FILE *sp_out, 	FILE *_variants_out, FILE *left_overs);
+	FileReporter(FILE *out, FILE *sp_out, 	gzFile _variants_out, FILE *left_overs);
 
 	void done() {
 		if (_out != stdout)
@@ -24,7 +25,7 @@ public:
 		if (_sp_out != NULL && _sp_out != stdout && _sp_out!=_out)
 			fprintf(_sp_out, "\n") ;
 		if (_variants_out != NULL && _variants_out != stdout)
-			fprintf(_variants_out, "\n") ;
+			gzprintf(_variants_out, "\n") ;
 
 		//fprintf(_sp_out, "#done\n") ;
 	}
@@ -38,7 +39,7 @@ private:
 	lang::Signal _roomLeft;
 	FILE *_out;
 	FILE *_sp_out;
-	FILE *_variants_out;
+	gzFile _variants_out;
 	FILE *_left_overs;
 	Entry _results[_nrResults];
 	volatile int _lastResult;
