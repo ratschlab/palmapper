@@ -172,9 +172,11 @@ Config::Config() {
 	MAF_REF_NAME="";
 
 	FILTER_VARIANT_MINSOURCECOUNT=0 ;
+	FILTER_VARIANT_REQSOURCES.clear() ;
 	FILTER_VARIANT_MINCONFCOUNT=0 ;
 	FILTER_VARIANT_MAXNONCONFRATIO=100.0 ;
 	FILTER_VARIANT_MAP_WINDOW=-1 ;
+	FILTER_VARIANT_MINUSECOUNT=0 ;
 	FILTER_VARIANT_VLEN = 50 ;
 	FILTER_VARIANT_MAXLEN=-1 ;
 	FILTER_VARIANT_JUNCTIONS=false ;
@@ -1105,6 +1107,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 				assert(FILTER_VARIANT_MINCONFCOUNT>=0) ;
 				FILTER_VARIANTS=true ;
 			}
+			if (strcmp(argv[i], "-filter-variants-minuse") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-variants-minuse\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				FILTER_VARIANT_MINUSECOUNT=atoi(argv[i]) ;
+				assert(FILTER_VARIANT_MINUSECOUNT>=0) ;
+				FILTER_VARIANTS=true ;
+			}
 			if (strcmp(argv[i], "-filter-variants-minsourcecount") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1116,6 +1130,34 @@ int Config::parseCommandLine(int argc, char *argv[])
 				FILTER_VARIANT_MINSOURCECOUNT=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_MINSOURCECOUNT>=0) ;
 				FILTER_VARIANTS=true ;
+			}
+
+			if (strcmp(argv[i], "-filter-variants-reqsources") == 0) 
+			{
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -filter-variants-reqsources\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				std::string s = "" ;
+				for (unsigned int j=0; j<strlen(argv[i]); j++)
+				{
+					if (argv[i][j]!=',')
+						s+=argv[i][j] ;
+					else
+					{
+						FILTER_VARIANT_REQSOURCES.push_back(s);
+						s.assign("") ;
+					}
+				}
+				if (s.size()>0)
+					FILTER_VARIANT_REQSOURCES.push_back(s);
+				for (unsigned r=0; r<FILTER_VARIANT_REQSOURCES.size(); r++)
+					fprintf(stderr, "req. source: %s\n", FILTER_VARIANT_REQSOURCES[r].c_str()) ;
+				
+				FILTER_VARIANTS = true ;
 			}
 
 			if (strcmp(argv[i], "-filter-variants-map-window") == 0) {
