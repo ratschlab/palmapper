@@ -6,7 +6,7 @@
 
 static clock_t last_warning_time = clock();
 
-FileReporter::FileReporter(FILE *out, FILE *sp_out, FILE *variants_out, FILE *left_overs) {
+FileReporter::FileReporter(FILE *out, FILE *sp_out, gzFile variants_out, FILE *left_overs) {
 	_out = out;
 	_sp_out = sp_out;
 	_variants_out = variants_out;
@@ -79,7 +79,7 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, Vari
 		assert(en._used);
 		print(_out, en._out);
 		print(_sp_out, en._sp_out);
-		print(_variants_out, en._variants_out);
+		gzprintf(_variants_out, en._variants_out.c_str());
 		print(_left_overs, en._left_overs);
 		en._used = false;
 		_lastResult = i;
