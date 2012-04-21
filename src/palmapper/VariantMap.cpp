@@ -164,12 +164,19 @@ void VariantMap::unique_variant_source_ids()
 }
 
 
-void VariantMap::filter_variants(int min_source_count, int min_conf_count, double max_nonconf_ratio, std::vector<std::string> & accept_sources, int max_len, int filter_by_map, const GenomeMaps & genomemaps) 
+void VariantMap::filter_variants(int min_source_count, int min_conf_count, double max_nonconf_ratio, 
+								 int min_use_count,
+								 std::vector<std::string> & accept_sources, std::vector<std::string> & required_sources, 
+								 int max_len, int filter_by_map, const GenomeMaps & genomemaps) 
 {
 	fprintf(stdout, "Filtering variants, requiring\n* %i as minimum confirmation count\n* %1.2f as the ratio of confirmed vs. non-confirmed\n* Accepting %ld specific sources (independent of conditions above)\n", 
 			min_conf_count, max_nonconf_ratio, accept_sources.size()) ;
+	if (required_sources.size()>0)
+		fprintf(stdout, "* requiring variation to have at least %i specific sources (e.g., reads/alleles)\n", (int)required_sources.size()) ;		
 	if (min_source_count>0)
 		fprintf(stdout, "* requiring variation to have at least %i sources (e.g., reads/alleles)\n", min_source_count) ;
+	if (min_use_count>0)
+		fprintf(stdout, "* requiring variation to have at least %i uses/non-uses\n", min_use_count) ;
 	if (max_len>0)
 		fprintf(stdout, "* requiring variation to be shorter than %i bp\n", max_len) ;
 	if (filter_by_map>=0)
@@ -189,19 +196,38 @@ void VariantMap::filter_variants(int min_source_count, int min_conf_count, doubl
 			bool take=false ;
 			if (variantlist[i][j].conf_count>=min_conf_count)
 				take = true ;
-			if (min_source_count>0)
+			if (min_source_count>0 || required_sources.size()>0)
 			{
+				std::vector<bool> req_source_found(required_sources.size(), false) ;
+				/*for (unsigned int r=0; r<required_sources.size(); r++)
+				  req_source_found.push_back(false) ;*/
+
 				int num_sources=0 ;
 				if (variantlist[i][j].read_id.length()>0)
 					num_sources++ ;
+				std::string source ;
 				for (unsigned int p=0; p<variantlist[i][j].read_id.length(); p++)
 					if (variantlist[i][j].read_id[p]==',')
+					{
 						num_sources++ ;
-				
+						for (unsigned int r=0; r<required_sources.size(); r++)
+							if (source==required_sources[r])
+								req_source_found[r]=true ;
+						source.assign("") ;
+					}
+					else
+						source+=variantlist[i][j].read_id[p] ;
+				if (source.size()>0)
+					for (unsigned int r=0; r<required_sources.size(); r++)
+						if (source==required_sources[r])
+							req_source_found[r]=true ;
+								
 				if (num_sources<min_source_count)
 					take = false ;
+				for (unsigned int r=0; r<required_sources.size(); r++)
+					if (!req_source_found[r])
+						take=false ;
 			}
-			
 			if (variantlist[i][j].conf_count>0)
 			{
 				if (((double)variantlist[i][j].non_conf_count/(double)variantlist[i][j].conf_count)>max_nonconf_ratio)
@@ -212,6 +238,8 @@ void VariantMap::filter_variants(int min_source_count, int min_conf_count, doubl
 				if (variantlist[i][j].non_conf_count>0) 
 					take = false ;
 			}
+			if (take && variantlist[i][j].used_count<min_use_count && variantlist[i][j].non_used_count<min_use_count)
+				take = false ;
 
 			if (!take)
 			{
@@ -1058,6 +1086,8 @@ int VariantMap::init_from_csv(const std::string &sdi_fname, const std::vector<st
 			num = sscanf(buf,"Chromosome,Positions,%1000000s", list);
 		if (num<1)
 			num = sscanf(buf,"chr,loc,%1000000s", list);
+		if (num<1)
+			num = sscanf(buf,"chr,pos,%1000000s", list);
 		if (num<1)
 		{
 			fprintf(stderr, "%s header only contained %i columns (>=3 expected), aborting \n%s\n", (ext==snpcsv)?"SNPCSV":"SVCSV", num, buf) ;
