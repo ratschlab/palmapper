@@ -168,7 +168,7 @@ bool alignment_pass_filters (int min_intron_len, int max_intron_len,  int mm, in
 {
 	//fprintf(stdout,"%i<intron<%i, %i<exon\n",_config.SPLICED_SHORTEST_INTRON_LENGTH,_config.SPLICED_LONGEST_INTRON_LENGTH,_config.SPLICED_MIN_SEGMENT_LENGTH);
 
-	return (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH || remapping) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH || remapping) && (mm <= _config.NUM_MISMATCHES && gaps <= _config.NUM_GAPS && mm+gaps <= _config.NUM_EDIT_OPS) &&(num_exons ==1 ||(num_exons >= 2 && (num_exons <= _config.SPLICED_MAX_INTRONS+1) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
+	return (max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH || remapping) && (min_intron_len>=_config.SPLICED_SHORTEST_INTRON_LENGTH || remapping) && (mm <= _config.NUM_MISMATCHES && gaps <= _config.NUM_GAPS && mm+gaps <= _config.NUM_EDIT_OPS) &&(num_exons ==1 ||(num_exons >= 2 && (num_exons <= _config.SPLICED_MAX_INTRONS+1 || remapping) && (min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH || remapping))) ;
 }
 
 void get_annotated_splice_positions( std::vector<int> &pos, JunctionMap &annotatedjunctions,const char * type, int start, int end, int chr, char strand)
@@ -5429,7 +5429,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	
 	std::vector<bool> ref_map;
 	int pre_dna_size=dna.size() ;
-	if (_config.USE_VARIANTS && variant_list.size()>0)
+	if (_config.USE_VARIANTS) // && variant_list.size()>0)
 	{
 		
 		if (strand == '-')
@@ -5522,7 +5522,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (non_consensus_search)
 		qmm_value+= _config.MIN_NUM_MATCHES_PEN;
 	
-	if (_config.USE_VARIANTS && (int)variant_list.size()>0)
+	if (_config.USE_VARIANTS) // && (int)variant_list.size()>0)
 	{
 		if (_config.IUPAC_SNPS)
 			alignment.myalign_fast<true,true>(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
@@ -5630,7 +5630,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	}
 	else
 	{  	
-		if (_config.USE_VARIANTS && variant_list.size()>0)
+		if (_config.USE_VARIANTS) // && variant_list.size()>0)
 		{
 			considered_variants=true ;
 			
