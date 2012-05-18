@@ -110,6 +110,8 @@ Config::Config() {
 	FILTER_BY_SPLICE_SITES_THRESH_DON=0 ;
 	FILTER_BY_SPLICE_SITES_THRESH_TOP_PERC = 0.01;
 	NO_SPLICE_PREDICTIONS=0 ;
+	NO_SPLICE_DISCOVERY=0 ;
+	
 	INDEX_PRECACHE = 0 ;
 	FLANKING = 0;
 	NUM_EDIT_OPS = DEFAULT_SETTING ;
@@ -2272,6 +2274,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-no-ss-pred") == 0) {
 				not_defined = 0;
 				NO_SPLICE_PREDICTIONS = 1 ;
+			}
+			if (strcmp(argv[i], "-no-ss-discovery") == 0) {
+				not_defined = 0;
+				NO_SPLICE_DISCOVERY = 1 ;
 			}
 
 			if (strcmp(argv[i], "-qpalma-prb-offset-fix") == 0) {
