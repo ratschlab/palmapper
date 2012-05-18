@@ -5059,7 +5059,8 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 										   const int a_len, double *acceptor, const int d_len, double* donor, const std::string & dna, bool non_consensus_search, char strand, int ori,
 										   bool check_ss, int region_start, int region_end) const
 {
-
+	if (_config.NO_SPLICE_DISCOVERY)
+		return 0 ;
 		
 	int match = 0, num = 0;
 	for (int i = 2; i < d_len - 2; i++, num++)
