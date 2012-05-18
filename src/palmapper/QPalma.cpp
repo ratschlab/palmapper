@@ -4861,8 +4861,8 @@ int QPalma::get_splice_predictions(std::vector<region_t *> &current_regions, Chr
 	{
 		if (!remapping)
 		{
-			if (_config.ACC_FILES.length()>0 && _config.DON_FILES.length()>0){
-				
+			if (_config.ACC_FILES.length()>0 && _config.DON_FILES.length()>0 &&  !_config.NO_SPLICE_DISCOVERY )
+			{
 				/* query acceptor and donor scores */
 				IntervalQuery iq;
 				char basename[1000];
@@ -5014,9 +5014,8 @@ int QPalma::get_splice_predictions(std::vector<region_t *> &current_regions, Chr
 			}
 			
 			//Use splice sites from the annotation
-			if (_config.SCORE_ANNOTATED_SPLICE_SITES)
+			if (_config.SCORE_ANNOTATED_SPLICE_SITES) // this is done, even if _config.NO_SPLICE_DISCOVERY==true
 			{
-
 				//fprintf(stdout,"Use annotated splice sites\n");
 				std::vector<int> acc_pos_vec;
 				std::vector<int> don_pos_vec;
@@ -5146,7 +5145,7 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 
 int QPalma::transform_splice_predictions(const int a_len, double *acceptor, const int d_len, double* donor) const
 {
-	/* apply donor and acceptor plifs */
+	/* apply donor and acceptor plifs (i.e., transform the splice site prediction score to a score that can used in QPalma dynamic program) */
 	for (int i = 0; i < d_len; i++)
 		if (donor[i] > -ALMOST_INFINITY)
 		{

@@ -205,7 +205,9 @@ public:
 	std::string QPALMA_FILE;
 	std::string ACC_FILES;
 	std::string DON_FILES;
+
 	int NO_SPLICE_PREDICTIONS;
+	int NO_SPLICE_DISCOVERY;
 	bool NO_QPALMA;
 	bool NO_GENOMEMAPPER ;
 	double QPALMA_INDEL_PENALTY ;
