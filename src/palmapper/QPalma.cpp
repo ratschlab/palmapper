@@ -5773,6 +5773,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->num_gaps_var = alignment_gaps_var;
         aln->num_mismatches_var = alignment_mismatches_var ;
 
+		assert(read_anno_ref.length()<4*Config::MAX_READ_LENGTH) ;
 		strcpy(aln->read_anno, read_anno_ref.c_str());
 		aln->exons = exons;
 		aln->chromosome = &contig_idx;
