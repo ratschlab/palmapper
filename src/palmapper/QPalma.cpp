@@ -4785,6 +4785,8 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 			assert(read_pos==(int)read.length()) ;
 			return -1 ;
 		}
+		if (read.length()*4<read_anno.length())
+			fprintf(stderr, "ERROR: read anno longer than 4*read_length: %i*4<%i\n", (int)read.length(), (int)read_anno.length()) ;
 	}
 	
 	dna_align_str[result_length] = 0;
