@@ -26,7 +26,8 @@ typedef struct alignment_t {
 	uint32_t num_mismatches_var;
 	uint32_t num_gaps_var;
 
-	char read_anno[4*Config::MAX_READ_LENGTH] ;
+	std::string read_anno ;
+	//char read_anno[4*Config::MAX_READ_LENGTH] ;
 	std::vector<int> exons;
 	Chromosome const *chromosome;
 	char orientation;

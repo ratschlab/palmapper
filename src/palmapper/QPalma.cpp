@@ -16,7 +16,7 @@
 
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
-static const bool perform_extra_checks = false ;
+static const bool perform_extra_checks = true ;
 static const std::string verbose_read_id = "HWI-EAS302_0016:5:1:3308:1024#0/1" ;
 static const int verbose_read_level = 0 ;
 
@@ -4785,8 +4785,8 @@ int QPalma::determine_read_variants(Chromosome const &contig_idx, const int * s_
 			assert(read_pos==(int)read.length()) ;
 			return -1 ;
 		}
-		if (read.length()*4<read_anno.length())
-			fprintf(stderr, "ERROR: read anno longer than 4*read_length: %i*4<%i\n", (int)read.length(), (int)read_anno.length()) ;
+		//if (read.length()*4<read_anno.length())
+		//fprintf(stderr, "ERROR: read anno longer than 4*read_length: %i*4<%i\n", (int)read.length(), (int)read_anno.length()) ;
 	}
 	
 	dna_align_str[result_length] = 0;
@@ -5775,8 +5775,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		aln->num_gaps_var = alignment_gaps_var;
         aln->num_mismatches_var = alignment_mismatches_var ;
 
-		assert(read_anno_ref.length()<4*Config::MAX_READ_LENGTH) ;
-		strcpy(aln->read_anno, read_anno_ref.c_str());
+		//assert(read_anno_ref.length()<4*Config::MAX_READ_LENGTH) ;
+		aln->read_anno.assign(read_anno_ref) ;
 		aln->exons = exons;
 		aln->chromosome = &contig_idx;
 		aln->strand = strand;
