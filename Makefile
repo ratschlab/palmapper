@@ -6,9 +6,9 @@ ExeDir = $(OutDir)/a
 SVNVERSION = $(shell svnversion)
 
 CC = g++
-CFLAGS = -Wall -ggdb # -pg # debug 
+#CFLAGS = -Wall -ggdb # -pg # debug 
 #CFLAGS = -O9 -ggdb -g -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -march=native -mtune=native -pthread # linux amd64 optimized
-#CFLAGS =  -O9 -g -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
+CFLAGS =  -O9 -g -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
 LDFLAGS =  -g # -pg
