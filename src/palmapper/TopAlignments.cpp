@@ -1,4 +1,4 @@
-// Authors: Gunnar Raetsch, Geraldine Jean, Andre Kahles, Lisa Thalheim, Dominik Diesch
+// Authors: Gunnar Raetsch, Geraldine Jean, Andre Kahles, Lisa Thalheim, Dominik Diesch 
 // Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
 
 #include <sys/time.h>
@@ -448,7 +448,7 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 	strcpy(best->read_id, read.id()) ;
 	best->exons.push_back(readstart) ;
 	best->exons.push_back(readend) ;
-	best->read_anno.assign(ALIGNSEQ) ;
+	strcpy(best->read_anno, ALIGNSEQ) ;
 	best->min_exon_len=best->exons[1]-best->exons[0] ;
 	
 
@@ -1275,7 +1275,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			polytrim_cut_end = best->rtrim_cut ;
 		}
 
-		char *read_anno=new char[best->read_anno.length()+(polytrim_cut_start+polytrim_cut_end)*4+20] ;
+		char *read_anno=new char[strlen(best->read_anno)+(polytrim_cut_start+polytrim_cut_end)*4+20] ;
 		const char *read_qual = read.quality(0);
 		int read_len = read.length() ;
 		
@@ -1295,7 +1295,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 					read_anno[4*i+2]=orig_read[i] ;
 					read_anno[4*i+3]=']' ;
 				}
-				strcpy(&(read_anno[4*polytrim_cut_start]), best->read_anno.c_str()) ;
+				strcpy(&(read_anno[4*polytrim_cut_start]), best->read_anno) ;
 				int len=strlen(read_anno) ;
 				for (int i=0; i<polytrim_cut_end; i++)
 				{
@@ -1315,7 +1315,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 					read_anno[4*i+2]=get_compl_base(orig_read[orig_len-i-1]) ;
 					read_anno[4*i+3]=']' ;
 				}
-				strcpy(&read_anno[4*polytrim_cut_end], best->read_anno.c_str()) ;
+				strcpy(&read_anno[4*polytrim_cut_end], best->read_anno) ;
 				int len=strlen(read_anno) ;
 				for (int i=0; i<polytrim_cut_start; i++)
 				{
@@ -1328,7 +1328,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 			}
 		}
 		else
-			strcpy(read_anno, best->read_anno.c_str()) ;
+			strcpy(read_anno, best->read_anno) ;
 		
 		double qpalma_score = best->qpalma_score ;
 		
@@ -1401,7 +1401,7 @@ int TopAlignments::print_top_alignment_records_bedx(Read const &read, std::ostre
 		}
 
 		fprintf(MY_OUT_FP, "\tqpalmaScore=%1.3f;numMatches=%i;numGaps=%i;minExonLen=%i;maxIntronLen=%i;readOrientation=%c;read=%s",	
-				second->qpalma_score, second->num_matches_ref, second->num_gaps_ref, second->min_exon_len, best->max_intron_len, read_orientation, second->read_anno.c_str()) ;
+				second->qpalma_score, second->num_matches_ref, second->num_gaps_ref, second->min_exon_len, best->max_intron_len, read_orientation, second->read_anno) ;
 
 		if (_config.POLYTRIM_STRATEGY)
 		{
@@ -1457,7 +1457,7 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 			hit->chromosome->desc(),
 			readstart + 1, 	// 1-initialized
 			//		ALIGNSEQ,	//Alignment String: ALIGNSEQ is the last recorded alignment string
-			align->read_anno.c_str(),	//Alignment String corresponding to this particular alignment
+			align->read_anno,	//Alignment String corresponding to this particular alignment
 			read.id(),
 			((hit->orientation == '+') ? 'D' : 'P'));
 
@@ -2041,8 +2041,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		//	double qpalma_score = best->qpalma_score ;
         
 		// determine CIGAR
-		char __cigar[1000] ; 
-		char cigar[1000] ;
+		const int max_cigar_len=1000 ;
+		char __cigar[max_cigar_len] ; 
+		char cigar[max_cigar_len] ;
 		char cig_buf[255] ;
 
 		uint32_t pos_in_cigar = 0;
@@ -2056,6 +2057,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<=max_cigar_len) ;
 		}
 		if ((_config.POLYTRIM_STRATEGY  || _config.RTRIM_STRATEGY) && (polytrim_cut_end>0 && read_orientation=='-'))
 		{
@@ -2064,11 +2066,12 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<=max_cigar_len) ;
 		}
 
 		//fprintf(stdout,"read anno: %s\n",curr_align->read_anno);
 		
-		for (uint32_t i = 0; i < curr_align->read_anno.length(); i++)
+		for (uint32_t i = 0; i < strlen(curr_align->read_anno); i++)
 		{
 			if (curr_align->read_anno[i] != '[')
 				__cigar[idx] = 'M' ;	
@@ -2107,6 +2110,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 				pos_in_cigar += strlen(cig_buf) ;
 				cigar[pos_in_cigar++] = last ;
+				assert(pos_in_cigar<=max_cigar_len) ;
 
 				if (last == 'D')
 					deletions += count;
@@ -2121,6 +2125,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 				pos_in_cigar += strlen(cig_buf) ;
 				cigar[pos_in_cigar++] = 'N' ;
+				assert(pos_in_cigar<=max_cigar_len) ;
 
 				/// go to next exon
 				idx += 2 ;
@@ -2138,6 +2143,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 						cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 					pos_in_cigar += strlen(cig_buf) ;
 					cigar[pos_in_cigar++] = last ;
+					assert(pos_in_cigar<=max_cigar_len) ;
 				}
 				if (last == 'D')
 					deletions += count;
@@ -2156,6 +2162,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 		pos_in_cigar += ii ;
 		cigar[pos_in_cigar++] = last ;
+		assert(pos_in_cigar<=max_cigar_len) ;
 		if (last == 'D')
 			deletions += count ; 
 		if (last == 'I')
@@ -2170,6 +2177,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<=max_cigar_len) ;
 		}
 		// handle trimmed reads end
 		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_start>0  && read_orientation=='-')
@@ -2179,6 +2187,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<=max_cigar_len) ;
 		}
 
 		//cigar[pos] = 0 ;
