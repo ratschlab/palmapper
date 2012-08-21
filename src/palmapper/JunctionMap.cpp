@@ -251,7 +251,7 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 								(*it).read_id.c_str(), (*it).start, (*it).end, (*it).strand, (*it).coverage, (*it).consensus, (*it).junction_qual,
 								read_id, start, end, strand, coverage, consensus, junction_qual) ;
 
-						assert(0) ; // this should not happen -> please report this bug and try commenting out the assertion
+						//assert(0) ; // this should not happen -> please report this bug and try commenting out the assertion
 						
 						if (!consensus) // try to handle this case 
 							(*it).consensus=false ;
