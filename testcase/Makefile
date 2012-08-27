@@ -151,6 +151,13 @@ resultBed.md5: $(resultDirBed)/$(resultSubDirArray)/$(MappedBed) $(resultDirBed)
 	mkdir -p $(resultDirBed)/$(resultSubDirArray)
 	(cd $(resultDirBed)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesBed))) >  $(resultBed) 
 
+#Testcases with array-based index
+bench: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
+#@ echo "Array-based index: Basic Testcase"
+#@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
+	@ mkdir -p $(resultDirTest)/$(resultSubDirArray)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirArray)/$(Coverage) -rlim 1000000 -threads 12"
 
 #Testcases with array-based index
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000	
