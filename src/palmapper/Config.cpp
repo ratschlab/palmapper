@@ -1093,7 +1093,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				i++;
 				FILTER_VARIANT_MAXLEN=atoi(argv[i]) ;
-				assert(FILTER_VARIANT_VLEN>=0) ;
+				assert(FILTER_VARIANT_MAXLEN>=0) ;
 				FILTER_VARIANTS=true ;
 			}
 

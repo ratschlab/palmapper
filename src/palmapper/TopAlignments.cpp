@@ -2041,8 +2041,10 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		//	double qpalma_score = best->qpalma_score ;
         
 		// determine CIGAR
-		char __cigar[1000] ; 
-		char cigar[1000] ;
+		const uint32_t max_cigar_len = 1000 ;
+			
+		char __cigar[max_cigar_len] ; 
+		char cigar[max_cigar_len] ;
 		char cig_buf[255] ;
 
 		uint32_t pos_in_cigar = 0;
@@ -2056,6 +2058,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<max_cigar_len) ;
 		}
 		if ((_config.POLYTRIM_STRATEGY  || _config.RTRIM_STRATEGY) && (polytrim_cut_end>0 && read_orientation=='-'))
 		{
@@ -2064,6 +2067,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<max_cigar_len) ;
 		}
 
 		//fprintf(stdout,"read anno: %s\n",curr_align->read_anno);
@@ -2107,6 +2111,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 				pos_in_cigar += strlen(cig_buf) ;
 				cigar[pos_in_cigar++] = last ;
+				assert(pos_in_cigar<max_cigar_len) ;
 
 				if (last == 'D')
 					deletions += count;
@@ -2121,6 +2126,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 				pos_in_cigar += strlen(cig_buf) ;
 				cigar[pos_in_cigar++] = 'N' ;
+				assert(pos_in_cigar<max_cigar_len) ;
 
 				/// go to next exon
 				idx += 2 ;
@@ -2138,6 +2144,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 						cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 					pos_in_cigar += strlen(cig_buf) ;
 					cigar[pos_in_cigar++] = last ;
+					assert(pos_in_cigar<max_cigar_len) ;
 				}
 				if (last == 'D')
 					deletions += count;
@@ -2156,6 +2163,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 		pos_in_cigar += ii ;
 		cigar[pos_in_cigar++] = last ;
+		assert(pos_in_cigar<max_cigar_len) ;
 		if (last == 'D')
 			deletions += count ; 
 		if (last == 'I')
@@ -2170,6 +2178,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<max_cigar_len) ;
 		}
 		// handle trimmed reads end
 		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_start>0  && read_orientation=='-')
@@ -2179,6 +2188,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				cigar[pos_in_cigar + ii] = cig_buf[ii] ;
 			pos_in_cigar += strlen(cig_buf) ;
 			cigar[pos_in_cigar++] = 'S' ;
+			assert(pos_in_cigar<max_cigar_len) ;
 		}
 
 		//cigar[pos] = 0 ;
