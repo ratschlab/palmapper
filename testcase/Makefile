@@ -157,7 +157,7 @@ bench: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
 #@ echo "-------------------------------------------------"
 	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirTest)/$(resultSubDirArray)
-	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirArray)/$(Coverage) -rlim 1000000 -threads 12"
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirArray)/$(Coverage) -rlim 100000 -threads 1"
 
 #Testcases with array-based index
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000	
