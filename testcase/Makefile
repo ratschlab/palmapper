@@ -152,12 +152,21 @@ resultBed.md5: $(resultDirBed)/$(resultSubDirArray)/$(MappedBed) $(resultDirBed)
 	(cd $(resultDirBed)/$(resultSubDirArray) ; md5sum $(notdir $(ResultFilesBed))) >  $(resultBed) 
 
 #Testcases with array-based index
-bench: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000
-#@ echo "Array-based index: Basic Testcase"
+bench1: $(binDir)/palmapper $(DnaFile) $(IndexFiles)  $(BwaIndexFiles) $(dataDir)/split_1m.000
+#@ echo "Benchmark with 1 core"
 #@ echo "-------------------------------------------------"
 	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
 	@ mkdir -p $(resultDirTest)/$(resultSubDirArray)
 	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirArray)/$(Coverage) -rlim 100000 -threads 1"
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirBwa)/$(Coverage) $(bwa) -rlim 100000 -threads 1"
+
+bench12: $(binDir)/palmapper $(DnaFile) $(IndexFiles)  $(BwaIndexFiles) $(dataDir)/split_1m.000
+#@ echo "Benchmark with 12 cores"
+#@ echo "-------------------------------------------------"
+	@ rm -f $(CurrentDir)/$@.test_passed $(CurrentDir)/$@.test_failed
+	@ mkdir -p $(resultDirTest)/$(resultSubDirArray)
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirArray)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirArray)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirArray)/$(Coverage) -rlim 1200000 -threads 12"
+	bash -c "time $(MapCmd) $(accDon)  $(outSam) $(qpalma) -u $(resultDirTest)/$(resultSubDirBwa)/$(Unmapped) -o $(resultDirTest)/$(resultSubDirBwa)/$(MappedSam) -report-coverage-wig $(resultDirTest)/$(resultSubDirBwa)/$(Coverage) $(bwa) -rlim 120000 -threads 12"
 
 #Testcases with array-based index
 map: $(binDir)/palmapper $(DnaFile) $(IndexFiles) $(dataDir)/split_1m.000	
