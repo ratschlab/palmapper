@@ -65,6 +65,11 @@ Statistics::Statistics()
 	qpalma_total_num_threads=0 ;
 	qpalma_total_num_thread_tasks=0 ;
 
+	variant_lower_bound_time=0 ;
+	variant_identification_time=0 ;
+	variant_create_super_sequence_from_variants_time=0 ;
+	variant_myalign_fast_time=0 ;
+	variant_reconstruct_reference_alignment_time=0 ;
 
 	// HITS
 	hits_seed2genome=0, hits_last_report_total=0;

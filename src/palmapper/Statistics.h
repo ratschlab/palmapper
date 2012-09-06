@@ -88,6 +88,8 @@ public:
 	// QPALMA
 	int qpalma_read_count ;
 	float qpalma_region1_time, qpalma_region_align_time, qpalma_align_time, intervalquery_total_time ;
+	float variant_lower_bound_time, variant_identification_time, variant_create_super_sequence_from_variants_time, 
+		variant_myalign_fast_time, variant_reconstruct_reference_alignment_time ;
 	long int qpalma_total_dna_length, qpalma_total_alignments ;
 	long int qpalma_total_num_threads, qpalma_total_num_thread_tasks ;
 
