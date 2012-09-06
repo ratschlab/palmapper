@@ -49,6 +49,11 @@ public:
 				fprintf(stdout, "\n# %i (%i) unspliced, %i (%i) spliced alignments, %i unmapped (spliced %2.1f%%, unmapped %2.1f%%)\n", 
 						alignment_num_unspliced_best, alignment_num_unspliced_suboptimal, alignment_num_spliced_best, alignment_num_spliced_suboptimal, alignment_num_unmapped,
 						100.0*alignment_num_spliced_best/(alignment_num_spliced_best+alignment_num_unspliced_best), 100.0*alignment_num_unmapped/(alignment_num_spliced_best+alignment_num_unspliced_best+alignment_num_unmapped)) ;
+
+				fprintf(stdout, "variant_timing:  lower_bound=%2.1f id=%2.1f create_super_sequence=%2.1f myalign_fast=%2.1f reconstruct_reference_alignment=%2.1f", 
+						variant_lower_bound_time, variant_identification_time, variant_create_super_sequence_from_variants_time, 
+						variant_myalign_fast_time, variant_reconstruct_reference_alignment_time) ;
+
 			}
 		}
 
