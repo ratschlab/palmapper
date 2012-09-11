@@ -3437,6 +3437,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
                                                 int &hit_dna_pos, std::vector<bool> &ref_map) const 
 {
 	int seed_ref=hit_dna_pos;
+
+	clock_t my_start_time=clock() ;
 	
 	std::vector< struct pos_table_str *> pos_table(dna.size(), NULL) ;
 	for (unsigned int i=0; i<dna.size(); i++)
@@ -3472,8 +3474,10 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			pos_table[variants[i].position]->snp_ids.push_back(i) ;
 			nbv_snp++ ;
 		}
-		
 	}
+	_stats.variant_create_super_sequence_from_variants_init_time += clock() - my_start_time;
+
+	my_start_time=clock() ;
 	for (unsigned int i=0; i<variants.size(); i++)
 	{
 		if (variants[i].type == pt_insertion)
@@ -3502,6 +3506,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 			else
 				fprintf(stdout, "dropped insertion of length %i at beginning or end of sequence\n", variants[i].variant_len) ;
+
 		}
 		
 		if (variants[i].type == pt_substitution && false)
@@ -3550,9 +3555,12 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 		}
 	}
+	_stats.variant_create_super_sequence_from_variants_insertion_init_time += clock() - my_start_time;
 
 	if (myverbosity>=1)
 		fprintf(stdout, "Created supersequence of length %ld from reference sequence of length %ld using %ld variants\n", dna.length(), pos_table.size(), variants.size()) ;
+	
+	my_start_time=clock() ;
 	
 	dna = std::string(pos_table.size(), ' ') ;
 	delete[] acceptor ;
@@ -3576,6 +3584,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 		donor[i] = pos_table[i]->don ;
 		dna[i] = pos_table[i]->nuc ;
 	}
+	_stats.variant_create_super_sequence_from_variants_table_init_time += clock() - my_start_time;
 
 	
 	std::vector<variant_cache_t *> variant_cache(d_len,NULL);
@@ -3585,6 +3594,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 	
 	for (unsigned int i=0; i<pos_table.size(); i++)
 	{
+		my_start_time=clock() ;
 		for (unsigned j = 0; j<pos_table[i]->del_refs.size(); j++)
 		{
 
@@ -3641,6 +3651,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 				}
 			}
 		}
+		_stats.variant_create_super_sequence_from_variants_table_fill1_time += clock() - my_start_time;
+		my_start_time=clock() ;
 		
 		if (!_config.IUPAC_SNPS)
 		{
@@ -3696,6 +3708,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 			
 		}
+		_stats.variant_create_super_sequence_from_variants_table_fill2_time += clock() - my_start_time;
 		
 	}
 
@@ -5440,7 +5453,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int pre_dna_size=dna.size() ;
 	if (_config.USE_VARIANTS) // && variant_list.size()>0)
 	{
-		clock_t my_start_time = clock() ;
+		clock_t my_start_time ; 
 
 		if (strand == '-')
 		{
@@ -5449,6 +5462,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 		try 
 		{
+			my_start_time = clock() ;
 			variant_cache = create_super_sequence_from_variants<myverbosity>(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
 		}
 		catch (std::bad_alloc)

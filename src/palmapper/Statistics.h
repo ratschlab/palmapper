@@ -54,6 +54,10 @@ public:
 						variant_lower_bound_time, variant_identification_time, variant_create_super_sequence_from_variants_time, 
 						variant_myalign_fast_time, variant_reconstruct_reference_alignment_time) ;
 
+				fprintf(stdout, "create_super_sequence_timing:  init=%2.1f insert_init=%2.1f table_init=%2.1f fill1=%2.1f fill2=%2.1f", 
+						variant_create_super_sequence_from_variants_init_time, variant_create_super_sequence_from_variants_insertion_init_time,
+						variant_create_super_sequence_from_variants_table_init_time, variant_create_super_sequence_from_variants_table_fill1_time,
+						variant_create_super_sequence_from_variants_table_fill2_time) ;
 			}
 		}
 
@@ -95,6 +99,8 @@ public:
 	float qpalma_region1_time, qpalma_region_align_time, qpalma_align_time, intervalquery_total_time ;
 	float variant_lower_bound_time, variant_identification_time, variant_create_super_sequence_from_variants_time, 
 		variant_myalign_fast_time, variant_reconstruct_reference_alignment_time ;
+	float variant_create_super_sequence_from_variants_init_time,	variant_create_super_sequence_from_variants_insertion_init_time, variant_create_super_sequence_from_variants_table_init_time, variant_create_super_sequence_from_variants_table_fill1_time, variant_create_super_sequence_from_variants_table_fill2_time;
+
 	long int qpalma_total_dna_length, qpalma_total_alignments ;
 	long int qpalma_total_num_threads, qpalma_total_num_thread_tasks ;
 

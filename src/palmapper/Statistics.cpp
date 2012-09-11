@@ -71,6 +71,12 @@ Statistics::Statistics()
 	variant_myalign_fast_time=0 ;
 	variant_reconstruct_reference_alignment_time=0 ;
 
+	variant_create_super_sequence_from_variants_init_time=0 ;
+	variant_create_super_sequence_from_variants_insertion_init_time=0 ;
+	variant_create_super_sequence_from_variants_table_init_time=0;
+	variant_create_super_sequence_from_variants_table_fill1_time=0;
+	variant_create_super_sequence_from_variants_table_fill2_time=0 ;
+
 	// HITS
 	hits_seed2genome=0, hits_last_report_total=0;
 	hits_seed2genome_cnt=0;

@@ -1503,7 +1503,7 @@ int VariantMap::init_from_samtools(const std::string &sdi_fname)
 
 int VariantMap::report_to_file(const std::string &filename) const
 {
-	unsigned int pos_ext=filename.rfind('.');
+	size_t pos_ext=filename.rfind('.');
 
 	if (pos_ext != std::string::npos)  
 	{
@@ -1655,7 +1655,7 @@ int VariantMap::init_from_files(std::string &fnames)
 		else
 			filename=fnames.substr(previousfound);
 
-		unsigned int pos_ext=filename.rfind('.');
+		size_t pos_ext=filename.rfind('.');
 		//fprintf(stdout, "fn=%s,%i\n", filename.c_str(), pos_ext) ;
 		VariantInputEnum ext=unknown;
 		if (pos_ext != std::string::npos)
@@ -2088,7 +2088,7 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
 
 		//Get genome name and chromosome
 		std::string name_tmp(name_maf);
-		unsigned int position_tmp = name_tmp.find_last_of('.');
+		size_t position_tmp = name_tmp.find_last_of('.');
 		if (position_tmp == std::string::npos)
 		{
 			fprintf(stderr, "Name %s does not contain genome and chromosome information\n", name_maf) ;
