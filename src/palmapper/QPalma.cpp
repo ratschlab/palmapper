@@ -3337,6 +3337,7 @@ struct pos_table_str
 {
 	int pos ;
 	char nuc ;
+	bool to_be_deleted ;
 	double acc ;
 	double don ;
 	std::vector<pos_table_str *> del_refs ;
@@ -3361,7 +3362,7 @@ inline std::vector<struct pos_table_str *>::iterator  pos_table_lower_bound ( st
 
 		// find closest non-negative position
 		std::vector<struct pos_table_str *>::iterator itf=it, itb=it;
-		while ((itf<last && (*itf)->pos<0) || (itb>=first && (*itb)->pos<0))
+		while ((itf<last && (*itf)!=NULL && (*itf)->pos<0) || (itb>=first && (*itb)!=NULL && itb<last && (*itb)->pos<0))
 		{
 			if (itf>=last && itb<first)
 				break ;
@@ -3373,10 +3374,15 @@ inline std::vector<struct pos_table_str *>::iterator  pos_table_lower_bound ( st
 		if (itf<last && (*itf)->pos>=0)
 			it=itf ;
 		else
-			if (itb>=first && (*itb)->pos>=0)
+			if (itb>=first && (*itf)!=NULL && itb<last && (*itb)->pos>=0)
 				it=itb ;
 			else
-				assert(0) ;
+			{
+				while (first<last && (*first)->pos<value)
+					advance(first, 1) ;
+				
+				return first;
+			}
 		
 		if ( (*it)->pos < value) 
 		{
@@ -3397,11 +3403,17 @@ int find_pos(std::vector< struct pos_table_str *> &pos_table, int position)
 {
 	// todo: speedup by binary search 
 	
-	/*std::vector<struct pos_table_str *>::iterator first = pos_table_lower_bound(pos_table.begin(), pos_table.end(), position) ;
+	std::vector<struct pos_table_str *>::iterator first = pos_table_lower_bound(pos_table.begin(), pos_table.end(), position) ;
 	int p = first - pos_table.begin() ;
 	if (perform_extra_checks)
-		assert(pos_table[p]->pos==position) ;
-		return p ;*/
+	{
+		//fprintf(stderr, "ERROR: Position %i not found \n", position) ; 
+		//assert(pos_table[p]->pos==position) ;
+	}
+	if (p<(int)pos_table.size() && p>=0)
+		for (unsigned int i=p; i<pos_table.size() && i-p<10; i++)
+			if (pos_table[i]->pos == position)
+			return i ;
 
 	for (unsigned int i=0; i<pos_table.size(); i++)
 		if (pos_table[i]->pos == position)
@@ -3432,18 +3444,23 @@ void change_pos_table_deletion_ends(struct pos_table_str * pos_table_previous_en
 	pos_table_previous_end_p->del_origs.clear();
 }
 
-template <int myverbosity>	
+template <int myverbosity, bool do_timing>	
 std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int &a_len, double *&donor, int &d_len, 
                                                 int &hit_dna_pos, std::vector<bool> &ref_map) const 
 {
 	int seed_ref=hit_dna_pos;
 
-	clock_t my_start_time=clock() ;
+	clock_t my_start_time ;
+	if (do_timing)
+		my_start_time=clock() ;
+	
+	struct pos_table_str * pos_table_= new struct pos_table_str[dna.size()] ;
 	
 	std::vector< struct pos_table_str *> pos_table(dna.size(), NULL) ;
 	for (unsigned int i=0; i<dna.size(); i++)
 	{
-		pos_table[i] = new struct pos_table_str ;
+		pos_table[i] = &pos_table_[i] ; //new struct pos_table_str ;
+		pos_table[i]->to_be_deleted = false ;
 		pos_table[i]->pos = i ;
 		pos_table[i]->nuc = dna[i] ;
 		pos_table[i]->acc = acceptor[i] ;
@@ -3474,10 +3491,13 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			pos_table[variants[i].position]->snp_ids.push_back(i) ;
 			nbv_snp++ ;
 		}
-	}
-	_stats.variant_create_super_sequence_from_variants_init_time += clock() - my_start_time;
+	}	
+	if (do_timing)
+		_stats.variant_create_super_sequence_from_variants_init_time += clock() - my_start_time;
 
-	my_start_time=clock() ;
+	if (do_timing)
+		my_start_time=clock() ;
+
 	for (unsigned int i=0; i<variants.size(); i++)
 	{
 		if (variants[i].type == pt_insertion)
@@ -3495,6 +3515,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 					p->acc = -ALMOST_INFINITY ;
 					p->don = -ALMOST_INFINITY ;
 					p->pos = -1 ;
+					p->to_be_deleted=true ;
 					
 					pos_table.insert(it, p) ;
 				}
@@ -3528,6 +3549,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 					p->acc = -ALMOST_INFINITY ;
 					p->don = -ALMOST_INFINITY ;
 					p->pos = -1 ;
+					p->to_be_deleted=true ;
 					
 					pos_table.insert(it, p) ;
 				}
@@ -3540,6 +3562,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 					p->acc = -ALMOST_INFINITY ;
 					p->don = -ALMOST_INFINITY ;
 					p->pos = -1 ;
+					p->to_be_deleted=true ;
 					
 					pos_table.insert(it, p) ;
 				}
@@ -3555,12 +3578,14 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 		}
 	}
-	_stats.variant_create_super_sequence_from_variants_insertion_init_time += clock() - my_start_time;
+	if (do_timing)
+		_stats.variant_create_super_sequence_from_variants_insertion_init_time += clock() - my_start_time;
 
 	if (myverbosity>=1)
 		fprintf(stdout, "Created supersequence of length %ld from reference sequence of length %ld using %ld variants\n", dna.length(), pos_table.size(), variants.size()) ;
 	
-	my_start_time=clock() ;
+	if (do_timing)
+		my_start_time=clock() ;
 	
 	dna = std::string(pos_table.size(), ' ') ;
 	delete[] acceptor ;
@@ -3584,7 +3609,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 		donor[i] = pos_table[i]->don ;
 		dna[i] = pos_table[i]->nuc ;
 	}
-	_stats.variant_create_super_sequence_from_variants_table_init_time += clock() - my_start_time;
+	if (do_timing)
+		_stats.variant_create_super_sequence_from_variants_table_init_time += clock() - my_start_time;
 
 	
 	std::vector<variant_cache_t *> variant_cache(d_len,NULL);
@@ -3592,9 +3618,10 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 	int nb_snps = 0 ;
 	int nb_dels = 0 ;
 	
+	if (do_timing)
+		my_start_time=clock() ;
 	for (unsigned int i=0; i<pos_table.size(); i++)
 	{
-		my_start_time=clock() ;
 		for (unsigned j = 0; j<pos_table[i]->del_refs.size(); j++)
 		{
 
@@ -3624,7 +3651,7 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 					if (variant_cache[start_pos]==NULL){
 						variant_cache[start_pos]= new variant_cache_t;
 						variant_cache[start_pos]->insertion = -1;
-					}	
+					}	 
 					//insertion unique
 					if (perform_extra_checks)
 						assert(variant_cache[start_pos]->insertion <0);
@@ -3651,10 +3678,15 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 				}
 			}
 		}
+	}
+	if (do_timing)
 		_stats.variant_create_super_sequence_from_variants_table_fill1_time += clock() - my_start_time;
+
+	if (do_timing)
 		my_start_time=clock() ;
-		
-		if (!_config.IUPAC_SNPS)
+	if (!_config.IUPAC_SNPS)
+	{
+		for (unsigned int i=0; i<pos_table.size(); i++)
 		{
 			for (unsigned j = 0; j<pos_table[i]->snps.size(); j++)
 			{
@@ -3664,14 +3696,15 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 				{
 					variant_cache[i]= new variant_cache_t;
 					variant_cache[i]->insertion = -1;
-				
 				}
 				variant_cache[i]->snps.push_back(pos_table[i]->snps[j]->variant_str[0]);
 				variant_cache[i]->id_snps.push_back(pos_table[i]->snp_ids[j]);
-	   
 			}
 		}
-		else{
+	}
+	else{
+		for (unsigned int i=0; i<pos_table.size(); i++)
+		{
 			//Merge SNPs and DNA base in dna[i]
 			if ((int)pos_table[i]->snps.size() > 0)
 			{
@@ -3706,17 +3739,18 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 				}
 				dna[i]=merged_base;				
 			}
-			
 		}
-		_stats.variant_create_super_sequence_from_variants_table_fill2_time += clock() - my_start_time;
-		
 	}
+	if (do_timing)
+		_stats.variant_create_super_sequence_from_variants_table_fill2_time += clock() - my_start_time;
 
 	for (unsigned int i=0; i<pos_table.size(); i++)
 	{
-		delete pos_table[i] ;
+		if (pos_table[i]->to_be_deleted)
+			delete pos_table[i] ;
 		pos_table[i]=NULL ;
 	}
+	delete[] pos_table_ ;
 
 	if (myverbosity>=1)
 		fprintf(stdout, "found %i variants (%i snps, %i dels from nbv_dels=%i, nbv_snp=%i, nbv_ins=%i, nbv_subst=%i)\n", 
@@ -5463,7 +5497,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		try 
 		{
 			my_start_time = clock() ;
-			variant_cache = create_super_sequence_from_variants<myverbosity>(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
+			variant_cache = create_super_sequence_from_variants<myverbosity,false>(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
 		}
 		catch (std::bad_alloc)
 		{

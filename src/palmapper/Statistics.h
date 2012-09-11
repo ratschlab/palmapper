@@ -56,14 +56,16 @@ public:
 						variant_lower_bound_time/sum1, variant_identification_time/sum1, variant_create_super_sequence_from_variants_time/sum1, 
 						variant_myalign_fast_time/sum1, variant_reconstruct_reference_alignment_time/sum1) ;
 
-				float sum2=(variant_create_super_sequence_from_variants_init_time+variant_create_super_sequence_from_variants_insertion_init_time+
-						variant_create_super_sequence_from_variants_table_init_time+variant_create_super_sequence_from_variants_table_fill1_time+
-							variant_create_super_sequence_from_variants_table_fill2_time + 1)/100 ;
-				
-				fprintf(stdout, "create_super_sequence_timing:  init=%2.1f insert_init=%2.1f table_init=%2.1f fill1=%2.1f fill2=%2.1f\n", 
-						variant_create_super_sequence_from_variants_init_time/sum2, variant_create_super_sequence_from_variants_insertion_init_time/sum2,
-						variant_create_super_sequence_from_variants_table_init_time/sum2, variant_create_super_sequence_from_variants_table_fill1_time/sum2,
-						variant_create_super_sequence_from_variants_table_fill2_time/sum2) ;
+				/*
+				  float sum2=(variant_create_super_sequence_from_variants_init_time+variant_create_super_sequence_from_variants_insertion_init_time+
+				  variant_create_super_sequence_from_variants_table_init_time+variant_create_super_sequence_from_variants_table_fill1_time+
+				  variant_create_super_sequence_from_variants_table_fill2_time + 1)/100 ;
+				  
+				  fprintf(stdout, "create_super_sequence_timing:  init=%2.1f insert_init=%2.1f table_init=%2.1f fill1=%2.1f fill2=%2.1f\n", 
+				  variant_create_super_sequence_from_variants_init_time/sum2, variant_create_super_sequence_from_variants_insertion_init_time/sum2,
+				  variant_create_super_sequence_from_variants_table_init_time/sum2, variant_create_super_sequence_from_variants_table_fill1_time/sum2,
+				  variant_create_super_sequence_from_variants_table_fill2_time/sum2) ;
+				*/
 			}
 		}
 

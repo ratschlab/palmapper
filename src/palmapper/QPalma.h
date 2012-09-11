@@ -215,7 +215,7 @@ protected:
 	
 //	int rescue_alignment(Read const &read, std::string & read_anno, int ori, int &num_A, int &num_T, int &num) ;
 
-	template <int myverbosity>
+	template <int myverbosity, bool do_timing>
 std::vector<variant_cache_t *> create_super_sequence_from_variants(std::vector<Variant> & variants, std::string & dna, double *&acceptor, int & a_len, double *&donor, int & d_len, int &hit_dna_converted, std::vector<bool> &ref_map) const ; 
 	template <int myverbosity>
 	int reconstruct_reference_alignment(std::vector<Variant> & variants,const std::vector<FoundVariant> & found_variants, std::string & dna, const std::vector<bool> & ref_map, int * &s_align, int & s_len, int * &e_align, int & e_len,int * &dna_align,int * &read_align,int & result_length,bool remapping, bool& alignment_passed_filters, int &alignment_gaps, int &alignment_mm, const std::vector<variant_cache_t *> &variant_cache, bool report_variants) const ;
