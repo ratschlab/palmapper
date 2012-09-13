@@ -192,6 +192,8 @@ int main(int argc, char *argv[])
 									 _config.FILTER_VARIANT_MAXLEN, _config.FILTER_VARIANT_MAP_WINDOW, *genomemaps) ;
 		if (_config.UNIQUE_VARIANT_SOURCE_IDS)
 			variants.unique_variant_source_ids() ;
+		if (_config.CONVERT_SUBSTITUTION_VARIANTS)
+			variants.convert_substitutions() ;
 	}
 
 	QPalma *qpalma = NULL;

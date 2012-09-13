@@ -3086,48 +3086,48 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 				} 
 				else 
 					if (false) // buggy
-				{
-					if ((signed)first_stretch>=(signed)last_stretch && first_stretch>0)
 					{
-						// only use the 5' end of the substitution
-						v.position = deleted_positions[0] ;
-						if (perform_extra_checks)
-							assert(v.position>=0) ;
-						v.ref_len = 0 ;
-						v.ref_str = "" ;
-						v.variant_str = "" ;
-						for (unsigned int i=0; i<first_stretch; i++)
+						if ((signed)first_stretch>=(signed)last_stretch && first_stretch>0)
 						{
-							v.ref_len++ ;
-							v.ref_str += dna[deleted_positions[i]] ;
-							if (i<(*it).variant_str.size())
-								v.variant_str += (*it).variant_str[i] ;
-						}
-						v.end_position = v.position+v.ref_len ;
-						found = true ;
-						//fprintf(stdout, "partial subst 5': %s -> %s\t%s -> %s\n", (*it).ref_str.c_str(), (*it).variant_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
-					} 
-					if ((signed)last_stretch>(signed)first_stretch && last_stretch>0)
-					{
-						// only use the 3' end of the substitution
-						v.position = deleted_positions[deleted_positions.size()-1]-last_stretch + 1 ; // +/- 1 ? 
-						if (perform_extra_checks)
-							assert(v.position>=0) ;
-						v.ref_len = 0 ;
-						v.ref_str = "" ;
-						v.variant_str = "" ;
-						for (int i=0; i<last_stretch && deleted_positions.size() - i - 1>0; i++)
+							// only use the 5' end of the substitution
+							v.position = deleted_positions[0] ;
+							if (perform_extra_checks)
+								assert(v.position>=0) ;
+							v.ref_len = 0 ;
+							v.ref_str = "" ;
+							v.variant_str = "" ;
+							for (unsigned int i=0; i<first_stretch; i++)
+							{
+								v.ref_len++ ;
+								v.ref_str += dna[deleted_positions[i]] ;
+								if (i<(*it).variant_str.size())
+									v.variant_str += (*it).variant_str[i] ;
+							}
+							v.end_position = v.position+v.ref_len ;
+							found = true ;
+							//fprintf(stdout, "partial subst 5': %s -> %s\t%s -> %s\n", (*it).ref_str.c_str(), (*it).variant_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
+						} 
+						if ((signed)last_stretch>(signed)first_stretch && last_stretch>0)
 						{
-							v.ref_len++ ;
-							v.ref_str = dna[deleted_positions[deleted_positions.size() - i - 1]] + v.ref_str ;
-							if (i<(signed)(*it).variant_str.size())
-								v.variant_str = (*it).variant_str[(*it).variant_str.size() - i - 1] + v.variant_str;
+							// only use the 3' end of the substitution
+							v.position = deleted_positions[deleted_positions.size()-1]-last_stretch + 1 ; // +/- 1 ? 
+							if (perform_extra_checks)
+								assert(v.position>=0) ;
+							v.ref_len = 0 ;
+							v.ref_str = "" ;
+							v.variant_str = "" ;
+							for (int i=0; i<last_stretch && deleted_positions.size() - i - 1>0; i++)
+							{
+								v.ref_len++ ;
+								v.ref_str = dna[deleted_positions[deleted_positions.size() - i - 1]] + v.ref_str ;
+								if (i<(signed)(*it).variant_str.size())
+									v.variant_str = (*it).variant_str[(*it).variant_str.size() - i - 1] + v.variant_str;
+							}
+							v.end_position = v.position+v.ref_len ;
+							found = true ;
+							//fprintf(stdout, "partial subst 3': %s -> %s\t%s -> %s\n", (*it).ref_str.c_str(), (*it).variant_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
 						}
-						v.end_position = v.position+v.ref_len ;
-						found = true ;
-						//fprintf(stdout, "partial subst 3': %s -> %s\t%s -> %s\n", (*it).ref_str.c_str(), (*it).variant_str.c_str(), v.ref_str.c_str(), v.variant_str.c_str()) ;
 					}
-				}
 			}
 		}
 		
@@ -3579,11 +3579,12 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 				pos_table[idx_start-1]->del_refs.push_back(pos_table[idx_end+1+num_N]) ;
 				//pos_table[idx_start-1]->del_ids.push_back(variants[i].id) ;
 				pos_table[idx_start-1]->del_ids.push_back(i) ;
+
 				// skipping the variant version
-				change_pos_table_deletion_ends(pos_table[idx_end+1+num_N+variants[i].variant_len],pos_table[idx_end+1+num_N]); //because of insertion: change ends of former deletion back to before the insertion
-				pos_table[idx_end]->del_refs.push_back(pos_table[idx_end+1+num_N+variants[i].variant_len]) ;
+				change_pos_table_deletion_ends(pos_table[idx_end+num_N+variants[i].variant_len],pos_table[idx_end+num_N]); //because of insertion: change ends of former deletion back to before the insertion
+				pos_table[idx_end]->del_refs.push_back(pos_table[idx_end+num_N+variants[i].variant_len]) ;
 				pos_table[idx_end]->del_ids.push_back(i) ; //-1 because the id is already included in the first deletion
-				pos_table[idx_end+1+num_N+variants[i].variant_len]->del_origs.push_back(pos_table[idx_end]) ;
+				pos_table[idx_end+num_N+variants[i].variant_len]->del_origs.push_back(pos_table[idx_end]) ;
 			}
 		}
 	}

@@ -163,6 +163,49 @@ void VariantMap::unique_variant_source_ids()
 	}
 }
 
+void VariantMap::convert_substitutions()
+{
+	fprintf(stdout, "Converting substitutions to insertion+deletion\n") ;
+	
+	int nbchr = genome->nrChromosomes();
+	int N=0, T=0;
+	 
+	for (int i=0; i<nbchr; i++) 
+	{
+		int n=0,t=0 ;
+		
+		std::vector<Variant> filtered ;
+		for (unsigned int j=0; j<variantlist[i].size(); j++)
+		{
+			if (variantlist[i][j].type==pt_substitution)
+			{
+				Variant ins=variantlist[i][j], del=variantlist[i][j] ;
+				ins.type=pt_insertion ;
+				ins.ref_str="" ;
+				ins.ref_len=0 ;
+				ins.end_position=ins.position ;
+				
+				del.type=pt_deletion ;
+				del.variant_str="" ;
+				del.variant_len=0 ;
+
+				filtered.push_back(ins) ;
+				filtered.push_back(del) ;
+				t++ ;
+			}
+			else			
+				filtered.push_back(variantlist[i][j]) ;
+			n++ ; t++ ;
+		}
+		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants\n", genome->chromosome(i).desc(), n, t) ;
+		variantlist[i].clear() ;
+		variantlist[i]=filtered ;
+		N+=n ;
+		T+=t ;
+	}
+	
+}
+
 
 void VariantMap::filter_variants(int min_source_count, int min_conf_count, double max_nonconf_ratio, 
 								 int min_use_count,

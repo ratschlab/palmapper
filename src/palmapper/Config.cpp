@@ -164,6 +164,7 @@ Config::Config() {
 	REPORT_VARIANTS=false ;
 	REPORT_USED_VARIANTS=false ;
 	FILTER_VARIANTS=false ;
+	CONVERT_SUBSTITUTION_VARIANTS=false ;
 	MERGE_VARIANT_SOURCE_IDS = false ;
 	UNIQUE_VARIANT_SOURCE_IDS = false ;
 	IUPAC_SNPS= false ;
@@ -1071,6 +1072,11 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				MAP_JUNCTIONS_MIN_SEGMENT_LENGTH=atoi(argv[i]) ;
 				assert(MAP_JUNCTIONS_MIN_SEGMENT_LENGTH>=0) ;
+			}
+
+			if (strcmp(argv[i], "-convert-substition-variants") == 0) {
+				not_defined = 0;
+				CONVERT_SUBSTITUTION_VARIANTS=true ;
 			}
 
 			if (strcmp(argv[i], "-filter-variants-varlen") == 0) {
