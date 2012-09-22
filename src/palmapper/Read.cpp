@@ -96,7 +96,7 @@ void Read::copyFrom(Read const &src, unsigned cutStart, unsigned cutEnd) {
  *	\return A status code; 0 on success
  */
 
-int Read::read_short_read()
+int Read::read_short_read(bool & passed_first_read, bool & passed_last_read)
 {
 	char line[10000];
 	char *tmp;
@@ -298,7 +298,7 @@ int Read::read_short_read()
 		strcpy(READ_QUALITY[0], READ) ;
 		memset(READ_QUALITY[0], 'g', strlen(READ)) ;
 
-		for (int i=0; i<READ_LENGTH; i++)
+		for (unsigned int i=0; i<READ_LENGTH; i++)
 			READ[i]=toupper(READ[i]) ;
 		
 		//READ_QUALITY[0] = (char*)"";
@@ -521,6 +521,28 @@ int Read::read_short_read()
 			READ_FORMAT = 2;
 		}
 	
+	if (_config.FIRST_READ_ID)
+	{
+		if (strcmp(_config.FIRST_READ_ID, READ_ID)==0)
+		{
+			passed_first_read=true ;
+			//fprintf(stdout, "first read found: %s\n", READ_ID) ;
+		}
+		if (!passed_first_read)
+			return 2 ;
+		//fprintf(stdout, "taking read %s\n", READ_ID) ;
+	}
+	if (_config.LAST_READ_ID)
+	{
+		if (passed_last_read)
+			return 2 ;
+		if (strcmp(_config.LAST_READ_ID, READ_ID)==0)
+		{
+			passed_last_read=true ;
+			//fprintf(stdout, "last read found: %s\n", READ_ID) ;
+		}
+	}
+
 	return 0;
 }
 

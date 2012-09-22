@@ -11,6 +11,8 @@ QueryFile::QueryFile(std::vector<std::string> const &filenames,std::vector<int> 
 	_readCount = 0;
 	_file = NULL;
 	open_next_file();
+	passed_first_read=false ;
+	passed_last_read=false ;
 }
 
 
@@ -36,8 +38,14 @@ Read *QueryFile::next_read() {
 
 bool QueryFile::next_read(Read &read, int &strand) {
 	Mutex::Locker locker(_mutex);
+	int ret ;
 
-	while (read.read_short_read() > 0) {
+	while ((ret=read.read_short_read(passed_first_read, passed_last_read)) > 0) {
+		if (ret==2)
+			continue ;
+		//reset first/last read logic
+		passed_first_read=false;
+		passed_last_read=false ;
 		if (!open_next_file()) {
 			if (_readCount == 0)
 				cerr << "\n!!! WARNING: None of the given file(s) contain any usable read!\n\n";
@@ -53,8 +61,14 @@ bool QueryFile::next_read(Read &read, int &strand) {
 
 bool QueryFile::next_read(Read &read) {
 	Mutex::Locker locker(_mutex);
-
-	while (read.read_short_read() > 0) {
+	int ret = 0 ;
+	
+	while ((ret=read.read_short_read(passed_first_read, passed_last_read)) > 0) {
+		if (ret==2)
+			continue ;
+		//reset first/last read logic
+		passed_first_read=false ;
+		passed_last_read=false ;
 		if (!open_next_file()) {
 			if (_readCount == 0)
 				cerr << "\n!!! WARNING: None of the given file(s) contain any usable read!\n\n";

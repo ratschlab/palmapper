@@ -87,6 +87,8 @@ private:
 	int _readCount;
 	int _current_strand;
 	Mutex _mutex;
+
+	bool passed_first_read, passed_last_read ;
 };
 
 inline std::ostream &operator<<(std::ostream &out, QueryFile::Location const &loc) {

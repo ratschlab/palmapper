@@ -80,7 +80,7 @@ public:
 	static size_t const INDEX_SIZE_13 = 67108864; //4^13
 	static size_t const INDEX_SIZE_14 = 67108864*4; //4^14
 	static size_t const INDEX_SIZE_15 = 67108864*4*4; //4^15
-	static size_t const MAX_READ_LENGTH = 1000;
+	static size_t const MAX_READ_LENGTH = 20000;
 	static int const MAX_READ_ID_LENGTH = 1000;
 	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
 
@@ -126,7 +126,9 @@ public:
 	unsigned int INDEX_SEED_STEP ;
 	std::string READ_ID_PREFIX ;
 	unsigned int FIRST_READ_NR;
+	char* FIRST_READ_ID;
 	unsigned int LAST_READ_NR;
+	char* LAST_READ_ID;
 	std::string ONLY_READ_ID ;
 
 	unsigned int INDEX_DEPTH_EXTRA_THRESHOLD;

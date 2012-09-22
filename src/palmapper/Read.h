@@ -273,7 +273,7 @@ private:
 	 */
 	void copyFrom(Read const &src, unsigned cutStart, unsigned cutEnd);
 
-	int read_short_read();
+	int read_short_read(bool & passed_first_read, bool & passed_last_read);
 
 	unsigned int READ_LENGTH;
 

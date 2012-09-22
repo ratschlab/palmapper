@@ -66,7 +66,9 @@ Config::Config() {
 	OUTPUT_FORMAT_OPTION = OUTPUT_FORMAT_OPTION_DEFAULT ;
 
 	FIRST_READ_NR = 0;
+	FIRST_READ_ID = NULL ;
 	LAST_READ_NR = 10000000;
+	LAST_READ_ID = NULL ;
 
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
@@ -2076,6 +2078,18 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 
+		if (strcmp(argv[i], "-fromID") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option -from\n") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			FIRST_READ_ID = strdup(argv[i]) ;
+		}
+		
+
 		//last read to be mapped
 		/* // NOT IMPLEMENTED YET
 		  if (strcmp(argv[i], "-to") == 0) {
@@ -2096,6 +2110,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1);
 			}
 			}*/
+
 
 		//first read to be mapped
 		/* // NOT IMPLEMENTED YET
@@ -2470,6 +2485,7 @@ int Config::usage() {
 		printf(" -u STRING                   output filename for unmapped reads [/dev/null]\n\n");
 
 		printf(" -rlim INT      limit the number of reads for alignment\n");
+		printf(" -fromID STRING skip the first reads from query file until the readID is identical to the given one\n");
 		printf(" -from INT      skip the first <from> reads from query file\n");
 		printf(" -to   INT      map only the first <to> reads from query file\n\n");
 
