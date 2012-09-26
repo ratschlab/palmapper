@@ -702,6 +702,80 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank, bool up
 	return ;
 }
 
+int VariantMap::init_from_vcf(const std::string &vcf_fname)
+{
+    fprinf(stdout, "initializing genome variant list with VCF file %s\n", vcf_fname.c_str()) ;
+
+    FILE * fd=Util::openFile(vcf_fname.c_str(), "r") ;
+    if (!fd)
+        return -1 ;
+    int variant_lines = 0, variant_lines_checked = 0 ;
+    const int max_buf_len = 10000000 ;
+	const int max_field_len = 500000 ;
+    
+    char * buf=(char*)malloc(max_buf_len+1) ;
+    strcpy(buf, "") ;
+    
+    while (!feof(fd))
+    {
+        char chr_name[1001]="", vcf_id[1001]="", ref_str[max_field_len+1]="", variant_str[max_field_len+1]="", vcf_qual[1001]="", vcf_filter[1001]="", vcf_info[1001]="", vcf_format=[1001]="", P_TWO[1001]="", S_ONE[1001]="", A_J[1001]="", AKR[1001]="", BALB[1001]="", C3H[1001]="", C57BL[1001]="", CAST[1001]="", CBA[1001]="", DBA[1001]="", LP_J[1001]="", NOD[1001]="", NZO[1001]="", PWK[1001]="", SPRET[1001]="", WST[1001]="", prop[1001]="", source_id[1001]="" ;
+        
+        int position, lendiff, read_pos=-1, read_len=-1, conf_count=0, non_conf_count=0, used_count=0, non_used_count=0 ;
+        
+        //TODO Skip lines that contain ##
+        
+        int num = sscanf(buf,"%1000s\t%i\t%1000s\t%500000s\t%500000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\t%1000s\n",
+                          chr_name, &position, vcf_id, ref_str, variant_str, vcf_qual, vcf_filter, vcf_info, vcf_format, P_TWO, S_ONE, A_J, AKR, BALB, C3H, C57BL, CAST, CBA, DBA, LP_J, NOD, NZO, PWK, SPRET, WST) ;
+        
+        //TODO Split on variant_str, link strain and source ID and quality scores
+        
+        //TODO Set SDI Defaults
+        
+        int chr_idx = genome->find_desc(chr_name) ;
+		if (chr_idx==-1)
+		{
+			fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
+			genome->print_desc(stderr) ;
+			fclose(fd) ;
+			free(buf) ;
+			return -1 ;
+		}
+		if (strcmp(ref_str, "-")==0)
+			strcpy(ref_str, "") ;
+		if (strcmp(variant_str, "-")==0)
+			strcpy(variant_str, "") ;
+        
+		int ref_len = strlen(ref_str) ;
+		int variant_len = strlen(variant_str) ;
+        		
+		//TODO determine variant length based on logic from alternate alleles
+
+		// validate variants on genome sequence
+		if (ref_len>0 && validate_variants && false)
+		{
+			//fprintf(stdout, "pos=%i\tref_len=%i\tvariant_len=%i\n", pos, ref_len, variant_len) ;
+			for (int i=0; i<ref_len; i++)
+			{
+				if (genome->chromosome(chr_idx)[position+i-1]!=ref_str[i] &&
+					ref_str[i]!='N' && ref_str[i]!='Y' && ref_str[i]!='W' && ref_str[i]!='K' && ref_str[i]!='S' && ref_str[i]!='M' && ref_str[i]!='R' && ref_str[i]!='D')
+				{
+					if (exit_on_validation_error)
+					{
+						fprintf(stderr, "ERROR: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\n%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
+						exit(-1) ;
+					}
+					else
+						fprintf(stdout, "WARNING: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\t%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
+				}
+			}
+			variant_lines_checked++ ;
+		}
+
+        
+        
+    }
+}
+
 int VariantMap::init_from_sdi(const std::string &sdi_fname)
 {
 
@@ -1708,6 +1782,8 @@ int VariantMap::init_from_files(std::string &fnames)
 			
 			if (extension.compare("sdi")==0 ||extension.compare("SDI")==0)
 				ext=sdi;
+            if (extension.compare("vcf")==0 || extension.compare("VCF")==0)
+                ext=vcf;
 #ifndef PMINDEX 
 			if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
 				ext=maf;
@@ -1752,6 +1828,8 @@ int VariantMap::init_from_files(std::string &fnames)
 			init_from_bin(filename);
 		if (ext == samtools)
 			init_from_samtools(filename);
+        if (ext == vcf)
+            init_from_vcf(filename);
 #ifndef PMINDEX 
 		if (ext == snpcsv)
 			init_from_csv(filename, _config.VARIANT_SNP_TAKE_LINES, ext);
