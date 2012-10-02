@@ -860,6 +860,9 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             }
         }
         
+        fprintf(stdout, "about to insert a variant: %i\t%i\t%i\t%i\t%s\t%s",
+                chr_idx, position-1, ref_len, variant_len, ref_str, variant_str);
+        
         insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
         variant_lines++ ;
         if (variant_lines%10000==0)
