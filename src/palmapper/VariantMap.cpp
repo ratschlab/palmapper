@@ -724,7 +724,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
         variant_str[max_field_len+1]="", source_id[1001]="",
         varElems[1001]="" ;
         char * varPch ;
-		int position, lendiff, read_pos=-1, read_len=-1, conf_count=0,
+		int position=0, lendiff=0, read_pos=-1, read_len=-1, conf_count=0,
         non_conf_count=0, used_count=0, non_used_count=0, chr_idx=0,
         variant_len=0, ref_len=0;
         std::vector<std::string> strainRefVec, variantVec, strainVec ;
@@ -763,7 +763,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 
                 headerPch = strtok (NULL, "\t") ;
             }
-        } else
+        } else if (buf[0] != '#')
         {
             char * elemPch ;
             int elemCntInt = 0 ;
@@ -773,7 +773,8 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             while (elemPch != NULL)
             {
                 if (elemCntInt == 0) {
-                    strcpy(chr_name, elemPch) ;
+                    chr_idx = atoi(elemPch) ;
+                    //strcpy(chr_name, elemPch) ;
                 } else if (elemCntInt == 1)
                 {
                     //position is 1 based; palmapper is 0 based
@@ -794,7 +795,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 elemCntInt++;
                 
                 elemPch = strtok (NULL, "\t") ;
-            }   //buffer while loop end
+            }   // process variant elements in first columns
             
             // Tokenize different variants
             varPch = strtok(varElems, ",") ;
@@ -804,24 +805,15 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 varPch = strtok (NULL, ",") ;
             }
             //update variants
-            chr_idx = genome->find_desc(chr_name) ;
-            if (chr_idx==-1)
-            {
-                fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
-                genome->print_desc(stderr) ;
-                fclose(fd) ;
-                free(buf) ;
-                return -1 ;
-            }
-
-            int ref_len = strlen(ref_str) ;
+            
+            ref_len = strlen(ref_str) ;
             if (ref_len < 0)
             {
                 continue ;
             } else
             {
-                for (unsigned variantCntInt = 0 ;
-                	 variantCntInt != variantVec.size() ;
+                for (unsigned int variantCntInt=0;
+                	 variantCntInt < variantVec.size() ;
                      variantCntInt++)
                 {
                     //find length difference
@@ -829,19 +821,22 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                     std::string srcIdStr ;
                     lendiff = (variant_len - ref_len) ;
                     
-                    //find strains that match variant
-                    for (unsigned strainCntInt = 0;
+                    //match strains with variants
+                    for (unsigned int strainCntInt = 0 ;
                          strainCntInt != strainVec.size() ;
                          strainCntInt++)
                     {
                         //skip blank strains
                         if (strainVec[strainCntInt].size() >= 3)
                         {
-                        	unsigned strainCharInt =
+                        	unsigned int strainCharInt =
                         	strainVec[strainCntInt].at(0) - '0';
                         	
                         	if (strainCharInt == variantCntInt+1)
                         	{
+                                fprintf(stdout, "what i'm looking at: %i\n",
+                                        strainRefVec[strainCntInt]) ;
+                                
                                 //update string for source_id
                                 if (srcIdStr.size() == 0)
                         		{
@@ -852,29 +847,28 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                         			srcIdStr.append(strainRefVec[strainCntInt]) ;
                         		}
                         	}
-                        }
+                        } //completed all strains for a variant
                     }
                     strcpy(variant_str, variantVec[variantCntInt].c_str()) ;
                     strcpy(source_id, srcIdStr.c_str()) ;
-                }
+                    
+                    insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
+                    variant_lines++ ;
+                } //completed all variants in a line
             }
         }
-        
-        fprintf(stdout, "about to insert a variant: %i\t%i\t%i\t%i\t%s\t%s",
-                chr_idx, position-1, ref_len, variant_len, ref_str, variant_str);
-        
-        insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
-        variant_lines++ ;
-        if (variant_lines%10000==0)
-        {
-            long pos = ftell(fd) ;
-            fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r", variant_lines, pos/1024/1024) ;
-        }
-        
     }
     fclose(fd) ;
+    /*
+    if (variant_lines%10000==0)
+    {
+        long pos = ftell(fd) ;
+        fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r",
+                variant_lines, pos/1024/1024) ;
+    }
     fprintf(stdout, "read %i variants (checked %i)\n", variant_lines,
             variant_lines_checked) ;
+    */
     free(buf) ;
     return 0;
 }
