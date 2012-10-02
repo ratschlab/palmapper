@@ -705,7 +705,7 @@ void VariantMap::insert_variant(Variant & j, int chr, const char* flank, bool up
 
 int VariantMap::init_from_vcf(const std::string &vcf_fname)
 {
-    fprintf(stdout, "initializing genome variant list with VCF file %s\n", sdi_fname.c_str()) ;
+    fprintf(stdout, "initializing genome variant list with VCF file %s\n", vcf_fname.c_str()) ;
     
     FILE * fd=Util::openFile(vcf_fname.c_str(), "r") ;
     if (!fd)
@@ -725,8 +725,9 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
         varElems[1001]="" ;
         char * varPch ;
 		int position, lendiff, read_pos=-1, read_len=-1, conf_count=0,
-        non_conf_count=0, used_count=0, non_used_count=0 ;
-        std::vector<std::string> variantVec, strainVec ;
+        non_conf_count=0, used_count=0, non_used_count=0, chr_idx=0,
+        variant_len=0, ref_len=0;
+        std::vector<std::string> strainRefVec, variantVec, strainVec ;
         
         if (fgets(buf, max_buf_len, fd)==NULL)
 			break ;
@@ -803,7 +804,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 varPch = strtok (NULL, ",") ;
             }
             //update variants
-            int chr_idx = genome->find_desc(chr_name) ;
+            chr_idx = genome->find_desc(chr_name) ;
             if (chr_idx==-1)
             {
                 fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
@@ -812,8 +813,9 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 free(buf) ;
                 return -1 ;
             }
-            int refLenInt = strlen(ref_str) ;
-            if (refLenInt < 0)
+
+            int ref_len = strlen(ref_str) ;
+            if (ref_len < 0)
             {
                 continue ;
             } else
@@ -823,10 +825,9 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                      variantCntInt++)
                 {
                     //find length difference
-                    int variantLenInt = 0 ;
-                    variantLenInt = variantVec[variantCntInt].size() ;
+                    variant_len = variantVec[variantCntInt].size() ;
                     std::string srcIdStr ;
-                    lendiff = (variantLenInt - refLenInt) ;
+                    lendiff = (variant_len - ref_len) ;
                     
                     //find strains that match variant
                     for (unsigned strainCntInt = 0;
@@ -855,36 +856,10 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                     }
                     strcpy(variant_str, variantVec[variantCntInt].c_str()) ;
                     strcpy(source_id, srcIdStr.c_str()) ;
-                    
-                    
-                    
                 }
             }
         }
         
-        // validate variants on genome sequence
-        if (ref_len>0 && validate_variants && false)
-        {
-            //fprintf(stdout, "pos=%i\tref_len=%i\tvariant_len=%i\n", pos, ref_len, variant_len) ;
-            for (int i=0; i<ref_len; i++)
-            {
-                if (genome->chromosome(chr_idx)[position+i-1]!=ref_str[i] &&
-                    ref_str[i]!='N' && ref_str[i]!='Y' && ref_str[i]!='W' && ref_str[i]!='K' && ref_str[i]!='S' && ref_str[i]!='M' && ref_str[i]!='R' && ref_str[i]!='D')
-                {
-                    if (exit_on_validation_error)
-                    {
-                        fprintf(stderr, "ERROR: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\n%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
-                        exit(-1) ;
-                    }
-                    else
-                    {
-                        fprintf(stdout, "WARNING: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\t%s\n", i, position+i, genome->chromosome(chr_idx)[position+i-1], ref_str[i], ref_str, buf) ;
-                    }
-                }
-            }
-            variant_lines_checked++ ;
-            
-        }
         insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
         variant_lines++ ;
         if (variant_lines%10000==0)
@@ -2601,5 +2576,4 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
         }
         transcript_seq.clear();
     }
-}
 }
