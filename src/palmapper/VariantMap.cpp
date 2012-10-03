@@ -816,6 +816,8 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 	 variantCntInt < variantVec.size() ;
                      variantCntInt++)
                 {
+					fprintf(stdout, "variant_lines=%i\n", variant_lines) ;
+					
                     //find length difference
                     variant_len = variantVec[variantCntInt].size() ;
                     std::string srcIdStr ;
@@ -829,13 +831,16 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                         //skip blank strains
                         if (strainVec[strainCntInt].size() >= 3)
                         {
-                        	unsigned int strainCharInt =
-                        	strainVec[strainCntInt].at(0) - '0';
-                        	
-                        	if (strainCharInt == variantCntInt+1)
+							int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
+							size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
+							assert(num>=2) ;
+							if (strainCharInt!=strainCharInt2)
+								fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
+							
+                        	if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
                         	{
-                                fprintf(stdout, "what i'm looking at: %i\n",
-                                        strainRefVec[strainCntInt]) ;
+                                //fprintf(stdout, "what i'm looking at: %i\n",
+                                //       strainRefVec[strainCntInt]) ;
                                   
                                 //update string for source_id
                                 if (srcIdStr.size() == 0)
