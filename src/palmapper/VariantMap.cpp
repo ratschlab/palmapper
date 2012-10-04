@@ -841,7 +841,9 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                         	{
                                 //fprintf(stdout, "what i'm looking at: %i\n",
                                 //       strainRefVec[strainCntInt]) ;
-                                  
+
+                                assert(variantCntInt<strainRefVec.size()) ;
+								
                                 //update string for source_id
                                 if (srcIdStr.size() == 0)
                         		{
