@@ -712,11 +712,13 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
         return -1 ;
     int variant_lines = 0, variant_lines_checked = 0 ;
     const int max_buf_len = 10000000 ;
-	const int max_field_len = 500000 ;
-    
+    const int max_field_len = 500000 ;
+    std::vector<std::string> strainRefVec ; 
+
     char * buf=(char*)malloc(max_buf_len+1) ;
     strcpy(buf, "") ;
-    
+
+
     while (!feof(fd))
     {
         //variant object requirements for palmapper
@@ -727,7 +729,6 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 		int position=0, lendiff=0, read_pos=-1, read_len=-1, conf_count=0,
         non_conf_count=0, used_count=0, non_used_count=0, chr_idx=0,
         variant_len=0, ref_len=0;
-        std::vector<std::string> strainRefVec, variantVec, strainVec ;
         
         if (fgets(buf, max_buf_len, fd)==NULL)
 			break ;
@@ -744,6 +745,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             char * headerPch ;
             int headCntInt = 0 ;
             headerPch = strtok (buf, "\t") ;
+            std::vector<std::string> variantVec, strainVec ;
             
             while (headerPch != NULL)
             {
@@ -767,6 +769,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
         {
             char * elemPch ;
             int elemCntInt = 0 ;
+            std::vector<std::string> variantVec, strainVec ;
             
             elemPch = strtok (buf, "\t") ;
             
