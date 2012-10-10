@@ -710,18 +710,10 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
     FILE * fd=Util::openFile(vcf_fname.c_str(), "r") ;
     if (!fd)
         return -1 ;
-    int variant_lines = 0, variant_lines_checked = 0 ;
+    int variant_lines = 0;
     const int max_buf_len = 10000000 ;
     const int max_field_len = 500000 ;
     std::vector<std::string> strainRefVec ; 
-
-    char * buf=(char*)malloc(max_buf_len+1) ;
-    strcpy(buf, "") ;
-
-
-=======
-	const int max_field_len = 500000 ;
-	std::vector<std::string> strainRefVec ;    
 
     char * buf=(char*)malloc(max_buf_len+1) ;
     strcpy(buf, "") ;
@@ -729,13 +721,12 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
     while (!feof(fd))
     {
         //variant object requirements for palmapper
-        char chr_name[1001]="", ref_str[max_field_len+1]="",
+        char ref_str[max_field_len+1]="",
         variant_str[max_field_len+1]="", source_id[1001]="",
-        varElems[1001]="" ;
+        varElems[1001]="", chr_name[1001]="" ;
         char * varPch ;
-		int position=0, lendiff=0, read_pos=-1, read_len=-1, conf_count=0,
-        non_conf_count=0, used_count=0, non_used_count=0, chr_idx=0,
-        variant_len=0, ref_len=0;
+	int position=0, lendiff=0,
+        variant_len=0, ref_len=0 ;
         
         if (fgets(buf, max_buf_len, fd)==NULL)
 			break ;
@@ -782,13 +773,13 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             
             while (elemPch != NULL)
             {
-                if (elemCntInt == 0) {
-                    chr_idx = atoi(elemPch) ;
-                    //strcpy(chr_name, elemPch) ;
+                if (elemCntInt == 0) 
+		{
+		   strcpy(chr_name, elemPch) ;
                 } else if (elemCntInt == 1)
                 {
                     //position is 1 based; palmapper is 0 based
-                    position = atoi(elemPch) - 1 ;
+                    position = atoi(elemPch) ;
                 } else if (elemCntInt == 3)
                 {
                     strcpy(ref_str, elemPch) ;
@@ -841,7 +832,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                         //skip blank strains
                         if (strainVec[strainCntInt].size() >= 3)
                         {
-							int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
+							unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
 							size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
 							assert(num>=2) ;
 							if (strainCharInt!=strainCharInt2)
@@ -849,13 +840,11 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 							
                         	if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
                         	{
-                                //fprintf(stdout, "what i'm looking at: %i\n",
-                                //       strainRefVec[strainCntInt]) ;
 
                                 assert(variantCntInt<strainRefVec.size()) ;
 								
                                 //update string for source_id
-                                if (srcIdStr.size() == 0)
+                                if ( srcIdStr.size() == 0u)
                         		{
                         			srcIdStr.append(strainRefVec[strainCntInt]) ;
                         		} else
@@ -868,7 +857,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                     }
                     strcpy(variant_str, variantVec[variantCntInt].c_str()) ;
                     strcpy(source_id, srcIdStr.c_str()) ;
-                    
+                    int chr_idx = genome->find_desc(chr_name) ; 
                     insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
                     variant_lines++ ;
                 } //completed all variants in a line
