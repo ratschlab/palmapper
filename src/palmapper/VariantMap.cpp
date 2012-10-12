@@ -721,8 +721,8 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
     while (!feof(fd))
     {
         //variant object requirements for palmapper
-        char ref_str[max_field_len+1]="",
-        variant_str[max_field_len+1]="", source_id[1001]="",
+        std::string ref_str, variant_str ;
+        char source_id[1001]="",
         varElems[1001]="", chr_name[1001]="" ;
         char * varPch ;
 	int position=0, lendiff=0,
@@ -782,7 +782,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                     position = atoi(elemPch) ;
                 } else if (elemCntInt == 3)
                 {
-                    strcpy(ref_str, elemPch) ;
+                    ref_str = elemPch ;
                 } else if (elemCntInt == 4)     //determine number of variants
                 {
                     strcpy(varElems, elemPch) ;
@@ -807,7 +807,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             }
             //update variants
             
-            ref_len = strlen(ref_str) ;
+            ref_len = ref_str.length() ;
             if (ref_len < 0)
             {
                 continue ;
@@ -855,10 +855,60 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                         	}
                         } //completed all strains for a variant
                     }
-                    strcpy(variant_str, variantVec[variantCntInt].c_str()) ;
+                    variant_str = variantVec[variantCntInt].c_str() ;
                     strcpy(source_id, srcIdStr.c_str()) ;
+                    if (lendiff < 0) 
+		    {
+			if (variant_len == 1) 
+			{
+				ref_str = ref_str.substr(variant_len, (ref_len - variant_len)) ;
+				ref_len = ref_str.length() ;
+				position = position + variant_len ;
+				variant_str = "" ;
+				variant_len = variant_str.length() ;
+
+			} else 
+			{
+
+				unsigned int preDifPosInt = 0;//, sufDifPosInt = 0 ;
+				unsigned int preLenInt = 0;//, sufLenInt = 0;
+
+				for (preLenInt = 0 ; preLenInt < ref_str.length(); preLenInt++)
+				{
+					if (variant_str[preLenInt] != ref_str[preLenInt]) 
+					{
+						preDifPosInt = preLenInt ;
+						break ;
+					}
+				}
+				//for (sufLenInt = 0; sufLenInt < ref_str.length(); sufLenInt++)
+				//{
+				//	if (variant_str[variant_len - sufLenInt] != 
+				//		ref_str[ref_len - sufLenInt])
+				//	{
+				//		sufDifPosInt = (ref_len - sufLenInt) ;
+				//		break ;
+				//	}
+				//}
+				position = position + preDifPosInt ;
+				ref_str = ref_str.substr(preDifPosInt, (ref_len - variant_len)) ;
+				ref_len = ref_str.length() ;
+				variant_str = "" ;
+				variant_len = variant_str.length() ; 				
+			}
+		    
+                    } else if (lendiff > 0) 
+		    {
+                    	//deletion from reference
+		    	position = position + ref_len ;
+                    	variant_str = variant_str.substr(ref_len, (variant_len - ref_len )) ;
+		    	variant_len = variant_str.length() ;
+		    	ref_str = "" ;
+                    	ref_len = 0 ;
+                    }
+                    
                     int chr_idx = genome->find_desc(chr_name) ; 
-                    insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
+                    insert_variant(chr_idx, position - 1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
                     variant_lines++ ;
                 } //completed all variants in a line
             }
