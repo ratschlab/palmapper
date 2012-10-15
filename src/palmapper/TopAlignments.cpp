@@ -2007,7 +2007,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			 * flag+=(curr_read.STRAND_OF_MATE*32) ;
 			 * flag+=(curr_read.FIRST_IN_PAIR)?64:128 ;
 			 */
-			flag+=((top_alignments.size()>1)*256) ;
+			flag+=((top_alignments.size()>1 && j>0)*256) ;
 		}
 		/*else
 		{
