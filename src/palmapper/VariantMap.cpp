@@ -869,29 +869,19 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 
 			} else 
 			{
+				unsigned int posOffsetInt = 0 ;
+				unsigned int offsetInt = 0 ; 
 
-				unsigned int preDifPosInt = 0;//, sufDifPosInt = 0 ;
-				unsigned int preLenInt = 0;//, sufLenInt = 0;
-
-				for (preLenInt = 0 ; preLenInt < ref_str.length(); preLenInt++)
+				for (offsetInt = 0 ; offsetInt < ref_str.length(); offsetInt++)
 				{
-					if (variant_str[preLenInt] != ref_str[preLenInt]) 
+					if (variant_str[offsetInt] != ref_str[offsetInt]) 
 					{
-						preDifPosInt = preLenInt ;
+						posOffsetInt = offsetInt ;
 						break ;
 					}
 				}
-				//for (sufLenInt = 0; sufLenInt < ref_str.length(); sufLenInt++)
-				//{
-				//	if (variant_str[variant_len - sufLenInt] != 
-				//		ref_str[ref_len - sufLenInt])
-				//	{
-				//		sufDifPosInt = (ref_len - sufLenInt) ;
-				//		break ;
-				//	}
-				//}
-				position = position + preDifPosInt ;
-				ref_str = ref_str.substr(preDifPosInt, (ref_len - variant_len)) ;
+				position = position + posOffsetInt ;
+				ref_str = ref_str.substr(posOffsetInt, (ref_len - variant_len)) ;
 				ref_len = ref_str.length() ;
 				variant_str = "" ;
 				variant_len = variant_str.length() ; 				
@@ -899,17 +889,27 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 		    
                     } else if (lendiff > 0) 
 		    {
-                    	//deletion from reference
-		    	position = position + ref_len ;
-                    	variant_str = variant_str.substr(ref_len, (variant_len - ref_len )) ;
+			
+			unsigned int posOffsetInt = 0 ;
+			unsigned int offsetInt = 0 ; 
+			for (offsetInt = 0 ; offsetInt < ref_str.length(); offsetInt++)
+			{
+				if (variant_str[offsetInt] != ref_str[offsetInt]) 
+				{
+					posOffsetInt = offsetInt ;
+					break ;
+				}
+			}
+			position = position + posOffsetInt ;
+                    	variant_str = variant_str.substr(posOffsetInt, (variant_len - ref_len )) ;
 		    	variant_len = variant_str.length() ;
 		    	ref_str = "" ;
                     	ref_len = 0 ;
                     }
-                    
-                    int chr_idx = genome->find_desc(chr_name) ; 
-                    insert_variant(chr_idx, position - 1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
-                    variant_lines++ ;
+                int chr_idx = genome->find_desc(chr_name) ; 
+                insert_variant(chr_idx, position - 1, ref_len, variant_len, 
+		ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
+               	variant_lines++ ;
                 } //completed all variants in a line
             }
         }
