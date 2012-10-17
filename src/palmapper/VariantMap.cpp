@@ -834,32 +834,57 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                          strainCntInt != strainVec.size() ;
                          strainCntInt++)
                     {
-                        //skip blank strains
-                        if (strainVec[strainCntInt].size() >= 3)
-                        {
-				unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
-				size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
-				assert(num>=2) ;
-				if (strainCharInt!=strainCharInt2)
-					fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
-							
-                        	if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
-                        	{
-
-                                assert(variantCntInt<strainRefVec.size()) ;
+                     	if (lendiff != 0)
+			{	
+				//insertion or deletion logic
+				if (strainVec[strainCntInt].size() >= 3)
+				{
+					unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
+					size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
+					assert(num>=2) ;
+					if (strainCharInt!=strainCharInt2)
+						fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
 								
-                                //update string for source_id
-                                if ( srcIdStr.size() == 0u)
-                        		{
-                        			srcIdStr.append(strainRefVec[strainCntInt]) ;
-                        		} else
-                        		{
-                        			srcIdStr.append(",");
-                        			srcIdStr.append(strainRefVec[strainCntInt]) ;
-                        		}
-                        	}
-                        } //completed all strains for a variant
-                    }
+					if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
+					{
+
+						assert(variantCntInt<strainRefVec.size()) ;
+										
+						//update string for source_id
+						if ( srcIdStr.size() == 0u)
+						{
+							srcIdStr.append(strainRefVec[strainCntInt]) ;
+						} else
+						{
+							srcIdStr.append(",");
+							srcIdStr.append(strainRefVec[strainCntInt]) ;
+						}
+					}
+				} //completed all strains for a variant
+                    	} else 
+			{
+				if (strainVec[strainCntInt].size() >= 3)
+				{
+					unsigned int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0, dp=0 ;
+					size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq, &dp) ;
+					assert(num>=2) ;
+
+					if (gt1 == variantCntInt + 1 && atg == 1 && hcg == 1)
+					{
+						assert(variantCntInt<strainRefVec.size()) ;
+						if (srcIdStr.size() == 0u)
+						{
+							srcIdStr.append(strainRefVec[strainCntInt]) ;
+						} else
+						{
+							srcIdStr.append(",");
+							srcIdStr.append(strainRefVec[strainCntInt]) ;
+						}
+					}
+				}
+
+			}
+		    }
                     variant_str = variantVec[variantCntInt].c_str() ;
                     strcpy(source_id, srcIdStr.c_str()) ;
                     if (lendiff < 0) 
@@ -955,8 +980,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 
                     } else 
 		    {
-			fprintf(stdout, "Warning: length difference was not zero:%i\n", varPosition) ;
-		    		
+		    	//SNP	
 		    }
 
                 int chr_idx = genome->find_desc(chr_name) ; 
