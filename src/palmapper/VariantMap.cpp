@@ -813,17 +813,22 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 continue ;
             } else
             {
-                for (unsigned int variantCntInt=0;
-                	 variantCntInt < variantVec.size() ;
+                
+		for (unsigned int variantCntInt=0;
+                      variantCntInt < variantVec.size() ;
                      variantCntInt++)
                 {
-					fprintf(stdout, "variant_lines=%i\n", variant_lines) ;
+		     fprintf(stdout, "variant_lines=%i\n", variant_lines) ;
 					
                     //find length difference
                     variant_len = variantVec[variantCntInt].size() ;
-                    std::string srcIdStr ;
-                    lendiff = (variant_len - ref_len) ;
-                    
+                    std::string srcIdStr, ref_str_temp ;
+		    int varPosition = 0, ref_len_temp = 0 ;
+	
+                    varPosition = position ;
+		    ref_str_temp = ref_str ;
+	            ref_len_temp = ref_str_temp.length() ;		
+		    lendiff = (variant_len - ref_len_temp) ;
                     //match strains with variants
                     for (unsigned int strainCntInt = 0 ;
                          strainCntInt != strainVec.size() ;
@@ -832,11 +837,11 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                         //skip blank strains
                         if (strainVec[strainCntInt].size() >= 3)
                         {
-							unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
-							size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
-							assert(num>=2) ;
-							if (strainCharInt!=strainCharInt2)
-								fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
+				unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
+				size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
+				assert(num>=2) ;
+				if (strainCharInt!=strainCharInt2)
+					fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
 							
                         	if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
                         	{
@@ -859,56 +864,104 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                     strcpy(source_id, srcIdStr.c_str()) ;
                     if (lendiff < 0) 
 		    {
-			if (variant_len == 1) 
-			{
-				ref_str = ref_str.substr(variant_len, (ref_len - variant_len)) ;
-				ref_len = ref_str.length() ;
-				position = position + variant_len ;
-				variant_str = "" ;
-				variant_len = variant_str.length() ;
-
-			} else 
-			{
-				unsigned int posOffsetInt = 0 ;
-				unsigned int offsetInt = 0 ; 
-
-				for (offsetInt = 0 ; offsetInt < ref_str.length(); offsetInt++)
-				{
-					if (variant_str[offsetInt] != ref_str[offsetInt]) 
-					{
-						posOffsetInt = offsetInt ;
-						break ;
-					}
-				}
-				position = position + posOffsetInt ;
-				ref_str = ref_str.substr(posOffsetInt, (ref_len - variant_len)) ;
-				ref_len = ref_str.length() ;
-				variant_str = "" ;
-				variant_len = variant_str.length() ; 				
-			}
-		    
-                    } else if (lendiff > 0) 
-		    {
-			
-			unsigned int posOffsetInt = 0 ;
 			unsigned int offsetInt = 0 ; 
-			for (offsetInt = 0 ; offsetInt < ref_str.length(); offsetInt++)
+
+			for (offsetInt = 0 ; offsetInt < variant_str.length(); offsetInt++)
 			{
-				if (variant_str[offsetInt] != ref_str[offsetInt]) 
+				if (variant_str[offsetInt] != ref_str_temp[offsetInt]) 
 				{
-					posOffsetInt = offsetInt ;
 					break ;
 				}
 			}
-			position = position + posOffsetInt ;
-                    	variant_str = variant_str.substr(posOffsetInt, (variant_len - ref_len )) ;
-		    	variant_len = variant_str.length() ;
-		    	ref_str = "" ;
-                    	ref_len = 0 ;
-                    }
+			if (offsetInt == variant_str.length())
+			{
+				varPosition = varPosition + offsetInt ;
+				ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
+				ref_len_temp = ref_str_temp.length() ;
+				variant_str = "" ;
+				variant_len = variant_str.length() ; 	    
+			}
+			else 
+		        {
+				unsigned int suffixInt = 0 ;
+				for (suffixInt = 0; suffixInt < variant_str.length() - offsetInt; suffixInt++)
+				{
+					if (variant_str[variant_len - suffixInt] != ref_str_temp[ref_len_temp - suffixInt])
+					{
+						break ;
+					}
+				}
+				varPosition = varPosition + offsetInt ;
+				if (suffixInt + offsetInt == variant_len) 
+				{
+					ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - suffixInt - offsetInt)) ;
+					ref_len_temp = ref_str_temp.length() ;
+					variant_str = "" ;
+					variant_len = 0 ;
+				} else
+				{
+					ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
+					ref_len_temp = ref_str_temp.length() ;
+					variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt));
+					variant_len = variant_str.length() ;
+				}
+		    	}
+ 
+                    } else if (lendiff > 0) 
+		    {
+			
+			unsigned int offsetInt = 0 ; 
+			for (offsetInt = 0 ; offsetInt < ref_str_temp.length(); offsetInt++)
+			{
+				if (variant_str[offsetInt] != ref_str_temp[offsetInt]) 
+				{
+					break ;
+				}
+			}
+			if (offsetInt == ref_str.length())
+			{
+				varPosition = varPosition + offsetInt ;
+                    		variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt)) ;
+		    		variant_len = variant_str.length() ;
+		    		ref_str_temp = "" ;
+                    		ref_len_temp = 0 ;
+			}
+			else
+			{
+				unsigned int suffixInt = 0 ;
+				for (suffixInt = 0; suffixInt < ref_str_temp.length() - offsetInt; suffixInt++)
+				{
+					if (variant_str[variant_len - suffixInt] != ref_str_temp[ref_len_temp - suffixInt])
+					{
+						break ;
+					}
+				}
+				varPosition = varPosition + offsetInt ;
+				if (suffixInt + offsetInt == ref_len_temp)
+				{
+					variant_str = variant_str.substr(offsetInt, (variant_len - suffixInt - offsetInt)) ;
+					variant_len = variant_str.length() ;
+					ref_str_temp = "" ;
+					ref_len_temp = 0 ;
+				} else
+				{
+					
+					variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt)) ;
+					variant_len = variant_str.length() ;
+					ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
+					ref_len_temp = ref_str_temp.length();
+				}	
+			}
+
+                    } else 
+		    {
+			fprintf(stdout, "Warning: length difference was not zero:%i\n", varPosition) ;
+		    		
+		    }
+
                 int chr_idx = genome->find_desc(chr_name) ; 
-                insert_variant(chr_idx, position - 1, ref_len, variant_len, 
-		ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
+                insert_variant(chr_idx, varPosition - 1, ref_len_temp, variant_len, 
+		ref_str_temp, variant_str, 0, 0, 0,0, "", -2, -1);
                	variant_lines++ ;
                 } //completed all variants in a line
             }
