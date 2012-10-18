@@ -818,9 +818,6 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                       variantCntInt < variantVec.size() ;
                      variantCntInt++)
                 {
-		     fprintf(stdout, "variant_lines=%i\n", variant_lines) ;
-					
-                    //find length difference
                     variant_len = variantVec[variantCntInt].size() ;
                     std::string srcIdStr, ref_str_temp ;
 		    int varPosition = 0, ref_len_temp = 0 ;
@@ -836,7 +833,6 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                     {
                      	if (lendiff != 0)
 			{	
-				//insertion or deletion logic
 				if (strainVec[strainCntInt].size() >= 3)
 				{
 					unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
@@ -885,10 +881,17 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 
 			}
 				
+		    } // complete variants and strains
+		    if (srcIdStr.length() != 0 )
+		    {
+		    	strcpy(source_id, srcIdStr.c_str()) ;
+		    } else
+		    {
+		    	continue ;
 		    }
-                    variant_str = variantVec[variantCntInt].c_str() ;
-                    strcpy(source_id, srcIdStr.c_str()) ;
-                    if (lendiff < 0) 
+		    variant_str = variantVec[variantCntInt].c_str() ;
+                    
+		    if (lendiff < 0) 
 		    {
 			unsigned int offsetInt = 0 ; 
 
