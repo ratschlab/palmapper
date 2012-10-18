@@ -865,7 +865,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 			{
 				if (strainVec[strainCntInt].size() >= 3)
 				{
-					unsigned int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0, dp=0 ;
+					signed int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0, dp=0 ;
 					size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq, &dp) ;
 					assert(num>=2) ;
 
@@ -877,13 +877,14 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 							srcIdStr.append(strainRefVec[strainCntInt]) ;
 						} else
 						{
-							srcIdStr.append(",");
+							srcIdStr.append(",") ;
 							srcIdStr.append(strainRefVec[strainCntInt]) ;
 						}
 					}
 				}
 
 			}
+				
 		    }
                     variant_str = variantVec[variantCntInt].c_str() ;
                     strcpy(source_id, srcIdStr.c_str()) ;
@@ -983,10 +984,11 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 		    	//SNP	
 		    }
 
-                int chr_idx = genome->find_desc(chr_name) ; 
-                insert_variant(chr_idx, varPosition - 1, ref_len_temp, variant_len, 
-		ref_str_temp, variant_str, 0, 0, 0,0, "", -2, -1);
-               	variant_lines++ ;
+		int chr_idx = genome->find_desc(chr_name) ; 
+		insert_variant(chr_idx, varPosition - 1, ref_len_temp, variant_len, 
+		ref_str_temp, variant_str, 0, 0, 0,0, source_id, -2, -1);
+		variant_lines++ ;
+		
                 } //completed all variants in a line
             }
         }
