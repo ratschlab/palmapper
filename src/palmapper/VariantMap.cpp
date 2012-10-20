@@ -863,7 +863,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 				{
 					signed int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0, dp=0 ;
 					size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq, &dp) ;
-					assert(num>=2) ;
+					//assert(num>=2) ;
 
 					if (gt1 == variantCntInt + 1 && atg == 1 && hcg == 1)
 					{
