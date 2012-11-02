@@ -729,12 +729,14 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
         variant_len=0, ref_len=0 ;
         
         if (fgets(buf, max_buf_len, fd)==NULL)
-			break ;
+        {
+          break ;
+        }
         
         //skip lines that contain VCF metadata
         if (buf[0] == '#' && buf[1] == '#')
         {
-            continue ;
+          continue ;
         }
         
         //store the strain names
@@ -747,24 +749,25 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             
             while (headerPch != NULL)
             {
-                if (headCntInt > 8)   //strains begin in column 9
-                {
+                if (headCntInt > 8 && strainRefVec.size() == 0)   //strains begin in column 9, only process one header
+              {
                     std::string strainNmStr = headerPch ;
                     std::string whitespaces (" \t\f\v\n\r") ;
                     size_t found ;
                     found = strainNmStr.find_last_not_of(whitespaces) ;
                     if (found!=std::string::npos)
-                        strainNmStr.erase(found+1) ;
-                    else
-                        strainNmStr.clear() ;
-                    strainRefVec.push_back(strainNmStr) ;
-                }
-                headCntInt++ ;
-                
-                headerPch = strtok (NULL, "\t") ;
+                    {
+                      strainNmStr.erase(found+1) ;
+                    } else {
+                      strainNmStr.clear() ;
+                      strainRefVec.push_back(strainNmStr) ;
+                    }
+              }
+              headCntInt++ ;
+               
+              headerPch = strtok (NULL, "\t") ;
             }
-        } else if (buf[0] != '#')
-        {
+        } else if (buf[0] != '#') { //line contains variant or snp          
             char * elemPch ;
             int elemCntInt = 0 ;
             std::vector<std::string> variantVec, strainVec ;
@@ -773,229 +776,202 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             
             while (elemPch != NULL)
             {
-                if (elemCntInt == 0) 
-		{
-		   strcpy(chr_name, elemPch) ;
-                } else if (elemCntInt == 1)
-                {
-                    //position is 1 based; palmapper is 0 based
-                    position = atoi(elemPch) ;
-                } else if (elemCntInt == 3)
-                {
-                    ref_str = elemPch ;
-                } else if (elemCntInt == 4)     //determine number of variants
-                {
-                    strcpy(varElems, elemPch) ;
-                }
-                else if (elemCntInt > 8)
-                {
-                    strainVec.push_back(elemPch) ; //store strain information in strainVec
-                } else {
-                }
-                
-                elemCntInt++;
-                
-                elemPch = strtok (NULL, "\t") ;
-            }   // process variant elements in first columns
-            
-            // Tokenize different variants
+              if (elemCntInt == 0) 
+              {
+                 strcpy(chr_name, elemPch) ;
+              } else if (elemCntInt == 1)
+              {
+                //position is 1 based; palmapper is 0 based
+                position = atoi(elemPch) ;
+              } else if (elemCntInt == 3)
+              {
+                  ref_str = elemPch ;
+              } else if (elemCntInt == 4)     //determine number of variants
+              {
+                  strcpy(varElems, elemPch) ;
+              } else if (elemCntInt > 8)
+              {
+                 strainVec.push_back(elemPch) ; //store strain information in strainVec
+              } else {
+              }
+              
+              elemCntInt++;
+              
+              elemPch = strtok (NULL, "\t") ;
+            }   
+
+	    // process variants
+            // 1. Tokenize different variants
             varPch = strtok(varElems, ",") ;
             while (varPch != NULL)
             {
                 variantVec.push_back(varPch);
                 varPch = strtok (NULL, ",") ;
             }
-            //update variants
+            // 2. update variant variables
             
             ref_len = ref_str.length() ;
             if (ref_len < 0)
             {
                 continue ;
-            } else
-            {
-                
-		for (unsigned int variantCntInt=0;
-                      variantCntInt < variantVec.size() ;
-                     variantCntInt++)
+            } else {
+              for (unsigned int variantCntInt=0;
+                   variantCntInt < variantVec.size() ;
+                   variantCntInt++)
+              {
+                variant_len = variantVec[variantCntInt].size() ;
+                std::string srcIdStr, ref_str_temp ;
+                int varPosition = 0, ref_len_temp = 0 ;
+      
+                varPosition = position ;
+                ref_str_temp = ref_str ;
+                ref_len_temp = ref_str_temp.length() ;		
+                lendiff = (variant_len - ref_len_temp) ;
+                //match strains with variants
+                for (unsigned int strainCntInt = 0 ;
+                     strainCntInt != strainVec.size() ;
+                     strainCntInt++)
                 {
-                    variant_len = variantVec[variantCntInt].size() ;
-                    std::string srcIdStr, ref_str_temp ;
-		    int varPosition = 0, ref_len_temp = 0 ;
-	
-                    varPosition = position ;
-		    ref_str_temp = ref_str ;
-	            ref_len_temp = ref_str_temp.length() ;		
-		    lendiff = (variant_len - ref_len_temp) ;
-                    //match strains with variants
-                    for (unsigned int strainCntInt = 0 ;
-                         strainCntInt != strainVec.size() ;
-                         strainCntInt++)
+                  if (lendiff != 0)
+                  {	
+                    if (strainVec[strainCntInt].size() >= 3)
                     {
-                     	if (lendiff != 0)
-			{	
-				if (strainVec[strainCntInt].size() >= 3)
-				{
-					unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
-					size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
-					assert(num>=2) ;
-					if (strainCharInt!=strainCharInt2)
-						fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
-								
-					if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
-					{
-
-						assert(variantCntInt<strainRefVec.size()) ;
-										
-						//update string for source_id
-						if ( srcIdStr.size() == 0u)
-						{
-							srcIdStr.append(strainRefVec[strainCntInt]) ;
-						} else
-						{
-							srcIdStr.append(",");
-							srcIdStr.append(strainRefVec[strainCntInt]) ;
-						}
-					}
-				} //completed all strains for a variant
-                    	} else 
-			{
-				if (strainVec[strainCntInt].size() >= 3)
-				{
-					signed int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0, dp=0 ;
-					size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq, &dp) ;
-					//assert(num>=2) ;
-
-					if (gt1 == variantCntInt + 1 && atg == 1 && hcg == 1)
-					{
-						assert(variantCntInt<strainRefVec.size()) ;
-						if (srcIdStr.size() == 0u)
-						{
-							srcIdStr.append(strainRefVec[strainCntInt]) ;
-						} else
-						{
-							srcIdStr.append(",") ;
-							srcIdStr.append(strainRefVec[strainCntInt]) ;
-						}
-					}
-				}
-
-			}
-				
-		    } // complete variants and strains
-		    if (srcIdStr.length() != 0 )
-		    {
-		    	strcpy(source_id, srcIdStr.c_str()) ;
-		    } else
-		    {
-		    	continue ;
-		    }
-		    variant_str = variantVec[variantCntInt].c_str() ;
-                    
-		    if (lendiff < 0) 
-		    {
-			unsigned int offsetInt = 0 ; 
-
-			for (offsetInt = 0 ; offsetInt < variant_str.length(); offsetInt++)
-			{
-				if (variant_str[offsetInt] != ref_str_temp[offsetInt]) 
-				{
-					break ;
-				}
-			}
-			if (offsetInt == variant_str.length())
-			{
-				varPosition = varPosition + offsetInt ;
-				ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
-				ref_len_temp = ref_str_temp.length() ;
-				variant_str = "" ;
-				variant_len = variant_str.length() ; 	    
-			}
-			else 
-		        {
-				unsigned int suffixInt = 0 ;
-				for (suffixInt = 0; suffixInt < variant_str.length() - offsetInt; suffixInt++)
-				{
-					if (variant_str[variant_len - suffixInt] != ref_str_temp[ref_len_temp - suffixInt])
-					{
-						break ;
-					}
-				}
-				varPosition = varPosition + offsetInt ;
-				if (suffixInt + offsetInt == variant_len) 
-				{
-					ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - suffixInt - offsetInt)) ;
-					ref_len_temp = ref_str_temp.length() ;
-					variant_str = "" ;
-					variant_len = 0 ;
-				} else
-				{
-					ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
-					ref_len_temp = ref_str_temp.length() ;
-					variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt));
-					variant_len = variant_str.length() ;
-				}
-		    	}
- 
-                    } else if (lendiff > 0) 
-		    {
-			
-			unsigned int offsetInt = 0 ; 
-			for (offsetInt = 0 ; offsetInt < ref_str_temp.length(); offsetInt++)
-			{
-				if (variant_str[offsetInt] != ref_str_temp[offsetInt]) 
-				{
-					break ;
-				}
-			}
-			if (offsetInt == ref_str.length())
-			{
-				varPosition = varPosition + offsetInt ;
-                    		variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt)) ;
-		    		variant_len = variant_str.length() ;
-		    		ref_str_temp = "" ;
-                    		ref_len_temp = 0 ;
-			}
-			else
-			{
-				unsigned int suffixInt = 0 ;
-				for (suffixInt = 0; suffixInt < ref_str_temp.length() - offsetInt; suffixInt++)
-				{
-					if (variant_str[variant_len - suffixInt] != ref_str_temp[ref_len_temp - suffixInt])
-					{
-						break ;
-					}
-				}
-				varPosition = varPosition + offsetInt ;
-				if (suffixInt + offsetInt == ref_len_temp)
-				{
-					variant_str = variant_str.substr(offsetInt, (variant_len - suffixInt - offsetInt)) ;
-					variant_len = variant_str.length() ;
-					ref_str_temp = "" ;
-					ref_len_temp = 0 ;
-				} else
-				{
-					
-					variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt)) ;
-					variant_len = variant_str.length() ;
-					ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
-					ref_len_temp = ref_str_temp.length();
-				}	
-			}
-
-                    } else 
-		    {
-		    	//SNP	
-		    }
-
-		int chr_idx = genome->find_desc(chr_name) ; 
-		insert_variant(chr_idx, varPosition - 1, ref_len_temp, variant_len, 
-		ref_str_temp, variant_str, 0, 0, 0,0, source_id, -2, -1);
-		variant_lines++ ;
-		
-                } //completed all variants in a line
-            }
-        }
-    }
+                      unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
+                      size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
+                      assert(num>=2) ;
+                      if (strainCharInt!=strainCharInt2)
+                      fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
+                      if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
+                      {
+                        //update string for source_id
+                        if ( srcIdStr.size() == 0u)
+                        {
+                        srcIdStr.append(strainRefVec[strainCntInt]) ;
+                        } else {
+                        srcIdStr.append(",");
+                        srcIdStr.append(strainRefVec[strainCntInt]) ;
+                        }
+                      }
+                    } //completed all strains for a variant
+                  } else {
+                    if (strainVec[strainCntInt].size() >= 3)
+                    {
+                      signed int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0, dp=0 ;
+                      size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq, &dp) ;
+                      //assert(num>=2) ;
+                      if (gt1 == variantCntInt + 1 && atg == 1 && hcg == 1)
+                      {
+                        if (srcIdStr.size() == 0u)
+                        {
+                          srcIdStr.append(strainRefVec[strainCntInt]) ;
+                          } else  {
+                          srcIdStr.append(",") ;
+                          srcIdStr.append(strainRefVec[strainCntInt]) ;
+                          }
+                        }
+                      }
+                    }
+		  } // complete variants and strains
+		    
+                  if (srcIdStr.length() != 0 )
+		  {
+		    strcpy(source_id, srcIdStr.c_str()) ;
+		  } else {
+		    continue ;
+		  }
+		  variant_str = variantVec[variantCntInt].c_str() ;
+                  
+                  if (lendiff < 0) 
+                  {
+                      unsigned int offsetInt = 0 ; 
+                      for (offsetInt = 0 ; offsetInt < variant_str.length(); offsetInt++)
+                      {
+                        if (variant_str[offsetInt] != ref_str_temp[offsetInt]) 
+                        {
+                          break ;
+                        }
+                      }
+                      if (offsetInt == variant_str.length())
+                      {
+                        varPosition = varPosition + offsetInt ;
+                        ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
+                        ref_len_temp = ref_str_temp.length() ;
+                        variant_str = "" ;
+                        variant_len = variant_str.length() ; 	    
+                      } else {
+                        unsigned int suffixInt = 0 ;
+                        for (suffixInt = 0; suffixInt < variant_str.length() - offsetInt; suffixInt++)
+                        {
+                          if (variant_str[variant_len - suffixInt] != ref_str_temp[ref_len_temp - suffixInt])
+                          {
+                            break ;
+                          }
+                        }
+                        varPosition = varPosition + offsetInt ;
+                        if (suffixInt + offsetInt == variant_len) 
+                        {
+                          ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - suffixInt - offsetInt)) ;
+                          ref_len_temp = ref_str_temp.length() ;
+                          variant_str = "" ;
+                          variant_len = 0 ;
+                        } else  {
+                          ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
+                          ref_len_temp = ref_str_temp.length() ;
+                          variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt));
+                          variant_len = variant_str.length() ;
+                        }
+                      }
+                  } else if (lendiff > 0) 
+                    {
+                      unsigned int offsetInt = 0 ; 
+                      for (offsetInt = 0 ; offsetInt < ref_str_temp.length(); offsetInt++)
+                      {
+                        if (variant_str[offsetInt] != ref_str_temp[offsetInt]) 
+                        {
+                        break ;
+                        }
+                      }
+                      if (offsetInt == ref_str.length())
+                      {
+                        varPosition = varPosition + offsetInt ;
+                        variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt)) ;
+                        variant_len = variant_str.length() ;
+                        ref_str_temp = "" ;
+                        ref_len_temp = 0 ;
+                      } else  {
+                        unsigned int suffixInt = 0 ;
+                        for (suffixInt = 0; suffixInt < ref_str_temp.length() - offsetInt; suffixInt++)
+                        {
+                          if (variant_str[variant_len - suffixInt] != ref_str_temp[ref_len_temp - suffixInt])
+                          {
+                            break ;
+                          }
+                        }
+                        varPosition = varPosition + offsetInt ;
+                        if (suffixInt + offsetInt == ref_len_temp)
+                        {
+                          variant_str = variant_str.substr(offsetInt, (variant_len - suffixInt - offsetInt)) ;
+                          variant_len = variant_str.length() ;
+                          ref_str_temp = "" ;
+                          ref_len_temp = 0 ;
+                        } else {
+                          variant_str = variant_str.substr(offsetInt, (variant_len - offsetInt)) ;
+                          variant_len = variant_str.length() ;
+                          ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - offsetInt)) ;
+                          ref_len_temp = ref_str_temp.length();
+                        }	
+                      }
+                  } else {
+                    //SNP	
+                  }
+                int chr_idx = genome->find_desc(chr_name) ; 
+                insert_variant(chr_idx, varPosition - 1, ref_len_temp, variant_len, 
+                ref_str_temp, variant_str, 0, 0, 0,0, source_id, -2, -1);
+                variant_lines++ ;
+              } //completed all variants in a line
+          }
+      }
+  }
     fclose(fd) ;
     /*
     if (variant_lines%10000==0)
