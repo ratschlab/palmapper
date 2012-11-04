@@ -24,7 +24,7 @@ public:
 		//fprintf(_out, "#done\n") ;
 		if (_sp_out != NULL && _sp_out != stdout && _sp_out!=_out)
 			fprintf(_sp_out, "\n") ;
-		if (_variants_out != NULL && _variants_out != stdout)
+		if (_variants_out != NULL && (FILE*)_variants_out != stdout)
 			gzprintf(_variants_out, "\n") ;
 
 		//fprintf(_sp_out, "#done\n") ;
