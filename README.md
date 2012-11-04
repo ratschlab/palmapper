@@ -1,4 +1,4 @@
 palmapper
 =========
 
-palmapper repository
+The accurate RNA-seq mapper
