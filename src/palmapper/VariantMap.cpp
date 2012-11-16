@@ -970,7 +970,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                 ref_str_temp, variant_str, 0, 0, 0,0, source_id, -2, -1);
                 variant_lines++ ;
 
-    		if (variant_lines%10==0)
+    		if (variant_lines%1000000==0)
     		{
         	long pos = ftell(fd) ;
         	fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r",
