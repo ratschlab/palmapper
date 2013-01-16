@@ -29,7 +29,7 @@ public:
 
 	static int skip_comment_lines(FILE* fd)
 		{
-			const int buffer_len=5000 ;
+			const int buffer_len=20000 ;
 			char buffer[buffer_len] ;
 			int line_num=0 ;
 			
