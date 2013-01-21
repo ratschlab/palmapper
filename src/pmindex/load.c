@@ -8,16 +8,113 @@ int alloc_chr_seq_buffer();
 int load_chr_sequence();
 
 
-int load_chromosomes(VariantMap & variants)
+int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps & genome_mask)
 {
 	unsigned int eof = 0;
 	unsigned int chr = 0;
 	POS p;
-	
 	BLOCK = 0;
+	
+	// alloc all seeds present in masked regions, do not add kmers
+	if (has_genome_mask && genome_mask_use_rep_seeds)
+	  {
+	    unsigned long int fp = ftell(GENOME_FP);
+	    while (!eof) {
+	      
+	      if (VERBOSE) { printf("Start chromosome nb. %d\n", chr+1); }
+	      
+	      eof = load_chr();
+	      
+	      p.chr = chr;
+	      p.pos = 0;
+	      BLOCK_TABLE[BLOCK] = p;
+	      POSITION = 0;
+	      
+	      if (VERBOSE) { printf("\tLength %d\n", CHR_LENGTH); }
 
-	while (!eof) {
+	      if (strlen(GENOME_VARIANTS_FILE_NAME)==0)
+		index_chromosome_novariants(chr, genome, genome_mask, true, false, false);
+	      else
+		index_chromosome(chr, genome, variants, genome_mask, true, false);
 
+	      ++BLOCK;
+	      ++chr;
+	      
+	    }
+	    // reset file handle & counters
+	    fseek(GENOME_FP, fp, SEEK_SET) ;
+	    eof = 0;
+	    chr = 0;
+	    BLOCK = 0;
+	  }
+
+	// alloc all seeds present in masked regions, do not add kmers
+	if (has_genome_mask && genome_mask_use_secondary_regions)
+	  {
+	    unsigned long int fp = ftell(GENOME_FP);
+	    while (!eof) {
+	      
+	      if (VERBOSE) { printf("Start chromosome nb. %d\n", chr+1); }
+	      
+	      eof = load_chr();
+	      
+	      p.chr = chr;
+	      p.pos = 0;
+	      BLOCK_TABLE[BLOCK] = p;
+	      POSITION = 0;
+	      
+	      if (VERBOSE) { printf("\tLength %d\n", CHR_LENGTH); }
+
+	      if (strlen(GENOME_VARIANTS_FILE_NAME)==0)
+		index_chromosome_novariants(chr, genome, genome_mask, false, true, false);
+	      else
+		index_chromosome(chr, genome, variants, genome_mask, true, false);
+
+	      int num_hits=0 ;
+	      int start_pos=0 ;
+	      int num_regions=0 ;
+	      int num_positions=0 ;
+	      for (unsigned int pos=0; pos<CHR_LENGTH; pos++)
+		{
+		  char elem=genome_mask.CHR_MAP(genome.chromosome(chr), pos) ;
+		  if ((elem & MASK_REGION_SECONDARY)>0)
+		    {
+		      start_pos=pos ;
+		      num_hits++ ;
+		      if (num_hits==secondary_min_num_hits)
+			num_regions++ ;
+		    }
+		  else
+		    num_hits=0 ;
+		  if (num_hits>=secondary_min_num_hits)
+		    {
+		      for (unsigned int pp=start_pos-secondary_region_extra; pp<=pos+secondary_region_extra; pp++)
+			{
+			  char elem2= genome_mask.CHR_MAP(genome.chromosome(chr), pos) ;
+			  if ((elem2 & MASK_REGION_SECONDARY_REGION)==0)
+			    {
+			      genome_mask.CHR_MAP_set(genome.chromosome(chr), pos, elem2+MASK_REGION_SECONDARY_REGION) ;
+			      num_positions++ ;
+			    }
+			}
+		    }
+		}
+	      if (VERBOSE)
+		fprintf(stdout, "extended regions around secondary hits: %i positions in %i regions\n", num_positions, num_regions) ;
+
+	      ++BLOCK;
+	      ++chr;
+	      
+	    }
+	    // reset file handle & counters
+	    fseek(GENOME_FP, fp, SEEK_SET) ;
+	    eof = 0;
+	    chr = 0;
+	    BLOCK = 0;
+	  }
+	
+	while (!eof) 
+	  {
 		if (VERBOSE) { printf("Start chromosome nb. %d\n", chr+1); }
 
 		eof = load_chr();
@@ -30,22 +127,24 @@ int load_chromosomes(VariantMap & variants)
 		if (VERBOSE) { printf("\tLength %d\n", CHR_LENGTH); }
 
 		if (strlen(GENOME_VARIANTS_FILE_NAME)==0)
-			index_chromosome_novariants(chr);
+		  {
+		    if (!has_genome_mask)
+		      index_chromosome_novariants(chr, genome, genome_mask, true, false, true);
+		    else
+		      index_chromosome_novariants(chr, genome, genome_mask, true, false, true);
+		  }
 		else
-			index_chromosome(chr, variants);
+		  if (!has_genome_mask)
+		      index_chromosome(chr, genome, variants, genome_mask, true, true);
+		  else
+		      index_chromosome(chr, genome, variants, genome_mask, false, true);
 
 		write_chr_desc(chr);
-
-		//if (!eof) {
-		//	dealloc_chr();
-		//}
 		
 		++BLOCK;
 		++chr;
 
 	}
-
-	//write_index();
 
 	if (VERBOSE) { printf("Write meta data to file ..."); fflush(stdout); }
 

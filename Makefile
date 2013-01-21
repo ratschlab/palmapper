@@ -65,7 +65,8 @@ PMIDX_OBJ = $(ObjDir)/pmindex/init.o \
 	$(ObjDir)/pmindex/Genome.o \
 	$(ObjDir)/pmindex/Chromosome.o \
 	$(ObjDir)/pmindex/Util.o \
-	$(ObjDir)/pmindex/VariantMap.o
+	$(ObjDir)/pmindex/VariantMap.o \
+	$(ObjDir)/pmindex/GenomeMaps.o
 
 CurrentDir := $(shell pwd)
 

@@ -1743,7 +1743,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			i++;
 			int tmp = atoi(argv[i]);
-			if (tmp < 1 || tmp>14) 
+			if (tmp < 1 || tmp>15) 
 			{
 				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=14\n") ;
 				usage();

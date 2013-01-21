@@ -11,6 +11,7 @@
 #include <ctype.h>
 
 #include <palmapper/VariantMap.h>
+#include <palmapper/GenomeMaps.h>
 
 #define VERSION "0.3.0"
 
@@ -148,12 +149,12 @@ extern int init(int argc, char *argv[]);
 extern int usage();
 
 //load.c
-extern int load_chromosomes(VariantMap & variants);
+extern int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps & genome_mask);
 extern int desc_parsing(char *c);
 
 //indec.c
-extern int index_chromosome(unsigned int chr, VariantMap & variants);
-extern int index_chromosome_novariants(unsigned int chr)  ;
+extern int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool mask_do_add=true);
+extern int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool use_secondary_regions=false, bool mask_do_add=true)  ;
 
 //alloc.c
 extern int alloc_bin(int slot);
@@ -170,5 +171,19 @@ extern int write_chr_desc(unsigned int chr);
 extern void printindex();
 
 extern int seed_hit_cancel_threshold ;
+
+extern int has_genome_mask ;
+extern char GENOME_MASK_FILE_NAME[500] ;
+extern char GENOME_MASK_GFF_FILE_NAME[500] ;
+
+#define MASK_REGION_PRIMARY MASK_MAPPED_READ_BEST
+#define MASK_REGION_SECONDARY MASK_MAPPED_READ
+#define MASK_REGION_SECONDARY_REGION MASK_SPLICED_READ_BEST
+
+extern bool genome_mask_use_rep_seeds; 
+extern bool genome_mask_use_secondary_regions ;
+extern const int secondary_min_num_hits ;
+extern const int secondary_region_extra ;
+extern const int genome_mask_gff_extra ;
 
 #endif

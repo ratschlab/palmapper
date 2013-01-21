@@ -39,3 +39,13 @@ int NUM_THREADS=1 ;
 unsigned int LONGEST_CHROMOSOME;
 int MAX_SOURCE_COMBINATIONS=1 ;
 
+int has_genome_mask=0 ;
+char GENOME_MASK_FILE_NAME[500] ;
+char GENOME_MASK_GFF_FILE_NAME[500] ;
+
+bool genome_mask_use_rep_seeds=false ;
+bool genome_mask_use_secondary_regions=false ;
+const int secondary_min_num_hits=15 ;
+const int secondary_region_extra=100 ;
+
+const int genome_mask_gff_extra = 1000 ;

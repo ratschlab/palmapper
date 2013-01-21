@@ -4,6 +4,7 @@
 // ####### GenomeMaps ###########################################
 // ##############################################################
 
+
 //#define CHR_MAP_DNAARRAY
 //#define CHR_MAP_DNAARRAY_CLASS CDNAArray4
 // define this if CDNAArray4 is chosen
@@ -93,8 +94,8 @@ public:
 	int report_mapped_read(Chromosome const &chr, int start, int end, int num_matches, int nbest_hit) ;
 	int report_spliced_read(Chromosome const &chr, std::vector<int> & exons, int num_matches, int nbest_hit) ;
 	int do_reporting(int force=0) ;
-	int read_reporting() ;
-	int write_reporting() ;
+	int read_reporting(char *fname=NULL) ;
+	int write_reporting(char *fname=NULL) ;
 	int write_cov_reporting() ;
 	int clean_reporting() ;
 	int init_with_gff(std::string &gff_fname) ;
