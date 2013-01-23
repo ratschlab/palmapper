@@ -51,6 +51,9 @@ int init_defaults()
 	}
 
 	strcpy(GENOME_VARIANTS_FILE_NAME, "") ;
+	strcpy(GENOME_MASK_FILE_NAME, "") ;
+	strcpy(GENOME_MASK_GFF_FILE_NAME, "") ;
+	has_genome_mask=0 ;
 
 	return 0;
 }
@@ -121,14 +124,6 @@ int init_opts(int argc, char *argv[])
 		}
 **/
 
-		// seed occurrence stat output
-/*		if(strcmp(argv[i],"-o")==0){
-			if(i+1 > argc - 1){ usage(); exit(1); }
-			i++;
-			strcpy(OCC_FILE_NAME, argv[i]);
-			has_meta_index = 1;
-		}*/
-
 		//depth
 		if(strcmp(argv[i],"-s")==0){
 			if(i+1 > argc - 1){ usage(); exit(1); }
@@ -157,7 +152,7 @@ int init_opts(int argc, char *argv[])
 			}
 		}
 
-		//threads
+		//limit the number of seed hits
 		if(strcmp(argv[i],"-seed-hit-cancel-threshold")==0){
 			if(i+1 > argc - 1){ usage(); exit(1); }
 			i++;
@@ -175,6 +170,31 @@ int init_opts(int argc, char *argv[])
 				fprintf(stderr, "ERROR: number of maximal variant source combinations must be an integer value between larger 0!\n");
 				exit(0);
 			}
+		}
+
+		// genome mask
+		if(strcmp(argv[i],"-genome-mask")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			strcpy(GENOME_MASK_FILE_NAME, argv[i]);
+			has_genome_mask = 1;
+		}
+		// genome mask gff init
+		if(strcmp(argv[i],"-genome-mask-gff")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			strcpy(GENOME_MASK_GFF_FILE_NAME, argv[i]);
+			has_genome_mask = 1;
+		}
+
+		//genome_mask_use_rep_seeds
+		if(strcmp(argv[i],"-genome-mask-repseeds")==0){
+			genome_mask_use_rep_seeds = true;
+		}
+
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions")==0){
+			genome_mask_use_secondary_regions = true ;
 		}
 
 		//verbose
@@ -280,7 +300,14 @@ int init_constants()
 		BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[4] = 268435456*4-1; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+		BINARY_CODE[4] = 1073741823; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+	}
+	if (INDEX_DEPTH == 16) {
+		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 1073741824;     //binary number: 0100 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[2] = 2147483648;     //binary number: 1000 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[3] = 3221225472;     //binary number: 1100 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[4] = 4294967295; //binary number: 1111 1111 1111 1111 1111 1111 1111 1111
 	}
 
 	return(0);

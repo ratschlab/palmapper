@@ -107,7 +107,7 @@ $(BwaIndexFiles): $(DnaFile) # bwa
 
 $(SpliceFiles):
 	mkdir -p $(dataDir)
-	wget -c http://cbio.mskcc.org//public/raetschlab/raetsch-lab/predictions/splice/C_elegans/C_elegans_SpliceSitePred_WS209.tar.bz2
+	wget -c http://cbio.mskcc.org/public/raetschlab/software/palmapper/data/C_elegans_SpliceSitePred_WS209.tar.bz2
 	(cd $(dataDir) && tar xvf ../C_elegans_SpliceSitePred_WS209.tar.bz2 && rm ../C_elegans_SpliceSitePred_WS209.tar.bz2) 
 	bzip2 -d $(dataDir)/C_elegans_SpliceSitePred_WS209/genome/C_elegans_WS209_genome.fasta.bz2
 	mv $(dataDir)/C_elegans_SpliceSitePred_WS209/genome/C_elegans_WS209_genome.fasta $(DnaFile)

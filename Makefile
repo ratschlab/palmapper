@@ -7,7 +7,7 @@ SVNVERSION = $(shell svnversion)
 
 #CC = icpc
 CC = g++
-#CFLAGS = -Wall -ggdb -O # -pg # debug 
+#CFLAGS = -Wall -ggdb # -pg # debug 
 CFLAGS = -O9 -ggdb -g -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -pthread # linux amd64 optimized
 #CFLAGS =  -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
@@ -65,7 +65,8 @@ PMIDX_OBJ = $(ObjDir)/pmindex/init.o \
 	$(ObjDir)/pmindex/Genome.o \
 	$(ObjDir)/pmindex/Chromosome.o \
 	$(ObjDir)/pmindex/Util.o \
-	$(ObjDir)/pmindex/VariantMap.o
+	$(ObjDir)/pmindex/VariantMap.o \
+	$(ObjDir)/pmindex/GenomeMaps.o
 
 CurrentDir := $(shell pwd)
 

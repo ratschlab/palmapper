@@ -30,17 +30,17 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(BIN*)) ;
 		exit(-1) ;
 	}
-	USED_SLOTS =(int*)malloc(INDEX_SIZE*sizeof(int)) ;
+	USED_SLOTS =(unsigned int*)malloc(INDEX_SIZE*sizeof(unsigned int)) ;
 	if (USED_SLOTS==NULL)
 	{
-		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(int)) ;
+		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(unsigned int)) ;
 		exit(-1) ;
 	}
 	
 	if (VERBOSE) { printf("Start loading\n"); }
 
 	Genome genome(0) ; 
-	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
+	if (strlen(GENOME_VARIANTS_FILE_NAME)>0 || strlen(GENOME_MASK_FILE_NAME)>0 || strlen(GENOME_MASK_GFF_FILE_NAME)>0)
 	{
 		fprintf(stdout, "loading complete genome\n") ;
 		genome.load_genome() ;
@@ -54,7 +54,17 @@ int main(int argc, char *argv[])
 		fprintf(stdout, "found %i source ids\n", cnt) ;
 	}
 	assert(variants.genome!=NULL) ;
-	load_chromosomes(variants);
+
+	GenomeMaps genome_mask(genome) ;
+	if (strlen(GENOME_MASK_FILE_NAME)>0)
+	  genome_mask.read_reporting(GENOME_MASK_FILE_NAME) ;
+	if (strlen(GENOME_MASK_GFF_FILE_NAME)>0)
+	  {
+	    std::string fname=std::string(GENOME_MASK_GFF_FILE_NAME) ;
+	    genome_mask.init_with_gff(fname) ;
+	  }
+
+	load_chromosomes(genome, variants, genome_mask);
 
 	if (VERBOSE) printf("\nTotal number of seed occurrences: %lu\n\n", POSITION_COUNTER);
 

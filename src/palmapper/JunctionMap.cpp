@@ -138,7 +138,7 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
 				take = false ;
 			if ((*it).coverage<min_coverage)
 				take = false ;
-			if (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) &&  (!(*it).consensus))
+			if (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && min_junction_qual!=0 && (!(*it).consensus))
 				take = false ;
 			
 			if (!take)
@@ -183,6 +183,8 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 
 	if (coverage<0) // annotation
 		coverage = anno_pseudo_coverage ;
+	if (junction_qual<0) // annotation
+		junction_qual = anno_pseudo_coverage ;
 
 	//fprintf(stdout,"%c %i %i %i\n",strand, chr, start, end);
 	if (junctionlist[chr].empty())
@@ -316,6 +318,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 	int exon_lines=0 ;
 	int intron_lines=0 ;
+	int num_introns=0 ;
 	std::string prev_parent;
 	prev_parent.assign("");
 	std::map<std::string,std::list<Exon> > transcript_map;
@@ -404,6 +407,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			
 			//Attention: positions in this file start at 0! :S
 			insert_junction(strand,chr_idx,start, end, !nonconsensus, intron_string, junction_qual, read_id, coverage);
+			num_introns++ ;
 
 			free(intron_string) ;
 			free(read_id) ;
@@ -485,7 +489,8 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 							bool consensus_intron= is_consensus_intron((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2);
 
 							//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
-							insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), -1);
+							insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"", -1, (*it).first.c_str(), -1);
+							num_introns++ ;
 							it_prev++;
 							it_next++;
 							
@@ -526,7 +531,8 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 			
 			//In annotation, positions on sequence starts at 1 (coverage set to 0 when from annotation)
-			insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"",0, (*it).first.c_str(), -1);
+			insert_junction((*it_next).strand,(*it_next).chr,(*it_prev).end,(*it_next).start-2,consensus_intron,"", -1, (*it).first.c_str(), -1);
+			num_introns++ ;
 			it_prev++;
 			it_next++;
 			
@@ -538,8 +544,10 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 
 	fclose(fd) ;
 
-	fprintf(stdout, "read %i intron lines\n", intron_lines) ;
-	fprintf(stdout, "read %i exon lines\n", exon_lines) ;
+	fprintf(stdout, "read %i GFF intron lines\n", intron_lines) ;
+	fprintf(stdout, "read %i GFF exon lines\n", exon_lines) ;
+
+	fprintf(stdout, "Read/inferred %i intron junctions\n", num_introns) ;
 	return 0 ;
 
 }

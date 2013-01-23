@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#define MAX_INDEX_DEPTH 15
+#define MAX_INDEX_DEPTH 16
 #define VERSION "0.5"
 
 enum OutputFormatEnum
@@ -80,6 +80,7 @@ public:
 	static size_t const INDEX_SIZE_13 = 67108864; //4^13
 	static size_t const INDEX_SIZE_14 = 67108864*4; //4^14
 	static size_t const INDEX_SIZE_15 = 67108864*4*4; //4^15
+	static size_t const INDEX_SIZE_16 = 67108864L*4*4*4; //4^16
 	static size_t const MAX_READ_LENGTH = 20000;
 	static int const MAX_READ_ID_LENGTH = 1000;
 	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
@@ -155,6 +156,8 @@ public:
 	bool INCLUDE_UNMAPPED_READS_SAM;
 	
 	std::string LOCK_FILE_NAME ;
+
+	int READ_LENGTH_PARAM ;
 
 	char * REPORT_FILE;
 	int REPORT_FILE_READONLY;

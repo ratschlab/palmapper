@@ -1701,7 +1701,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 								/*if (!rev) {*/
 								//memcpy(&block, &((index_mmap+(index_entry.offset-(i+1)))->id[0]), 3 * sizeof(char));
 								//memcpy(&position, &((index_mmap+(index_entry.offset-(i+1)))->id[3]), sizeof(unsigned char));
-								se = se_buffer[index_entry.num-(i+1)];
+								se = se_buffer[index_entry_num-(i+1)];
 								/*}
 								  else {
 								  //memcpy(&block, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[0]), 3 * sizeof(char));
