@@ -8,12 +8,12 @@
 
 int pos2bin(unsigned int slot, unsigned int chr);
 int pos2bin_rev(unsigned int slot, unsigned int chr);
-int get_slot(const char *seq, int pos);
+unsigned int get_slot(const char *seq, int pos);
 
 const bool perform_extra_checks=true ;
 
 inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Variant>::iterator end, char * seq, unsigned int pos, int chr, 
-						   int counter, std::map<int,bool> & source_ids, std::map<int,bool> & slots)  
+						   int counter, std::map<int,bool> & source_ids, std::map<unsigned int,bool> & slots)  
 {
 	if (counter < 0)
 		return 0 ;
@@ -103,7 +103,7 @@ inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Var
 		
 		HAS_SLOT = 0;
 		
-		int slot = get_slot(seq, 0);
+		unsigned int slot = get_slot(seq, 0);
 		slots[slot]=true ;
 
 		HAS_SLOT = 0 ;
@@ -120,7 +120,7 @@ int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & 
 
 	unsigned int pos = 0;
 	int spacer = 0;
-	int slot = 0;
+	unsigned int slot = 0;
 	POS p;
 	int num_seeds_total=0 ;
 	int num_positions_total=0 ;
@@ -151,6 +151,7 @@ int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & 
 				      {
 					alloc_bin(slot);
 				      }
+				    assert(INDEX[slot]!=NULL) ;
 				    pos2bin(slot, chr);	// 0-initialized
 				    
 				    num_seeds_total++ ;
@@ -235,11 +236,11 @@ struct thread_data
 	int from ;
 	int to ;
 	VariantMap * variants ;
-	std::map<int, std::vector<int> > chr_slots  ;
+	std::map<int, std::vector<unsigned int> > chr_slots  ;
 	int thread_id ;
 } ;
 
-std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int from, int to, VariantMap & variants, int thread_id)  ;
+std::map<int, std::vector<unsigned int> > get_slots_from_chromosome(unsigned int chr, int from, int to, VariantMap & variants, int thread_id)  ;
 
 void * get_slots_from_chromosome_wrapper(void * data)
 {
@@ -268,7 +269,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 		assert(variants.genome->chromosome(chr)[i]==CHR_SEQ[i]) ;
 
 	// compute slots (in parallel)
-	std::map<int, std::vector<int> > chr_slots ;
+	std::map<int, std::vector<unsigned int> > chr_slots ;
 	{
 		const int num_threads=NUM_THREADS ;
 		struct thread_data thread_data[num_threads] ;
@@ -311,7 +312,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 
 		for (int i=0; i<num_threads; i++)
 		{
-			std::map<int, std::vector<int> >::iterator it=thread_data[i].chr_slots.begin() ;
+			std::map<int, std::vector<unsigned int> >::iterator it=thread_data[i].chr_slots.begin() ;
 			for (; it!=thread_data[i].chr_slots.end(); it++)
 				chr_slots[it->first]=it->second ;
 			thread_data[i].chr_slots.clear() ;
@@ -344,11 +345,11 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') 
 			{
 				assert(chr_slots.count(pos)>0) ;
-				std::vector<int> & slots = chr_slots[pos] ;
+				std::vector<unsigned int> & slots = chr_slots[pos] ;
 				
 				if (!has_genome_mask)
 				  {
-				    for (std::vector<int>::iterator it=slots.begin(); it != slots.end(); it++)
+				    for (std::vector<unsigned int>::iterator it=slots.begin(); it != slots.end(); it++)
 				      {
 					slot = (*it) ;
 					if(INDEX[slot] == NULL) 
@@ -360,7 +361,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 				  }
 				if ((genome_mask.CHR_MAP(genome.chromosome(chr), pos) & MASK_REGION_PRIMARY)>0)
 				  {
-				    for (std::vector<int>::iterator it=slots.begin(); it != slots.end(); it++)
+				    for (std::vector<unsigned int>::iterator it=slots.begin(); it != slots.end(); it++)
 				      {
 					slot = (*it) ;
 					if(INDEX[slot] == NULL && mask_do_alloc) 
@@ -407,13 +408,13 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 }
 
 
-std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int from, int to, VariantMap & variants, int thread_id) 
+std::map<int, std::vector<unsigned int> > get_slots_from_chromosome(unsigned int chr, int from, int to, VariantMap & variants, int thread_id) 
 {
 	unsigned int pos = from ;
 	int spacer = from ;
-	int slot = 0;
+	unsigned int slot = 0;
 
-	std::map<int, std::vector<int> > chr_slots ;
+	std::map<int, std::vector<unsigned int> > chr_slots ;
 	
 	HAS_SLOT = 0;
 	assert(variants.genome!=NULL) ;
@@ -460,7 +461,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 					strncpy(seq, &CHR_SEQ[pos], INDEX_DEPTH) ;
 					
 					std::map<int,bool> source_ids ;
-					std::map<int,bool> slots ;
+					std::map<unsigned int,bool> slots ;
 					
 					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, MAX_SOURCE_COMBINATIONS, source_ids, slots) ;
 					int num_slots=slots.size() ;
@@ -473,7 +474,7 @@ std::map<int, std::vector<int> > get_slots_from_chromosome(unsigned int chr, int
 						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop)) ;
 					num_seeds_total += num_slots ;
 					
-					for (std::map<int,bool>::iterator it=slots.begin(); it != slots.end(); it++)
+					for (std::map<unsigned int,bool>::iterator it=slots.begin(); it != slots.end(); it++)
 					{
 						slot = it->first ;
 						chr_slots[pos].push_back(slot) ;
@@ -560,7 +561,7 @@ int pos2bin(unsigned int slot, unsigned int chr)
 }
 
 
-int get_slot(const char *seq, int pos)
+unsigned int get_slot(const char *seq, int pos)
 {
 	unsigned int slot = 0;
 	unsigned int i;

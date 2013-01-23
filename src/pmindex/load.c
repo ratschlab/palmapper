@@ -14,6 +14,8 @@ int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps & genome
 	unsigned int chr = 0;
 	POS p;
 	BLOCK = 0;
+	char CHR_DESC_TMP_orig[1000];
+	strcpy(CHR_DESC_TMP_orig, CHR_DESC_TMP) ;
 	
 	// alloc all seeds present in masked regions, do not add kmers
 	if (has_genome_mask && genome_mask_use_rep_seeds)
@@ -46,6 +48,7 @@ int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps & genome
 	    eof = 0;
 	    chr = 0;
 	    BLOCK = 0;
+	    strcpy(CHR_DESC_TMP, CHR_DESC_TMP_orig) ;
 	  }
 
 	// alloc all seeds present in masked regions, do not add kmers
@@ -111,6 +114,7 @@ int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps & genome
 	    eof = 0;
 	    chr = 0;
 	    BLOCK = 0;
+	    strcpy(CHR_DESC_TMP, CHR_DESC_TMP_orig) ;
 	  }
 	
 	while (!eof) 

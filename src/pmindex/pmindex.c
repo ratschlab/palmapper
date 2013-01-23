@@ -30,10 +30,10 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(BIN*)) ;
 		exit(-1) ;
 	}
-	USED_SLOTS =(int*)malloc(INDEX_SIZE*sizeof(int)) ;
+	USED_SLOTS =(unsigned int*)malloc(INDEX_SIZE*sizeof(unsigned int)) ;
 	if (USED_SLOTS==NULL)
 	{
-		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(int)) ;
+		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(unsigned int)) ;
 		exit(-1) ;
 	}
 	

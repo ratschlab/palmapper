@@ -200,6 +200,7 @@ Config::Config() {
 	MIN_NUM_MATCHES_PEN=2;
 	
 	INCLUDE_UNMAPPED_READS_SAM=false;
+	READ_LENGTH_PARAM=DEFAULT_SETTING ;
 	
 	NO_QPALMA = false;
 	NO_GENOMEMAPPER = false ;
@@ -233,8 +234,10 @@ int Config::applyDefaults(Genome * genome)
 	}
 
 	if (_personality == Palmapper)  {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
-		if (read_length>0)
+	  int read_length = READ_LENGTH_PARAM ;
+	  if (read_length==DEFAULT_SETTING)
+	    read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
+	  if (read_length>0 && read_length!=DEFAULT_SETTING)
 		{
 			bool line_started=false ;
 			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
@@ -407,8 +410,10 @@ int Config::applyDefaults(Genome * genome)
 int Config::checkConfig()
 {
 	if (_personality == Palmapper) {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
-
+	  int read_length = READ_LENGTH_PARAM ;
+	  if (read_length==DEFAULT_SETTING)
+	    read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
+	  
 		if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
 		{
 			fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
@@ -433,9 +438,10 @@ int Config::checkConfig()
 			exit(1) ;
 		}
 
-		if(SPLICED_HITS && read_length>0 && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
-			fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
-			SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
+		if (read_length>0 && read_length!=DEFAULT_SETTING)
+		  if(SPLICED_HITS && read_length>0 && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
+		    fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
+		    SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
 		}
 	}
 
@@ -1092,6 +1098,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				FILTER_VARIANT_VLEN=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_VLEN>=0) ;
 			}
+			if (strcmp(argv[i], "-read-len") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -read-len\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				READ_LENGTH_PARAM=atoi(argv[i]) ;
+				assert(READ_LENGTH_PARAM>=0) ;
+			}
 			if (strcmp(argv[i], "-filter-variants-maxlen") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1743,9 +1760,9 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			i++;
 			int tmp = atoi(argv[i]);
-			if (tmp < 1 || tmp>15) 
+			if (tmp < 1 || tmp>16) 
 			{
-				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=14\n") ;
+				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=16\n") ;
 				usage();
 				exit(1);
 			}

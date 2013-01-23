@@ -20,7 +20,7 @@
 // ##############################################################
 
 #define MIN_INDEX_DEPTH 5
-#define MAX_INDEX_DEPTH 15
+#define MAX_INDEX_DEPTH 16
 
 extern char VERBOSE;
 extern char HAS_SLOT;
@@ -78,9 +78,9 @@ extern int MAX_SOURCE_COMBINATIONS ;
 #define BIN_SIZE_EXT 20
 //#define INDEX_SIZE 16777216 //4^12
 //#define INDEX_SIZE 67108864 //4^13
-//#define INDEX_SIZE 268435456 //4^14
-#define INDEX_SIZE (268435456*4) //4^15
-// #define INDEX_SIZE 244140625 // 5^12
+//#define INDEX_SIZE 268435456L //4^14
+//#define INDEX_SIZE (268435456L*4) //4^15
+#define INDEX_SIZE (268435456L*4*4) //4^16
 
 #define BLOCK_TABLE_SIZE 16777216	// 2^24 (3 Byte)
 #define BLOCK_SIZE 256	// 2^8 (1 Byte)
@@ -117,7 +117,7 @@ typedef struct bin_structure {
 extern BIN **INDEX;//[INDEX_SIZE];
 
 extern long int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
-extern int *USED_SLOTS;//[INDEX_SIZE];
+extern unsigned int *USED_SLOTS;//[INDEX_SIZE];
 
 
 // ##############################################################
@@ -157,7 +157,7 @@ extern int index_chromosome(unsigned int chr, Genome & genome, VariantMap & vari
 extern int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool use_secondary_regions=false, bool mask_do_add=true)  ;
 
 //alloc.c
-extern int alloc_bin(int slot);
+extern int alloc_bin(unsigned int slot);
 extern BIN_EXT *alloc_bin_ext() ;
 extern void alloc_blocktable();
 extern int dealloc_chr();

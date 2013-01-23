@@ -62,7 +62,7 @@ Genome::Genome(int numChromosomes) {
 	NUM_CHROMOSOMES = numChromosomes ;
 
 #ifndef PMINDEX 
-	INDEX_SIZE = Config::INDEX_SIZE_15 ;
+	INDEX_SIZE = Config::INDEX_SIZE_16 ;
 #endif
 
 	INDEX=NULL;
@@ -114,7 +114,9 @@ int Genome::alloc_index_memory()
 	//MEM_MGR.next_unused_entry = MEM_MGR.first_entry;
 
 #ifndef PMINDEX
-	INDEX_SIZE=_config.INDEX_SIZE_15 ;
+	INDEX_SIZE=_config.INDEX_SIZE_16 ;
+	if (_config.INDEX_DEPTH==15)
+		INDEX_SIZE = _config.INDEX_SIZE_15 ;
 	if (_config.INDEX_DEPTH==14)
 		INDEX_SIZE = _config.INDEX_SIZE_14 ;
 	if (_config.INDEX_DEPTH==13)
@@ -818,13 +820,20 @@ int Genome::init_constants()
 			BINARY_CODE[4] = 268435455;    //binary number: 0000 1111 1111 1111 1111 1111 1111 1111
 		}
 		if (_config.INDEX_DEPTH == 15) {
-			BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[4] = 268435456*4-1; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+		  BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[4] = 1073741823; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
 		}
-		if (_config.INDEX_DEPTH>15 || _config.INDEX_DEPTH<5)
+		if (_config.INDEX_DEPTH == 16) {
+		  BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[1] = 1073741824;     //binary number: 0100 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[2] = 2147483648;     //binary number: 1000 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[3] = 3221225472;     //binary number: 1100 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[4] = 4294967295; //binary number: 1111 1111 1111 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH>16 || _config.INDEX_DEPTH<5)
 		{
 			fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
 			//exit(1) ;

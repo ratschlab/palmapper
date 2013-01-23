@@ -788,12 +788,18 @@ int GenomeMaps::init_with_gff(std::string &gff_fname)
 
 		Util::skip_comment_lines(fd) ;
 		
+#ifdef PMINDEX
+		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2) ;  
+		if (num!=8)
+#else
 		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2, properties) ;  
 		if (num!=9)
+#endif
 		{
 			if (feof(fd))
 				break ;
 			fprintf(stdout, "gff line in %s only contained %i columns, aborting\n", gff_fname.c_str(), num) ;
+			fprintf(stdout, "%s\t%s\t%s\n", chr_name, source, type) ;
 			//exit(-1) ;
 		}
 
