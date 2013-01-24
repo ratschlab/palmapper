@@ -165,7 +165,7 @@ int write_meta_index(unsigned int num_chr)
 	BIN *bin = 0;
         BIN_EXT **bin_ext;
 
-	unsigned long int i, num;
+	unsigned int i, num;
 
 
 	// write meta information
@@ -200,8 +200,8 @@ int write_meta_index(unsigned int num_chr)
 	// write bins: 
 	unsigned long int maxnr = 0;
 
- 	for (i=0; i<INDEX_SIZE; i++) {
-
+ 	for (i=0; (long int)i<=(long int)INDEX_SIZE-1; i++) 
+	  {
 		if ( INDEX[i] != NULL ) {	
 
 			bin = INDEX[i];
@@ -261,6 +261,8 @@ int write_meta_index(unsigned int num_chr)
 			}
 		}
 		
+		if (i==(long int)INDEX_SIZE-1) // avoid the integer overflow
+		  break ;
 	}
 
 	if (VERBOSE) printf("... done\n");

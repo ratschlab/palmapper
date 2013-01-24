@@ -107,6 +107,9 @@ int main(int argc, char *argv[])
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
 
+	if (_config.VERBOSE && !_config.MAP_REVERSE)
+	  fprintf(stdout, "Warning: only trigger alignments on forward strand\n") ;
+
 	FILE *OUT_FP = NULL ;
 	if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
 		OUT_FP = Util::openFile(_config.OUT_FILE_NAME, "w");
