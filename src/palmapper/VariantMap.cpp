@@ -712,7 +712,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
         return -1 ;
     int variant_lines = 0;
     const int max_buf_len = 10000000 ;
-    const int max_field_len = 500000 ;
+    //const int max_field_len = 500000 ; 
     std::vector<std::string> strainRefVec ; 
 
     char * buf=(char*)malloc(max_buf_len+1) ;
@@ -857,10 +857,10 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                   } else {
                     if (strainVec[strainCntInt].size() >= 3)
                     {
-                      signed int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0, dp=0 ;
-                      size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq, &dp) ;
-                      //assert(num>=2) ;
-                      if (gt1 == variantCntInt + 1 && atg != 0 && hcg == 1)
+                      signed int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0;
+                      size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq) ;
+                      assert(num>=2) ;
+                      if (gt1 == (signed int)variantCntInt + 1 && atg != 0 && hcg == 1)
                       {
                         if (srcIdStr.size() == 0u)
                         {
@@ -909,7 +909,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                           }
                         }
                         varPosition = varPosition + offsetInt ;
-                        if (suffixInt + offsetInt == variant_len) 
+                        if (suffixInt + offsetInt == (unsigned int)variant_len) 
                         {
                           ref_str_temp = ref_str_temp.substr(offsetInt, (ref_len_temp - suffixInt - offsetInt)) ;
                           ref_len_temp = ref_str_temp.length() ;
@@ -949,7 +949,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                           }
                         }
                         varPosition = varPosition + offsetInt ;
-                        if (suffixInt + offsetInt == ref_len_temp)
+                        if (suffixInt + offsetInt == (unsigned int)ref_len_temp)
                         {
                           variant_str = variant_str.substr(offsetInt, (variant_len - suffixInt - offsetInt)) ;
                           variant_len = variant_str.length() ;
