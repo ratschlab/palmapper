@@ -10,7 +10,7 @@ OBJS=		utils.o bwt.o bwtio.o bwtaln.o bwtmyaln.o bwtgap.o is.o \
 			bwtsw2_chain.o bamlite.o
 PROG=		bwa
 INCLUDES=	
-LIBS=		-lm -lz -lpthread -Lbwt_gen -lbwtgen -L. -lbwa
+LIBS=		-lm -lz -lpthread -Lbwt_gen -lbwtgen -L. -lbwa -lz -lpthread
 SUBDIRS=	. bwt_gen
 
 .SUFFIXES:.c .o .cc

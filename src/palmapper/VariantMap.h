@@ -483,7 +483,7 @@ public:
 			}		
 	}
 
-	void transcribe_gff(const std::string & gff_input, const std::string & fasta_output) ;
+	//void transcribe_gff(const std::string & gff_input, const std::string & fasta_output) ;
 	
 
 protected:

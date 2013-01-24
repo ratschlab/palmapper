@@ -46,6 +46,7 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 			fprintf(stderr, "ERROR: caught ShogunException: %s in thread %lu.\n", e.get_exception_string(), pthread_self()) ;
 			CSignal::do_show_read_ids() ;
 			fprintf(stderr, "\nExiting\n") ;
+			palmapper_cleanup() ;
 			exit(-1) ;
 		}
 		catch (std::exception & e)
@@ -53,6 +54,7 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 			fprintf(stderr, "ERROR: caught std::exception: %s in thread %lu.\n", e.what(), pthread_self()) ;
 			CSignal::do_show_read_ids() ;
 			fprintf(stderr, "\nExiting\n") ;
+			palmapper_cleanup() ;
 			exit(-1) ;
 		}
 		catch (...)
@@ -60,6 +62,7 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 			fprintf(stderr, "ERROR: caught unknown exception in thread %lu.\n", pthread_self()) ;
 			CSignal::do_show_read_ids() ;
 			fprintf(stderr, "\nExiting\n") ;
+			palmapper_cleanup() ;
 			exit(-1) ;
 		}
 	}
@@ -103,6 +106,9 @@ int main(int argc, char *argv[])
 
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
+
+	if (_config.VERBOSE && !_config.MAP_REVERSE)
+	  fprintf(stdout, "Warning: only trigger alignments on forward strand\n") ;
 
 	FILE *OUT_FP = NULL ;
 	if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
@@ -317,10 +323,10 @@ int main(int argc, char *argv[])
 		gzclose(USED_VARIANTS_FP);
 	}
 
-	if (_config.TRANSCRIBE_GFF)
+	/*if (_config.TRANSCRIBE_GFF)
 	{
 		variants.transcribe_gff(_config.TRANSCRIBE_GFF_FILE, _config.TRANSCRIBE_FASTA_FILE) ;
-	}
+		}*/
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);

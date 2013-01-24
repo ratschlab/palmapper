@@ -17,7 +17,7 @@
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = false ;
-static const std::string verbose_read_id = "HWI-EAS302_0016:5:1:3308:1024#0/1" ;
+static const std::string verbose_read_id = "ABC"  ;
 static const int verbose_read_level = 0 ;
 
 inline void get_vector_IUPAC(char c, std::vector<int> &l)
@@ -1813,6 +1813,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 		
 		while (hit != NULL) 
 		{
+		  //fprintf(stdout, "long hit: %i  ", i) ; 
 			//TODO: Real length of a hit is i-1
 			bool consider_as_long_hit = (i >= _config.SPLICED_HIT_MIN_LENGTH_LONG) || hit->aligned ;
 			if (consider_as_long_hit && num_long_hits >= _config.SPLICED_MAX_NUM_ALIGNMENTS) 

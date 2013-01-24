@@ -2508,6 +2508,7 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
     
 }
 
+/*
 void VariantMap::transcribe_gff(const std::string & gff_input, const std::string & fasta_output)
 {
     
@@ -2700,3 +2701,4 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
         transcript_seq.clear();
     }
 }
+*/

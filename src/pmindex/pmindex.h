@@ -11,6 +11,7 @@
 #include <ctype.h>
 
 #include <palmapper/VariantMap.h>
+#include <palmapper/GenomeMaps.h>
 
 #define VERSION "0.3.0"
 
@@ -19,7 +20,7 @@
 // ##############################################################
 
 #define MIN_INDEX_DEPTH 5
-#define MAX_INDEX_DEPTH 15
+#define MAX_INDEX_DEPTH 16
 
 extern char VERBOSE;
 extern char HAS_SLOT;
@@ -77,9 +78,9 @@ extern int MAX_SOURCE_COMBINATIONS ;
 #define BIN_SIZE_EXT 20
 //#define INDEX_SIZE 16777216 //4^12
 //#define INDEX_SIZE 67108864 //4^13
-#define INDEX_SIZE 268435456 //4^14
-//#define INDEX_SIZE (268435456*4) //4^15
-// #define INDEX_SIZE 244140625 // 5^12
+//#define INDEX_SIZE 268435456L //4^14
+//#define INDEX_SIZE (268435456L*4) //4^15
+#define INDEX_SIZE (268435456L*4*4) //4^16
 
 #define BLOCK_TABLE_SIZE 16777216	// 2^24 (3 Byte)
 #define BLOCK_SIZE 256	// 2^8 (1 Byte)
@@ -116,7 +117,7 @@ typedef struct bin_structure {
 extern BIN **INDEX;//[INDEX_SIZE];
 
 extern long int NUM_USED_SLOTS; //different to SLOT_COUNTER! This counts the number of different used slots, used by reverse and forward Index.
-extern int *USED_SLOTS;//[INDEX_SIZE];
+extern unsigned int *USED_SLOTS;//[INDEX_SIZE];
 
 
 // ##############################################################
@@ -148,15 +149,15 @@ extern int init(int argc, char *argv[]);
 extern int usage();
 
 //load.c
-extern int load_chromosomes(VariantMap & variants);
+extern int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps & genome_mask);
 extern int desc_parsing(char *c);
 
 //indec.c
-extern int index_chromosome(unsigned int chr, VariantMap & variants);
-extern int index_chromosome_novariants(unsigned int chr)  ;
+extern int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool mask_do_add=true);
+extern int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool use_secondary_regions=false, bool mask_do_add=true)  ;
 
 //alloc.c
-extern int alloc_bin(int slot);
+extern int alloc_bin(unsigned int slot);
 extern BIN_EXT *alloc_bin_ext() ;
 extern void alloc_blocktable();
 extern int dealloc_chr();
@@ -170,5 +171,19 @@ extern int write_chr_desc(unsigned int chr);
 extern void printindex();
 
 extern int seed_hit_cancel_threshold ;
+
+extern int has_genome_mask ;
+extern char GENOME_MASK_FILE_NAME[500] ;
+extern char GENOME_MASK_GFF_FILE_NAME[500] ;
+
+#define MASK_REGION_PRIMARY MASK_MAPPED_READ_BEST
+#define MASK_REGION_SECONDARY MASK_MAPPED_READ
+#define MASK_REGION_SECONDARY_REGION MASK_SPLICED_READ_BEST
+
+extern bool genome_mask_use_rep_seeds; 
+extern bool genome_mask_use_secondary_regions ;
+extern const int secondary_min_num_hits ;
+extern const int secondary_region_extra ;
+extern const int genome_mask_gff_extra ;
 
 #endif

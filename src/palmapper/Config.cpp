@@ -200,6 +200,7 @@ Config::Config() {
 	MIN_NUM_MATCHES_PEN=2;
 	
 	INCLUDE_UNMAPPED_READS_SAM=false;
+	READ_LENGTH_PARAM=DEFAULT_SETTING ;
 	
 	NO_QPALMA = false;
 	NO_GENOMEMAPPER = false ;
@@ -233,8 +234,10 @@ int Config::applyDefaults(Genome * genome)
 	}
 
 	if (_personality == Palmapper)  {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
-		if (read_length>0)
+	  int read_length = READ_LENGTH_PARAM ;
+	  if (read_length==DEFAULT_SETTING)
+	    read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
+	  if (read_length>0 && read_length!=DEFAULT_SETTING)
 		{
 			bool line_started=false ;
 			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
@@ -407,8 +410,10 @@ int Config::applyDefaults(Genome * genome)
 int Config::checkConfig()
 {
 	if (_personality == Palmapper) {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
-
+	  int read_length = READ_LENGTH_PARAM ;
+	  if (read_length==DEFAULT_SETTING)
+	    read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
+	  
 		if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
 		{
 			fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
@@ -433,9 +438,10 @@ int Config::checkConfig()
 			exit(1) ;
 		}
 
-		if(SPLICED_HITS && read_length>0 && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
-			fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
-			SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
+		if (read_length>0 && read_length!=DEFAULT_SETTING)
+		  if(SPLICED_HITS && read_length>0 && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
+		    fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
+		    SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
 		}
 	}
 
@@ -1092,6 +1098,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				FILTER_VARIANT_VLEN=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_VLEN>=0) ;
 			}
+			if (strcmp(argv[i], "-read-len") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -read-len\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				READ_LENGTH_PARAM=atoi(argv[i]) ;
+				assert(READ_LENGTH_PARAM>=0) ;
+			}
 			if (strcmp(argv[i], "-filter-variants-maxlen") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1235,30 +1252,30 @@ int Config::parseCommandLine(int argc, char *argv[])
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 1 ;
 			}
-			if (strcmp(argv[i], "-no-report-map-region") == 0) {
+			/*if (strcmp(argv[i], "-no-report-map-region") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 0 ;
-			}
+				}*/
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 1 ;
 			}
-			if (strcmp(argv[i], "-no-report-map-read") == 0) {
+			/*if (strcmp(argv[i], "-no-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 0 ;
-			}
+				}*/
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 1 ;
 			}
-			if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
+			/*if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 0 ;
-			}
+				}*/
 
 			//report splice sites - confidence threshold
 			if (strcmp(argv[i], "-report-splice-sites") == 0) {
@@ -1364,7 +1381,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			// reset the report (i.e. don't load it from file, even when available)
-			if (strcmp(argv[i], "-report-reset") == 0) {
+			if (strcmp(argv[i], "-report-wo") == 0) {
 				not_defined = 0;
 				REPORT_RESET = 1 ;
 			}
@@ -1743,9 +1760,9 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			i++;
 			int tmp = atoi(argv[i]);
-			if (tmp < 1 || tmp>14) 
+			if (tmp < 1 || tmp>16) 
 			{
-				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=14\n") ;
+				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=16\n") ;
 				usage();
 				exit(1);
 			}
@@ -2175,13 +2192,13 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//statistics
-		if (strcmp(argv[i], "-stat") == 0) {
+		/*if (strcmp(argv[i], "-stat") == 0) {
 			not_defined = 0;
 			STATISTICS = 1;
-		}
+			}*/
 
 		//print out gene, too (for every hit) used for WMD2
-		if (strcmp(argv[i], "-target_info") == 0) {
+		/*if (strcmp(argv[i], "-target_info") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
@@ -2194,10 +2211,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr, "-target_info value must be either 1 or 2!\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//flanking region of a hit
-		if (strcmp(argv[i], "-flanking") == 0) {
+		/* if (strcmp(argv[i], "-flanking") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
@@ -2211,7 +2228,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 						"-flanking value must be a positive integer and must not exceed 100!\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//bisulfite mode
 		if (strcmp(argv[i], "-B") == 0) {
@@ -2399,7 +2416,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			//transcribe transcripts into fasta files
-			if (strcmp(argv[i], "-transcribe-gff") == 0) {
+			/*if (strcmp(argv[i], "-transcribe-gff") == 0) {
 				not_defined = 0;
 				if (i + 2 > argc - 1) {
 					fprintf(stderr, "ERROR: Argument missing for option -transcribe-gff\n") ;
@@ -2411,7 +2428,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				TRANSCRIBE_FASTA_FILE =argv[i] ;
 				TRANSCRIBE_GFF=true ;
-			}
+				}*/
 			
 			if (not_defined == 1) {
 				fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
@@ -2573,7 +2590,7 @@ int Config::usage() {
 
 		printf(" -report STRING                        file for map reporting\n");
 		printf(" -report-ro STRING                     file for map reporting (read only)\n");
-		//printf(" -report-reset                         does not load report even if it is available\n");
+		//printf(" -report-wo                          does not load report even if it is available\n");
 		printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
 		printf(" -report-map-region                    switch on reporting of mapped regions\n");
 		//printf(" -no-report-map-region                 switch off reporting of mapped regions\n");
