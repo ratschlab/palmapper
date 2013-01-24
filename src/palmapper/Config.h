@@ -239,7 +239,7 @@ public:
 
 	std::string USE_VARIANT_FILE_NAME ;
 	std::string REPORT_USED_VARIANT_FILE_NAME;
-	std::string MAF_REF_NAME;
+	std::string MGF_REF_NAME;
 	std::string REPORT_VARIANTS_FILE_NAME ;
 	std::string REPORT_VARIANTS_STATS_FILE_NAME ;
 	std::vector<std::string> FILTER_VARIANT_SOURCES ;
