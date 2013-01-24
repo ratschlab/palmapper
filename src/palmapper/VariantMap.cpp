@@ -707,7 +707,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 {
     fprintf(stdout, "initializing genome variant list with VCF file %s\n", vcf_fname.c_str()) ;
     
-    FILE * fd=Util::openFile(vcf_fname.c_str(), "r") ;
+    gzFile fd=Util::gzopenFile(vcf_fname.c_str(), "r") ;
     if (!fd)
         return -1 ;
     int variant_lines = 0;
@@ -715,20 +715,22 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
     //const int max_field_len = 500000 ; 
     std::vector<std::string> strainRefVec ; 
 
+    const bool track_ids=true ;
+
     char * buf=(char*)malloc(max_buf_len+1) ;
     strcpy(buf, "") ;
      
-    while (!feof(fd))
+    while (!gzeof(fd))
     {
         //variant object requirements for palmapper
         std::string ref_str, variant_str ;
-        char source_id[1001]="",
-        varElems[1001]="", chr_name[1001]="" ;
+	std::string source_id="" ;
+	char varElems[1001]="", chr_name[1001]="" ;
         char * varPch ;
 	int position=0, lendiff=0,
         variant_len=0, ref_len=0 ;
         
-        if (fgets(buf, max_buf_len, fd)==NULL)
+        if (gzgets(fd, buf, max_buf_len)==NULL)
         {
           break ;
         }
@@ -745,7 +747,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             char * headerPch ;
             int headCntInt = 0 ;
             headerPch = strtok (buf, "\t") ;
-            std::vector<std::string> variantVec, strainVec ;
+            //std::vector<std::string> variantVec, strainVec ;
             
             while (headerPch != NULL)
             {
@@ -816,11 +818,11 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
             {
                 continue ;
             } else {
-              for (unsigned int variantCntInt=0;
-                   variantCntInt < variantVec.size() ;
-                   variantCntInt++)
+              for (unsigned int variantCntInt=0; variantCntInt < variantVec.size() ; variantCntInt++)
               {
+		assert(variantCntInt<variantVec.size()) ;
                 variant_len = variantVec[variantCntInt].size() ;
+		
                 std::string srcIdStr, ref_str_temp ;
                 int varPosition = 0, ref_len_temp = 0 ;
       
@@ -838,51 +840,146 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                     if (strainVec[strainCntInt].size() >= 3)
                     {
                       unsigned int strainCharInt=0, strainCharInt2=0, strainQualInt=0 ;
+		      assert(strainCntInt<strainVec.size()) ;
                       size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
-                      assert(num>=2) ;
-                      if (strainCharInt!=strainCharInt2)
-                      fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
-                      if (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1)
-                      {
-                        //update string for source_id
-                        if ( srcIdStr.size() == 0u)
-                        {
-                        srcIdStr.append(strainRefVec[strainCntInt]) ;
-                        } else {
-                        srcIdStr.append(",");
-                        srcIdStr.append(strainRefVec[strainCntInt]) ;
-                        }
-                      }
+                      num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i", &strainCharInt, &strainCharInt2, &strainQualInt) ;
+		      if (num>=2)
+			{
+			  //unphased case, specific to mouse vcf's
+			  if (strainCharInt!=strainCharInt2)
+			    fprintf(stdout, "Warning: heterozygous polymorphism\n") ;
+			  if (track_ids && (strainCharInt == variantCntInt+1 || strainCharInt2 == variantCntInt+1))
+			    {
+			      assert(strainCntInt<strainRefVec.size()) ;
+			      //update string for source_id
+			      if ( srcIdStr.size() == 0u)
+				{
+				  srcIdStr.append(strainRefVec[strainCntInt]) ;
+				} else {
+				srcIdStr.append(",");
+				srcIdStr.append(strainRefVec[strainCntInt]) ;
+			      }
+			    }
+			}
+		      else
+			{
+			  //phased case, specific to human 1000G vcf's
+			  float DS,GL1,GL2,GL3;
+			  assert(strainCntInt<strainVec.size()) ;
+			  num = sscanf(strainVec[strainCntInt].c_str(), "%i|%i:%f:%f,%f,%f", &strainCharInt, &strainCharInt2, &DS, &GL1, &GL2, &GL3) ;
+			  if (num<5)
+			    {
+			      GL3=0 ;
+			      num = sscanf(strainVec[strainCntInt].c_str(), "%i:%f:%f,%f", &strainCharInt, &DS, &GL1, &GL2) ;
+			      strainCharInt2=strainCharInt ;
+			      if (num<4)
+				{
+				  fprintf(stderr, "could not parse: '%s'\n", strainVec[strainCntInt].c_str()) ;
+				  exit(-1) ;
+				}
+			    }
+			  if (track_ids && strainCharInt!=0)
+			    {
+			      assert(strainCharInt==1) ;
+			      assert(strainCharInt<strainRefVec.size()) ;
+			      if ( srcIdStr.size() == 0u)
+				{
+				  srcIdStr.append(strainRefVec[strainCharInt]) ;
+				} else {
+				srcIdStr.append(",");
+				srcIdStr.append(strainRefVec[strainCharInt]) ;
+			      }
+			    }
+			  if (track_ids && strainCharInt2!=0)
+			    {
+			      assert(strainCharInt2==1) ;
+			      assert(strainCharInt2<strainRefVec.size()) ;
+			      if ( srcIdStr.size() == 0u)
+				{
+				  srcIdStr.append(strainRefVec[strainCharInt2]) ;
+				} else {
+				srcIdStr.append(",");
+				srcIdStr.append(strainRefVec[strainCharInt2]) ;
+			      }
+			    }
+			}
                     } //completed all strains for a variant
                   } else {
                     if (strainVec[strainCntInt].size() >= 3)
                     {
+		      //unphased case, specific to mouse vcf's
                       signed int gt1=0, gt2=0, atg=0, mq=0, hcg=0, gq=0;
                       size_t num = sscanf(strainVec[strainCntInt].c_str(), "%i/%i:%i:%i:%i:%i", &gt1, &gt2, &atg, &mq, &hcg, &gq) ;
-                      assert(num>=2) ;
-                      if (gt1 == (signed int)variantCntInt + 1 && atg != 0 && hcg == 1)
-                      {
-                        if (srcIdStr.size() == 0u)
-                        {
-                          srcIdStr.append(strainRefVec[strainCntInt]) ;
-                          } else  {
-                          srcIdStr.append(",") ;
-                          srcIdStr.append(strainRefVec[strainCntInt]) ;
-                          }
-                        }
-                      }
-                    }
-		  } // complete variants and strains
-		    
-                  if (srcIdStr.length() != 0 )
-		  {
-		    strcpy(source_id, srcIdStr.c_str()) ;
-		  } else {
-		    continue ;
+		      if (num>=2)
+			{
+			  if (track_ids && gt1 == (signed int)variantCntInt + 1 && atg != 0 && hcg == 1)
+			    {
+			      assert(strainCntInt<strainRefVec.size()) ;
+			      if (srcIdStr.size() == 0u)
+				{
+				  srcIdStr.append(strainRefVec[strainCntInt]) ;
+				} else  {
+				srcIdStr.append(",") ;
+				srcIdStr.append(strainRefVec[strainCntInt]) ;
+			      }
+			    }
+			}
+		      else
+			{
+			  //phased case, specific to human 1000G vcf's
+			  float DS,GL1,GL2,GL3;
+			  num = sscanf(strainVec[strainCntInt].c_str(), "%i|%i:%f:%f,%f,%f", &gt1, &gt2, &DS, &GL1, &GL2, &GL3) ;
+			  if (num<5)
+			    {
+			      GL3=0 ;
+			      num = sscanf(strainVec[strainCntInt].c_str(), "%i:%f:%f,%f", &gt1, &DS, &GL1, &GL2) ;
+			      gt2=gt1 ;
+			      if (num<4)
+				{
+				  fprintf(stderr, "could not parse: '%s'\n", strainVec[strainCntInt].c_str()) ;
+				  exit(-1) ;
+				}
+			    }
+			  if (track_ids && gt1!=0)
+			    {
+			      assert(gt1==1) ;
+			      assert((unsigned)gt1<strainRefVec.size()) ;
+			      if (srcIdStr.size() == 0u)
+				{
+				  srcIdStr.append(strainRefVec[gt1]) ;
+				} else  {
+				srcIdStr.append(",") ;
+				srcIdStr.append(strainRefVec[gt1]) ;
+			      }
+			    }
+			  if (track_ids && gt2!=0)
+			    {
+			      assert(gt2==1) ;
+			      assert((unsigned)gt2<strainRefVec.size()) ;
+			      if (srcIdStr.size() == 0u)
+				{
+				  srcIdStr.append(strainRefVec[gt2]) ;
+				} else  {
+				srcIdStr.append(",") ;
+				srcIdStr.append(strainRefVec[gt2]) ;
+			      }
+			    }
+			}
+
+		    }
 		  }
-		  variant_str = variantVec[variantCntInt].c_str() ;
-                  
-                  if (lendiff < 0) 
+		} // complete variants and strains
+		
+		if (srcIdStr.length() != 0 || !track_ids)
+		  {
+		    source_id=srcIdStr.c_str() ;
+		  } else {
+		  continue ;
+		  }
+		assert(variantCntInt<variantVec.size()) ;
+		variant_str = variantVec[variantCntInt].c_str() ;
+                
+		if (lendiff < 0) 
                   {
                       unsigned int offsetInt = 0 ; 
                       for (offsetInt = 0 ; offsetInt < variant_str.length(); offsetInt++)
@@ -967,24 +1064,23 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
                   }
                 int chr_idx = genome->find_desc(chr_name) ; 
                 insert_variant(chr_idx, varPosition - 1, ref_len_temp, variant_len, 
-                ref_str_temp, variant_str, 0, 0, 0,0, source_id, -2, -1);
+			       ref_str_temp, variant_str, 0, 0, 0,0, source_id.c_str(), -2, -1);
                 variant_lines++ ;
 
-    		if (variant_lines%1000000==0)
+    		if (variant_lines%1000==0)
     		{
-        	long pos = ftell(fd) ;
-        	fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r",
-                variant_lines, pos/1024/1024) ;
-    		
-    		fprintf(stdout, "read %i variants \n", variant_lines) ;
-    		
+		  long pos = gztell(fd) ;
+		  fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r",
+			  variant_lines, pos/1024/1024) ;
+		  
+		  fprintf(stdout, "read %i variants \n", variant_lines) ;
 		}
               
 	      } //completed all variants in a line
           }
       }
   }
-    fclose(fd) ;
+    gzclose(fd) ;
    /* 
     if (variant_lines%10000==0)
     {
@@ -2007,6 +2103,16 @@ int VariantMap::init_from_files(std::string &fnames)
                 ext=sdi;
             if (extension.compare("vcf")==0 || extension.compare("VCF")==0)
                 ext=vcf;
+            if (extension.compare("gz")==0)
+	      {
+		size_t pos_ext2=filename.rfind('.', pos_ext-1);
+		if (pos_ext2 != std::string::npos)
+		  {
+		    std::string extension2(filename.substr(pos_ext2+1));
+		    if (extension2.compare("vcf.gz")==0 || extension2.compare("VCF.gz")==0)
+		      ext=vcf;
+		  }
+	      }
 #ifndef PMINDEX
             if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
                 ext=maf;
