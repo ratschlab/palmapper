@@ -165,7 +165,7 @@ int write_meta_index(unsigned int num_chr)
 	BIN *bin = 0;
         BIN_EXT **bin_ext;
 
-	unsigned int i, num;
+	unsigned long int i, num;
 
 
 	// write meta information
