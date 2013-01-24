@@ -16,9 +16,9 @@
 
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
-static const bool perform_extra_checks = true ;
-static const std::string verbose_read_id = "D0PY5ACXX120406:1:2312:4140:41771/1" ;
-static const int verbose_read_level = 3 ;
+static const bool perform_extra_checks = false ;
+static const std::string verbose_read_id = "ABC"  ;
+static const int verbose_read_level = 0 ;
 
 inline void get_vector_IUPAC(char c, std::vector<int> &l)
 {

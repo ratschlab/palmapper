@@ -1255,30 +1255,30 @@ int Config::parseCommandLine(int argc, char *argv[])
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 1 ;
 			}
-			if (strcmp(argv[i], "-no-report-map-region") == 0) {
+			/*if (strcmp(argv[i], "-no-report-map-region") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 0 ;
-			}
+				}*/
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 1 ;
 			}
-			if (strcmp(argv[i], "-no-report-map-read") == 0) {
+			/*if (strcmp(argv[i], "-no-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 0 ;
-			}
+				}*/
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 1 ;
 			}
-			if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
+			/*if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 0 ;
-			}
+				}*/
 
 			//report splice sites - confidence threshold
 			if (strcmp(argv[i], "-report-splice-sites") == 0) {
@@ -1384,7 +1384,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			// reset the report (i.e. don't load it from file, even when available)
-			if (strcmp(argv[i], "-report-reset") == 0) {
+			if (strcmp(argv[i], "-report-wo") == 0) {
 				not_defined = 0;
 				REPORT_RESET = 1 ;
 			}
@@ -2195,13 +2195,13 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//statistics
-		if (strcmp(argv[i], "-stat") == 0) {
+		/*if (strcmp(argv[i], "-stat") == 0) {
 			not_defined = 0;
 			STATISTICS = 1;
-		}
+			}*/
 
 		//print out gene, too (for every hit) used for WMD2
-		if (strcmp(argv[i], "-target_info") == 0) {
+		/*if (strcmp(argv[i], "-target_info") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
@@ -2214,10 +2214,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr, "-target_info value must be either 1 or 2!\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//flanking region of a hit
-		if (strcmp(argv[i], "-flanking") == 0) {
+		/* if (strcmp(argv[i], "-flanking") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
@@ -2231,7 +2231,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 						"-flanking value must be a positive integer and must not exceed 100!\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//bisulfite mode
 		if (strcmp(argv[i], "-B") == 0) {
@@ -2419,7 +2419,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			//transcribe transcripts into fasta files
-			if (strcmp(argv[i], "-transcribe-gff") == 0) {
+			/*if (strcmp(argv[i], "-transcribe-gff") == 0) {
 				not_defined = 0;
 				if (i + 2 > argc - 1) {
 					fprintf(stderr, "ERROR: Argument missing for option -transcribe-gff\n") ;
@@ -2431,7 +2431,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				TRANSCRIBE_FASTA_FILE =argv[i] ;
 				TRANSCRIBE_GFF=true ;
-			}
+				}*/
 			
 			if (not_defined == 1) {
 				fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
@@ -2599,7 +2599,7 @@ int Config::usage() {
 
 		printf(" -report STRING                        file for map reporting\n");
 		printf(" -report-ro STRING                     file for map reporting (read only)\n");
-		//printf(" -report-reset                         does not load report even if it is available\n");
+		//printf(" -report-wo                          does not load report even if it is available\n");
 		printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
 		printf(" -report-map-region                    switch on reporting of mapped regions\n");
 		//printf(" -no-report-map-region                 switch off reporting of mapped regions\n");
