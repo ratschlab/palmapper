@@ -174,7 +174,7 @@ Config::Config() {
 	USE_VARIANT_FILE_NAME = "" ;
 	REPORT_USED_VARIANT_FILE_NAME = "";
 	REPORT_VARIANTS_FILE_NAME="" ;
-	MAF_REF_NAME="";
+	MGF_REF_NAME="";
 
 	FILTER_VARIANT_MINSOURCECOUNT=0 ;
 	FILTER_VARIANT_REQSOURCES.clear() ;
@@ -1030,15 +1030,15 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_USED_VARIANTS=true ;
 			}
 
-			if (strcmp(argv[i], "-maf-ref") == 0) {
+			if (strcmp(argv[i], "-mgf-ref") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
-					fprintf(stderr, "ERROR: Argument missing for option -maf-refn") ;
+					fprintf(stderr, "ERROR: Argument missing for option -mgf-refn") ;
 					usage();
 					exit(1);
 				}
 				i++;
-				MAF_REF_NAME.assign(argv[i]);
+				MGF_REF_NAME.assign(argv[i]);
 			}
 
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
@@ -2563,9 +2563,9 @@ int Config::usage() {
 		printf(" -junction-remapping-coverage INT      minimum alignment support to take into account a junction\n");
 		printf(" -report-junctions STRING              report splice site junctions in gff3 format\n\n");
 
-		printf(" -use-variants STRING                  Use variants provided in a sdi or maf or samtools file to map reads against\n");
-		printf("-use-iupac-snp-variants                Enables the merge of SNPs and DNA base for aligning with variants (no snps reported in this case)\n");
-		printf(" -maf-ref STRING                       Name of the reference genome as it appears in multiple alignments for MAF file given with -use-variants option\n");
+		printf(" -use-variants STRING                  Use variants provided in a sdi, maf, mgf, vcf or samtools file to map reads against\n");
+		printf(" -use-iupac-snp-variants                Enables the merge of SNPs and DNA base for aligning with variants (no snps reported in this case)\n");
+		printf(" -mgf-ref STRING                       Name of the reference genome as it appears in multiple alignments for MGF file given with -use-variants option\n");
 		printf(" -discover-variants                    Switch on the discovery of new variant sequences (deletion, insertion, SNP)\n");
 		printf(" -report-variants STRING               report variants (used and discovered)\n\n");
 

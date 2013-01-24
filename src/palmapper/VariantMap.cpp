@@ -2076,12 +2076,11 @@ int VariantMap::stats_to_file(const std::string &stats, int max_len)  const
 
 int VariantMap::init_from_files(std::string &fnames)
 {
-    
     int previousfound=0;
     int found=fnames.find(",");
     std::string filename;
 #ifndef PMINDEX
-    bool has_maf_file = false ;
+    bool has_mgf_file = false ;
 #endif
     
     while (true)
@@ -2114,8 +2113,8 @@ int VariantMap::init_from_files(std::string &fnames)
 		  }
 	      }
 #ifndef PMINDEX
-            if (extension.compare("maf")==0 ||extension.compare("MAF")==0)
-                ext=maf;
+            if (extension.compare("mgf")==0 ||extension.compare("MGF")==0)
+                ext=mgf;
 #endif
             if (extension.compare("indel")==0 || extension.compare("samtools")==0 || extension.compare("var")==0)
                 ext=samtools;
@@ -2139,9 +2138,9 @@ int VariantMap::init_from_files(std::string &fnames)
             exit(1) ;
         }
 #ifndef PMINDEX
-        if ( ext==maf && _config.MAF_REF_NAME.length()<=0 )
+        if ( ext==mgf && _config.MGF_REF_NAME.length()<=0 )
         {
-            fprintf(stderr,	"ERROR: Need reference genome name (with -maf-ref option) to initialize variants from the maf file %s\n", (char*)filename.c_str());
+            fprintf(stderr,	"ERROR: Need reference genome name (with -mgf-ref option) to initialize variants from the mgf file %s\n", (char*)filename.c_str());
             exit(1) ;
         }
 #endif
@@ -2164,10 +2163,10 @@ int VariantMap::init_from_files(std::string &fnames)
             init_from_csv(filename, _config.VARIANT_SNP_TAKE_LINES, ext);
         if (ext == svcsv)
             init_from_csv(filename, _config.VARIANT_SNP_TAKE_LINES, ext);
-        if (ext == maf)
+        if (ext == mgf)
         {
-            init_from_maf(filename, _config.MAF_REF_NAME);
-            has_maf_file = true ;
+            init_from_mgf(filename, _config.MGF_REF_NAME);
+            has_mgf_file = true ;
         }
 #endif
         
@@ -2185,8 +2184,8 @@ int VariantMap::init_from_files(std::string &fnames)
     known_variants_limit=next_variant_id-1;
     
 #ifndef PMINDEX
-    if (!has_maf_file && _config.MAF_REF_NAME.length()>0)
-        fprintf(stdout, "WARNING: maf reference given, but no maf file as input\n") ;
+    if (!has_mgf_file && _config.MGF_REF_NAME.length()>0)
+        fprintf(stdout, "WARNING: mgf reference given, but no mgf file as input\n") ;
 #endif
     
     return 0;
@@ -2463,13 +2462,13 @@ bool compare_variants(const Variant &a, const Variant &b)
     return (VariantMap::variant_cmp(a,b)<0) ;
 }
 
-int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &ref_genome)
+int VariantMap::init_from_mgf(const std::string &mgf_fname, const std::string &ref_genome)
 {
     
-    fprintf(stdout, "initializing genome variant list with MAF file %s\n", maf_fname.c_str()) ;
+    fprintf(stdout, "initializing genome variant list with MGF file %s\n", mgf_fname.c_str()) ;
     insert_unsorted = true ;
     
-    FILE * fd=Util::openFile(maf_fname.c_str(), "r") ;
+    FILE * fd=Util::openFile(mgf_fname.c_str(), "r") ;
     if (!fd)
         return -1 ;
     int variant_lines = 0;
@@ -2490,29 +2489,29 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
         Util::skip_comment_lines(fd) ;
         
         /**************************************/
-        /* Parse MAF line                     */
+        /* Parse MGF line                     */
         /* Initialize multiple alignments     */
         /**************************************/
         
-        //Scan MAF line type
-        char name_maf[1000], alignment_maf[100000];
-        int position_maf, len_maf, len_chr ;
-        char strand_maf;
-        char type_maf;
+        //Scan MGF line type
+        char name_mgf[1000], alignment_mgf[100000];
+        int position_mgf, len_mgf, len_chr ;
+        char strand_mgf;
+        char type_mgf;
         
-        int num = fscanf(fd, "%c\t%1000s\t%i\t%i\t%c\t%i\t%100000s\n", &type_maf, name_maf, &position_maf, &len_maf, &strand_maf, &len_chr, alignment_maf) ;
-        //fprintf(stdout, "%c\t%s\t%i\t%i\t%c\t%i\t%s\n", type_maf, name_maf, position_maf, len_maf, strand_maf, len_chr, alignment_maf) ;
+        int num = fscanf(fd, "%c\t%1000s\t%i\t%i\t%c\t%i\t%100000s\n", &type_mgf, name_mgf, &position_mgf, &len_mgf, &strand_mgf, &len_chr, alignment_mgf) ;
+        //fprintf(stdout, "%c\t%s\t%i\t%i\t%c\t%i\t%s\n", type_mgf, name_mgf, position_mgf, len_mgf, strand_mgf, len_chr, alignment_mgf) ;
         if (num<1)
         {
             if (feof(fd))
                 break ;
-            fprintf(stdout, "maf line only contained %i columns (7 expected), aborting\n", num) ;
+            fprintf(stdout, "mgf line only contained %i columns (7 expected), aborting\n", num) ;
             continue;
             
         }
         
         //New alignment block: get variants from the previous block
-        if (type_maf == 'a')
+        if (type_mgf == 'a')
         {
             //Block with reference name
             if(!ref_align.empty())
@@ -2532,16 +2531,16 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
         }
         
         //Line should be a sequence line and have 7 fields
-        if (type_maf != 's' || num <7)
+        if (type_mgf != 's' || num <7)
             continue;
         
         
         //Get genome name and chromosome
-        std::string name_tmp(name_maf);
+        std::string name_tmp(name_mgf);
         size_t position_tmp = name_tmp.find_last_of('.');
         if (position_tmp == std::string::npos)
         {
-            fprintf(stderr, "Name %s does not contain genome and chromosome information\n", name_maf) ;
+            fprintf(stderr, "Name %s does not contain genome and chromosome information\n", name_mgf) ;
             fclose(fd) ;
             return -1 ;
         }
@@ -2563,16 +2562,16 @@ int VariantMap::init_from_maf(const std::string &maf_fname, const std::string &r
                 return -1 ;
             }
             
-            start_position=position_maf;
+            start_position=position_mgf;
             chr_idx=chr_tmp;
-            strand=strand_maf;
-            ref_len=len_maf;
+            strand=strand_mgf;
+            ref_len=len_mgf;
             ref_chr_len = len_chr ;
-            ref_align.assign(alignment_maf);
+            ref_align.assign(alignment_mgf);
             std::transform(ref_align.begin(), ref_align.end(),ref_align.begin(), ::toupper);
         }
         else{
-            std::string var_seq(alignment_maf);
+            std::string var_seq(alignment_mgf);
             std::transform(var_seq.begin(), var_seq.end(),var_seq.begin(), ::toupper);
             variant_align.push_back(var_seq);
             variant_name.push_back(genome_name) ;
