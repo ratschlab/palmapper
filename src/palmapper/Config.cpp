@@ -214,6 +214,8 @@ Config::Config() {
 	Q1_QUERY_FILE_NAMES= std::string("") ;
 	Q2_QUERY_FILE_NAMES= std::string("") ;
 
+    COMMAND_LINE = std::string("") ;
+
 };
 
 int Config::applyDefaults(Genome * genome)
@@ -562,6 +564,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 	char has_genome = 0;
 
 	for (i = 1; i < argc; i++) {
+
 		not_defined = 1;
 
 		//genome file
@@ -2437,6 +2440,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 	}
+
+    COMMAND_LINE = std::string(argv[0]);
+    for (i = 1; i < argc; i++) {
+        COMMAND_LINE += (std::string(" ") + std::string(argv[i]));
+    }
+
 
 	//Initialize query file vectors (name and strand information)
 	postprocess_query_filenames(Q_QUERY_FILE_NAMES, STRAND) ;

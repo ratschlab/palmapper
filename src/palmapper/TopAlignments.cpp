@@ -1759,6 +1759,7 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 
 void TopAlignments::print_bam_header(Genome& genome, FILE*OUT_FP)
 {
+    fprintf(OUT_FP, "@PG\tID:PALMapper\tVN:%s\tCL:%s\n", VERSION, _config.COMMAND_LINE.c_str()) ; 
 	for (unsigned int i=0; i<genome.nrChromosomes(); i++)
 	{
 		fprintf(OUT_FP, "@SQ\tSN:%s\tLN:%i\n", genome.get_desc(i), genome.chromosome(i).length())  ;

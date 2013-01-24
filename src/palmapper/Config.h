@@ -295,6 +295,8 @@ public:
 	static void VersionHeader() ;
 	static int usage();
 	static Personality getPersonality();
+
+    std::string COMMAND_LINE;
 private:
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;
