@@ -531,7 +531,8 @@ bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank)
 			if (i>=0 && i<(int)genome->chromosome(chr).length())
 				genome_str+=genome->chromosome(chr)[j.position+i] ;
 			else
-				genome_str+='_' ;
+				genome_str+=genome->chromosome(chr)[j.position+i] ;
+			//genome_str+='_' ;
 		}
         
 		for (int i=0; i<j.ref_len; i++)
@@ -543,14 +544,14 @@ bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank)
 				if (exit_on_validation_error)
 				{
 					of=stderr ;
-					fprintf(of, "ERROR: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i], j.ref_str[i], j.variant_str.c_str()) ;
+					fprintf(of, "ERROR: variant map disagrees with genome: %i\t%i\tgenome='%c'\tref='%c'\tvariant='%s'\tsource=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i], j.ref_str[i], j.variant_str.c_str(), j.read_id.c_str()) ;
 				}
 				else
-					fprintf(of, "WARNING: variant map disagrees with genome: %i\t%i\tgenome=%c\tref=%c\tvariant=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i], j.ref_str[i], j.variant_str.c_str()) ;
+				  fprintf(of, "WARNING: variant map disagrees with genome: %i\t%i\tgenome='%c'\tref='%c'\tvariant='%s'\tsource=%s\n", i, j.position+i, genome->chromosome(chr)[j.position+i], j.ref_str[i], j.variant_str.c_str(), j.read_id.c_str()) ;
 				if (j.type==pt_SNP)
-					fprintf(of, "SNP\t%s\t%i\t%c\t%c\t%s\n", genome->chromosome(chr).desc(), j.position, j.ref_str[0], j.variant_str[0], genome_str.c_str()) ;
+					fprintf(of, "SNP\t%s\t%i\t'%c'\t'%c'\t%s\n", genome->chromosome(chr).desc(), j.position, j.ref_str[0], j.variant_str[0], genome_str.c_str()) ;
 				if (j.type==pt_deletion)
-					fprintf(of, "Deletion\t%s\t%i\t%i\t%s\t%s\n", genome->chromosome(chr).desc(), j.position, j.end_position, j.ref_str.c_str(), genome_str.c_str()) ;
+					fprintf(of, "Deletion\t%s\t%i\t%i\t'%s'\t'%s'\n", genome->chromosome(chr).desc(), j.position, j.end_position, j.ref_str.c_str(), genome_str.c_str()) ;
                 
 				if (exit_on_validation_error)
 				{
@@ -715,7 +716,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
     //const int max_field_len = 500000 ; 
     std::vector<std::string> strainRefVec ; 
 
-    const bool track_ids=true ;
+    const bool track_ids=false ;
 
     char * buf=(char*)malloc(max_buf_len+1) ;
     strcpy(buf, "") ;
@@ -1211,6 +1212,112 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
     
 }
 
+int VariantMap::init_from_maf(const std::string &maf_fname)
+{
+    
+    fprintf(stdout, "initializing genome variant list with MAF file %s\n", maf_fname.c_str()) ;
+    
+    FILE * fd=Util::openFile(maf_fname.c_str(), "r") ;
+    if (!fd)
+        return -1 ;
+    int variant_lines = 0, variant_lines_checked = 0 ;
+    const int max_buf_len = 10000000 ;
+    const int max_field_len = 500000 ;
+    
+    char * buf=(char*)malloc(max_buf_len+1) ;
+    strcpy(buf, "") ;
+    int num_dropped_non37release = 0 ;
+
+    while (!feof(fd))
+    {
+      char chr_name[1001]="", ref_str[max_field_len+1]="", variant_str1[max_field_len+1]="", variant_str2[max_field_len+1]="", source_id[1001]="", hugo[1001]="", geneid[1001]="", center[1001]="", ncbi_build[1001]="", strand, classification[10001]="", variant_type[1001]="", dbsnp_id[1001]="", dbsnp_status[1001]="", rest[10001] ;
+      int start_position, end_position, lendiff, read_pos=-1, read_len=-1, conf_count=0, non_conf_count=0, used_count=1, non_used_count=0 ;
+      
+        Util::skip_comment_lines(fd) ;
+        
+        if (fgets(buf, max_buf_len, fd)==NULL)
+            break ;
+        
+        //Scan maf line
+	// Hugo_Symbol     Entrez_Gene_Id  Center  NCBI_Build      Chromosome      Start_position  End_position    Strand  Variant_Classification  Variant_Type    Reference_Allele        Tumor_Seq_Allele1       Tumor_Seq_Allele2       dbSNP_RS        dbSNP_Val_Status        Tumor_Sample_Barcode    Matched_Norm_Sample_Barcode     Match_Norm_Seq_Alle
+        int num = sscanf(buf,"%1000s\t%1000s\t%100s\t%1000s\t%1000s\t%i\t%i\t%c\t%1000s\t%1000s\t%500000s\t%500000s\t%500000s\t%1000s\t%1000s\t%1000s\t%10000s\n",
+			 hugo, geneid,  center, ncbi_build, chr_name, &start_position, &end_position, &strand, classification, variant_type, ref_str, variant_str1, variant_str2, dbsnp_id, dbsnp_status, source_id, rest);
+
+        if (num>=4)
+	  if (std::string(ncbi_build)!="37")
+	    {
+	      num_dropped_non37release++ ;
+	      continue ;
+	    }
+	
+        if (num<16)
+        {
+            if (feof(fd))
+                break ;
+            fprintf(stdout, "maf line only contained %i columns (16 expected), aborting (%s)\nftell=%ld\n%s\n", num, chr_name, ftell(fd), buf) ;
+	    continue ;
+            //exit(1) ;
+        }
+	assert(strand=='+') ;
+
+	if (strcmp(ref_str, "-")==0)
+	  {
+	    assert(end_position-start_position==(int)strlen(ref_str)) ;
+	    strcpy(ref_str, "") ;
+	  }
+	else
+	  assert(end_position-start_position+1==(int)strlen(ref_str)) ;
+	
+	int position = start_position ;
+	int num_variants=1 ;
+	if (strcmp(variant_str1,variant_str2)!=0)
+	  num_variants=2 ;
+	for (int v=0; v< num_variants; v++)
+	  {
+	    char * variant_str = (v==0) ? variant_str1 : variant_str2 ;
+	    
+	    int chr_idx = genome->find_desc(chr_name) ;
+	    if (chr_idx==-1)
+	      {
+		fprintf(stderr, "chromosome %s not found. known chromosome names:\n", chr_name) ;
+		genome->print_desc(stderr) ;
+		fclose(fd) ;
+		free(buf) ;
+		return -1 ;
+	      }
+	    if (strcmp(variant_str, "-")==0)
+	      strcpy(variant_str, "") ;
+	    
+	    if (strcmp(variant_str, ref_str)==0)
+	      continue ;
+	    int ref_len = strlen(ref_str) ;
+	    int variant_len = strlen(variant_str) ;
+	    
+	    lendiff=strlen(variant_str)-strlen(ref_str) ;
+	    assert(lendiff==variant_len-ref_len) ;
+	    
+	    insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count,non_used_count, std::string(center)+":"+std::string(ncbi_build)+":"+std::string(source_id), read_pos, read_len);
+	  }
+	variant_lines++ ;
+	
+	if (variant_lines%10000==0)
+	  {
+	    long pos = ftell(fd) ;
+	    fprintf(stdout, "num_variants=%i\t\t%ld Mb read\r", variant_lines, pos/1024/1024) ;
+	  }
+    }
+    
+    fclose(fd) ;
+    
+    fprintf(stdout, "read %i variants (checked %i)\n", variant_lines, variant_lines_checked) ;
+    if (num_dropped_non37release>0)
+      fprintf(stdout, "dropped %i lines with genome versions other than NCBI 37\n", num_dropped_non37release) ;
+      
+    free(buf) ;
+    return 0 ;
+    
+}
+
 int VariantMap::init_from_info(const std::string &info_fname)
 {
     
@@ -1389,7 +1496,7 @@ int VariantMap::init_from_info(const std::string &info_fname)
                         exit(-1) ;
                     }
                     else
-                        fprintf(stdout, "WARNING: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\t%s\n", i, position+i, genome->chromosome(chr_idx)[position+i], ref_str[i], ref_str, buf) ;
+		      fprintf(stdout, "WARNING: variant map disagrees with genome: %i\t%i\t%c\t%c\t%s\t%s\n", i, position+i, genome->chromosome(chr_idx)[position+i], ref_str[i], ref_str, buf) ;
                 }
             }
             variant_lines_checked++ ;
@@ -2102,6 +2209,8 @@ int VariantMap::init_from_files(std::string &fnames)
                 ext=sdi;
             if (extension.compare("vcf")==0 || extension.compare("VCF")==0)
                 ext=vcf;
+            if (extension.compare("maf")==0 || extension.compare("MAF")==0)
+                ext=maf;
             if (extension.compare("gz")==0)
 	      {
 		size_t pos_ext2=filename.rfind('.', pos_ext-1);
@@ -2110,6 +2219,8 @@ int VariantMap::init_from_files(std::string &fnames)
 		    std::string extension2(filename.substr(pos_ext2+1));
 		    if (extension2.compare("vcf.gz")==0 || extension2.compare("VCF.gz")==0)
 		      ext=vcf;
+		    if (extension2.compare("maf.gz")==0 || extension2.compare("MAF.gz")==0)
+		      ext=maf;
 		  }
 	      }
 #ifndef PMINDEX
@@ -2148,6 +2259,8 @@ int VariantMap::init_from_files(std::string &fnames)
         int ret = 0 ;
         if (ext == sdi)
             init_from_sdi(filename);
+        if (ext == maf)
+            init_from_maf(filename);
         if (ext == snpinfo)
             init_from_snp_info(filename);
         if (ext == info)
@@ -2806,4 +2919,5 @@ void VariantMap::transcribe_gff(const std::string & gff_input, const std::string
         transcript_seq.clear();
     }
 }
+
 */

@@ -166,8 +166,9 @@ typedef struct variant_cache_str variant_cache_t ;
 
 enum VariantInputEnum {
 	sdi,
-    vcf,
+	vcf,
 	mgf,
+	maf,
 	samtools,
 	snpcsv,
 	svcsv,
@@ -491,7 +492,8 @@ protected:
 	int init_from_samtools(const  std::string &sam_fname);
 	int init_from_csv(const  std::string &snp_fname, const std::vector<std::string> & take_lines, VariantInputEnum ext);
 	int init_from_sdi(const  std::string &sdi_fname);
-    int init_from_vcf(const  std::string &vcf_fname);
+	int init_from_maf(const  std::string &maf_fname);
+	int init_from_vcf(const  std::string &vcf_fname);
 	int init_from_info(const  std::string &info_fname);
 	int init_from_snp_info(const  std::string &info_fname);
 	int init_from_mgf(const  std::string &gff_fname, const std::string &ref_genome);
