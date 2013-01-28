@@ -153,7 +153,7 @@ extern int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps &
 extern int desc_parsing(char *c);
 
 //indec.c
-extern int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool mask_do_add=true);
+extern int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool mask_do_secondary=false, bool mask_do_add=true);
 extern int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & genome_mask, bool mask_do_alloc=true, bool use_secondary_regions=false, bool mask_do_add=true)  ;
 
 //alloc.c
@@ -182,8 +182,8 @@ extern char GENOME_MASK_GFF_FILE_NAME[500] ;
 
 extern bool genome_mask_use_rep_seeds; 
 extern bool genome_mask_use_secondary_regions ;
-extern const int secondary_min_num_hits ;
-extern const int secondary_region_extra ;
-extern const int genome_mask_gff_extra ;
-
+extern int secondary_min_num_hits ;
+extern int secondary_region_extra ;
+extern int genome_mask_gff_extra ;
+extern int secondary_min_hits_perc ;
 #endif

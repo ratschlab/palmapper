@@ -186,6 +186,12 @@ int init_opts(int argc, char *argv[])
 			strcpy(GENOME_MASK_GFF_FILE_NAME, argv[i]);
 			has_genome_mask = 1;
 		}
+		// genome mask gff init
+		if(strcmp(argv[i],"-genome-mask-gff-margin")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			genome_mask_gff_extra=atoi(argv[i]);
+		}
 
 		//genome_mask_use_rep_seeds
 		if(strcmp(argv[i],"-genome-mask-repseeds")==0){
@@ -195,6 +201,26 @@ int init_opts(int argc, char *argv[])
 		//genome_mask_use_secondary_regions
 		if(strcmp(argv[i],"-genome-mask-secondary-regions")==0){
 			genome_mask_use_secondary_regions = true ;
+		}
+
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions-margin")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			secondary_region_extra=atoi(argv[i]) ;
+		}
+
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions-minhit")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			secondary_min_num_hits=atoi(argv[i]) ;
+		}
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions-minhit-perc")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			secondary_min_hits_perc=atoi(argv[i]) ;
 		}
 
 		//verbose
@@ -208,6 +234,11 @@ int init_opts(int argc, char *argv[])
 		usage(); exit(1);
 	}
 
+	if (!genome_mask_use_rep_seeds && genome_mask_use_secondary_regions)
+	  {
+	    fprintf(stdout, "Warning: -genome-mask-secondary-regions implies -genome-mask-repseeds\n") ;
+	    genome_mask_use_rep_seeds = true ;
+	  }
 	return 1;
 }
 
@@ -411,6 +442,7 @@ int init_mem_master()
 		fprintf(stderr, "ERROR : not enough memory for memory manager\n");
 		exit(1);
 	}
+	memset(MEM_MGR, 0, sizeof(STORAGE)) ;
 
 	MEM_MGR->curr_num = 0;
 	MEM_MGR->nuggets = NULL;

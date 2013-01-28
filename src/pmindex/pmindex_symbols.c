@@ -45,7 +45,8 @@ char GENOME_MASK_GFF_FILE_NAME[500] ;
 
 bool genome_mask_use_rep_seeds=false ;
 bool genome_mask_use_secondary_regions=false ;
-const int secondary_min_num_hits=15 ;
-const int secondary_region_extra=100 ;
+int secondary_min_num_hits=15 ;
+int secondary_min_hits_perc=100 ;
+int secondary_region_extra=100 ;
 
-const int genome_mask_gff_extra = 1000 ;
+int genome_mask_gff_extra = 100 ;

@@ -30,12 +30,15 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(BIN*)) ;
 		exit(-1) ;
 	}
+	memset(INDEX, 0, INDEX_SIZE*sizeof(BIN*)) ;
+
 	USED_SLOTS =(unsigned int*)malloc(INDEX_SIZE*sizeof(unsigned int)) ;
 	if (USED_SLOTS==NULL)
 	{
 		fprintf(stderr, "Failed to allocate %ld bytes\n", INDEX_SIZE*sizeof(unsigned int)) ;
 		exit(-1) ;
 	}
+	memset(INDEX, 0, INDEX_SIZE*sizeof(unsigned int)) ;
 	
 	if (VERBOSE) { printf("Start loading\n"); }
 
@@ -66,6 +69,9 @@ int main(int argc, char *argv[])
 
 	load_chromosomes(genome, variants, genome_mask);
 
+	if (strlen(GENOME_MASK_FILE_NAME)>0)
+	  genome_mask.write_reporting(GENOME_MASK_FILE_NAME) ;
+
 	if (VERBOSE) printf("\nTotal number of seed occurrences: %lu\n\n", POSITION_COUNTER);
 
 	if (VERBOSE) { printf("Finish.\n"); }
@@ -86,6 +92,7 @@ int main(int argc, char *argv[])
 char *get_seq(unsigned int n)
 {
 	char *seq = (char *) malloc (INDEX_DEPTH*sizeof(char));
+	memset(seq, 0, INDEX_DEPTH*sizeof(char)) ;
 	int i, c;
 	for (i=INDEX_DEPTH-1; i>=0; --i) {
 		c = (int) (n / POWER[i]);
