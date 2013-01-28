@@ -16,7 +16,7 @@
 bwa
 genomemapper
 gmindex
-#palmapper
+palmapper
 pmindex
 src/bwa-0.5.9rc1/bwa
 testcase/data/C_elegans_SpliceSitePred_WS209/
