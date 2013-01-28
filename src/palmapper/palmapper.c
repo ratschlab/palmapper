@@ -178,7 +178,8 @@ int main(int argc, char *argv[])
 
 	// genomemaps
 	GenomeMaps *genomemaps = NULL;
-	genomemaps = new GenomeMaps(genome);
+	if (!_config.NO_READ_MAPPING)
+	  genomemaps = new GenomeMaps(genome);
 
 	// variant maps
 	VariantMap variants(genome, _config.MERGE_VARIANT_SOURCE_IDS);
@@ -203,7 +204,8 @@ int main(int argc, char *argv[])
 	}
 
 	QPalma *qpalma = NULL;
-	qpalma = new QPalma(&genome, genomemaps, _config.VERBOSE);
+	if (!_config.NO_READ_MAPPING)
+	  qpalma = new QPalma(&genome, genomemaps, _config.VERBOSE);
 
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{
@@ -262,69 +264,74 @@ int main(int argc, char *argv[])
 	//printf("The current time is %s",asctime(localtime(&timer_mid)));
   	////////////////////////
 
- 	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-
-	CSignal::set_handler() ;
-	CSignal::toggle_show_read_ids(true) ;
-	
- 	unsigned int numThreads = _config.NUM_THREADS;
-	MapperThread *threads[numThreads];
-	std::string threadIds(".+-:=!$'");
-	for (unsigned int i = 0; i < numThreads; ++i) {
-		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
-		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
-		printf("Starting thread %d\n", i);
-		if (numThreads>1)
-			threads[i]->launch();
-		else
-			threads[i]->run();
-	}
-	for (unsigned int i = 0; i < numThreads; ++i) {
-		if (numThreads>1)
+	if (!_config.NO_READ_MAPPING)
+	  {
+	    if (_config.VERBOSE) { printf("Mapping reads\n"); }
+	    
+	    CSignal::set_handler() ;
+	    CSignal::toggle_show_read_ids(true) ;
+	    
+	    unsigned int numThreads = _config.NUM_THREADS;
+	    MapperThread *threads[numThreads];
+	    std::string threadIds(".+-:=!$'");
+	    for (unsigned int i = 0; i < numThreads; ++i) {
+	      threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
+	      threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
+	      printf("Starting thread %d\n", i);
+	      if (numThreads>1)
+		threads[i]->launch();
+	      else
+		threads[i]->run();
+	    }
+	    for (unsigned int i = 0; i < numThreads; ++i) {
+	      if (numThreads>1)
 	        threads[i]->join();
-		delete threads[i];
-	}
-	reporter.done();
-	CSignal::toggle_show_read_ids(false) ;
-		
+	      delete threads[i];
+	    }
+	    reporter.done();
+	    CSignal::toggle_show_read_ids(false) ;
+	  }
+	else
+	  fprintf(stdout, "Not mapping reads ... \n") ;
+
 	if (_config.OUT_FILE_NAME.length() > 0)
-	{
-		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
-			fclose(OUT_FP);
-		else
-		{
-			int ret=TopAlignments::close_bam_pipe(OUT_FP) ;
-			if (ret!=0)
-			{
-				fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
-				exit(-1) ;
-			}
-		}
-	}
+	  {
+	    if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+	      fclose(OUT_FP);
+	    else
+	      {
+		int ret=TopAlignments::close_bam_pipe(OUT_FP) ;
+		if (ret!=0)
+		  {
+		    fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
+		    exit(-1) ;
+		  }
+	      }
+	  }
 	if (_config.SPLICED_OUT_FILE_NAME.length() > 0 && SP_OUT_FP!=OUT_FP)
-	{
-		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
-			fclose(SP_OUT_FP);
-		else
-		{
-			int ret=TopAlignments::close_bam_pipe(SP_OUT_FP) ;
-			if (ret!=0)
-			{
-				fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
-				exit(-1) ;
-			}
-		}
-	}
+	  {
+	    if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+	      fclose(SP_OUT_FP);
+	    else
+	      {
+		int ret=TopAlignments::close_bam_pipe(SP_OUT_FP) ;
+		if (ret!=0)
+		  {
+		    fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
+		    exit(-1) ;
+		  }
+	      }
+	  }
 	if (_config.LEFTOVER_FILE_NAME.length() > 0) 
-		fclose(LEFTOVER_FP);
-
+	  fclose(LEFTOVER_FP);
+	
 	if (_config.REPORT_USED_VARIANTS)
-	{
-		gzclose(USED_VARIANTS_FP);
-	}
-
+	  {
+	    gzclose(USED_VARIANTS_FP);
+	  }
+	
 	/*if (_config.TRANSCRIBE_GFF)
-	{
+	  {
 		variants.transcribe_gff(_config.TRANSCRIBE_GFF_FILE, _config.TRANSCRIBE_FASTA_FILE) ;
 		}*/
 

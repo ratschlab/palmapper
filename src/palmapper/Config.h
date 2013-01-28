@@ -225,7 +225,8 @@ public:
 	int MIN_NUM_MATCHES_PEN;
 
 	bool NO_LOAD_GENOME ;
-	
+	bool NO_READ_MAPPING ;
+
 	bool USE_VARIANTS ;
 	bool DISCOVER_VARIANTS ;
 	bool REPORT_VARIANTS ;
@@ -245,6 +246,8 @@ public:
 	std::vector<std::string> FILTER_VARIANT_SOURCES ;
 	std::vector<std::string> VARIANT_SNP_TAKE_LINES ;
 	
+	std::string MAF_SOURCE_ID ;
+
 	int FILTER_VARIANT_MINSOURCECOUNT ;
 	std::vector<std::string> FILTER_VARIANT_REQSOURCES ;
 	int FILTER_VARIANT_MINCONFCOUNT ;

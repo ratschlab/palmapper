@@ -161,6 +161,7 @@ Config::Config() {
 	non_consensus_search_discount=1 ;
 
 	NO_LOAD_GENOME = false ;
+	NO_READ_MAPPING = false ;
 	USE_VARIANTS = false ;
 	DISCOVER_VARIANTS=false ;
 	REPORT_VARIANTS=false ;
@@ -994,6 +995,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				not_defined = 0;
 				NO_LOAD_GENOME = true ;
 			}
+			if (strcmp(argv[i], "-no-read-mapping") == 0) {
+				not_defined = 0;
+				NO_READ_MAPPING = true ;
+			}
 
 			//verbose
 			if (strcmp(argv[i], "-use-iupac-snp-variants") == 0) {
@@ -1042,6 +1047,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				i++;
 				MGF_REF_NAME.assign(argv[i]);
+			}
+
+			if (strcmp(argv[i], "-maf-source-id") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -maf-source-id") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAF_SOURCE_ID.assign(argv[i]);
 			}
 
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
