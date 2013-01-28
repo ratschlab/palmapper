@@ -119,9 +119,9 @@ private:
 	}
 	friend char get_compl_base(char c);
 
-	
 public:
 	size_t INDEX_SIZE ;
+	bool NO_LOAD_GENOME ;
 
 #ifndef PMINDEX
 	POS *BLOCK_TABLE;

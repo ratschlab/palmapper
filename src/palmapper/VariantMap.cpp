@@ -311,13 +311,13 @@ void VariantMap::filter_variants(int min_source_count, int min_conf_count, doubl
 				filtered.push_back(variantlist[i][j]) ;
 			}
 		}
-		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants\n", genome->chromosome(i).desc(), n, t) ;
+		fprintf(stdout, "%s: analyzed %i variants, accepted %i variants (%2.1f%%)\n", genome->chromosome(i).desc(), n, t, 100.0*t/n) ;
 		variantlist[i].clear() ;
 		variantlist[i]=filtered ;
 		N+=n ;
 		T+=t ;
 	}
-	fprintf(stdout, "All: analyzed %i variants, accepted %i variants\n", N, T) ;
+	fprintf(stdout, "All: analyzed %i variants, accepted %i variants (%2.1f%%)\n", N, T, 100.0*T/N) ;
 }
 
 void VariantMap::report_variant(int rank, int total, Variant & j, int chr, const char* flank, bool update_only, bool ignore_variant_str_in_cmp)
@@ -521,6 +521,9 @@ int VariantMap::update_variant(int rank, int total, int index, int chr, const Va
 
 bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank) const
 {
+  if (genome->NO_LOAD_GENOME)
+    return true ;
+
 	if (j.ref_len>0)
 	{
 		std::string genome_str = "" ;
@@ -716,7 +719,7 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
     //const int max_field_len = 500000 ; 
     std::vector<std::string> strainRefVec ; 
 
-    const bool track_ids=false ;
+    const bool track_ids=true ;
 
     char * buf=(char*)malloc(max_buf_len+1) ;
     strcpy(buf, "") ;
@@ -882,25 +885,25 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 			  if (track_ids && strainCharInt!=0)
 			    {
 			      assert(strainCharInt==1) ;
-			      assert(strainCharInt<strainRefVec.size()) ;
+			      assert(strainCntInt<strainRefVec.size()) ;
 			      if ( srcIdStr.size() == 0u)
 				{
-				  srcIdStr.append(strainRefVec[strainCharInt]) ;
+				  srcIdStr.append(strainRefVec[strainCntInt]) ;
 				} else {
 				srcIdStr.append(",");
-				srcIdStr.append(strainRefVec[strainCharInt]) ;
+				srcIdStr.append(strainRefVec[strainCntInt]) ;
 			      }
 			    }
-			  if (track_ids && strainCharInt2!=0)
+			  if (track_ids && strainCharInt2!=0 && strainCharInt!=strainCharInt2)
 			    {
 			      assert(strainCharInt2==1) ;
-			      assert(strainCharInt2<strainRefVec.size()) ;
+			      assert(strainCntInt<strainRefVec.size()) ;
 			      if ( srcIdStr.size() == 0u)
 				{
-				  srcIdStr.append(strainRefVec[strainCharInt2]) ;
+				  srcIdStr.append(strainRefVec[strainCntInt]) ;
 				} else {
 				srcIdStr.append(",");
-				srcIdStr.append(strainRefVec[strainCharInt2]) ;
+				srcIdStr.append(strainRefVec[strainCntInt]) ;
 			      }
 			    }
 			}
@@ -944,25 +947,25 @@ int VariantMap::init_from_vcf(const std::string &vcf_fname)
 			  if (track_ids && gt1!=0)
 			    {
 			      assert(gt1==1) ;
-			      assert((unsigned)gt1<strainRefVec.size()) ;
+			      assert((unsigned)strainCntInt<strainRefVec.size()) ;
 			      if (srcIdStr.size() == 0u)
 				{
-				  srcIdStr.append(strainRefVec[gt1]) ;
+				  srcIdStr.append(strainRefVec[strainCntInt]) ;
 				} else  {
 				srcIdStr.append(",") ;
-				srcIdStr.append(strainRefVec[gt1]) ;
+				srcIdStr.append(strainRefVec[strainCntInt]) ;
 			      }
 			    }
-			  if (track_ids && gt2!=0)
+			  if (track_ids && gt2!=0 && gt2!=gt1) 
 			    {
 			      assert(gt2==1) ;
-			      assert((unsigned)gt2<strainRefVec.size()) ;
+			      assert((unsigned)strainCntInt<strainRefVec.size()) ;
 			      if (srcIdStr.size() == 0u)
 				{
-				  srcIdStr.append(strainRefVec[gt2]) ;
+				  srcIdStr.append(strainRefVec[strainCntInt]) ;
 				} else  {
 				srcIdStr.append(",") ;
-				srcIdStr.append(strainRefVec[gt2]) ;
+				srcIdStr.append(strainRefVec[strainCntInt]) ;
 			      }
 			    }
 			}
@@ -1143,7 +1146,6 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
             fprintf(stdout, "sdi line only contained %i columns (5 expected), aborting (%s)\nftell=%ld\n%s\n", num, chr_name, ftell(fd), buf) ;
             exit(1) ;
         }
-        
         int chr_idx = genome->find_desc(chr_name) ;
         if (chr_idx==-1)
         {
@@ -1160,7 +1162,16 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
         
         int ref_len = strlen(ref_str) ;
         int variant_len = strlen(variant_str) ;
-        
+	if (ref_len >=500000)
+	  {
+	    fprintf(stdout, "Warning: dropping line with ref_len=%i\n", ref_len) ;
+	    continue ;
+	  }
+	if (variant_len >=500000)
+	  {
+	    fprintf(stdout, "Warning: dropping line with variant_len=%i\n", variant_len) ;
+	    continue ;
+	  }
         
         assert(lendiff==variant_len-ref_len) ;
         
@@ -1230,7 +1241,7 @@ int VariantMap::init_from_maf(const std::string &maf_fname)
 
     while (!feof(fd))
     {
-      char chr_name[1001]="", ref_str[max_field_len+1]="", variant_str1[max_field_len+1]="", variant_str2[max_field_len+1]="", source_id[1001]="", hugo[1001]="", geneid[1001]="", center[1001]="", ncbi_build[1001]="", strand, classification[10001]="", variant_type[1001]="", dbsnp_id[1001]="", dbsnp_status[1001]="", rest[10001] ;
+      char chr_name[1001]="", ref_str[max_field_len+1]="", variant_str1[max_field_len+1]="", variant_str2[max_field_len+1]="", source_id[1001]="", hugo[1001]="", geneid[1001]="", center[1001]="", ncbi_build[1001]="", strand, classification[10001]="", variant_type[1001]="", dbsnp_id[1001]="", dbsnp_status[1001]="", rest[10001], source_id2[1001] ;
       int start_position, end_position, lendiff, read_pos=-1, read_len=-1, conf_count=0, non_conf_count=0, used_count=1, non_used_count=0 ;
       
         Util::skip_comment_lines(fd) ;
@@ -1240,9 +1251,8 @@ int VariantMap::init_from_maf(const std::string &maf_fname)
         
         //Scan maf line
 	// Hugo_Symbol     Entrez_Gene_Id  Center  NCBI_Build      Chromosome      Start_position  End_position    Strand  Variant_Classification  Variant_Type    Reference_Allele        Tumor_Seq_Allele1       Tumor_Seq_Allele2       dbSNP_RS        dbSNP_Val_Status        Tumor_Sample_Barcode    Matched_Norm_Sample_Barcode     Match_Norm_Seq_Alle
-        int num = sscanf(buf,"%1000s\t%1000s\t%100s\t%1000s\t%1000s\t%i\t%i\t%c\t%1000s\t%1000s\t%500000s\t%500000s\t%500000s\t%1000s\t%1000s\t%1000s\t%10000s\n",
-			 hugo, geneid,  center, ncbi_build, chr_name, &start_position, &end_position, &strand, classification, variant_type, ref_str, variant_str1, variant_str2, dbsnp_id, dbsnp_status, source_id, rest);
-
+	int num = sscanf(buf,"%1000s\t%1000s\t%100s\t%1000s\t%1000s\t%i\t%i\t%c\t%1000s\t%1000s\t%500000s\t%500000s\t%500000s\t%s\t%s\t%1000s\t%1000s\t%10000s\n",
+			     hugo, geneid,  center, ncbi_build, chr_name, &start_position, &end_position, &strand, classification, variant_type, ref_str, variant_str1, variant_str2, dbsnp_id, dbsnp_status, source_id, source_id2, rest);
         if (num>=4)
 	  if (std::string(ncbi_build)!="37")
 	    {
@@ -1262,11 +1272,16 @@ int VariantMap::init_from_maf(const std::string &maf_fname)
 
 	if (strcmp(ref_str, "-")==0)
 	  {
-	    assert(end_position-start_position==(int)strlen(ref_str)) ;
+	    if (!(end_position-start_position==(int)strlen(ref_str)))
+	      fprintf(stdout, "Warning: (end_position-start_position=%i!=%i==(int)strlen(ref_str)\n", end_position-start_position, (int)strlen(ref_str)) ;
+	    //assert(end_position-start_position==(int)strlen(ref_str)) ;
 	    strcpy(ref_str, "") ;
 	  }
 	else
-	  assert(end_position-start_position+1==(int)strlen(ref_str)) ;
+	  {
+	    if (!(end_position-start_position+1==(int)strlen(ref_str)))
+	      fprintf(stdout, "Warning: (end_position-start_position+1=%i!=%i==(int)strlen(ref_str)\n", end_position-start_position+1, (int)strlen(ref_str)) ;
+	  }
 	
 	int position = start_position ;
 	int num_variants=1 ;
@@ -1283,7 +1298,7 @@ int VariantMap::init_from_maf(const std::string &maf_fname)
 		genome->print_desc(stderr) ;
 		fclose(fd) ;
 		free(buf) ;
-		return -1 ;
+		exit(-1) ;
 	      }
 	    if (strcmp(variant_str, "-")==0)
 	      strcpy(variant_str, "") ;
@@ -1296,7 +1311,15 @@ int VariantMap::init_from_maf(const std::string &maf_fname)
 	    lendiff=strlen(variant_str)-strlen(ref_str) ;
 	    assert(lendiff==variant_len-ref_len) ;
 	    
-	    insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count,non_used_count, std::string(center)+":"+std::string(ncbi_build)+":"+std::string(source_id), read_pos, read_len);
+	    std::string variant_source_id="" ;
+#ifndef PMINDEX
+	    variant_source_id=_config.MAF_SOURCE_ID ;
+#endif
+	    if (variant_source_id.length()==0)
+	      variant_source_id=std::string(source_id) ;
+	    //variant_source_id=std::string(center)+":"+std::string(ncbi_build)+":"+std::string(source_id)+":"+std::string(source_id2)+":"+std::string(dbsnp_id)+":"+std::string(dbsnp_status) ;
+
+	    insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count,non_used_count, variant_source_id, read_pos, read_len);
 	  }
 	variant_lines++ ;
 	

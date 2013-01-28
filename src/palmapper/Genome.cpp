@@ -60,6 +60,7 @@ Genome::Genome(int numChromosomes) {
 	MAX_POSITIONS = 0;
 	
 	NUM_CHROMOSOMES = numChromosomes ;
+	NO_LOAD_GENOME=false ;
 
 #ifndef PMINDEX 
 	INDEX_SIZE = Config::INDEX_SIZE_16 ;
@@ -257,6 +258,7 @@ int Genome::load_genome()
 	if (_config.NO_LOAD_GENOME)
 	{
 		fprintf(stdout, "Not loading genome sequence...\n") ;
+		NO_LOAD_GENOME=true ;
 		return 0 ;
 	}
 	

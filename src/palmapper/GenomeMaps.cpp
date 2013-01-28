@@ -14,7 +14,7 @@
 clock_t GenomeMaps::last_report = 0 ;
 
 #ifdef PMINDEX
-extern const int genome_mask_gff_extra ;
+extern int genome_mask_gff_extra ;
 #endif
 
 
@@ -635,7 +635,7 @@ int GenomeMaps::write_reporting(char * fname)
   if (_config.REPORT_FILE_READONLY)
     return -1 ;
 #endif
-  if (fname==NULL || strlen(fname))
+  if (fname==NULL || strlen(fname)==0)
     return -1 ;
 	
 	gzFile fd = gzopen(fname, "wb6") ;
@@ -783,25 +783,25 @@ int GenomeMaps::init_with_gff(std::string &gff_fname)
 	
 	while (!feof(fd))
 	{
-		char chr_name[1000], source[1000], type[1000], properties[1000], strand, tmp1[1000], tmp2[1000] ;
+	  char chr_name[1000], source[1000], type[1000], properties[1000]="", strand, tmp1[1000], tmp2[1000], line[10000] ;
 		int start, end ;
 
 		Util::skip_comment_lines(fd) ;
 		
-#ifdef PMINDEX
-		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2) ;  
-		if (num!=8)
-#else
-		int num = fscanf(fd, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2, properties) ;  
+		char* ret = fgets(line, sizeof(line), fd);
+		if (!ret)
+		  break;
+		int num = sscanf(line, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2, properties) ;  
 		if (num!=9)
-#endif
-		{
-			if (feof(fd))
-				break ;
-			fprintf(stdout, "gff line in %s only contained %i columns, aborting\n", gff_fname.c_str(), num) ;
-			fprintf(stdout, "%s\t%s\t%s\n", chr_name, source, type) ;
-			//exit(-1) ;
-		}
+		  num = sscanf(line, "%1000s\t%1000s\t%1000s\t%i\t%i\t%1000s\t%c\t%1000s\n", chr_name, source, type, &start, &end, tmp1, &strand, tmp2) ;  
+		if (num!=9 && num!=8)
+		  {
+		    if (feof(fd))
+		      break ;
+		    fprintf(stdout, "gff line in %s only contained %i columns, aborting\n", gff_fname.c_str(), num) ;
+		    fprintf(stdout, "%s\t%s\t%s\n", chr_name, source, type) ;
+		    exit(-1) ;
+		  }
 
 #ifdef PMINDEX
 		// add some region to boundaries of gene
@@ -809,7 +809,7 @@ int GenomeMaps::init_with_gff(std::string &gff_fname)
 		end+=genome_mask_gff_extra ;
 #endif		
 #ifndef PMINDEX
-		if (strcmp(type, "exon")==0)
+		if (strcmp(type, "exon")==0 || strcmp(type, "gene")==0)
 #endif
 		{
 			exon_lines++ ;
@@ -866,11 +866,7 @@ int GenomeMaps::init_with_gff(std::string &gff_fname)
 	}
 	fclose(fd) ;
 
-#ifdef PMINDEX
 	fprintf(stdout, "read %i gff lines\n", exon_lines) ;
-#else
-	fprintf(stdout, "read %i exon lines\n", exon_lines) ;
-#endif
 	
 	return 0 ;
 }
