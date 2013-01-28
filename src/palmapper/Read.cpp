@@ -201,12 +201,18 @@ int Read::read_short_read(bool & passed_first_read, bool & passed_last_read)
 			exit(0);
 		}
 
-		/*if (strlen(READ_QUALITY[0]) != READ_LENGTH) {
-			fprintf(stderr, "ERROR: Read quality 1 of read '%s' in line %lu hasn't length of read!\n", READ_ID, linenr);
-			exit(0);
-		}*/
-
 		READ_LENGTH = strlen(READ);
+		
+		if (strlen(READ_QUALITY[0]) != READ_LENGTH) {
+		  fprintf(stderr, "ERROR: Read quality 1 of read '%s' (%i) in line '%s' (%i) hasn't length of read!\n", READ, READ_LENGTH, READ_QUALITY[0], (int)strlen(READ_QUALITY[0]));
+			strcpy(READ_QUALITY[0], READ) ;
+			for (unsigned int k=strlen(READ_QUALITY[0]); k<READ_LENGTH; k++)
+			  {
+			    READ_QUALITY[0][k]='B' ;
+			    READ_QUALITY[0][k+1]=0 ;
+			  }
+			READ_QUALITY[0][READ_LENGTH]=0 ;
+		}
 		
 		//Fixtrim global strategy
 		/*if (_config.FIXTRIM_STRATEGY_LEN < READ_LENGTH) {
