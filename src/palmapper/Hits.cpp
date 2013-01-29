@@ -15,6 +15,7 @@
 #include <iostream>
 
 static const bool perform_extra_checks = false ;
+static const bool seed_iterate_reverse = true ;
 
 template int Hits::map_short_read<index_bwt>(Read& read, unsigned int num) ;
 template int Hits::map_short_read<index_array>(Read& read, unsigned int num) ;
@@ -342,7 +343,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 		{
 			sa_seq=bwa_seed2genome_map(&SLOT_STR[reverse][SLOT_STR_POS[reverse]], _config.INDEX_DEPTH, 0, &sa_num, &sa_k, &sa_l) ;
 			if (index_type==index_bwt)
-				index_entry.num=sa_num ;
+			  index_entry.num=sa_num ;
 		}
 		direction = reverse? 1 : -1;
 
@@ -392,9 +393,9 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				}
 			}
 
-			if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD && !report_repetitive_seeds) 
+			if (index_entry_num > _config.SEED_HIT_CANCEL_THRESHOLD && !report_repetitive_seeds) 
 				index_entry_num=0 ;
-			if (index_entry.num > _config.SEED_HIT_TRUNCATE_THRESHOLD && !report_repetitive_seeds) 
+			if (index_entry_num > _config.SEED_HIT_TRUNCATE_THRESHOLD) 
 				index_entry_num=_config.SEED_HIT_TRUNCATE_THRESHOLD ;
 			
 			if (index_type&index_array)
@@ -405,9 +406,9 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				
 #ifndef BinaryStream_MAP
 				if (index_entry_num>0)
-					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
 #else
-				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry.num, index_entry_num);
 #endif
 				TIME_CODE(_stats.hits_seek += clock()-start_time; _stats.hits_seek_cnt++ ;) ;
 			}
@@ -463,7 +464,11 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					unsigned char* p_id;
 					
 					// Get current position in the chromosome
-					se = se_buffer[index_entry.num-(i+1)];
+					if (seed_iterate_reverse)
+					  se = se_buffer[index_entry_num-(i+1)];
+					else
+					  se = se_buffer[i];
+
 					p_id = se.id;
 					p_block[0] = p_id[0];
 					p_block[1] = p_id[1];
@@ -1668,9 +1673,9 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 							if (rev) seed_already_inspected_rev[run] = true;
 							else seed_already_inspected_fwd[run] = true;
 						}
-						if (index_entry.num > _config.SEED_HIT_TRUNCATE_THRESHOLD) { 
+						if (index_entry_num > (signed)_config.SEED_HIT_TRUNCATE_THRESHOLD) { 
 							index_entry_num=_config.SEED_HIT_TRUNCATE_THRESHOLD ;
-						}
+							}
 						if (index_entry_num*sizeof(STORAGE_ENTRY)>8000000)
 						{
 							fprintf(stderr, "Warning: number of seed matches too large (%i). Using only first 100.000 matches to avoid a stack overflow\n", index_entry_num) ;
@@ -1683,9 +1688,9 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 						if (index_type&index_array)
 						{
 #ifndef BinaryStream_MAP
-							_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+							_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
 #else
-							index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+							index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry.num, index_entry_num);
 #endif
 						}
 						
@@ -1706,7 +1711,12 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 								/*if (!rev) {*/
 								//memcpy(&block, &((index_mmap+(index_entry.offset-(i+1)))->id[0]), 3 * sizeof(char));
 								//memcpy(&position, &((index_mmap+(index_entry.offset-(i+1)))->id[3]), sizeof(unsigned char));
-								se = se_buffer[index_entry_num-(i+1)];
+
+								if (seed_iterate_reverse)
+								  se = se_buffer[index_entry_num-(i+1)];
+								else
+								  se = se_buffer[i];
+
 								/*}
 								  else {
 								  //memcpy(&block, &((index_mmap+(index_entry.offset-(index_entry.num-i)))->id[0]), 3 * sizeof(char));
@@ -2640,9 +2650,9 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 				index_entry_num = (index_entry_num > (int)_config.SEED_HIT_TRUNCATE_THRESHOLD) ? _config.SEED_HIT_TRUNCATE_THRESHOLD : index_entry_num;
 
 #ifndef BinaryStream_MAP
-				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
 #else
-				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry_num, index_entry_num);
+				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry.num, index_entry_num);
 #endif
 
 				for (int i=0; (int)i<index_entry_num; i++)
@@ -2654,7 +2664,10 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 					STORAGE_ENTRY se;
 					unsigned char* p_id;
 
-					se = se_buffer[index_entry.num-(i+1)];
+					if (seed_iterate_reverse)
+					  se = se_buffer[index_entry_num-(i+1)];
+					else
+					  se = se_buffer[i];
 
 					p_id=se.id;
 					p_block[0]=p_id[0];

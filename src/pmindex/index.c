@@ -12,6 +12,7 @@ unsigned int get_slot(const char *seq, int pos);
 
 const bool perform_extra_checks=true ;
 
+
 inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Variant>::iterator end, char * seq, unsigned int pos, int chr, 
 						   int counter, std::map<int,bool> & source_ids, std::map<unsigned int,bool> & slots)  
 {
