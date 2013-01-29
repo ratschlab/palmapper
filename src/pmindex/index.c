@@ -162,6 +162,7 @@ int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & 
 				      {
 					if(INDEX[slot] == NULL) 
 					    alloc_bin(slot);
+					pos2bin(slot, chr);	// 0-initialized
 
 					num_seeds_total++ ;
 					num_positions_total++ ;
@@ -180,9 +181,10 @@ int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & 
 					  }
 				      }
 				    if (mask_do_add && 
-					( ((elem & MASK_REGION_PRIMARY)>0) || ((elem & MASK_REGION_SECONDARY)>0) || ((elem & MASK_REGION_SECONDARY_REGION)>0)))
+					( /* ((elem & MASK_REGION_PRIMARY)>0) ||  */
+					  ((elem & MASK_REGION_SECONDARY)>0) || ((elem & MASK_REGION_SECONDARY_REGION)>0)))
 				      {
-					if(INDEX[slot] == NULL && ((elem & MASK_REGION_SECONDARY_REGION)>0)) 
+					if (INDEX[slot] == NULL) 
 					  alloc_bin(slot);
 					pos2bin(slot, chr);	// 0-initialized
 					
@@ -269,6 +271,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 
 	// compute slots (in parallel)
 	std::map<int, std::vector<unsigned int> > chr_slots ;
+#ifdef NILL
 	{
 		const int num_threads=NUM_THREADS ;
 		struct thread_data thread_data[num_threads] ;
@@ -317,12 +320,19 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 			thread_data[i].chr_slots.clear() ;
 		}
 	}
+#endif
 
 	int num_seeds_total = 0 ;
 	int num_positions_total = 0 ;
-	
+
+	int step = 1000000 ;
+	struct thread_data slot_data ;
+		
+	int from = 0 ;
+	int to=0 ;
 	while (spacer < (int)CHR_LENGTH) 
 	{ 
+
 		if (spacer < (int)pos + INDEX_DEPTH - 1) 
 		{
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') {
@@ -337,9 +347,32 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 		else {
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') 
 			{
-				assert(chr_slots.count(pos)>0) ;
-				std::vector<unsigned int> & slots = chr_slots[pos] ;
-				
+			  if (pos>=(unsigned)to)
+			    {
+			      from=pos ;
+			      to=from+step+INDEX_DEPTH ;
+			      fprintf(stdout, "producing slots for %i-%i\n", from, to) ;
+			      if (to>(int)CHR_LENGTH)
+				to=CHR_LENGTH ;
+			      slot_data.chr=chr ;
+			      slot_data.from=from ;
+			      slot_data.to=to ;
+			      slot_data.variants=&variants ;
+			      slot_data.thread_id = 0 ;
+			      
+			      get_slots_from_chromosome_wrapper(&slot_data) ;
+			      
+			      std::map<int, std::vector<unsigned int> >::iterator it=slot_data.chr_slots.begin() ;
+			      for (; it!=slot_data.chr_slots.end(); it++)
+				chr_slots[it->first]=it->second ;
+			      slot_data.chr_slots.clear() ;
+			    }
+			  
+			  assert(chr_slots.count(pos)>0) ;
+			  std::vector<unsigned int> & slots = chr_slots[pos] ;
+			  
+
+
 				if (!has_genome_mask)
 				  {
 				    for (std::vector<unsigned int>::iterator it=slots.begin(); it != slots.end(); it++)
@@ -362,6 +395,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					  {
 					    if(INDEX[slot] == NULL)
 						alloc_bin(slot);
+					    pos2bin(slot, chr);   // 0-initialized
 					    num_seeds_total++ ;
 					    num_positions_total++ ;
 					  }
@@ -379,9 +413,10 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					      }
 					  }
 					if (mask_do_add && 
-					    ( ((elem & MASK_REGION_PRIMARY)>0) || ((elem & MASK_REGION_SECONDARY_REGION)>0) || ((elem & MASK_REGION_SECONDARY_REGION)>0)) )
+					    ( /* ((elem & MASK_REGION_PRIMARY)>0) || */ 
+					     ((elem & MASK_REGION_SECONDARY)>0) || ((elem & MASK_REGION_SECONDARY_REGION)>0)) )
 					  {
-					    if(INDEX[slot] == NULL && ((elem & MASK_REGION_SECONDARY_REGION)>0))
+					    if(INDEX[slot] == NULL) 
 					      alloc_bin(slot);
 					    pos2bin(slot, chr);   // 0-initialized                                                                                                                                                                                                                                                                   
 					    if (!mask_do_alloc && !mask_do_secondary)
@@ -391,7 +426,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					      }
 					  }
 				      }
-
+				    /*
 				    if ((genome_mask.CHR_MAP(genome.chromosome(chr), pos) & MASK_REGION_PRIMARY)>0)
 				      {
 					for (std::vector<unsigned int>::iterator it=slots.begin(); it != slots.end(); it++)
@@ -405,6 +440,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					  }
 					num_positions_total++ ;
 				      }
+				    */
 				  }
 				POSITION++;
 				spacer++;

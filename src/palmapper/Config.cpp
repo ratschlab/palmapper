@@ -60,6 +60,7 @@ Config::Config() {
 	INDEX_DEPTH_EXTRA_THRESHOLD = 1000000000 ;
 	INDEX_SEED_STEP = 1 ;
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
+	SEED_HIT_TRUNCATE_THRESHOLD = SEED_HIT_CANCEL_THRESHOLD ;
 
 	OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	OUTPUT_FORMAT_FLAGS = OUTPUT_FORMAT_FLAGS_DEFAULT ;
@@ -87,6 +88,7 @@ Config::Config() {
 	MAP_JUNCTIONS_COVERAGE=2;
 	MAP_JUNCTIONS_MIN_SEGMENT_LENGTH=6 ;
 	MAP_JUNCTIONS_PSEUDO_ANNO_COV=10 ;
+	MAP_JUNCTIONS_MAP_WINDOW=-1 ;
 	MAP_JUNCTIONS_ONLY=false ;
 
 	QPALMA_USE_MAP = 1 ;
@@ -1078,6 +1080,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 
+			if (strcmp(argv[i], "-junction-remapping-map-window") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -junction-remapping-map-window\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAP_JUNCTIONS_MAP_WINDOW=atoi(argv[i]) ;
+				assert(MAP_JUNCTIONS_MAP_WINDOW>=0) ;
+			}
 			if (strcmp(argv[i], "-junction-remapping-coverage") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1843,6 +1856,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1);
 			}
 			SEED_HIT_CANCEL_THRESHOLD = tmp ;
+		}
+
+		// truncate seed processing if more seed matches exist than a threshold
+		if (strcmp(argv[i], "-seed-hit-truncate-threshold") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", "-seed-hit-truncate-threshold") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			int tmp = atoi(argv[i]);
+			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option %s too small\n", "-seed-hit-truncate-threshold") ;
+				usage();
+				exit(1);
+			}
+			SEED_HIT_TRUNCATE_THRESHOLD = tmp ;
 		}
 
 		//report all hits-strategy

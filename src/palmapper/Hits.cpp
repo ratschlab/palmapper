@@ -394,6 +394,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 			if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD && !report_repetitive_seeds) 
 				index_entry_num=0 ;
+			if (index_entry.num > _config.SEED_HIT_TRUNCATE_THRESHOLD && !report_repetitive_seeds) 
+				index_entry_num=_config.SEED_HIT_TRUNCATE_THRESHOLD ;
 			
 			if (index_type&index_array)
 			{
@@ -1657,7 +1659,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 					if (index_entry.num) {
 						
 						int index_entry_num=index_entry.num ;
-						if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) { // && !REPORT_REPETITIVE_SEEDS)
+						if (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) { 
 							index_entry_num=0 ;
 							if (rev) seed_already_inspected_rev[run] = false;
 							else seed_already_inspected_fwd[run] = false;
@@ -1665,6 +1667,9 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 						else {
 							if (rev) seed_already_inspected_rev[run] = true;
 							else seed_already_inspected_fwd[run] = true;
+						}
+						if (index_entry.num > _config.SEED_HIT_TRUNCATE_THRESHOLD) { 
+							index_entry_num=_config.SEED_HIT_TRUNCATE_THRESHOLD ;
 						}
 						if (index_entry_num*sizeof(STORAGE_ENTRY)>8000000)
 						{
@@ -2631,7 +2636,8 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 					return -1;
 				}
 
-				int index_entry_num = index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD? 0 : index_entry.num;
+				int index_entry_num = (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) ? 0 : index_entry.num;
+				index_entry_num = (index_entry_num > (int)_config.SEED_HIT_TRUNCATE_THRESHOLD) ? _config.SEED_HIT_TRUNCATE_THRESHOLD : index_entry_num;
 
 #ifndef BinaryStream_MAP
 				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry_num, index_entry_num);

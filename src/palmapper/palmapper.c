@@ -162,24 +162,25 @@ int main(int argc, char *argv[])
 			TopAlignments::print_bam_header(genome, SP_OUT_FP) ;
 	}
 
+	// genomemaps
+	GenomeMaps *genomemaps = NULL;
+	if (!_config.NO_READ_MAPPING)
+	  genomemaps = new GenomeMaps(genome);
+
 	if (_config.MAP_JUNCTIONS){
 		int ret=junctionmap.init_from_gffs(_config.MAP_JUNCTIONS_FILE);
 		if (ret!=0)
 			return -1;
-		junctionmap.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH);
+		junctionmap.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH, _config.MAP_JUNCTIONS_MAP_WINDOW, *genomemaps, _config.VERBOSE);
 	}
 	
 	if (_config.SCORE_ANNOTATED_SPLICE_SITES){
 		int ret=annotated_junctions.init_from_gffs(_config.ANNOTATED_SPLICE_SITES_FILE);
 		if (ret!=0)
 			return -1;
-		annotated_junctions.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH);
+		annotated_junctions.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH, _config.MAP_JUNCTIONS_MAP_WINDOW, *genomemaps, _config.VERBOSE);
 	}
 
-	// genomemaps
-	GenomeMaps *genomemaps = NULL;
-	if (!_config.NO_READ_MAPPING)
-	  genomemaps = new GenomeMaps(genome);
 
 	// variant maps
 	VariantMap variants(genome, _config.MERGE_VARIANT_SOURCE_IDS);

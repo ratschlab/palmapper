@@ -102,16 +102,25 @@ JunctionMap::~JunctionMap()
 }
 
 
-void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
+void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual, int filter_by_map, const GenomeMaps & genomemaps, int verbosity)
 {
 	lock() ;
-
-	int total=0, 
-		used_nonconsensus=0, 
-		used_consensus=0,
-		filtered_consensus=0, 
-		filtered_nonconsensus=0 ;
+	if (verbosity>0)
+	  {
+	    fprintf(stdout, "Filtering junctions, requiring\n* %i as minimum confirmation count\n", min_coverage) ;
+	    if (min_junction_qual>0)
+	      fprintf(stdout, "* requiring minimum junction quality of %i (usually distance to border)\n", min_junction_qual) ;
+	    if (filter_by_map>=0)
+	      fprintf(stdout, "* requiring junction next to mapped read or annotated exon with distance at most %i bp\n", filter_by_map) ;
+	  }
 	
+	int total=0, 
+	  used_nonconsensus=0, 
+	  used_consensus=0,
+	  filtered_consensus=0, 
+	  filtered_nonconsensus=0 ;
+
+	int N=0, T=0 ;
 	for (unsigned int chr=0; chr < genome->nrChromosomes(); chr++)
 	{
 		if (junctionlist[chr].empty())
@@ -140,6 +149,20 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
 				take = false ;
 			if (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && min_junction_qual!=0 && (!(*it).consensus))
 				take = false ;
+
+			if (take && filter_by_map>=0)
+			{
+				bool map=false ;
+				for (int p=-filter_by_map; p<=filter_by_map && !map; p++)
+				  {
+				    if ((*it).start+p>=0 && (*it).start+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it).start+p) ;
+				    if ((*it).end+p>=0 && (*it).end+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it).end+p) ;
+				  }
+				if (!map)
+				  take=false ;
+			}
 			
 			if (!take)
 			{
@@ -159,10 +182,18 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
 			}
 			it++;
 		}
+		int n=filtered_consensus+filtered_nonconsensus+used_consensus+used_nonconsensus ;
+		int t=used_consensus+used_nonconsensus ;
+		if (verbosity>0)
+		  fprintf(stdout, "%s: analyzed %i junctions, accepted %i junctions (%2.1f%%)\n", genome->chromosome(chr).desc(), n, t, 100.0*t/n) ;
 		total+=junctionlist[chr].size();
+		N+=n ;
+		T+=t ;
 	}
-	unlock() ;
-	
+	unlock() ;	
+	if (verbosity>0)
+	  fprintf(stdout, "All: analyzed %i junctions, accepted %i junctions (%2.1f%%)\n", N, T, 100.0*T/N) ;
+
 	fprintf(stdout,"Number of junctions in database (min support=%i): %i/%i consensus, %i/%i nonconsensus, %i total\n", 
 			min_coverage, used_consensus, used_consensus+filtered_consensus, used_nonconsensus, used_nonconsensus+filtered_nonconsensus, total);
 }

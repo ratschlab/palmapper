@@ -1,6 +1,8 @@
 #pragma once
 
+#include <assert.h>
 #include <palmapper/Genome.h>
+#include <palmapper/GenomeMaps.h>
 #include <deque>
 #include <string>
 #include <stdlib.h> 
@@ -35,7 +37,7 @@ public:
 	void insert_junction(char strand, int chr, int start, int end, bool consensus, const char* intron_string, int junction_qual, const char* read_id, int coverage);
 	int init_from_gffs(std::string &gff_fname);
 	int report_to_gff(std::string &gff_fname);
-	void filter_junctions(int min_coverage, int min_junction_qual);
+	void filter_junctions(int min_coverage, int min_junction_qual, int filter_by_map, const GenomeMaps & genomemaps, int verbosity);
 
 	std::deque<Junction> * junctionlist ;
 

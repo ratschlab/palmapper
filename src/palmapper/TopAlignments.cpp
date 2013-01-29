@@ -557,6 +557,7 @@ int TopAlignments::spliced_is_overlapping(alignment_t *a1, alignment_t *a2)
 
 int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2) 
 {
+  //  return 0 ;
 	if (a1->num_matches_ref!=a2->num_matches_ref) 
 		return 0 ;
 
@@ -584,7 +585,7 @@ int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2)
 bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2) 
 {
 	
-	
+  //return false ;
 	/*if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-3){
 		return false ;
 		}*/ // cant use this due to the remapping scoring
@@ -619,7 +620,7 @@ bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2)
 
 int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t *a2)
 {
-
+  //  return 0 ;
 
 	if (a1->non_consensus_alignment == a2->non_consensus_alignment)
 		return 0;
