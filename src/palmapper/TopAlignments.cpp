@@ -206,7 +206,11 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	ALIGNSEQ[0] = '\0';
 	
 	for (j = 0; j != hit->mismatches; ++j) 
-    {
+	  {
+	    // remove duplicates: BUGTODO
+	    if (j>0 && hit->edit_op[j-1].pos == hit->edit_op[j].pos && hit->edit_op[j-1].mm == hit->edit_op[j].mm)
+	      continue ;
+
 		//fprintf(stderr, "j=%i, edit_op[j].pos=%i\n count_char=%i", j, hit->edit_op[j].pos, count_char) ;
 		assert(hit->edit_op[j].pos>= -((int)read.length()) && hit->edit_op[j].pos<=((int)read.length())) ;
 		
