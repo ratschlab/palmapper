@@ -204,7 +204,7 @@ int Read::read_short_read(bool & passed_first_read, bool & passed_last_read)
 		READ_LENGTH = strlen(READ);
 		
 		if (strlen(READ_QUALITY[0]) != READ_LENGTH) {
-		  fprintf(stderr, "ERROR: Read quality 1 of read '%s' (%i) in line '%s' (%i) hasn't length of read!\n", READ, READ_LENGTH, READ_QUALITY[0], (int)strlen(READ_QUALITY[0]));
+		  fprintf(stderr, "ERROR: Read quality 1 of read '%s' (%i) in line '%s' (%i) hasn't length of read!\n", READ_ID, READ_LENGTH, READ_QUALITY[0], (int)strlen(READ_QUALITY[0]));
 			strcpy(READ_QUALITY[0], READ) ;
 			for (unsigned int k=strlen(READ_QUALITY[0]); k<READ_LENGTH; k++)
 			  {

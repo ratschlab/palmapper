@@ -12,6 +12,7 @@ unsigned int get_slot(const char *seq, int pos);
 
 const bool perform_extra_checks=true ;
 
+
 inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Variant>::iterator end, char * seq, unsigned int pos, int chr, 
 						   int counter, std::map<int,bool> & source_ids, std::map<unsigned int,bool> & slots)  
 {
@@ -94,7 +95,7 @@ inline int insert_variants(std::vector<Variant>::iterator start, std::vector<Var
 	
 	if (it==end)
 	{
-		if (false && slots.size()>2)
+		if (false && slots.size()>=2)
 		{
 			fprintf(stdout, "variant at pos %i\nsources\n", pos) ;
 			for (std::map<int,bool>::iterator it2=source_ids.begin(); it2!=source_ids.end(); it2++)
@@ -347,11 +348,11 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 		else {
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') 
 			{
-			  if (pos>=(unsigned)to)
+			  if ((signed)pos>=to-INDEX_DEPTH)
 			    {
 			      from=pos ;
 			      to=from+step+INDEX_DEPTH ;
-			      fprintf(stdout, "producing slots for %i-%i\n", from, to) ;
+			      fprintf(stdout, "producing slots for %i-%i: ", from, to) ;
 			      if (to>(int)CHR_LENGTH)
 				to=CHR_LENGTH ;
 			      slot_data.chr=chr ;
@@ -370,8 +371,6 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 			  
 			  assert(chr_slots.count(pos)>0) ;
 			  std::vector<unsigned int> & slots = chr_slots[pos] ;
-			  
-
 
 				if (!has_genome_mask)
 				  {
@@ -496,21 +495,18 @@ std::map<int, std::vector<unsigned int> > get_slots_from_chromosome(unsigned int
 	int num_positions_total = 0 ;
 
 	std::vector<Variant>::iterator curr_start = variants.variantlist[chr].begin() ;
-	
+	std::vector<Variant>::iterator curr_stop = curr_start ;
+
+	int num_considered_variants = 0 ; 
 	while (spacer < to) 
 	{ 
-		if (spacer % 10000000 == 0)
-		{
-			fprintf(stdout, "[%i: %2.1f%%, %i, %i, %i]  ", thread_id, 100.0*(double)(pos-from)/(double)(to-from), spacer-from, num_positions_total, num_seeds_total) ;
-			fflush(stdout) ;
-		}
 		
 		while (curr_start != variants.variantlist[chr].end() && (int)(*curr_start).position < (int)pos) 
 			advance(curr_start, 1) ;
-		std::vector<Variant>::iterator curr_stop = curr_start ;
+		curr_stop = curr_start ;
 		while (curr_stop != variants.variantlist[chr].end() && (*curr_stop).position < (int)pos+INDEX_DEPTH)
 			advance(curr_stop, 1) ;
-		
+
 		if (spacer < (int)pos + INDEX_DEPTH - 1) 
 		{
 			if (CHR_SEQ[spacer]=='A' || CHR_SEQ[spacer]=='T' || CHR_SEQ[spacer]=='C' || CHR_SEQ[spacer]=='G') {
@@ -532,6 +528,7 @@ std::map<int, std::vector<unsigned int> > get_slots_from_chromosome(unsigned int
 					std::map<int,bool> source_ids ;
 					std::map<unsigned int,bool> slots ;
 					
+					num_considered_variants+=curr_stop-curr_start ;
 					int num_seeds=insert_variants(curr_start, curr_stop, seq, pos, chr, MAX_SOURCE_COMBINATIONS, source_ids, slots) ;
 					int num_slots=slots.size() ;
 					
@@ -539,7 +536,7 @@ std::map<int, std::vector<unsigned int> > get_slots_from_chromosome(unsigned int
 						for (unsigned int i=pos; i<pos+INDEX_DEPTH; i++)
 							assert(seq[i-pos]==CHR_SEQ[i]) ;
 					
-					if (slots.size()>10000)
+					if (slots.size()>100)
 						fprintf(stdout, "num_seeds=%i, num_slots=%i, #variants=%ld\n", num_seeds, num_slots, distance(curr_start, curr_stop)) ;
 					num_seeds_total += num_slots ;
 					
@@ -570,6 +567,11 @@ std::map<int, std::vector<unsigned int> > get_slots_from_chromosome(unsigned int
 			}
 		}
 	}
+	/* fprintf(stdout, "distance to start to end: %ld\n", distance(variants.variantlist[chr].begin(), variants.variantlist[chr].end())) ;
+	fprintf(stdout, "distance to curr_start to curr_end: %ld\n", distance(curr_start, curr_stop)) ;
+	fprintf(stdout, "distance to start: %ld\n", distance(variants.variantlist[chr].begin(), curr_start)) ;
+	fprintf(stdout, "distance to end: %ld\n", distance(curr_stop, variants.variantlist[chr].end())) ; */
+	fprintf(stdout, "[%i: %2.1f%%, %i, %i, %i: %i]\n ", thread_id, 100.0*(double)(pos-from)/(double)(to-from), spacer-from, num_positions_total, num_seeds_total, num_considered_variants) ;
 
 	return chr_slots;
 }

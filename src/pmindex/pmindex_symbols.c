@@ -50,3 +50,4 @@ int secondary_min_hits_perc=100 ;
 int secondary_region_extra=100 ;
 
 int genome_mask_gff_extra = 100 ;
+unsigned long int INDEX_SIZE = INDEX_SIZE_12 ;

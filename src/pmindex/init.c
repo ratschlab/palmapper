@@ -242,20 +242,10 @@ int init_opts(int argc, char *argv[])
 	return 1;
 }
 
-/*
-int init_index()
-{
-	INDEX_SIZE = 4^INDEX_DEPTH;
-	
-	INDEX = (BIN *) malloc(INDEX_SIZE * sizeof(BIN));
-	INDEX_REV = (BIN *) malloc(INDEX_SIZE * sizeof(BIN));
-	
-	return 1;
-}*/
-
 
 int init_constants() 
 {
+  INDEX_SIZE=INDEX_SIZE_12 ;
 	if (INDEX_DEPTH == 5) {
 		BINARY_CODE[0] = 0;			//binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 256;		//binary number: 0000 0000 0000 0001 0000 0000
@@ -318,6 +308,7 @@ int init_constants()
 		BINARY_CODE[2] = 33554432;      //binary number: 0010 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 50331648;      //binary number: 0011 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[4] = 67108863;		//binary number: 0011 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_13 ;
 	}
 	if (INDEX_DEPTH == 14) {
 		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000
@@ -325,6 +316,7 @@ int init_constants()
 		BINARY_CODE[2] = 134217728;     //binary number: 1000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 201326592;     //binary number: 1100 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[4] = 268435455;		//binary number: 1111 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_14 ;
 	}
 	if (INDEX_DEPTH == 15) {
 		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
@@ -332,6 +324,7 @@ int init_constants()
 		BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[4] = 1073741823; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_15 ;
 	}
 	if (INDEX_DEPTH == 16) {
 		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
@@ -339,6 +332,7 @@ int init_constants()
 		BINARY_CODE[2] = 2147483648;     //binary number: 1000 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 3221225472;     //binary number: 1100 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[4] = 4294967295; //binary number: 1111 1111 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_16 ;
 	}
 
 	return(0);

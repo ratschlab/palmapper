@@ -23,12 +23,14 @@ VariantMap::VariantMap(Genome const &genome_, bool p_merge_variant_source_ids)
 	int ret = pthread_mutex_init(&variant_mutex, NULL) ;
 	assert(ret==0) ;
     
-	validate_variants=true ;
+	validate_variants=false ;
 	exit_on_validation_error=false ;
 	insert_unsorted=false ;
     
 #ifndef PMINDEX
 	max_variant_len = _config.FILTER_VARIANT_VLEN ;
+#else
+	max_variant_len=1000 ;
 #endif
 	merge_variant_source_ids=p_merge_variant_source_ids ;
 }
@@ -436,19 +438,17 @@ void VariantMap::insert_variant(int chr, int pos, int ref_len, int variant_len, 
 		//fprintf(stdout, "insert: substitution\n") ;
 	}
     
+#ifdef PMINDEX
+	if (pt!=pt_SNP)
+	  return ;
+#endif
     
-	/*if (variant_len>=32768 || ref_len>=32768)
-     {
-     fprintf(stderr, "Drop variant with invalid lengths %i/%i\n", variant_len, ref_len) ;
-     return ;
-     }*/
 	if (ref_str==variant_str && ref_str!="N" && ref_str!="*")
-    {
-        fprintf(stderr, "Drop variant with equal variant and reference string %i:%i:'%s'/'%s'\n", chr, pos, variant_str.c_str(), ref_str.c_str()) ;
-		return ;
-    }
+	  {
+	    fprintf(stderr, "Drop variant with equal variant and reference string %i:%i:'%s'/'%s'\n", chr, pos, variant_str.c_str(), ref_str.c_str()) ;
+	    return ;
+	  }
 	
-    
 	Variant j;
 	int end = pos+ref_len ;
     
@@ -1198,14 +1198,14 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
         
         //SDI file does not come from PALMapper and does not provide all fields
         if (num <12){
-            insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0,0, "", -2, -1);
+            insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, 0, 0, 0, 0, "", -2, -1);
         }
         //SDI file from PALMapper with counter values
         else{
             insert_variant(chr_idx, position-1, ref_len, variant_len, ref_str, variant_str, conf_count, non_conf_count, used_count,non_used_count, source_id, read_pos-1, read_len);
         }
+	variant_lines++ ;
         
-        variant_lines++ ;
         
         if (variant_lines%10000==0)
         {
@@ -1217,6 +1217,17 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
     fclose(fd) ;
     
     fprintf(stdout, "read %i variants (checked %i)\n", variant_lines, variant_lines_checked) ;
+
+    {
+      int nbchr = genome->nrChromosomes();
+      int N=0 ;
+      for (int i=0; i<nbchr; i++)
+	{
+	  int n=variantlist[i].size() ;
+	  N+=n ;
+	  fprintf(stdout, "Chromosome %i: %i variants\n", i, n) ;
+	}
+    }
     
     free(buf) ;
     return 0 ;
