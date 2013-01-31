@@ -210,12 +210,12 @@ int write_meta_index(unsigned int num_chr)
 				continue ;
 
 			//Slot
-			if (fwrite(&i, sizeof(int), 1, META_INDEX_FP) == 0) {
+			if (fwrite(&i, sizeof(unsigned int), 1, META_INDEX_FP) == 0) {
 				fprintf(stderr, "ERROR: cant access harddisc for meta index file (1)\n"); 
 			}
 
 			//Number
-			if (fwrite(&num, sizeof(int), 1, META_INDEX_FP) == 0) {
+			if (fwrite(&num, sizeof(unsigned int), 1, META_INDEX_FP) == 0) {
 				fprintf(stderr, "ERROR: cant access harddisc for index file (2) \n");
 			}
 			maxnr = (num > maxnr)? num : maxnr;

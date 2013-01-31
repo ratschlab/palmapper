@@ -21,8 +21,8 @@ struct INDEX_ENTRY {
 	unsigned int offset;
 };
 
-typedef struct meta_idx_file_entry {
-	int slot;
+typedef struct meta_idx_file_entry { 
+  unsigned int slot;
 	unsigned int num;
 } META_INDEX_ENTRY;
 

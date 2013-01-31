@@ -287,7 +287,7 @@ private:
 	unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos, char conversion);
 	int features_conversion(HIT* hit) ;
 	int map_fast_bsseq(Read& read, int run, int nr_runs, char conversion);
-	void generate_all_possible_seeds(Read & read, int num, int seedpos, unsigned int iter, int fwd_slot, int rev_slot, char conversion);
+	void generate_all_possible_seeds(Read & read, int num, int seedpos, unsigned int iter, unsigned int fwd_slot, unsigned int rev_slot, char conversion);
 
 	Genome const &_genome;
 	GenomeMaps &_genomeMaps;

@@ -362,7 +362,7 @@ int init_genome_file()
 	
 	if (strchr(line, '\n') == NULL) header = 1;
 
-	int chrdesclen = (strcspn(line, " \t\n") > CHR_DESC_LENGTH-1)? CHR_DESC_LENGTH-1: strcspn(line, " \t\n") - 1;
+	int chrdesclen = (int)((strcspn(line, " \t\n") > CHR_DESC_LENGTH-1)? CHR_DESC_LENGTH-1: strcspn(line, " \t\n") - 1);
 	if (chrdesclen > 0) strncpy(CHR_DESC, &line[1], chrdesclen);
 		else {
 			fprintf(stderr, "ERROR: A chromosome doesn't have a valid description!\n");

@@ -45,9 +45,9 @@ bool Genome::classInitialized = initClass();
 bool Genome::initClass() {
 	for (int cc=0; cc<255; cc++)
 	{
-		upper_char[cc] = (cc >= 'a' && cc <= 'z') ? cc - 32 : cc;
-		valid_char[cc] = ::strchr("ACGTNRYMKWSBDHV", upper_char[cc]) != NULL ? upper_char[cc] : 0;
-		compl_char[cc] = get_compl_base_(cc);
+	  upper_char[cc] = (char)((cc >= 'a' && cc <= 'z') ? cc - 32 : cc);
+	  valid_char[cc] = (char)(::strchr("ACGTNRYMKWSBDHV", upper_char[cc]) != NULL ? upper_char[cc] : 0);
+	  compl_char[cc] = (char)( get_compl_base_((char)cc));
 	}
 	return true;
 }
@@ -275,7 +275,7 @@ int Genome::load_genome()
 //	}
 
 	char line[513];
-	unsigned int fp = ftell(genome_fp);
+	unsigned int fp = (unsigned int)ftell(genome_fp);
 	unsigned int linelen;
 
 #ifdef USE_CHR_BIN
@@ -306,7 +306,7 @@ int Genome::load_genome()
 		}
 		while (line[0] != '>') 
 		{
-			linelen = strcspn(line, " \n\t");
+		  linelen = (unsigned int)strcspn(line, " \n\t");
 			if (linelen > 0 && (line[linelen] == '\t' || line[linelen] == ' ')) {
 				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", _config.GENOME_FILE_NAME.c_str(), chr.desc());
 				exit(0);
@@ -333,7 +333,7 @@ int Genome::load_genome()
 				} 
 			}
 			
-			fp = ftell(genome_fp);
+			fp = (unsigned int)ftell(genome_fp);
 			if (fgets(line, 512, genome_fp) == NULL) break;
 		}
 		
@@ -505,7 +505,7 @@ int Genome::read_meta_index(FILE *META_INDEX_FP)
 
 	while (fread(&file_entry, sizeof(file_entry), 1, META_INDEX_FP) == 1)
 	{
-		if (file_entry.slot < 0) continue;	//downcompatibility to previous GM versions
+	  //if (file_entry.slot < 0) continue;	//downcompatibility to previous GM versions 
 
 		used_slots++;
 
@@ -648,13 +648,13 @@ void Genome::mmap_indices()
 		clock_t last_time = clock() ;
         for (size_t i=0; i<(fwd_size/sizeof(STORAGE_ENTRY))-1024; i+=1024)
 		{
-            index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
+		  index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
 			
-			if (i%1000==0 && ((1.0*clock()-last_time)/CLOCKS_PER_SEC>0.01)) // the timing is tricky. Clock only measures user time, but this statement mostly uses system or io time
-			{
-				fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", (100.0*i)/(fwd_size/sizeof(STORAGE_ENTRY))) ;
-				last_time = clock() ;
-			}
+		  if (i%1000==0 && ((1.0*(float)clock()-(float)last_time)/(float)CLOCKS_PER_SEC>0.01)) // the timing is tricky. Clock only measures user time, but this statement mostly uses system or io time
+		    {
+		      fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", (100.0*(float)i)/((float)fwd_size/sizeof(STORAGE_ENTRY))) ;
+		      last_time = clock() ;
+		    }
 		}
 		fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", 100.0) ;
         fprintf(stdout, "\n") ;

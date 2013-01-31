@@ -103,7 +103,7 @@ inline ogzstream& operator<<(ogzstream & os, const struct variant_str & a)
 	os.write((char*)&a.conf_count, sizeof(a.conf_count)) ;
 	os.write((char*)&a.non_conf_count, sizeof(a.non_conf_count)) ;
 
-	int size=a.ref_str.size() ;
+	size_t size=a.ref_str.size() ;
 	os.write((char*)&size, sizeof(size)) ;
 	os.write(a.ref_str.c_str(), size) ;
 
@@ -382,8 +382,8 @@ public:
 		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
-		v.read_pos=read_pos;
-		v.read_len=read_len;
+		v.read_pos=(short int)read_pos;
+		v.read_len=(short int)read_len;
 		
 		if (validate_variants)
 			if (!validate_variant(v, chr.nr()))
@@ -397,9 +397,9 @@ public:
 		Variant v ;
 		v.type = pt_deletion ;
 		v.position = dna_pos ;
-		v.end_position = dna_pos+ref_str.size() ;
-		v.ref_len=ref_str.size() ;
-		v.variant_len=variant_str.size();
+		v.end_position = (int)(dna_pos+ref_str.size()) ;
+		v.ref_len=(int)ref_str.size() ;
+		v.variant_len=(int)variant_str.size();
 		v.ref_str=ref_str ;
 		v.variant_str=variant_str ;
 		v.conf_count = 1 ;
@@ -407,8 +407,8 @@ public:
 		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
-		v.read_pos=read_pos;
-		v.read_len=read_len;
+		v.read_pos=(short int)read_pos;
+		v.read_len=(short int)read_len;
 
 		if (validate_variants)
 			if (!validate_variant(v, chr.nr()))
@@ -422,8 +422,8 @@ public:
 		Variant v ;
 		v.type = pt_deletion ;
 		v.position = dna_pos ;
-		v.end_position = dna_pos+ref_str.size() ;
-		v.ref_len=ref_str.size() ;
+		v.end_position = (int)(dna_pos+ref_str.size()) ;
+		v.ref_len=(int)ref_str.size() ;
 		v.variant_len=0;
 		v.ref_str=ref_str ;
 		v.variant_str="" ;
@@ -432,8 +432,8 @@ public:
 		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
-		v.read_pos=read_pos;
-		v.read_len=read_len;
+		v.read_pos=(short int)read_pos;
+		v.read_len=(short int)read_len;
 
 		if (validate_variants)
 			if (!validate_variant(v, chr.nr()))

@@ -343,7 +343,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 		{
 			sa_seq=bwa_seed2genome_map(&SLOT_STR[reverse][SLOT_STR_POS[reverse]], _config.INDEX_DEPTH, 0, &sa_num, &sa_k, &sa_l) ;
 			if (index_type==index_bwt)
-			  index_entry.num=sa_num ;
+				index_entry.num=(unsigned int)sa_num ;
 		}
 		direction = reverse? 1 : -1;
 
@@ -389,7 +389,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					for (size_t ii=0; ii<_mapper.seed_covered.size(); ii++)
 						if (_mapper.seed_covered[ii])
 							num_covered++ ;
-					fprintf(stdout, "# seed coverage: %ld/%ld (%2.1f%%)\n", num_covered, _mapper.seed_covered.size(), 100*((float)num_covered)/_mapper.seed_covered.size()) ;
+					fprintf(stdout, "# seed coverage: %ld/%ld (%2.1f%%)\n", num_covered, _mapper.seed_covered.size(), 100*((float)num_covered)/(float)_mapper.seed_covered.size()) ;
 				}
 			}
 
@@ -437,7 +437,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				unsigned int genome_pos = 0 ;
 				unsigned int genome_chr_id = 0 ;
 				
-				strand = reverse? (_config.BSSEQ? -conversion : -1) : (_config.BSSEQ? conversion : 1);
+				strand = (char)(reverse? (_config.BSSEQ? -conversion : -1) : (_config.BSSEQ? conversion : 1));
 
 				if (index_type&index_bwt)
 				{
@@ -448,8 +448,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					if (sa_k+i<=sa_l)
 					{
 						bwa_seed2genome_pos(sa_k+i, &contig_id, &contig_pos, sa_seq) ;
-						genome_chr_id=contig_id ;
-						genome_pos=contig_pos ;
+						genome_chr_id=(unsigned int)contig_id ;
+						genome_pos=(unsigned int)contig_pos ;
 						
 						if (debug_show)
 							fprintf(stdout, "bwt   pos: contig=%i pos=%i\n", genome_chr_id, genome_pos) ;
@@ -674,7 +674,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 				//Check left (for plus strand) and right (for minus strand) neighbor at the genomeposition of the hit if there is a hit to join.
 				const unsigned int neighbor_step = _config.INDEX_SEED_STEP ;
-				if (genome_pos + direction*neighbor_step >= 0 && genome_pos + neighbor_step*direction < genome_chr.length() && readpos > neighbor_step) 
+				if ((int)genome_pos + (int)(direction*neighbor_step) >= 0 && genome_pos + neighbor_step*direction < genome_chr.length() && readpos > neighbor_step) 
 				{
 					if (read_num == num) {
 						printf("Now checking if left neighbor exists and is willing to join %i\t%i\t%i\n",genome_pos, genome_pos+neighbor_step*direction,strand);
@@ -802,7 +802,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 													if (_config.NOT_MAXIMAL_HITS && check_mm(_read, genome_chr, genome_pos-mismatch_step, readpos-2, 1, conversion)) 
 													{
 														hit->edit_op[hit->mismatches].pos = readpos - mismatch_step ;
-														hit->edit_op[hit->mismatches].mm = 1;
+														hit->edit_op[hit->mismatches].mm = (unsigned)1;
 														if (perform_extra_checks)
 															assert(hit->edit_op[hit->mismatches].pos>=0 && hit->edit_op[hit->mismatches].pos<=(int)_read.length()) ;
 														hit->mismatches++;
@@ -869,7 +869,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 						oldlength = INDEX_DEPTH - 1;
 
-						hit->readpos = readpos;
+						hit->readpos = (unsigned short)readpos;
 						hit->start = genome_pos+1;	// +1 weg
 
 						hit->conversion = conversion;
@@ -903,7 +903,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			{
 				//fprintf(stdout, "report %i/%i repetitive seeds\n", (int)extended_seedlist.size(), (int)index_entry.num) ;
 				for (unsigned int ii=0; ii<extended_seedlist.size(); ii++)
-					_genomeMaps.report_repetitive_seed(*extended_seedlist[ii].chr, extended_seedlist[ii].pos, extended_seedlist.size())  ;
+					_genomeMaps.report_repetitive_seed(*extended_seedlist[ii].chr, extended_seedlist[ii].pos, (int)extended_seedlist.size())  ;
 			}
 			
 			//if (index_entry.num>_config.INDEX_DEPTH_EXTRA_THRESHOLD)
@@ -1486,7 +1486,7 @@ int Hits::alloc_hit_lists_operator()
 int Hits::alloc_hits_by_score()
 {
 	double max_score = _config.NUM_GAPS * _config.GAP_SCORE + (_numEditOps - _config.NUM_GAPS) * _config.MM_SCORE;
-	NUM_SCORE_INTERVALS = max_score / SCORE_INTERVAL;
+	NUM_SCORE_INTERVALS = (unsigned int)(max_score / SCORE_INTERVAL);
 	if (NUM_SCORE_INTERVALS * SCORE_INTERVAL != max_score) ++NUM_SCORE_INTERVALS;
 	NUM_SCORE_INTERVALS++;
 	
@@ -1566,12 +1566,12 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 	//firstslot = -1 ; firstpos=0 ;
 
 	unsigned char position;
-	char nr_runs, nr_seeds = read.length() / _config.INDEX_DEPTH, mm, perfect = 0, cancel=0;
+	char nr_runs, nr_seeds = (char)(read.length() /_config.INDEX_DEPTH), mm, perfect = 0, cancel=0;
 
 	if (_config.NUM_GAPS != 0)
 		nr_runs = (nr_seeds > 1)? 2: 1;
 	else {
-		if (nr_seeds > _config.NUM_MISMATCHES) nr_runs = _config.NUM_MISMATCHES + 1;
+		if (nr_seeds > _config.NUM_MISMATCHES) nr_runs = (int)(_config.NUM_MISMATCHES + 1);
 			else nr_runs = nr_seeds;
 	}
 
@@ -1647,7 +1647,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 					{
 						sa_seq=bwa_seed2genome_map(&SLOT_STR[rev][SLOT_STR_POS[rev]], _config.INDEX_DEPTH, 0, &sa_num, &sa_k, &sa_l) ;
 						if (index_type==index_bwt)
-							index_entry.num=sa_num ;
+							index_entry.num=(unsigned int)sa_num ;
 					}
 					bool debug_show=false ;
 					
@@ -1742,8 +1742,8 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 								if (sa_k+i<=sa_l)
 								{
 									bwa_seed2genome_pos(sa_k+i, &contig_id, &contig_pos, sa_seq) ;
-									chr_id=contig_id ;
-									pos=contig_pos ;
+									chr_id=(unsigned int)contig_id ;
+									pos=(unsigned int)contig_pos ;
 									
 									if (debug_show)
 										fprintf(stdout, "bwt   pos: contig=%i pos=%i\n", chr_id, pos) ;
@@ -2125,26 +2125,26 @@ template<enum index_type_t index_type> int Hits::get_slots(Read & read, int pos)
 		
 			if (_config.MAP_REVERSE) {
 				SLOTS[1] <<= 34 - _config.INDEX_DEPTH * 2;
-				SLOTS[1] = (SLOTS[1] >> (32 - _config.INDEX_DEPTH * 2)) & _genome.BINARY_CODE[4];
+				SLOTS[1] = (unsigned int)((SLOTS[1] >> (32 - _config.INDEX_DEPTH * 2)) & _genome.BINARY_CODE[4]);
 			}
 			
 			read_data[pos + _config.INDEX_DEPTH - 1] = mytoupper(read_data[pos + _config.INDEX_DEPTH - 1]);
 			
 			switch (read_data[pos + _config.INDEX_DEPTH - 1]) {
 			case 'A':
-				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[0];
+				SLOTS[0] = (unsigned int)(SLOTS[0] | _genome.BINARY_CODE[0]);
 				if (_config.MAP_REVERSE) SLOTS[1] |= 3;
 				break;
 			case 'C':
-				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[1];
+				SLOTS[0] = (unsigned int)(SLOTS[0] | _genome.BINARY_CODE[1]);
 				if (_config.MAP_REVERSE) SLOTS[1] |= 2;
 				break;
 			case 'G':
-				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[2];
+				SLOTS[0] = (unsigned int)(SLOTS[0] | _genome.BINARY_CODE[2]);
 				if (_config.MAP_REVERSE) SLOTS[1] |= 1;
 				break;
 			case 'T':
-				SLOTS[0] = SLOTS[0] | _genome.BINARY_CODE[3];
+				SLOTS[0] = (unsigned int)(SLOTS[0] | _genome.BINARY_CODE[3]);
 				break;
 			default:
 				return -1;
@@ -2989,7 +2989,7 @@ int Hits::features_conversion(HIT* hit) {
  *  \param rev_slot the slot on - strand which is created in this method (initialize with 0)
  *  \param conversion the conversion state of a seed
  */
-void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsigned int iter, int fwd_slot, int rev_slot, char conversion)
+void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsigned int iter, unsigned int fwd_slot, unsigned int rev_slot, char conversion)
 {
 	/*char space[100];
 	space[0] = '\0';
@@ -3041,8 +3041,8 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 			case 'T':
 			{
 //printf("C - %d pe %d\n",iter, read.pe_type());
-				int new_fwd_slot = fwd_slot;
-				int new_rev_slot = rev_slot;
+				unsigned int new_fwd_slot = fwd_slot;
+				unsigned int new_rev_slot = rev_slot;
 
 				// calculate seeds without conversion:
 				fwd_slot += Util::POWER[iter] * 3;
@@ -3065,8 +3065,8 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 			case 'A':
 			{
 //printf("G - %u pe %d\n",iter,read.pe_type());
-				int new_fwd_slot = fwd_slot;
-				int new_rev_slot = rev_slot;
+				unsigned int new_fwd_slot = fwd_slot;
+				unsigned int new_rev_slot = rev_slot;
 
 				// calculate seeds without conversion:
 				// fwd_slot remains the same
@@ -3085,7 +3085,7 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 					}
 				}
 				break;
-			}
+			} 
 		}
 	}
 }

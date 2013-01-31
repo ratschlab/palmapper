@@ -136,7 +136,7 @@ int index_chromosome_novariants(unsigned int chr, Genome & genome, GenomeMaps & 
 			}
 			else {
 				spacer++;
-				POSITION += spacer - pos;
+				POSITION += (unsigned short int)(spacer - pos);
 				pos = spacer;
 				HAS_SLOT = 0;
 			}
@@ -259,7 +259,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 	if (VERBOSE) { printf("\tBuilding index ..."); fflush(stdout); }
 	unsigned int pos = 0;
 	int spacer = 0;
-	int slot = 0;
+	unsigned int slot = 0;
 	POS p;
 	
 	HAS_SLOT = 0;
@@ -664,7 +664,7 @@ unsigned int get_slot(const char *seq, int pos)
 					}
 				}
 			}
-			slot = slot + POWER[i] * c;
+			slot = slot + (unsigned int)(POWER[i] * c);
 		}
 	}
 	else 
@@ -674,16 +674,16 @@ unsigned int get_slot(const char *seq, int pos)
 		slot >>= 2;
 
 		if (seq[pos+INDEX_DEPTH-1] == 'A') {
-			slot = slot | BINARY_CODE[0];
+			slot = slot | (unsigned int)(BINARY_CODE[0]);
 		}
 		else if (seq[pos+INDEX_DEPTH-1] == 'C') {
-			slot = slot | BINARY_CODE[1];
+			slot = slot | (unsigned int)(BINARY_CODE[1]);
 		}
 		else if (seq[pos+INDEX_DEPTH-1] == 'G') {
-			slot = slot | BINARY_CODE[2];
+			slot = slot | (unsigned int)(BINARY_CODE[2]);
 		}
 		else { //if (seq[pos+INDEX_DEPTH-1] == 'T') {
-			slot = slot | BINARY_CODE[3];
+			slot = slot | (unsigned int)(BINARY_CODE[3]);
 		}
 
 	}

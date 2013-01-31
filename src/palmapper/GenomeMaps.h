@@ -54,7 +54,7 @@ public:
 	}
 	
 
-	inline unsigned char CHR_MAP_cov(Chromosome const &chr, size_t index)
+	inline unsigned int CHR_MAP_cov(Chromosome const &chr, size_t index)
 	{
 #ifdef CHR_MAP_DNAARRAY
 		assert(false) ;
