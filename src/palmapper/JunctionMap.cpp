@@ -375,7 +375,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 		
 
 		// Line comes from a gff3 file built by PALMapper
-		if (strcmp(source, "palmapper")==0 and strcmp(type, "intron")==0)
+		if ((strcmp(source, "palmapper")==0  || strcmp(source, "TopHat")==0) and strcmp(type, "intron")==0)
 		{
 
 			int chr_idx = genome->find_desc(chr_name) ;
