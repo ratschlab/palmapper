@@ -17,6 +17,12 @@ int init_mem_master();
 
 int init(int argc, char *argv[]) 
 {
+  GENOME_OUT_FP=NULL ;
+  GENOME_FP=NULL ;
+  CHR_INDEX_FP=NULL ;
+  META_INDEX_FP=NULL ;
+  MAPFWD_INDEX_FP=NULL ;
+
 	init_defaults();
 	init_opts(argc, argv);
 	//init_index();

@@ -269,18 +269,3 @@ int write_meta_index(unsigned int num_chr)
 	
 	return(0);
 }
-
-/**
-int write_chr(unsigned int chr)
-{
-	if (VERBOSE) printf("writing chromosome %d\n",chr+1);
-	if (fwrite(CHR_SEQ, sizeof(char), CHR_LENGTH, GENOME_OUT_FP) == 0) {
-		fprintf(stderr, "ERROR: cant access harddisk for genome output file\n");
-	}
-	
-	fclose(GENOME_OUT_FP);
-	
-	return 0;	
-}
-*/
-

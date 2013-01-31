@@ -80,11 +80,17 @@ int main(int argc, char *argv[])
 	elapsed = ((double) (end - start)) / CLOCKS_PER_SEC;
 	if (VERBOSE) printf ("Time needed: %g s\n",elapsed);
 
-	fclose(CHR_INDEX_FP) ;
-	fclose(MAPFWD_INDEX_FP) ;
-	fclose(META_INDEX_FP) ;
-	//fclose(GENOME_OUT_FP) ;
-	
+	if (GENOME_OUT_FP) 
+	  fclose(GENOME_OUT_FP) ;
+	if (GENOME_FP)
+	  fclose(GENOME_FP) ;
+	if (CHR_INDEX_FP)
+	  fclose(CHR_INDEX_FP) ;
+	if (META_INDEX_FP)
+	  fclose(META_INDEX_FP) ;
+	if (MAPFWD_INDEX_FP)
+	  fclose(MAPFWD_INDEX_FP) ;
+
 	return EXIT_SUCCESS;
 }
 
