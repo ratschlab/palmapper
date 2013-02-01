@@ -14,7 +14,7 @@ bool JunctionMap::is_consensus_intron(char strand, int chr, int start, int end)
 	//fprintf(stdout,"%c-%c %c-%c\n",chrom[start], chrom[start+1],chrom[end-1],chrom[end]);
 
 	if (strand=='+'){
-		
+	  assert(start<=end) ;
 		bool is_consensus_don = false ;
 		for (unsigned int j=0; j < DON_CONSENSUS.size(); j++){
 			
@@ -35,6 +35,7 @@ bool JunctionMap::is_consensus_intron(char strand, int chr, int start, int end)
 				is_consensus_acc = true ;
 				break ;
 			}
+		//fprintf(stdout, "+ is_consensus_don=%i, is_consensus_acc=%i [%c%c]\n", is_consensus_don, is_consensus_acc, chrom[end-1], chrom[end]) ;
 		return is_consensus_acc;
 	}
 	else{
@@ -56,6 +57,7 @@ bool JunctionMap::is_consensus_intron(char strand, int chr, int start, int end)
 				is_consensus_don = true ;
 				break ;
 			}
+		//fprintf(stdout, "- is_consensus_don=%i, is_consensus_acc=%i\n", is_consensus_don, is_consensus_acc) ;
 		return is_consensus_don;
 	}
 	
@@ -435,6 +437,10 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				free(read_id) ;
 				read_id = strdup(tmp.substr(pos_id).c_str()) ;
 			}
+
+			// check intron consensus
+			bool consensus_intron= is_consensus_intron(strand,chr_idx,start,end);
+			nonconsensus=!consensus_intron ;
 			
 			//Attention: positions in this file start at 0! :S
 			insert_junction(strand,chr_idx,start, end, !nonconsensus, intron_string, junction_qual, read_id, coverage);
