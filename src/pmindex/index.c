@@ -382,7 +382,6 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					pos2bin(slot, chr);	// 0-initialized
 					num_seeds_total++ ;
 				      }
-				    num_positions_total++ ;
 				  }
 				else
 				  {
@@ -396,7 +395,6 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 						alloc_bin(slot);
 					    pos2bin(slot, chr);   // 0-initialized
 					    num_seeds_total++ ;
-					    num_positions_total++ ;
 					  }
 					if (mask_do_secondary && INDEX[slot] != NULL)
 					  {
@@ -406,10 +404,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 						genome_mask.CHR_MAP_set(genome.chromosome(chr), pos, elem) ;
 					      }
 					    if (!mask_do_alloc)
-					      {
-						num_seeds_total++ ;
-						num_positions_total++ ;
-					      }
+					      num_seeds_total++ ;
 					  }
 					if (mask_do_add && 
 					    ( /* ((elem & MASK_REGION_PRIMARY)>0) || */ 
@@ -419,31 +414,14 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					      alloc_bin(slot);
 					    pos2bin(slot, chr);   // 0-initialized                                                                                                                                                                                                                                                                   
 					    if (!mask_do_alloc && !mask_do_secondary)
-					      {
 						num_seeds_total++ ;
-						num_positions_total++ ;
-					      }
 					  }
 				      }
-				    /*
-				    if ((genome_mask.CHR_MAP(genome.chromosome(chr), pos) & MASK_REGION_PRIMARY)>0)
-				      {
-					for (std::vector<unsigned int>::iterator it=slots.begin(); it != slots.end(); it++)
-					  {
-					    slot = (*it) ;
-					    if(INDEX[slot] == NULL && mask_do_alloc) 
-					      alloc_bin(slot);
-					    if (INDEX[slot]!=NULL && mask_do_add)
-					      pos2bin(slot, chr);	// 0-initialized
-					    num_seeds_total++ ;
-					  }
-					num_positions_total++ ;
-				      }
-				    */
 				  }
 				POSITION++;
 				spacer++;
 				pos++;
+				num_positions_total++ ;
 			}
 			else {
 				spacer++;
