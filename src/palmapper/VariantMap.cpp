@@ -23,7 +23,7 @@ VariantMap::VariantMap(Genome const &genome_, bool p_merge_variant_source_ids)
 	int ret = pthread_mutex_init(&variant_mutex, NULL) ;
 	assert(ret==0) ;
     
-	validate_variants=false ;
+	validate_variants=true ;
 	exit_on_validation_error=false ;
 	insert_unsorted=false ;
     
@@ -531,15 +531,16 @@ bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank)
 		{
 			if (i==0 || i==j.ref_len)
 				genome_str+='|' ;
-			if (j.position+i>=0 && j.position+i<(int)genome->chromosome(chr).length())
+			if ((j.position+i>=0) && (j.position+i<(int)genome->chromosome(chr).length()))
 				genome_str+=genome->chromosome(chr)[j.position+i] ;
 			else
-				genome_str+=genome->chromosome(chr)[j.position+i] ;
-			//genome_str+='_' ;
+			  genome_str+=/*genome->chromosome(chr)[j.position+i] ;*/ genome_str+='_' ;
 		}
         
 		for (int i=0; i<j.ref_len; i++)
 		{
+		  if (j.position+i<0 || j.position+i>=(int)genome->chromosome(chr).length())
+		    continue ;
 			if (genome->chromosome(chr)[j.position+i]!=j.ref_str[i] &&
 				j.ref_str[i]!='N' && j.ref_str[i]!='Y' && j.ref_str[i]!='W' && j.ref_str[i]!='K' && j.ref_str[i]!='S' && j.ref_str[i]!='M' && j.ref_str[i]!='R' && j.ref_str[i]!='D')
 			{
@@ -602,6 +603,7 @@ bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank)
 
 void VariantMap::insert_variant(Variant & j, int chr, const char* flank, bool update_only, bool ignore_variant_str_in_cmp)
 {
+
 	if (validate_variants)
 		if (!validate_variant(j, chr, flank))
 		{
@@ -1138,7 +1140,6 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
             num = sscanf(buf,"%1000s\t%i\t%i\t%500000s\t%500000s\t%i\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
                          chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count,&non_used_count, source_id, &read_pos, &read_len, prop);
         }
-        
         if (num<5)
         {
             if (feof(fd))

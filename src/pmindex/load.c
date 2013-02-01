@@ -106,7 +106,7 @@ int load_chromosomes(Genome & genome, VariantMap & variants, GenomeMaps & genome
 		    {
 		      for (int pp=pos-winlen-secondary_region_extra; pp<=(int)pos+secondary_region_extra; pp++)
 			{
-			  if (pp<0)
+			  if (pp<0 || pp>=(int)CHR_LENGTH)
 			    continue ;
 			  char elem2= genome_mask.CHR_MAP(genome.chromosome(chr), pp) ;
 			  if ((elem2 & MASK_REGION_SECONDARY_REGION)==0)
