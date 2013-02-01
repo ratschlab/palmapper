@@ -371,6 +371,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 			  
 			  assert(chr_slots.count(pos)>0) ;
 			  std::vector<unsigned int> & slots = chr_slots[pos] ;
+			  bool used_pos=false ;
 
 				if (!has_genome_mask)
 				  {
@@ -381,6 +382,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					  alloc_bin(slot);
 					pos2bin(slot, chr);	// 0-initialized
 					num_seeds_total++ ;
+					used_pos=true ;
 				      }
 				  }
 				else
@@ -395,6 +397,7 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 						alloc_bin(slot);
 					    pos2bin(slot, chr);   // 0-initialized
 					    num_seeds_total++ ;
+					    used_pos=true ;
 					  }
 					if (mask_do_secondary && INDEX[slot] != NULL)
 					  {
@@ -413,6 +416,8 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 					    if(INDEX[slot] == NULL) 
 					      alloc_bin(slot);
 					    pos2bin(slot, chr);   // 0-initialized                                                                                                                                                                                                                                                                   
+					    used_pos=true ;
+
 					    if (!mask_do_alloc && !mask_do_secondary)
 						num_seeds_total++ ;
 					  }
@@ -421,7 +426,8 @@ int index_chromosome(unsigned int chr, Genome & genome, VariantMap & variants, G
 				POSITION++;
 				spacer++;
 				pos++;
-				num_positions_total++ ;
+				if (used_pos)
+				  num_positions_total++ ;
 			}
 			else {
 				spacer++;
