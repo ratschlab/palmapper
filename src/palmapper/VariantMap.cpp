@@ -523,7 +523,7 @@ bool VariantMap::validate_variant(const Variant & j, int chr, const char *flank)
 {
   if (genome->NO_LOAD_GENOME)
     return true ;
-
+  
 	if (j.ref_len>0)
 	{
 		std::string genome_str = "" ;
@@ -1118,7 +1118,7 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
     
     while (!feof(fd))
     {
-        char chr_name[1001]="", ref_str[max_field_len+1]="", variant_str[max_field_len+1]="", prop[1001]="", source_id[1001]=""  ;
+        char chr_name[1001]="", ref_str[max_field_len+1]="", variant_str[max_field_len+1]="", prop[1001]="", source_id[100001]=""  ;
         int position, lendiff, read_pos=-1, read_len=-1, conf_count=0, non_conf_count=0, used_count=0, non_used_count=0 ;
         
         Util::skip_comment_lines(fd) ;
@@ -1130,21 +1130,23 @@ int VariantMap::init_from_sdi(const std::string &sdi_fname)
         //Scan sdi line
         //int num = sscanf(buf, "%1000s\t%i\t%i\t%100000s\t%100000s\t%1000s\t%1000s\n", chr_name, &position, &lendiff, ref_str, variant_str, tmp, tmp) ;
         
-        int num1 = sscanf(buf,"%1000s\t%i\t%i\t%500000s\t%500000s\t%i\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+        int num1 = sscanf(buf,"%1000s\t%i\t%i\t%500000s\t%500000s\t%i\t%i\t%i\t%i\t%100000s\t%i/%i\t%1000s\n",
                           chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count,&non_used_count, source_id, &read_pos, &read_len, prop);
         // compatibility with old format
-        int num = sscanf(buf,"%1000s\t%i\t%i\t%500000s\t%500000s\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+        int num = sscanf(buf,"%1000s\t%i\t%i\t%500000s\t%500000s\t%i\t%i\t%i\t%100000s\t%i/%i\t%1000s\n",
                          chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count, source_id, &read_pos, &read_len, prop);
         if (num1>num)
         {
-            num = sscanf(buf,"%1000s\t%i\t%i\t%500000s\t%500000s\t%i\t%i\t%i\t%i\t%1000s\t%i/%i\t%1000s\n",
+            num = sscanf(buf,"%1000s\t%i\t%i\t%500000s\t%500000s\t%i\t%i\t%i\t%i\t%100000s\t%i/%i\t%1000s\n",
                          chr_name, &position, &lendiff, ref_str, variant_str, &conf_count, &non_conf_count, &used_count,&non_used_count, source_id, &read_pos, &read_len, prop);
-        }
+        } 
+	else
+	  num=num1 ;
         if (num<5)
         {
             if (feof(fd))
                 break ;
-            fprintf(stdout, "sdi line only contained %i columns (5 expected), aborting (%s)\nftell=%ld\n%s\n", num, chr_name, ftell(fd), buf) ;
+            fprintf(stdout, "sdi line only contained %i columns (>5 expected), aborting (%s)\nftell=%ld\n%s\n", num, chr_name, ftell(fd), buf) ;
             exit(1) ;
         }
         int chr_idx = genome->find_desc(chr_name) ;
