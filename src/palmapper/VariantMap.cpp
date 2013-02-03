@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <vector>
 
-VariantMap::VariantMap(Genome const &genome_, bool p_merge_variant_source_ids)
+VariantMap::VariantMap(Genome const &genome_, bool p_merge_variant_source_ids, bool p_validate_variants)
 {
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
@@ -23,7 +23,7 @@ VariantMap::VariantMap(Genome const &genome_, bool p_merge_variant_source_ids)
 	int ret = pthread_mutex_init(&variant_mutex, NULL) ;
 	assert(ret==0) ;
     
-	validate_variants=true ;
+	validate_variants=p_validate_variants ; // -validate-variants
 	exit_on_validation_error=false ;
 	insert_unsorted=false ;
     

@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 		fprintf(stdout, "loading complete genome\n") ;
 		genome.load_genome() ;
 	}
-	VariantMap variants(genome) ;
+	VariantMap variants(genome, false, false) ;
 	if (strlen(GENOME_VARIANTS_FILE_NAME)>0)
 	{
 		std::string fnames = std::string(GENOME_VARIANTS_FILE_NAME) ;

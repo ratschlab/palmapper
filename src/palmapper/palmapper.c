@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
 
 
 	// variant maps
-	VariantMap variants(genome, _config.MERGE_VARIANT_SOURCE_IDS);
+	VariantMap variants(genome, _config.MERGE_VARIANT_SOURCE_IDS, _config.VALIDATE_VARIANTS);
 
 	if (_config.USE_VARIANTS)
 	{

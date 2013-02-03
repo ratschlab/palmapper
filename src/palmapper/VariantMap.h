@@ -196,7 +196,7 @@ private:
 public:
 	std::vector<Variant> * variantlist ;
 
-	VariantMap(Genome const &genome_, bool merge_variant_source_ids=false) ;
+	VariantMap(Genome const &genome_, bool merge_variant_source_ids=false, bool p_validate_variants=false) ;
 	~VariantMap() ;
 	int insert_variants_from_multiple_alignments(std::string & ref_align,int ref_len, std::vector<std::string> & variant_align, std::vector<std::string> & variant_name, 
 												 int start_position, int ref_chr_len, int chr_idx, char strand);

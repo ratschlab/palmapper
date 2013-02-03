@@ -168,6 +168,7 @@ Config::Config() {
 	DISCOVER_VARIANTS=false ;
 	REPORT_VARIANTS=false ;
 	REPORT_USED_VARIANTS=false ;
+	VALIDATE_VARIANTS=false ;
 	FILTER_VARIANTS=false ;
 	CONVERT_SUBSTITUTION_VARIANTS=false ;
 	MERGE_VARIANT_SOURCE_IDS = false ;
@@ -1189,6 +1190,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				FILTER_VARIANT_MINSOURCECOUNT=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_MINSOURCECOUNT>=0) ;
 				FILTER_VARIANTS=true ;
+			}
+			if (strcmp(argv[i], "-validate-variants") == 0) {
+				not_defined = 0;
+				VALIDATE_VARIANTS=true ;
 			}
 
 			if (strcmp(argv[i], "-filter-variants-reqsources") == 0) 
