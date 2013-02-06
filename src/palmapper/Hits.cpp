@@ -365,7 +365,6 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 		if (index_entry.num) 
 		{
-			STORAGE_ENTRY se_buffer[index_entry.num];
 
 			// make sure that every seed is only processed once
 			// what is this good for???
@@ -397,13 +396,20 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				index_entry_num=0 ;
 			if (index_entry_num > _config.SEED_HIT_TRUNCATE_THRESHOLD) 
 				index_entry_num=_config.SEED_HIT_TRUNCATE_THRESHOLD ;
+			if (index_entry_num*sizeof(STORAGE_ENTRY) > 2000000)
+			  {
+			    fprintf(stdout, "Warning: Reducing number of seeds from %i to %i to avoid stack overflow\n", (int)index_entry_num, (int)(2000000/sizeof(STORAGE_ENTRY))) ;
+			    index_entry_num= 2000000/sizeof(STORAGE_ENTRY) ;
+			  }
+			
+			assert(index_entry_num<=index_entry.num) ;
+			STORAGE_ENTRY se_buffer[index_entry_num];
 			
 			if (index_type&index_array)
 			{
 				TIME_CODE(clock_t start_time = clock()) ;
 				
 //fprintf(stderr, "%s\t%d\n",get_seq(_read,SLOTS[reverse]), index_entry.num);
-				
 #ifndef BinaryStream_MAP
 				if (index_entry_num>0)
 					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
