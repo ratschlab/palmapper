@@ -101,6 +101,30 @@ void TopAlignments::determine_transcription_direction(char strand,char orientati
 
 }
 
+bool TopAlignments::overlap(alignment_t* alignment1, alignment_t* alignment2)
+{
+    // no overlap for different chromosomes
+    if (alignment1->chromosome->nr() != alignment2->chromosome->nr())
+        return false;
+
+    // do the alignment overlap at all
+    if ((alignment1->exons.front() > alignment2->exons.back()) || (alignment2->exons.front() > alignment1->exons.back()))
+        return false;
+
+    // find at least on genomic position to overlap
+    std::set<int> align_pos;
+    for (size_t i = 0; i < alignment1->exons.size(); i+=2) 
+        for (int j = alignment1->exons.at(i); j < alignment1->exons.at(i+1); j++)
+            align_pos.insert(j);
+
+    for (size_t i = 0; i < alignment2->exons.size(); i+=2)
+        for (int j = alignment2->exons.at(i); j < alignment2->exons.at(i+1); j++)
+            if (align_pos.find(j) != align_pos.end())
+                return true;
+    
+    // return false otherwise
+    return false;
+}
 
 
 int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *qual_mismatches_p, int *num_matches_p)
@@ -1905,6 +1929,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 	uint32_t H2 = 0 ;
 	uint32_t min_edit_ops = 1000 ;
 	double max_qpalma_score = -1000 ;
+    bool is_multimapper = false;
 
 	for (unsigned int j=0; j<top_alignments.size(); j++)
     {
@@ -1918,6 +1943,19 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			min_edit_ops = top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref ;
 		if (top_alignments[j]->qpalma_score > max_qpalma_score)
 			max_qpalma_score = top_alignments[j]->qpalma_score ;
+    }
+
+    // mark multiple mappers
+    if (_config.TAG_MULTIMAPPERS >= 0)
+    {
+        for (unsigned int j=1; j<top_alignments.size(); j++)
+        {
+            if (!overlap(top_alignments[0], top_alignments[j]) && ((1.0 - _config.TAG_MULTIMAPPERS) * max_qpalma_score <= top_alignments[j]->qpalma_score))
+            {
+                is_multimapper = true;
+                break;
+            }
+        }
     }
 
 	Read const * curr_read;
@@ -2338,6 +2376,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			fprintf(MY_OUT_FP, "\tNH:i:%i", top_alignments.size()) ;
 			fprintf(MY_OUT_FP, "\tXD:f:%2.3f", max_qpalma_score-curr_align->qpalma_score) ;
 			fprintf(MY_OUT_FP, "\tXd:i:%i", curr_align->num_mismatches_ref + curr_align->num_gaps_ref - min_edit_ops) ;
+            if (_config.TAG_MULTIMAPPERS >= 0.0)
+                fprintf(MY_OUT_FP, "\tYM:i:%i", is_multimapper?1:0) ;
+                
 			//fprintf(MY_OUT_FP, "\tXr:i:%i", curr_align->remapped + (curr_align->exons.size()>2)) ;
 
 		}

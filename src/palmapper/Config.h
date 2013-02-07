@@ -304,6 +304,8 @@ public:
 	static Personality getPersonality();
 
     std::string COMMAND_LINE;
+
+    double TAG_MULTIMAPPERS ;
 private:
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;

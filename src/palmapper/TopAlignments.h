@@ -7,6 +7,7 @@
 #include <palmapper/JunctionMap.h>
 #include <palmapper/VariantMap.h>
 #include <map>
+#include <set>
 
 class Mapper ;
 class GenomeMaps ;
@@ -130,6 +131,7 @@ protected:
 	void qsort_top_alignments(alignment_t** output, int size);
 	
 	void determine_transcription_direction(char strand,char orientation, int side, char &transcription, char &read_forward);
+    bool overlap(alignment_t* alignment1, alignment_t* alignment2); 
 	
 	std::vector<alignment_t *> top_alignments;
 	int num_spliced_alignments;

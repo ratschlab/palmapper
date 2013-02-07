@@ -220,6 +220,7 @@ Config::Config() {
 
     COMMAND_LINE = std::string("") ;
 
+    TAG_MULTIMAPPERS = -1.0;
 };
 
 int Config::applyDefaults(Genome * genome)
@@ -1607,6 +1608,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 					exit(1);
 				}
 				QPALMA_INDEL_PENALTY = tmp;
+			}
+
+            // include multimpper tag in SAM output, if a non-overlapping alignment with at least (1 - value)*best-QPALMA-Score exists
+			if (strcmp(argv[i], "-tag-multimappers") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -tag-multimappers\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				double tmp = atof(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -tag-multimappers must be >= 0.0\n") ;
+					usage();
+					exit(1);
+				}
+				TAG_MULTIMAPPERS = tmp;
 			}
 
 
