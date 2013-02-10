@@ -2443,6 +2443,17 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 						delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 						return ret ;
 					}
+
+					if (hits.topAlignments().stop_aligning())
+					  {
+						if (myverbosity>=1)
+							fprintf(stdout, "Warning: stopped alignments of read %s\n", read.id()) ;
+						result.delete_regions();
+						delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+
+						return 0 ;
+					  }
+
 					num_alignments_reported+=ret ;
 					hits.topAlignments().update_top_alignment_index();
 				}
@@ -2884,20 +2895,24 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 																	rend /*this_long_regions[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
 																	annotatedjunctions, variants, myverbosity);
 						}
-						
-						if (ret < 0)
-						{
-							delete_long_regions(long_regions); 
-							return ret;
-						}
-						
-						num_alignments_reported += ret;						
 
 						current_regions.clear();
 						current_positions.clear();
 						delete[] new_region1.read_map ;
 						delete[] new_region2.read_map ;
 				  						
+						if (ret < 0)
+						{
+							delete_long_regions(long_regions); 
+							return ret;
+						}
+						if (hits.topAlignments().stop_aligning())
+						  {
+							delete_long_regions(long_regions); 
+							return 0 ;
+						  }
+
+						num_alignments_reported += ret;						
 						hits.topAlignments().update_top_alignment_index();
 
 					}//end alignment

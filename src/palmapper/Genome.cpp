@@ -617,16 +617,15 @@ int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 // Code adapted from Paraslash.
 ////////////////////////////////////////////////////////
 
-#ifndef BinaryStream_MAP
-
-void Genome::index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const
+/*void Genome::index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const
 {
 	assert(index>=0);
 	assert(size>=0);
+	//memcpy(buffer, &index_mmap[index], size*sizeof(STORAGE_ENTRY)) ;
 
 	for (long i=0; i<size; i++)
-		buffer[i]=index_mmap[index+i] ;
-}
+	  buffer[i]=index_mmap[index+i] ;
+}*/
 
 void Genome::mmap_indices()
 {
@@ -648,7 +647,8 @@ void Genome::mmap_indices()
 		clock_t last_time = clock() ;
         for (size_t i=0; i<(fwd_size/sizeof(STORAGE_ENTRY))-1024; i+=1024)
 		{
-		  index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
+			memcpy(buffer, &INDEX_FWD_MMAP[i], 1024*sizeof(STORAGE_ENTRY))  ;
+			//index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
 			
 		  if (i%1000==0 && ((1.0*(float)clock()-(float)last_time)/(float)CLOCKS_PER_SEC>0.01)) // the timing is tricky. Clock only measures user time, but this statement mostly uses system or io time
 		    {
@@ -715,37 +715,6 @@ int Genome::gm_mmap(size_t length, int prot, int flags, int fd, off_t offset, vo
 
 	return 0;
 }
-
-#else
-
-void Genome::mmap_indices()
-{
-
-	// Map fwd index
-	INDEX_FWD_MMAP = new CBinaryStream<STORAGE_ENTRY>(_config.INDEX_FWD_FILE_NAME);
-
-	if (_config.INDEX_PRECACHE)
-	{
-	//	fprintf(stdout, "Linearly reading index files to fill caches: 1/2 ") ;
-
-		INDEX_FWD_MMAP->read_and_forget() ;
-
-	//	fprintf(stdout, "Done\n") ;
-	}
-
-//		printf("ERROR: Could not get file status\n");
-//                exit(1);
-	/*for (int i=0; i<1000; i++)
-	{
-		STORAGE_ENTRY se=(*INDEX_FWD_MMAP)[i*10];
-		fprintf(stderr, "se[%d]=%0x%0x%0x%0x\n",i, se.id[0], se.id[1], se.id[2], se.id[3]);
-	}
-	exit(1);*/
-}
-
-#endif // BinaryStream_MAP
-
-
 
 int Genome::init_constants() 
 {

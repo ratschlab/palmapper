@@ -7,7 +7,7 @@
 #include <cctype> // std::tolower
 
 #include <palmapper/Chromosome.h>
-
+#include <palmapper/BinaryStream.h>
 
 #define CHR_DESC_LENGTH 50
 
@@ -51,9 +51,7 @@ public:
 	long int BINARY_CODE[5];
 	unsigned int LONGEST_CHROMOSOME;
 
-#ifndef BinaryStream_MAP
-	void index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const;
-#endif
+	//void index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const;
 
 	int find_desc(const char * desc) const
 		{
@@ -132,13 +130,8 @@ public:
 	INDEX_ENTRY *INDEX;
 	//INDEX_ENTRY *INDEX_REV;
 	
-#ifndef BinaryStream_MAP
 	//STORAGE_ENTRY *INDEX_REV_MMAP;
 	STORAGE_ENTRY *INDEX_FWD_MMAP;
-#else
-	//CBinaryStream<STORAGE_ENTRY>* INDEX_REV_MMAP;
-	CBinaryStream<STORAGE_ENTRY>* INDEX_FWD_MMAP;
-#endif
 #endif // dd
 
 	unsigned long int MAX_POSITIONS;

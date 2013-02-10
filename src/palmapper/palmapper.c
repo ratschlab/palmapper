@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
   	if (_config.STATISTICS) printf("Total time needed: %dh %dm %ds\n", hours, minutes, seconds);
   	////////////////////////
 
-	if (genomemaps != NULL && (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL))
+	if (genomemaps != NULL && (_config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL))
 	{
 		genomemaps->do_reporting(1) ;
 		genomemaps->write_reporting() ;

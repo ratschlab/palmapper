@@ -228,8 +228,6 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 
 restart:
 
-	// make it somehow dependent on the read length, the index depth and the number of mismatches
-	_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA = read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
 
 	char const *READ = read.data();
 	if (_config.VERBOSE>1)
@@ -283,7 +281,7 @@ restart:
 
 	time1+= clock()-start_time ;
 		// map_complete IF 1) all hit strategy 2) best hit strategy and no mappings found in map_fast BUT NOT IF MM < RL/ID AND gaps=0 (since map_fast has already found them)
-	if (!cancel)
+	if (!cancel && !hits._topAlignments.stop_aligning())
 	{
 		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
 			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()<=_config.OUTPUT_FILTER_NUM_TOP)) &&
@@ -311,8 +309,7 @@ restart:
 
 			time2b += clock()-start_time ;
 
-			if (!_config.REPORT_REPETITIVE_SEEDS)
-				ret = hits.browse_hits();
+			ret = hits.browse_hits();
 			
 			if (ret<0)
 				cancel = 3 ;
@@ -345,7 +342,7 @@ restart:
 
 	read_mapped = 0 ;
 
-	if (false && !cancel && !_config.REPORT_REPETITIVE_SEEDS)
+	if (false && !cancel)
 	{
 		hits._topAlignments.start_top_alignment_record();
 
@@ -356,7 +353,7 @@ restart:
 		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, 1000, _annotatedjunctions, _variants);//hits._topAlignments.size() -nb_unspliced);
 	}
 
-	if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
+	if (!cancel)
 	{
 		hits._topAlignments.start_top_alignment_record();
 

@@ -2395,3 +2395,35 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 	return top_alignments.size() ;
 }
 
+
+bool TopAlignments::stop_aligning() 
+{
+	return false ;
+	
+  if (top_alignments.size()>=1)
+    return true ;
+  return false ;
+
+  unsigned int best_editop=10000 ;
+  unsigned int best_editop_i = -1 ;
+  const int delta=2 ;
+  for (unsigned int i=0; i<top_alignments.size(); i++)
+    {
+      if (best_editop>top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref)
+	{
+	  best_editop=top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref ;
+	  best_editop_i=i ;
+	} 
+    }
+  if (best_editop_i<0)
+    return false ;
+  int num_in_delta=0;
+  for (unsigned int i=0; i<top_alignments.size(); i++)
+    {
+      if (top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= best_editop + delta && !overlap(top_alignments[i], top_alignments[best_editop_i]))
+	num_in_delta++ ;
+    }
+  if (num_in_delta>0) 
+    return true ;
+  return false ;
+}

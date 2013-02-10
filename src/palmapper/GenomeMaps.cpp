@@ -23,7 +23,6 @@ GenomeMaps::GenomeMaps(Genome const &genome_)
 	CHR_MAP_c = NULL ;
 	CHR_MAP_i = NULL ;
 
-	reported_repetitive_seeds = 0 ;
 	reported_mapped_regions = 0 ;
 	reported_mapped_reads = 0 ;
 	reported_spliced_reads = 0 ;
@@ -33,20 +32,15 @@ GenomeMaps::GenomeMaps(Genome const &genome_)
     covered_mapped_read_positions_best = 0 ;
     covered_spliced_read_positions = 0 ;
     covered_spliced_read_positions_best = 0 ;
-    covered_repetitive_seed_positions = 0 ;
-    covered_repetitive_seed_positions_many1 = 0 ;
-    covered_repetitive_seed_positions_many2 = 0 ;
     covered_mapped_region_positions = 0 ;
     //covered_splice_site_positions = 0 ;
-
-	REPORT_REPETITIVE_SEED_DEPTH_EXTRA = 31 - MAX_INDEX_DEPTH ;
 
 	genome = &genome_ ;
 
 #ifdef PMINDEX
 	init_reporting() ;
 #else
-	if (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
+	if (_config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL || _config.FILTER_BY_SPLICE_SITES || _config.QPALMA_USE_SPLICE_SITES)
 	{
 		init_reporting() ;
 
@@ -222,9 +216,6 @@ int GenomeMaps::init_reporting()
 #endif
 	}
 	 
-	covered_repetitive_seed_positions = 0 ;
-	covered_repetitive_seed_positions_many1 = 0 ;
-	covered_repetitive_seed_positions_many2 = 0 ;
 	covered_mapped_region_positions = 0 ;
 	covered_mapped_read_positions = 0 ;
 	covered_mapped_read_positions_best = 0 ;
@@ -237,58 +228,6 @@ int GenomeMaps::init_reporting()
 
 #ifndef PMINDEX
 
-int GenomeMaps::report_repetitive_seed(Chromosome const &chr, int chr_start, int count)
-{
-	//fprintf(stdout, "repetitive_seed:\tchr=%s\tpos=%i\tcount=%i\n", CHR_DESC[chr], chr_start, count) ;
-
-	if (count<Config::REPORT_REPETITIVE_SEED_COUNT)
-		return 0 ;
-	if (!(chr_start>=0 && (size_t)chr_start<=chr.length()))
-	{
-		if (_config.VERBOSE>0)
-			fprintf(stdout, "report_mapped_region: start out of bounds\n") ;
-		if (chr_start<0)
-			chr_start = 0 ;
-		else
-			chr_start = chr.length() ;
-	}
-	assert(chr_start>=0 && (size_t)chr_start<chr.length()) ;
-	
-	//fprintf(stdout, "repetitive_seed:\tchr=%s\tpos=%i\tcount=%i\n", CHR_DESC[chr], chr_start, count) ;
-	reported_repetitive_seeds++ ;
-
-	for (unsigned int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<chr.length(); i++)
-		if ((CHR_MAP(chr,i) & MASK_REPETITIVE_SEED) == 0)
-		{
-			covered_repetitive_seed_positions++ ;
-			CHR_MAP_set(chr,i, CHR_MAP(chr,i) + MASK_REPETITIVE_SEED) ;
-		}
-
-	do_reporting() ;
-
-	if (count<Config::REPORT_REPETITIVE_SEED_COUNT_MANY1)
-		return 0 ;
-
-	for (unsigned int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<chr.length(); i++)
-		if ((CHR_MAP(chr,i) & MASK_REPETITIVE_SEED_MANY1) == 0)
-		{
-			covered_repetitive_seed_positions_many1++ ;
-			CHR_MAP_set(chr, i, CHR_MAP(chr,i) + MASK_REPETITIVE_SEED_MANY1) ;
-		}
-
-	if (count<Config::REPORT_REPETITIVE_SEED_COUNT_MANY2)
-		return 0 ;
-
-	for (unsigned int i=chr_start; i<chr_start+_config.INDEX_DEPTH+REPORT_REPETITIVE_SEED_DEPTH_EXTRA && i<chr.length(); i++)
-		if ((CHR_MAP(chr,i) & MASK_REPETITIVE_SEED_MANY2) == 0)
-		{
-			covered_repetitive_seed_positions_many2++ ;
-			CHR_MAP_set(chr, i, CHR_MAP(chr,i) + MASK_REPETITIVE_SEED_MANY2) ;
-		}
-
-
-	return 1 ;
-}
 
 int GenomeMaps::report_mapped_region(Chromosome const &chr, int chr_start, int chr_end, int num_matches)
 {
@@ -524,12 +463,11 @@ int GenomeMaps::do_reporting(int force)
 #ifdef PMINDEX
 		const int index_depth=15 ;
 #else
-		const int index_depth=_config.INDEX_DEPTH ;
+		//const int index_depth=_config.INDEX_DEPTH ;
 		if (_config.VERBOSE>0)
 #endif 
 		  {
 		    fprintf(stdout, "\n") ;
-		    fprintf(stdout, "[report] repetitive_seeds (%i)\t=\t %8i\t(%8i, %8i, %8i positions)\n", REPORT_REPETITIVE_SEED_DEPTH_EXTRA+index_depth, reported_repetitive_seeds, covered_repetitive_seed_positions, covered_repetitive_seed_positions_many1, covered_repetitive_seed_positions_many2) ;
 		    
 		    fprintf(stdout, "[report] mapped_regions   \t=\t %8i\t(%8i positions)\n", reported_mapped_regions, covered_mapped_region_positions) ;
 		    
@@ -556,9 +494,6 @@ int GenomeMaps::read_reporting(char *fname)
 	if (!fd)
 		return -1 ;
 
-	covered_repetitive_seed_positions = 0 ;
-	covered_repetitive_seed_positions_many1 = 0 ;
-	covered_repetitive_seed_positions_many2 = 0 ;
 	covered_mapped_region_positions = 0 ;
 	covered_mapped_read_positions = 0 ;
 	covered_mapped_read_positions_best = 0 ;
@@ -613,12 +548,6 @@ int GenomeMaps::read_reporting(char *fname)
 				covered_spliced_read_positions++ ;
 			if ((CHR_MAP(chr,j) & MASK_MAPPED_REGION)!=0)
 				covered_mapped_region_positions++ ;
-			if ((CHR_MAP(chr,j) & MASK_REPETITIVE_SEED)!=0)
-				covered_repetitive_seed_positions++ ;
-			if ((CHR_MAP(chr,j) & MASK_REPETITIVE_SEED_MANY1)!=0)
-				covered_repetitive_seed_positions_many1++ ;
-			if ((CHR_MAP(chr,j) & MASK_REPETITIVE_SEED_MANY2)!=0)
-				covered_repetitive_seed_positions_many2++ ;
 		}
 	}
 	gzclose(fd) ;

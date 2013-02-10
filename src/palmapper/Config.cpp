@@ -73,7 +73,6 @@ Config::Config() {
 
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
-	REPORT_REPETITIVE_SEEDS = 0 ;
 	REPORT_MAPPED_REGIONS = 1 ;
 	REPORT_MAPPED_READS = 1 ;
 	REPORT_SPLICED_READS = 1 ;
@@ -1273,18 +1272,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REALIGN_READS = 1 ;
 			}
 
-			//report repetitive seeds
-			if (strcmp(argv[i], "-report-rep-seed") == 0) {
-				not_defined = 0;
-				REPORT_REPETITIVE_SEEDS = 1 ;
-				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-			}
-			if (strcmp(argv[i], "-no-report-rep-seed") == 0) {
-				not_defined = 0;
-				REPORT_REPETITIVE_SEEDS = 0 ;
-				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-			}
-
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-region") == 0) {
 				not_defined = 0;
@@ -1327,7 +1314,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				QPALMA_USE_SPLICE_SITES_THRESH_DON = atof(argv[i]);
 				QPALMA_USE_SPLICE_SITES= 1 ;
 				not_defined = 0;
-				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
 				//assert(REPORT_SPLICE_SITES_THRESH_TOP_PERC==0.0) ;
 			}
 
@@ -1343,7 +1329,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				assert(QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC>=0 && QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC<=1.0) ;
 				QPALMA_USE_SPLICE_SITES= 1 ;
 				not_defined = 0;
-				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
 				//assert(REPORT_SPLICE_SITES_THRESH==0.0) ;
 			}
 
@@ -2528,12 +2513,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (BWA_INDEX && REPORT_REPETITIVE_SEEDS)
-	{
-		fprintf(stderr, "The combination of the two options -bwa and -report-rep-seed is not implemented yet\n") ;
-		exit(-1) ;
-	}
-	
 	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
 
 	return 0;

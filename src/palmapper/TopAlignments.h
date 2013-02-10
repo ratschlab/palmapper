@@ -119,6 +119,8 @@ public:
 	}
 	
 
+	bool stop_aligning() ;
+
 protected:
 
 	int32_t compare_score(alignment_t *a1, alignment_t *a2) ;

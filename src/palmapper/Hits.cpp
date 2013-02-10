@@ -305,11 +305,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 	TIME_CODE_TOTAL(_stats.hits_timing_total()) ;
 	TIME_CODE(_stats.hits_timing()) ;
 	
-#ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
-#else
-	CBinaryStream<STORAGE_ENTRY>* index_mmap;
-#endif
 	INDEX_ENTRY index_entry;
 
 	unsigned int block;
@@ -369,30 +365,8 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			// make sure that every seed is only processed once
 			// what is this good for???
 			unsigned int index_entry_num=index_entry.num ;
-			int report_repetitive_seeds = _config.REPORT_REPETITIVE_SEEDS ;
-			if (report_repetitive_seeds) 
-			{
-				assert(index_type&index_array) ; // TODO: fix for bwt
 
-				if (_mapper.seed_covered.size()<SLOTS[reverse])
-					_mapper.seed_covered.resize(SLOTS[reverse]+1, false) ;
-				if (_mapper.seed_covered[SLOTS[reverse]])
-					report_repetitive_seeds=0 ;
-				else
-					_mapper.seed_covered[SLOTS[reverse]] = true ;
-
-				if ((clock()-seed_covered_reporting_time)/CLOCKS_PER_SEC>10)
-				{
-					seed_covered_reporting_time=clock() ;
-					size_t num_covered = 0 ;
-					for (size_t ii=0; ii<_mapper.seed_covered.size(); ii++)
-						if (_mapper.seed_covered[ii])
-							num_covered++ ;
-					fprintf(stdout, "# seed coverage: %ld/%ld (%2.1f%%)\n", num_covered, _mapper.seed_covered.size(), 100*((float)num_covered)/(float)_mapper.seed_covered.size()) ;
-				}
-			}
-
-			if (index_entry_num > _config.SEED_HIT_CANCEL_THRESHOLD && !report_repetitive_seeds) 
+			if (index_entry_num > _config.SEED_HIT_CANCEL_THRESHOLD) 
 				index_entry_num=0 ;
 			if (index_entry_num > _config.SEED_HIT_TRUNCATE_THRESHOLD) 
 				index_entry_num=_config.SEED_HIT_TRUNCATE_THRESHOLD ;
@@ -403,19 +377,16 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			  }
 			
 			assert(index_entry_num<=index_entry.num) ;
-			STORAGE_ENTRY se_buffer[index_entry_num];
+			STORAGE_ENTRY *se_buffer=NULL ;//[index_entry_num];
 			
 			if (index_type&index_array)
 			{
 				TIME_CODE(clock_t start_time = clock()) ;
 				
 //fprintf(stderr, "%s\t%d\n",get_seq(_read,SLOTS[reverse]), index_entry.num);
-#ifndef BinaryStream_MAP
-				if (index_entry_num>0)
-					_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
-#else
-				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry.num, index_entry_num);
-#endif
+				//if (index_entry_num>0)
+				//	_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
+				se_buffer=&index_mmap[index_entry.offset-index_entry.num] ;
 				TIME_CODE(_stats.hits_seek += clock()-start_time; _stats.hits_seek_cnt++ ;) ;
 			}
 
@@ -515,20 +486,6 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 					)
 				{
 					continue;
-				}
-
-				if (_config._personality == Palmapper && report_repetitive_seeds)
-				{   // check every seed, whether it is extendable by REPORT_REPETITIVE_SEED_DEPTH_EXTRA nucleotides 
-					/// and report it
-					int e = extend_seed(direction, _genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA, genome_chr, genome_pos, readpos, conversion) ;
-
-					if (e==_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA)
-					{
-						struct seedlist seed;
-						seed.chr= &genome_chr ;
-						seed.pos=genome_pos ;
-						extended_seedlist.push_back(seed) ;
-					}
 				}
 
 				int INDEX_DEPTH = _config.INDEX_DEPTH ;
@@ -905,15 +862,6 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 			if (index_type&index_bwt)
 				bwa_seed2genome_cleanup_seq(sa_seq) ;
 
-			if (_config._personality == Palmapper && report_repetitive_seeds)
-			{
-				//fprintf(stdout, "report %i/%i repetitive seeds\n", (int)extended_seedlist.size(), (int)index_entry.num) ;
-				for (unsigned int ii=0; ii<extended_seedlist.size(); ii++)
-					_genomeMaps.report_repetitive_seed(*extended_seedlist[ii].chr, extended_seedlist[ii].pos, (int)extended_seedlist.size())  ;
-			}
-			
-			//if (index_entry.num>_config.INDEX_DEPTH_EXTRA_THRESHOLD)
-			//fprintf(stdout, "dropped %i/%i entries\n", dropped_entries, index_entry.num) ;
 		}
 
 	} //end of while (for each strand)
@@ -1560,11 +1508,7 @@ int Hits::dealloc_hits_by_score()
 
 template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 {
-#ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap=NULL ;
-#else
-	CBinaryStream<STORAGE_ENTRY>* index_mmap=NULL;
-#endif
 	INDEX_ENTRY index_entry;
 
 	unsigned int pos, i, j, p, chars, block, chrom_overlap = 0, hits_reported = 0;
@@ -1687,17 +1631,14 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 							fprintf(stderr, "Warning: number of seed matches too large (%i). Using only first 100.000 matches to avoid a stack overflow\n", index_entry_num) ;
 							index_entry_num=100000 ;
 						}
-						STORAGE_ENTRY se_buffer[index_entry_num];
+						STORAGE_ENTRY *se_buffer=NULL ; //[index_entry_num];
 												
 						TIME_CODE(time_t start_time = clock() ;) ;
 
 						if (index_type&index_array)
 						{
-#ifndef BinaryStream_MAP
-							_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
-#else
-							index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry.num, index_entry_num);
-#endif
+							//_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
+							se_buffer=&index_mmap[index_entry.offset-index_entry.num] ;
 						}
 						
 						TIME_CODE(_stats.hits_seek += clock()-start_time ; _stats.hits_seek_cnt++; ) ;
@@ -1757,9 +1698,6 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 							}
 							
 							Chromosome const &chr = _genome.chromosome(chr_id);
-							
-							//if (_config.REPORT_REPETITIVE_SEEDS)
-							//	report_repetitive_seed(chr, pos, index_entry.num)  ;
 							
 							if (!rev) {
 								chrstart = pos - (run!=nr_runs) * (run-1) * /*_config.*/_config.INDEX_DEPTH - (run==nr_runs) * (((int)read.length()) - /*_config.*/_config.INDEX_DEPTH);
@@ -2521,6 +2459,10 @@ int Hits::analyze_hits(QPalma const * qpalma)
 			break; // best hit strategy
 		}
 
+		if (_topAlignments.stop_aligning())
+		  break ;
+			
+
 		if (HITS_BY_SCORE[i].hitpointer != NULL)
 		{
 			// only _config.OUTPUT_FILTER_NUM_LIMIT numbers of alignment will be chosen randomly:
@@ -2555,7 +2497,7 @@ int Hits::analyze_hits(QPalma const * qpalma)
 						nr++;
 					}
 
-					if (nr == _config.OUTPUT_FILTER_NUM_LIMIT)
+					if (nr == _config.OUTPUT_FILTER_NUM_LIMIT || _topAlignments.stop_aligning())
 						break;
 
 					hit = hit->same_eo_succ;
@@ -2572,6 +2514,8 @@ int Hits::analyze_hits(QPalma const * qpalma)
 				{
 					printed += _topAlignments.report_unspliced_hit(_read, hit, 0, qpalma) ;
 					hit = hit->same_eo_succ;
+					if (_topAlignments.stop_aligning())
+					  break ;
 				}
 
 			} else { // no random selection of output alignments:
@@ -2596,6 +2540,9 @@ int Hits::analyze_hits(QPalma const * qpalma)
 
 					printed += _topAlignments.report_unspliced_hit(_read, hit, HITS_BY_SCORE[i].num, qpalma);
 					hit = hit->same_eo_succ;
+
+					if (_topAlignments.stop_aligning())
+					  break ;
 				}
 			}
 
@@ -2611,11 +2558,7 @@ int Hits::analyze_hits(QPalma const * qpalma)
 
 int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 {
-#ifndef BinaryStream_MAP
 	STORAGE_ENTRY *index_mmap ;
-#else
-	CBinaryStream<STORAGE_ENTRY>* index_mmap;
-#endif
 	INDEX_ENTRY index_entry;
 
 	unsigned int pos, chars, block, hits_reported = 0;
@@ -2645,7 +2588,7 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 
 				try
 				{
-					se_buffer=new STORAGE_ENTRY[index_entry.num];
+					//se_buffer=new STORAGE_ENTRY[index_entry.num];
 				}
 				catch (std::bad_alloc)
 				{
@@ -2655,11 +2598,8 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 				int index_entry_num = (index_entry.num > _config.SEED_HIT_CANCEL_THRESHOLD) ? 0 : index_entry.num;
 				index_entry_num = (index_entry_num > (int)_config.SEED_HIT_TRUNCATE_THRESHOLD) ? _config.SEED_HIT_TRUNCATE_THRESHOLD : index_entry_num;
 
-#ifndef BinaryStream_MAP
-				_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
-#else
-				index_mmap->pre_buffer(se_buffer, index_entry.offset-index_entry.num, index_entry_num);
-#endif
+				se_buffer=&index_mmap[index_entry.offset-index_entry.num] ;
+				//_genome.index_pre_buffer(index_mmap, se_buffer, index_entry.offset-index_entry.num, index_entry_num);
 
 				for (int i=0; (int)i<index_entry_num; i++)
 				{
@@ -2794,7 +2734,7 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 							HIT* hit = new HIT();
 							if (!hit)
 							{
-								delete[] se_buffer;
+								//delete[] se_buffer;
 								return -1 ;
 							}
 
@@ -2846,7 +2786,7 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 
 				} // end of for each mapping pos
 
-				delete[] se_buffer;
+				//delete[] se_buffer;
 			} // end of index entry num
 
 		} // end of forward/reverse	rev
