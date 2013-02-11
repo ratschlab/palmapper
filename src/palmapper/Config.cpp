@@ -32,6 +32,8 @@ Config::Config() {
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
+	OUTPUT_FILTER_DELTA_MMDROP = 2 ;
+	OUTPUT_FILTER_NUM_MMDROP = 10 ;
 
 	FIXTRIM_STRATEGY_LEN = 10000000;
 	FIXTRIMRIGHT_STRATEGY_LEN = 0 ;
@@ -133,16 +135,17 @@ Config::Config() {
 	SPLICED_LONGEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_SHORTEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
-	SPLICED_CLUSTER_TOLERANCE = 10 ;
+	UNSPLICED_MAX_NUM_ALIGNMENTS = 100 ;
+	SPLICED_CLUSTER_TOLERANCE = 50 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
 	SPLICED_MIN_SEGMENT_LENGTH = 1 ;//DEFAULT_SETTING ;
 
 	STATISTICS = 0;
 	CHROM_CONTAINER_SIZE = 15000000 ;
 
-	BEST_HIT_STRATEGY = 0 ;
-	ALL_HIT_STRATEGY = 0 ;
-	SUMMARY_HIT_STRATEGY= 0 ;
+	//BEST_HIT_STRATEGY = 0 ;
+	//ALL_HIT_STRATEGY = 0 ;
+	//SUMMARY_HIT_STRATEGY= 0 ;
 	HITLEN_LIMIT = 0 ;
 
 	BSSEQ = 0;
@@ -219,7 +222,8 @@ Config::Config() {
 
     COMMAND_LINE = std::string("") ;
 
-    TAG_MULTIMAPPERS = -1.0;
+    TAG_MULTIMAPPERS = -1 ;
+    TAG_MULTIMAPPERS_QPALMA = -1.0;
 };
 
 int Config::applyDefaults(Genome * genome)
@@ -255,6 +259,8 @@ int Config::applyDefaults(Genome * genome)
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
 			{
 				SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
+				if (SPLICED_HIT_MIN_LENGTH_SHORT<(int)INDEX_DEPTH)
+					SPLICED_HIT_MIN_LENGTH_SHORT=INDEX_DEPTH ;
 				fprintf(stdout, " -K %i", SPLICED_HIT_MIN_LENGTH_SHORT) ;
 			}
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
@@ -383,9 +389,9 @@ int Config::applyDefaults(Genome * genome)
 		if (NUM_MISMATCHES == DEFAULT_SETTING) NUM_MISMATCHES = 3;
 		if (NUM_GAPS == DEFAULT_SETTING) NUM_GAPS = 1;
 
-		if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT) {
+		/* if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT) {
 			BEST_HIT_STRATEGY = 1;
-		}
+			} */
 	}
 
 	if (POLYTRIM_STRATEGY)
@@ -598,50 +604,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 			//INDEX_REV_FILE_NAME += ".mrc";
 
 		}
-
-		/**
-
-		 //chr index file
-		 if(strcmp(argv[i],"-x")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) 
-		 { 
-		 fprintf(stderr, "ERROR: Argument missing for option -i\n") ;
-		 usage(); exit(1); 
-		 }
-		 i++;
-		 strcpy(CHR_INDEX_FILE_NAME, argv[i]);
-		 has_index = 1;
-		 }
-
-		 //meta index file
-		 if(strcmp(argv[i],"-t")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(META_INDEX_FILE_NAME, argv[i]);
-		 has_meta_index = 1;
-		 }
-
-		 //index fwd file
-		 if(strcmp(argv[i],"-z")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(INDEX_FWD_FILE_NAME, argv[i]);
-		 has_fwd_index = 1;
-		 }
-
-		 //index rev file
-		 if(strcmp(argv[i],"-y")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(INDEX_REV_FILE_NAME, argv[i]);
-		 has_rev_index = 1;
-		 }
-
-		 */
 
 		//BWA index
 		if (strcmp(argv[i], "-bwa") == 0) {
@@ -1541,6 +1503,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 				SPLICED_MAX_NUM_ALIGNMENTS = tmp;
 			}
 
+			// maximal number of spliced alignments to be performed per read
+			if (strcmp(argv[i], "-UA") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -UA\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -UA too small\n") ;
+					usage();
+					exit(1);
+				}
+				UNSPLICED_MAX_NUM_ALIGNMENTS = tmp;
+			}
+
 			// maximal number of introns in spliced alignments
 			if (strcmp(argv[i], "-NI") == 0) {
 				not_defined = 0;
@@ -1595,7 +1575,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				QPALMA_INDEL_PENALTY = tmp;
 			}
 
-            // include multimpper tag in SAM output, if a non-overlapping alignment with at least (1 - value)*best-QPALMA-Score exists
+            // include multimpper tag in SAM output, if a non-overlapping alignment with at least less than value more editops exist
 			if (strcmp(argv[i], "-tag-multimappers") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1604,13 +1584,31 @@ int Config::parseCommandLine(int argc, char *argv[])
 					exit(1);
 				}
 				i++;
-				double tmp = atof(argv[i]);
+				int tmp = atoi(argv[i]);
 				if (tmp < 0) {
-					fprintf(stderr, "ERROR: Argument for option -tag-multimappers must be >= 0.0\n") ;
+					fprintf(stderr, "ERROR: Argument for option -tag-multimappers must be >= 0\n") ;
 					usage();
 					exit(1);
 				}
 				TAG_MULTIMAPPERS = tmp;
+			}
+
+            // include multimpper tag in SAM output, if a non-overlapping alignment with at least (1 - value)*best-QPALMA-Score exists
+			if (strcmp(argv[i], "-tag-multimappers-qpalma") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -tag-multimappers-qpalma\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				double tmp = atof(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -tag-multimappers-qpalma must be >= 0.0\n") ;
+					usage();
+					exit(1);
+				}
+				TAG_MULTIMAPPERS_QPALMA = tmp;
 			}
 
 
@@ -1894,7 +1892,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1) ;
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
-			ALL_HIT_STRATEGY = 1 ;
+			//ALL_HIT_STRATEGY = 1 ;
 		}
 
 		char const *outputFilteToprOpt = _personality == Palmapper ? "-z" : "-n";
@@ -1921,7 +1919,45 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_TOP ;
-			SUMMARY_HIT_STRATEGY=1 ;
+			//SUMMARY_HIT_STRATEGY=1 ;
+		}
+
+		char const *outputFilterDropOpt = _personality == Palmapper ? "-x" : "";
+		if (strcmp(argv[i], outputFilterDropOpt) == 0) {
+			not_defined = 0;
+			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
+			{
+				fprintf(stderr, "ERROR: output filter already defined\n") ;
+				exit(1) ;
+			}
+			if (i + 2 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", outputFilterDropOpt) ;
+				usage();
+				exit(1);
+			}
+			i++;
+			
+			if ((OUTPUT_FILTER_NUM_MMDROP = atoi(argv[i])) == 0) {
+				if (argv[i][0] != '0' || OUTPUT_FILTER_NUM_MMDROP<0) 
+				{
+					fprintf(stderr,
+							"ERROR: Number of alignments must be a positive integer value!\n");
+					exit(1);
+				}
+			}
+
+			i++;
+			
+			if ((OUTPUT_FILTER_DELTA_MMDROP = atoi(argv[i])) == 0) {
+				if (argv[i][0] != '0' || OUTPUT_FILTER_DELTA_MMDROP<0) 
+				{
+					fprintf(stderr,
+							"ERROR: Delta must be a positive integer value!\n");
+					exit(1);
+				}
+			}
+
+			OUTPUT_FILTER=OUTPUT_FILTER_MMDROP ;
 		}
 
 		//max nr of alignments per read
@@ -1977,7 +2013,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			//OUTPUT_FILTER_NUM_LIMIT = -OUTPUT_FILTER_NUM_LIMIT ;
 			OUTPUT_FILTER = OUTPUT_FILTER_LIMIT ;
-			BEST_HIT_STRATEGY = 1 ;
+			//BEST_HIT_STRATEGY = 1 ;
 		}
 
 		//max number of allowed edit operations
@@ -2513,7 +2549,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		exit(1);
 	}
 
-	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
+	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || SEED_HIT_TRUNCATE_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
 
 	return 0;
 }

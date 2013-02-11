@@ -17,8 +17,8 @@
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = false ;
-static const std::string verbose_read_id = "ABC"  ;
-static const int verbose_read_level = 0 ;
+static const std::string verbose_read_id = "WTCHG_37846_104:4:1101:10807:2269#TGCCGGCT/1-"  ;
+static const int verbose_read_level = 2 ;
 
 inline void get_vector_IUPAC(char c, std::vector<int> &l)
 {
@@ -90,8 +90,6 @@ inline void get_vector_IUPAC(char c, std::vector<int> &l)
 		break;
 	}
 }
-
-
 
 inline char get_IUPAC_code(char c1, char c2)
 {
@@ -1211,18 +1209,53 @@ int QPalma::get_string_from_region(Chromosome const &chrN, region_t *region, std
 	return 0 ;
 }
 
-void QPalma::Result::add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) {
+void QPalma::Result::add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion, int read_len) 
+{
 	region_t *region = regions[ori][chrN.nr()][nregion];
+	int left=_config.SPLICED_CLUSTER_TOLERANCE ;
+	int right=_config.SPLICED_CLUSTER_TOLERANCE ;
 
-	if (region->start <= _config.SPLICED_CLUSTER_TOLERANCE)
-		region->start = 1;
+	int read_pos = region->read_pos ;
+	int hit_len = region->hit_len ;
+	
+	if (read_pos>=0 && hit_len>0)
+	{
+		//if (ori==0)  // works slower!
+		{
+			if (region->read_pos+_config.SPLICED_CLUSTER_TOLERANCE > left)
+				left = region->read_pos+_config.SPLICED_CLUSTER_TOLERANCE ;
+			if (read_len - region->read_pos - region->hit_len + _config.SPLICED_CLUSTER_TOLERANCE > right)
+				right = read_len - region->read_pos - region->hit_len + _config.SPLICED_CLUSTER_TOLERANCE ;
+		}
+		//if (ori==1) // works slower!
+		{
+			if (region->read_pos+_config.SPLICED_CLUSTER_TOLERANCE > right)
+				right = region->read_pos+_config.SPLICED_CLUSTER_TOLERANCE ;
+			if (read_len - region->read_pos - region->hit_len + _config.SPLICED_CLUSTER_TOLERANCE > left)
+				left = read_len - region->read_pos - region->hit_len + _config.SPLICED_CLUSTER_TOLERANCE ;
+		}
+	}
 	else
-		region->start -= _config.SPLICED_CLUSTER_TOLERANCE;
+	{
+		left+=read_len ;
+		right+=read_len ;
+	}
+	
+	assert(left>=_config.SPLICED_CLUSTER_TOLERANCE) ;
+	assert(right>=_config.SPLICED_CLUSTER_TOLERANCE) ;
+	
+	if (region->start <= left)
+		region->start = 0 ;
+	else
+		region->start -= left;
 
-	if (region->end + _config.SPLICED_CLUSTER_TOLERANCE >= (int)chrN.length())
-		region->end = chrN.length();// - 1; chr length because end bound is excluded
-	else
-		region->end += _config.SPLICED_CLUSTER_TOLERANCE;
+	if (region->end < (int) chrN.length())
+	{
+		if (region->end + right >= (int)chrN.length())
+			region->end = chrN.length() - 1; // chr length because end bound is excluded
+		else
+			region->end += right;
+	}
 }
 
 /** performs a quicksort on an array output of length size
@@ -1722,12 +1755,12 @@ int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_
 			if (nbr_regions == 1) 
 			{
 				// Nothing to merge, just extend the one existing region to include a buffer.
-				result.add_buffer_to_region(ori, chromosome, 0);
+				result.add_buffer_to_region(ori, chromosome, 0, read.length());
 				continue;
 			}
 	
 			for (int i = 0; i < (int)nbr_regions; i++) 
-				result.add_buffer_to_region(ori, chromosome, i);
+				result.add_buffer_to_region(ori, chromosome, i, read.length());
 	
 			for (int nregion = 0; nregion < (int)nbr_regions - 1; nregion++) 
 			{
@@ -2132,12 +2165,12 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 			if (nbr_regions == 1) 
 			{
 				// Nothing to merge, just extend the one existing region to include a buffer.
-				result.add_buffer_to_region(ori, chromosome, 0);
+				result.add_buffer_to_region(ori, chromosome, 0, read.length());
 				continue;
 			}
 	
 			for (int i = 0; i < (int)nbr_regions; i++) 
-				result.add_buffer_to_region(ori, chromosome, i);
+				result.add_buffer_to_region(ori, chromosome, i, read.length());
 	
 			for (int nregion = 0; nregion < (int)nbr_regions - 1; nregion++) 
 			{
@@ -5627,7 +5660,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 												  * alignment_parameters->matchmatrix_dim[1], donor, d_len,
 												  acceptor, a_len, alignment_parameters->qualityPlifs,
 												  remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS, _config.DP_MAX_DELETIONS,
-												  _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
+												  readMappings.topAlignments().get_max_gaps(), readMappings.topAlignments().get_max_mismatches(), readMappings.topAlignments().get_max_editops(),
+												  /* _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), */
 												  qmm_value, remapping,
 												  _config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
 			else
@@ -5638,7 +5672,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 												   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
 												   acceptor, a_len, alignment_parameters->qualityPlifs,
 												   remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS, _config.DP_MAX_DELETIONS,
-												   _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
+												   readMappings.topAlignments().get_max_gaps(), readMappings.topAlignments().get_max_mismatches(), readMappings.topAlignments().get_max_editops(),
+												   /* _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), */
 												   qmm_value, remapping,
 												   _config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
 			
@@ -5651,7 +5686,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 												* alignment_parameters->matchmatrix_dim[1], donor, d_len,
 												acceptor, a_len, alignment_parameters->qualityPlifs,
 												remove_duplicate_scores, seed_i, seed_j, best_match,_config.SPLICED_MAX_INTRONS, _config.DP_MAX_DELETIONS,
-												_config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), 
+												readMappings.topAlignments().get_max_gaps(), readMappings.topAlignments().get_max_mismatches(), readMappings.topAlignments().get_max_editops(),
+												/* _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), */
 												qmm_value, remapping,
 												_config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
 		
@@ -5929,7 +5965,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			fprintf(stdout, "max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH=%i\n", max_intron_len<_config.SPLICED_LONGEST_INTRON_LENGTH) ;
 			fprintf(stdout, "alignment_mismatches(%i) <= _config.NUM_MISMATCHES(%i)=%i\n", alignment_mismatches_ref, _config.NUM_MISMATCHES, alignment_mismatches_ref <= _config.NUM_MISMATCHES) ;
 			fprintf(stdout, "alignment_gaps <= _config.NUM_GAPS=%i\n", alignment_gaps_ref <= _config.NUM_GAPS) ;
-			fprintf(stdout, "alignment_mismatches(%i)+alignment_gaps(%i) <= readMappings.get_num_edit_ops()=%i\n",alignment_mismatches_ref, alignment_gaps_ref, alignment_mismatches_ref+alignment_gaps_ref <= readMappings.get_num_edit_ops()) ;
+			fprintf(stdout, "alignment_mismatches(%i)+alignment_gaps(%i) <= _config.NUM_EDIT_OPS=%i\n",alignment_mismatches_ref, alignment_gaps_ref, alignment_mismatches_ref+alignment_gaps_ref <= _config.NUM_EDIT_OPS) ;
 			fprintf(stdout, "exons.size()=%i\n", (int)exons.size()) ;
 			fprintf(stdout, "((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2)=%i\n", ((int)exons.size() <= (_config.SPLICED_MAX_INTRONS+1)*2)) ;
 			fprintf(stdout, "min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH=%i\n", min_exon_len >= _config.SPLICED_MIN_SEGMENT_LENGTH) ;
@@ -6038,3 +6074,4 @@ double QPalma::score_unspliced(Read const &read, const char * read_anno, const c
 	return score1 ;
 		//return score2 ;
 }
+

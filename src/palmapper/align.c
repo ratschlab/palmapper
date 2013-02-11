@@ -42,6 +42,7 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 	char const * const READ = read.data();
 	int Read_length = read.length();
 	int K = _config.NUM_GAPS;
+	
 	int Max_read_length = _config.MAX_READ_LENGTH;
 	double Mismatch_score = _config.MM_SCORE;
 	double Match_score = _config.M_SCORE;
@@ -410,9 +411,15 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 	double Match_score = _config.M_SCORE;
 	double Worst_score = WORST_SCORE;
 	char Gaps_most_right = _config.GAPS_MOST_RIGHT;
+
 	int Num_mismatches = _config.NUM_MISMATCHES;
+	if (Num_mismatches == Num_edit_ops)
+		Num_mismatches = Num_edit_ops ;
+	
 	char Stringent_gaplimit = _config.STRINGENT_GAPLIMIT;
 	int K = _config.NUM_GAPS;
+	if (K>Num_edit_ops)
+		K=Num_edit_ops ;
 	int Max_read_length = _config.MAX_READ_LENGTH;
 
 	// arguments:

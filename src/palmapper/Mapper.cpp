@@ -258,18 +258,19 @@ restart:
 	if (_config.STATISTICS) _stats.HITS_PER_READ = 0;
 
 	hits.HITS_IN_SCORE_LIST = 0;
+	hits._topAlignments.start_top_alignment_record();
 
 	// map_fast IF 1) best hit strategy 2) only hits up to RL/ID mismatches without gaps should be found
 	// READ_LENGTH / _config.INDEX_DEPTH is the number of seeds fitting in the current read
 	int nr_seeds = (int) (read.length() / _config.INDEX_DEPTH);
-	if (!hits.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
+	if (/*!hits.ALL_HIT_STRATEGY*/ true || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
 	{
         // if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 		int ret;
 		if (_config.BWA_INDEX == 1)
-			ret	= hits.map_fast<index_bwt>(read);	
+			ret	= hits.map_fast<index_bwt>(read, qpalma);	
 		else
-			ret	= hits.map_fast<index_array>(read);	
+			ret	= hits.map_fast<index_array>(read, qpalma);	
 
 		if (ret<0)
 			cancel = 1 ;
@@ -283,9 +284,9 @@ restart:
 		// map_complete IF 1) all hit strategy 2) best hit strategy and no mappings found in map_fast BUT NOT IF MM < RL/ID AND gaps=0 (since map_fast has already found them)
 	if (!cancel && !hits._topAlignments.stop_aligning())
 	{
-		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
-			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()<=_config.OUTPUT_FILTER_NUM_TOP)) &&
-			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0 && !_config.SPLICED_HITS) ) )
+//		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
+//			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP /* && hits._topAlignments.size()<=_config.OUTPUT_FILTER_NUM_TOP) */ ) &&
+//			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0 && !_config.SPLICED_HITS) ) )
 		{
 			c_map_short_read++;
 			//fprintf(stdout, "performing hits.map_short_read\n") ;
@@ -309,18 +310,16 @@ restart:
 
 			time2b += clock()-start_time ;
 
-			ret = hits.browse_hits();
+			ret = hits.browse_hits(qpalma);
 			
 			if (ret<0)
 				cancel = 3 ;
 
-			if (hits.ALL_HIT_STRATEGY < 0)
-				hits.ALL_HIT_STRATEGY = 0;		// resetting _config.ALL_HIT_STRATEGY
-		} else
-		{
-			//if (_config.VERBOSE)
-			//		printf("skipping map_short_read\n") ;
-		}
+		}//  else
+		// {
+		// 	//if (_config.VERBOSE)
+		// 	//		printf("skipping map_short_read\n") ;
+		// }
 	}
 	else
 	{
@@ -331,14 +330,16 @@ restart:
 
 	time2c += clock()-start_time ;
 
-	if (hits.ALL_HIT_STRATEGY < 0)
-		hits.ALL_HIT_STRATEGY = 0;         // resetting _config.ALL_HIT_STRATEGY
+	//if (hits.ALL_HIT_STRATEGY < 0)
+	//hits.ALL_HIT_STRATEGY = 0;         // resetting _config.ALL_HIT_STRATEGY
 
 	if (_config.STATISTICS && _stats.HITS_PER_READ > MAXHITS)
 		MAXHITS = _stats.HITS_PER_READ;
 
-	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-		hits.reset_num_edit_ops() ;
+	/*if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
+	  hits.reset_num_edit_ops() ;*/
+
+	hits.reset_alignment_cnt() ;
 
 	read_mapped = 0 ;
 
@@ -355,18 +356,16 @@ restart:
 
 	if (!cancel)
 	{
-		hits._topAlignments.start_top_alignment_record();
-
-		if (!_config.NO_GENOMEMAPPER && !_config.MAP_JUNCTIONS_ONLY)
+		//if (!_config.NO_GENOMEMAPPER && !_config.MAP_JUNCTIONS_ONLY)
 		{
-			read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+			read_mapped = (hits._topAlignments.size()>0) ; 
 			if (_config.VERBOSE>1)
 				printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
 		}
 
 		bool trigger = false ;
 		if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
-			trigger = hits._topAlignments.size()==0 ||
+			trigger = hits._topAlignments.size()==0 || _config.NO_GENOMEMAPPER || 
 				qpalma->qpalma_filter(result._qpalma, hits._topAlignments.get_alignment(0), num_N, _annotatedjunctions)!=0 ;
 
 		if ( trigger )

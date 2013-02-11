@@ -42,7 +42,7 @@ enum OutputFilterEnum
 	OUTPUT_FILTER_TOP=1,
 	OUTPUT_FILTER_LIMIT=2,
 	OUTPUT_FILTER_RANDOM=3,
-	OUTPUT_FILTER_NOMULT=4
+	OUTPUT_FILTER_MMDROP=4
 }  ;
 
 enum ProtocolEnum
@@ -92,10 +92,12 @@ public:
 	OutputFilterEnum OUTPUT_FILTER ;
 	unsigned int OUTPUT_FILTER_NUM_TOP ;
 	int OUTPUT_FILTER_NUM_LIMIT ;
+	int OUTPUT_FILTER_DELTA_MMDROP ;
+	int OUTPUT_FILTER_NUM_MMDROP ;
 	
-	char ALL_HIT_STRATEGY;
-	char BEST_HIT_STRATEGY;
-	char SUMMARY_HIT_STRATEGY;
+	//char ALL_HIT_STRATEGY;
+	//char BEST_HIT_STRATEGY;
+	//char SUMMARY_HIT_STRATEGY;
 
 	char BSSEQ;
 
@@ -291,6 +293,7 @@ public:
 	int SPLICED_HIT_MIN_LENGTH_LONG;
 	int SPLICED_LONGEST_INTRON_LENGTH;
 	int SPLICED_SHORTEST_INTRON_LENGTH;
+	int UNSPLICED_MAX_NUM_ALIGNMENTS;
 	int SPLICED_MAX_NUM_ALIGNMENTS;
 	int SPLICED_CLUSTER_TOLERANCE;
 	int SPLICED_MAX_INTRONS;
@@ -306,6 +309,8 @@ public:
     std::string COMMAND_LINE;
 
     double TAG_MULTIMAPPERS ;
+    int TAG_MULTIMAPPERS_QPALMA ;
+
 private:
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;

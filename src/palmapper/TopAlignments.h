@@ -117,9 +117,13 @@ public:
 	{
 		return top_alignments[idx] ;
 	}
-	
 
 	bool stop_aligning() ;
+	void update_max_editops()  ;
+	int get_max_editops()  ;
+	int get_max_mismatches() ;
+	int get_max_gaps() ;
+	
 
 protected:
 
@@ -144,7 +148,10 @@ protected:
 	int num_filtered;
 	int current_ind;
 	int temp_ind;
-
+	int max_editops ;
+	bool _stop_aligning ;
+	bool _drop_alignments ;
+	
 	//pthread_mutex_t top_mutex;
 
 	GenomeMaps* genomemaps ;

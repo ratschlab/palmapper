@@ -49,7 +49,7 @@ public:
 	class Result {
 	public:
 		Result(Read const &read, QPalma const &qpalma);
-		void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion) ;
+		void add_buffer_to_region(int ori, Chromosome const &chrN, int32_t nregion, int read_len) ;
 		void delete_regions() ;
 		void cleanup() {
 		  for (int i = 0; i < 2; i++)

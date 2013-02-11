@@ -14,16 +14,16 @@
 
 #include <iostream>
 
-static const bool perform_extra_checks = false ;
+static const bool perform_extra_checks = true ;
 static const bool seed_iterate_reverse = true ;
 
 template int Hits::map_short_read<index_bwt>(Read& read, unsigned int num) ;
 template int Hits::map_short_read<index_array>(Read& read, unsigned int num) ;
 template int Hits::map_short_read<index_debug>(Read& read, unsigned int num) ;
 
-template int Hits::map_fast<index_bwt>(Read & read) ;
-template int Hits::map_fast<index_array>(Read & read) ;
-template int Hits::map_fast<index_debug>(Read & read) ;
+template int Hits::map_fast<index_bwt>(Read & read, QPalma const * qpalma) ;
+template int Hits::map_fast<index_array>(Read & read, QPalma const * qpalma) ;
+template int Hits::map_fast<index_debug>(Read & read, QPalma const * qpalma) ;
 
 void printhit(Read const &read, HIT* hit);
 
@@ -185,12 +185,11 @@ Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &mapper, Read co
  	GENOME(_mapper.GENOME), CHROMOSOME_ENTRY_OPERATOR(_mapper.CHROMOSOME_ENTRY_OPERATOR), _topAlignments(&genomeMaps)
 {
 	HITS_IN_SCORE_LIST = 0;
-	ALL_HIT_STRATEGY = _config.ALL_HIT_STRATEGY;
-	_numEditOps = _config.NUM_EDIT_OPS;
+	//_numEditOps = _config.NUM_EDIT_OPS;
 	LONGEST_HIT = 0;
 	alloc_hit_lists_operator();
 	dealloc_hit_lists_operator();
-	alloc_hits_by_score();
+	//alloc_hits_by_score();
 	HAS_SLOT = 0;
 	SLOTS[0] = SLOTS[1] = 0;
 	SLOT_STR[0]=NULL ;
@@ -198,6 +197,7 @@ Hits::Hits(Genome const &genome, GenomeMaps &genomeMaps, Mapper &mapper, Read co
 	SLOT_STR[1]=NULL ;
 	SLOT_STR_POS[1]=0 ;
 	seed_covered_reporting_time = 0;
+	analysed_hit_cnt=0 ;
 }
 
 Hits::~Hits() {
@@ -213,7 +213,7 @@ Hits::~Hits() {
 	free(SLOT_STR[0]) ;
 	free(SLOT_STR[1]) ;
 	
-	free( HITS_BY_SCORE);
+	//free( HITS_BY_SCORE);
 	free(HIT_LISTS_OPERATOR);
 }
 
@@ -708,7 +708,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 
 					//combine with possible hit at position seedlength+1 to the left(+) or right(-) to span hit over mismatch
 					//no_overhang = 0;
-					if (hit == NULL && _config.NUM_MISMATCHES != 0) 
+					if (hit == NULL && _topAlignments.get_max_mismatches() != 0) 
 					{
 						// TODO: fix heuristics for missing seeds due to seed-hit-cancel strategy
 						if (read_num == num) printf("Now checking if hit can be extended over mismatch\n");
@@ -752,7 +752,11 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 											found = true ;
 											if (read_num == num) printf("  Readpos matches\n");
 											
-											if ((neighbor->hit)->mismatches < _numEditOps && (neighbor->hit)->mismatches-(neighbor->hit)->gaps < _config.NUM_MISMATCHES) 
+											//if ((neighbor->hit)->mismatches < _numEditOps 
+											//	&& (neighbor->hit)->mismatches-(neighbor->hit)->gaps < _config.NUM_MISMATCHES) 
+											if ((neighbor->hit)->mismatches < _topAlignments.get_max_mismatches() 
+												&& (neighbor->hit)->mismatches-(neighbor->hit)->gaps < _topAlignments.get_max_gaps()
+												&& (neighbor->hit)->mismatches+(neighbor->hit)->gaps < _topAlignments.get_max_editops()) 
 											{
 												hit = neighbor->hit;
 												
@@ -812,7 +816,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				TIME_CODE(start_time = clock()) ;
 
 				// for MM=0: if potential hit doesn't start at readpos 1, it cannot become perfect, thus it is not even allocated:
-				if ( !(_config.NUM_MISMATCHES == 0 && readpos != 1 && (!_config.NOT_MAXIMAL_HITS)) ) {
+				if ( !(_topAlignments.get_max_mismatches() == 0 && readpos != 1 && (!_config.NOT_MAXIMAL_HITS)) ) {
 
 					// create new hit:
 					if (hit == NULL) {
@@ -847,7 +851,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				}
 
 				// for MM=0: if hit doesn't start at readpos=1, then do not report hit (due to: all perfect hits are extended from a hit starting at readpos 1!!!)
-				if ( hit != NULL && !(_config.NUM_MISMATCHES == 0 && hit->readpos != 1 && !_config.NOT_MAXIMAL_HITS) )
+				if ( hit != NULL && !(_topAlignments.get_max_mismatches() == 0 && hit->readpos != 1 && !_config.NOT_MAXIMAL_HITS) )
 				{
 					size_hit(hit, oldlength);
 				}
@@ -949,27 +953,29 @@ int Hits::size_hit(HIT *hit, unsigned int oldlength)
 }
 
 
-int Hits::browse_hits()
+int Hits::browse_hits(QPalma const * qpalma)
 {
 	HIT* hit;
 	int i;
 	char perfect = 0;
 
-//if (strcmp(_read.id(), "HWUSI-EAS627_1:1:1:90:1606/1") == 0) printhits();
-
 	// browse hit_list foreach hitlength:
 	for (i=_read.length(); i!=(int)_config.INDEX_DEPTH - 1; --i)
 	{
-		
 		int hitlength = 0 ;
 
 		// if only perfect reads should be reported, break earlier:
-		if ((_numEditOps == 0) && (i < (int)_read.length()))
+		//if ((_numEditOps == 0) && (i < (int)_read.length()))
+		//	break;
+		if ((_topAlignments.get_max_editops() == 0) && (i < (int)_read.length()))
 			break;
 
 		// if hitlength limit is reached, break earlier:
 		if (i == (int)(_config.HITLEN_LIMIT) - 1) break;
 
+		if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+			break ;
+		
 		if ((*(HIT_LISTS_OPERATOR + i)) != NULL) 
 		{
 			hit = *(HIT_LISTS_OPERATOR + i);
@@ -980,6 +986,12 @@ int Hits::browse_hits()
 			
 				hitlength = hit->end - hit->start + 1;
 
+				if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+					break ;
+				analysed_hit_cnt++ ;
+				if (_topAlignments.stop_aligning())
+					break ;
+				
 				if (perform_extra_checks)
 					assert(hit->readpos + hitlength <= (int)_read.length()+1) ;
 				//assert(hit->readpos + hit->end - hit->start + 1 <= (int)_read.length()+1) ;
@@ -993,7 +1005,8 @@ int Hits::browse_hits()
 				
 				// if hit.readpos == 2, then spare alignment since if first base is mm, it's cheaper than a gap
 				if (hit->readpos == 2) {
-					if ((_config.NOT_MAXIMAL_HITS && hit->mismatches <= _config.NUM_MISMATCHES) || hit->mismatches < _config.NUM_MISMATCHES) {
+					if ((_config.NOT_MAXIMAL_HITS && hit->mismatches <= _topAlignments.get_max_mismatches()) || hit->mismatches < _topAlignments.get_max_mismatches()) 
+					{
 						if (hit->orientation == '+' && hit->start != 1) {
 							if (!_config.NOT_MAXIMAL_HITS || check_mm(_read, *hit->chromosome, hit->start-2, 0, 1, hit->conversion))
 							{
@@ -1026,7 +1039,8 @@ int Hits::browse_hits()
 				
 				// if hit ends at pos |read|-1, then spare alignment since if last base is mm, it's cheaper than a gap
 				if (hit->readpos + hitlength == (int)_read.length()) {
-					if ((_config.NOT_MAXIMAL_HITS && hit->mismatches <= _config.NUM_MISMATCHES) || hit->mismatches < _config.NUM_MISMATCHES) {
+					if ((_config.NOT_MAXIMAL_HITS && hit->mismatches <= _topAlignments.get_max_mismatches()) || hit->mismatches < _topAlignments.get_max_mismatches()) 
+					{
 						if (hit->orientation == '+' && hit->end != hit->chromosome->length()) {
 							if (!_config.NOT_MAXIMAL_HITS || check_mm(_read, *hit->chromosome, hit->end, _read.length()-1, 1, hit->conversion)) {
 								hit->edit_op[hit->mismatches].pos = _read.length();
@@ -1075,7 +1089,8 @@ int Hits::browse_hits()
 					}
 					
 					// report match:
-					if (hit->mismatches <= _numEditOps)
+					//if (hit->mismatches <= _numEditOps)
+					if (hit->mismatches <= _topAlignments.get_max_mismatches())
 					{
 						if (_config._personality == Palmapper && _config.REPORT_MAPPED_REGIONS && hitlength >= Config::REPORT_MAPPED_REGIONS_MIN_LENGTH)
 						{
@@ -1083,18 +1098,22 @@ int Hits::browse_hits()
 						}
 						
 						// insert hit into HITS_BY_SCORE
-						//fprintf(stdout, "insert_into_scorelist\n") ;
-						int ret = insert_into_scorelist(hit, 1) ;
-						//fprintf(stdout, "ret=%i", ret) ;
-						if (ret<0)
-							return ret ;
+						// int ret = insert_into_scorelist(hit, 1) ;
+						// if (ret<0)
+						// 	return ret ;
+
+						if (!_config.NO_GENOMEMAPPER)
+							_topAlignments.report_unspliced_hit(_read, hit, 0, qpalma) ;
 						
+						if (_topAlignments.stop_aligning())
+							break ;
+
 						//printed = 1;
 						if (_config.STATISTICS) _stats.NOT_ALIGNED[0]++;
 						
 						//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _numEditOps)
 						//	_numEditOps = hit->mismatches;
-						update_num_edit_ops(hit->mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
+						//update_num_edit_ops(hit->mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 					}
 				}
 				// 2) Hit has to be aligned:
@@ -1108,8 +1127,9 @@ int Hits::browse_hits()
 						readstart = hit->start - (((int)_read.length()) - hit->readpos - hitlength + 2); 	// 0-initialized
 					}
 
-					// Alignment
-					if (hit->mismatches < _numEditOps || (_config.NOT_MAXIMAL_HITS && hit->mismatches <= _numEditOps))
+					// Alignment: only perform expensive alignments, if !NO_GENOMEMAPPER and there aren't too many mismatches in the hit yet
+					//if ( !_config.NO_GENOMEMAPPER && (hit->mismatches < _numEditOps || (_config.NOT_MAXIMAL_HITS && hit->mismatches <= _numEditOps)))
+					if ( !_config.NO_GENOMEMAPPER && (hit->mismatches < _topAlignments.get_max_mismatches() || (_config.NOT_MAXIMAL_HITS && hit->mismatches <= _topAlignments.get_max_mismatches())))
 					{
 						//if (_config.STATISTICS) (*(*(_stats.HITS_READPOS+(hitlength-_config.INDEX_DEPTH))+(hit->readpos-1)))++;
 
@@ -1118,10 +1138,9 @@ int Hits::browse_hits()
 							_genomeMaps.report_mapped_region(*hit->chromosome, hit->start, hit->end, hitlength - hit->mismatches) ;
 						}
 
-						if (_config.NUM_GAPS != 0) 
+						if (_topAlignments.get_max_gaps() != 0) 
 						{
 							// KBOUND:
-							//fprintf(stdout, "prepare_kbound_alignment\n") ;
 							int ret = prepare_kbound_alignment(hit, hit->start, hit->end, hit->readpos, *hit->chromosome, hit->orientation, hit->mismatches);
 							if (ret<0)
 								return ret ;
@@ -1129,13 +1148,21 @@ int Hits::browse_hits()
 						}
 						else {
 							// SIMPLE:
-							//fprintf(stdout, "align_hit_simple\n") ;
 							int ret = align_hit_simple(hit, hit->start, hit->end, hit->readpos, *hit->chromosome, hit->orientation, hit->mismatches);
 							if (ret<0)
 								return ret ;
 							hit->aligned = ret ;
 						}
-							
+						if (hit->aligned)
+						{
+							// ret = insert_into_scorelist(hit, 1);
+							// if (ret<0)
+							// 	return ret ;
+							if (!_config.NO_GENOMEMAPPER)
+								_topAlignments.report_unspliced_hit(_read, hit, 0, qpalma) ;
+							if (_topAlignments.stop_aligning())
+								break ;
+						}
 					}
 					
 				} // else has mismatches
@@ -1150,85 +1177,50 @@ int Hits::browse_hits()
 		}
 	} //for each hitlength
 
-
-	// store successfully aligned hits in HITS_BY_SCORE list for printout
-	// by iterating a second time over HIT_LIST:
-	for (i=_read.length(); i!=(int)(_config.INDEX_DEPTH) - 1; --i) {
-		// if only perfect reads should be reported, break earlier:
-		if ((_numEditOps == 0) && (i < (int)_read.length()))
-		{
-			return 1;
-		}
-
-		// if hitlength limit is reached, break earlier:
-		if (i == (int)(_config.HITLEN_LIMIT) - 1)
-			return 1;
-
-		if ((*(HIT_LISTS_OPERATOR + i)) != NULL) {
-
-			hit = *(HIT_LISTS_OPERATOR + i);
-
-			// foreach hit with hitlength i:
-			while (hit != NULL) {
-
-				if (hit->aligned)
-				{
-					//fprintf(stdout, "insert_into_scorelist\n") ;
-					int ret = insert_into_scorelist(hit, 1);
-					//fprintf(stdout, "ret=%i\n", ret) ;
-					if (ret<0)
-						return ret ;
-				}
-				hit = hit->next;
-			}
-
-		}
-	}
-	
 	return 1;
 }
 
-/** Inserts a hit into the HITS_BY_SCORE list, which contains bins of hits that
- *  have the same score.
- *
- */
+// /** Inserts a hit into the HITS_BY_SCORE list, which contains bins of hits that
+//  *  have the same score.
+//  *
+//  */
 
-int Hits::insert_into_scorelist(HIT* hit, char d)
-{
-	if (d)
-	{
-		int ret = duplicate(hit) ;
-		if (ret>0)
-			return 0;
-		else if (ret<0)
-			return ret ;
-	}
-    //printhit(_read,hit);
+// int Hits::insert_into_scorelist(HIT* hit, char d)
+// {
+// 	if (d)
+// 	{
+// 		int ret = duplicate(hit) ;
+// 		if (ret>0)
+// 			return 0;
+// 		else if (ret<0)
+// 			return ret ;
+// 	}
+//     //printhit(_read,hit);
 
-	int interval = (hit->mismatches-hit->gaps) * _config.MM_SCORE + hit->gaps * _config.GAP_SCORE - (((int)_read.length())-hit->mismatches) * _config.M_SCORE;
-	assert(interval>=0) ;
+// 	int interval = (hit->mismatches-hit->gaps) * _config.MM_SCORE + hit->gaps * _config.GAP_SCORE - (((int)_read.length())-hit->mismatches) * _config.M_SCORE;
+// 	assert(interval>=0) ;
 	
-	if (HITS_BY_SCORE[interval].num == 0) 
-	{
-		// first entry in list
-		HITS_BY_SCORE[interval].hitpointer = hit;
-	}
-	else
-	{
-		// list has already some entries, insert to the front
-		HIT *tmp_hit = HITS_BY_SCORE[interval].hitpointer;
-		HITS_BY_SCORE[interval].hitpointer = hit;
-		hit->same_eo_succ = tmp_hit;
-	}
-	HITS_BY_SCORE[interval].num++;
-	HITS_IN_SCORE_LIST++;
+// 	if (HITS_BY_SCORE[interval].num == 0) 
+// 	{
+// 		// first entry in list
+// 		HITS_BY_SCORE[interval].hitpointer = hit;
+// 	}
+// 	else
+// 	{
+// 		// list has already some entries, insert to the front
+// 		HIT *tmp_hit = HITS_BY_SCORE[interval].hitpointer;
+// 		HITS_BY_SCORE[interval].hitpointer = hit;
+// 		hit->same_eo_succ = tmp_hit;
+// 	}
+// 	HITS_BY_SCORE[interval].num++;
+// 	HITS_IN_SCORE_LIST++;
 
-	//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _config.NUM_EDIT_OPS)
-	//_config.NUM_EDIT_OPS = hit->mismatches;
-	update_num_edit_ops(hit->mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
+// 	//if (!_config.ALL_HIT_STRATEGY && hit->mismatches < _config.NUM_EDIT_OPS)
+// 	//_config.NUM_EDIT_OPS = hit->mismatches;
+// 	update_num_edit_ops(hit->mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
-	return 1;
-}
+// 	return 1;
+// }
 
 
 int Hits::duplicate(HIT* hit)
@@ -1407,7 +1399,7 @@ int Hits::init_from_meta_index()
 
 int Hits::init_hit_lists() {
 	alloc_hit_lists_operator();
-	alloc_hits_by_score(); // A T T E N T I O N ! ! !   needs correct _config.NUM_EDIT_OPS which can be changed in init_alignment_structures() !!!
+	// alloc_hits_by_score(); // A T T E N T I O N ! ! !   needs correct _config.NUM_EDIT_OPS which can be changed in init_alignment_structures() !!!
 
 	return (0);
 }
@@ -1437,26 +1429,26 @@ int Hits::alloc_hit_lists_operator()
 	return(0);
 }
 
-int Hits::alloc_hits_by_score()
-{
-	double max_score = _config.NUM_GAPS * _config.GAP_SCORE + (_numEditOps - _config.NUM_GAPS) * _config.MM_SCORE;
-	NUM_SCORE_INTERVALS = (unsigned int)(max_score / SCORE_INTERVAL);
-	if (NUM_SCORE_INTERVALS * SCORE_INTERVAL != max_score) ++NUM_SCORE_INTERVALS;
-	NUM_SCORE_INTERVALS++;
+// int Hits::alloc_hits_by_score()
+// {
+// 	double max_score = _config.NUM_GAPS * _config.GAP_SCORE + (_numEditOps - _config.NUM_GAPS) * _config.MM_SCORE;
+// 	NUM_SCORE_INTERVALS = (unsigned int)(max_score / SCORE_INTERVAL);
+// 	if (NUM_SCORE_INTERVALS * SCORE_INTERVAL != max_score) ++NUM_SCORE_INTERVALS;
+// 	NUM_SCORE_INTERVALS++;
 	
-	if ((HITS_BY_SCORE = (HITS_BY_SCORE_STRUCT *) calloc (NUM_SCORE_INTERVALS, sizeof(HITS_BY_SCORE_STRUCT))) == NULL) {
-		fprintf(stderr, "ERROR : not enough memory for hitlist by score (alloc_hits_by_score)\n");
-		exit(1);
-	}
+// 	if ((HITS_BY_SCORE = (HITS_BY_SCORE_STRUCT *) calloc (NUM_SCORE_INTERVALS, sizeof(HITS_BY_SCORE_STRUCT))) == NULL) {
+// 		fprintf(stderr, "ERROR : not enough memory for hitlist by score (alloc_hits_by_score)\n");
+// 		exit(1);
+// 	}
 
-	unsigned int i;
-	for (i=0; i!=NUM_SCORE_INTERVALS; ++i) {
-		HITS_BY_SCORE[i].hitpointer = NULL;
-		HITS_BY_SCORE[i].num = 0;
-	}
+// 	unsigned int i;
+// 	for (i=0; i!=NUM_SCORE_INTERVALS; ++i) {
+// 		HITS_BY_SCORE[i].hitpointer = NULL;
+// 		HITS_BY_SCORE[i].num = 0;
+// 	}
 
-	return(0);
-}
+// 	return(0);
+// }
 
 int Hits::dealloc_hit_lists_operator()
 {
@@ -1471,17 +1463,17 @@ int Hits::dealloc_hit_lists_operator()
 	return(0);
 }
 
-int Hits::dealloc_hits_by_score()
-{
-	unsigned int i;
+// int Hits::dealloc_hits_by_score()
+// {
+// 	unsigned int i;
 
-	for (i = 0; i != NUM_SCORE_INTERVALS; i++) {
-		HITS_BY_SCORE[i].hitpointer = NULL;
-		HITS_BY_SCORE[i].num = 0;
-	}
+// 	for (i = 0; i != NUM_SCORE_INTERVALS; i++) {
+// 		HITS_BY_SCORE[i].hitpointer = NULL;
+// 		HITS_BY_SCORE[i].num = 0;
+// 	}
 
-	return(0);
-}
+// 	return(0);
+// }
 
 
 
@@ -1506,7 +1498,7 @@ int Hits::dealloc_hits_by_score()
 }*/
 
 
-template<enum index_type_t index_type> int Hits::map_fast(Read & read)
+template<enum index_type_t index_type> int Hits::map_fast(Read & read, QPalma const * qpalma)
 {
 	STORAGE_ENTRY *index_mmap=NULL ;
 	INDEX_ENTRY index_entry;
@@ -1539,27 +1531,28 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 
 	bwa_seq_t * sa_seq=NULL ;
 	uint64_t sa_k, sa_l, sa_num=0 ;
-	for (run=1; run<=nr_runs; ++run) {
+	for (run=1; run<=nr_runs; ++run) 
+	{
 		
 		if (nr_runs == 1) nr_runs = 0;	// a bit fishy, but nr_runs and run only have to be different, thats why this assignment is due
 		if (run == nr_runs) readstart = ((int)read.length()) - _config.INDEX_DEPTH;
 		else	    readstart = (run-1) * _config.INDEX_DEPTH;
 		
-		if (_config.BSSEQ) {
-//printf("readstart %d\n",readstart);
+
+		if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+			break ;
+		if (_topAlignments.stop_aligning())
+			break ;
+
+		if (_config.BSSEQ) 
+		{
 			generate_all_possible_seeds(read, INT_MAX, readstart, 0, 0, 0, 0);
-//printf("%s\n",get_seq(_read,SLOTS_CV1_FWD[0]));
-//printf("%s\n",get_seq(_read,SLOTS_CV1_REV[0]));
-//printf("%s\n",get_seq(_read,SLOTS_CV2_FWD[0]));
-//printf("%s\n",get_seq(_read,SLOTS_CV2_REV[0]));
 			
 			// invoke hits for read 1:
 			for (i=0; i!=SLOTS_CV1_FWD.size(); i++) {
 				SLOTS[0] = SLOTS_CV1_FWD[i];
 				if (_config.MAP_REVERSE) SLOTS[1] = SLOTS_CV2_REV[i];
-//printf("%s\n",get_seq(_read,SLOTS[0]));
-//printf("%s\n\n",get_seq(_read,SLOTS[1]));
-				hits_reported += map_fast_bsseq(read, run, nr_runs, 1);
+				hits_reported += map_fast_bsseq(read, run, nr_runs, 1, qpalma);
 			}
 			SLOTS_CV1_FWD.clear();
 			SLOTS_CV2_REV.clear();
@@ -1568,14 +1561,16 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 			for (i=0; i!=SLOTS_CV2_FWD.size(); i++) {
 				SLOTS[0] = SLOTS_CV2_FWD[i];
 				if (_config.MAP_REVERSE) SLOTS[1] = SLOTS_CV1_REV[i];
-				hits_reported += map_fast_bsseq(read, run, nr_runs, 2);
+				hits_reported += map_fast_bsseq(read, run, nr_runs, 2, qpalma);
 			}
 			SLOTS_CV1_REV.clear();
 			SLOTS_CV2_FWD.clear();
 			
 			continue;
 			
-		} else {
+		} 
+		else 
+		{
 			// fill SLOTS[0] and SLOTS[1]:
 			get_slots<index_type>(read, readstart) ;
 			
@@ -1645,6 +1640,9 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 						
 						for (i=0; (int)i<index_entry_num; i++)
 						{
+							if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+								break ;
+
 							int chr_id=0 ;
 							pos=0 ;
 							if (index_type&index_array)
@@ -1828,7 +1826,7 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 									//if (!_config.ALL_HIT_STRATEGY && nr_mms < max_mms)
 									//	max_mms = nr_mms;
 	
-									update_num_edit_ops(nr_mms, ALL_HIT_STRATEGY, max_mms) ;
+									//update_num_edit_ops(nr_mms, ALL_HIT_STRATEGY, max_mms) ;
 	
 									// perfect matching read
 									if (_config.STATISTICS) {
@@ -1842,12 +1840,21 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 										else _stats.NOT_ALIGNED[1]++;
 									}
 
-									int ret = insert_into_scorelist(hit, 0);
-									assert(ret>=0) ;
+									// int ret = insert_into_scorelist(hit, 0);
+									// assert(ret>=0) ;
+
+									if (!_config.NO_GENOMEMAPPER)
+										_topAlignments.report_unspliced_hit(read, hit, 0, qpalma) ;
 	
 									if (_config.STATISTICS)	_stats.HITS_LEN[read.length()]++;
 	
 									hits_reported++;
+
+									analysed_hit_cnt++ ;									
+									if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+										break ;
+									if (_topAlignments.stop_aligning())
+										break ;
 	
 								} // end of create hit
 
@@ -1867,19 +1874,19 @@ template<enum index_type_t index_type> int Hits::map_fast(Read & read)
 
 //printf("hits reported %d\n",hits_reported);
 
-	if (!_config.ALL_HIT_STRATEGY && !hits_reported)
-	{	//if best hit strategy, but no mappings found -> prepare for complete mapping!
-		ALL_HIT_STRATEGY = -1;
-	}
-	else
-	{
+	// if (!_config.ALL_HIT_STRATEGY && !hits_reported)
+	// {	//if best hit strategy, but no mappings found -> prepare for complete mapping!
+	// 	ALL_HIT_STRATEGY = -1;
+	// }
+	// else
+	// {
 		if (_config.STATISTICS)
 		{
 			_stats.NUM_HITS += hits_reported;
 			_stats.HITS_PER_READ += hits_reported;
 			_stats.ENDSTART_MAPPED[0] += chrom_overlap;
 		}
-	}
+//	}
 
 	return hits_reported;
 }
@@ -1926,11 +1933,6 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 					// generate seeds with all allowed combinations of conversions and store them in SLOTS_CV1 and SLOTS_CV2:
 					generate_all_possible_seeds(read, num, readpos, 0, 0, 0, 0);
 					
-//printf("cv1_fwd %d\n",(int)SLOTS_CV1_FWD.size());
-//printf("cv1_rev %d\n",(int)SLOTS_CV1_REV.size());
-//printf("cv2_fwd %d\n",(int)SLOTS_CV2_FWD.size());
-//printf("cv2_rev %d\n",(int)SLOTS_CV2_REV.size());
-					
 					// invoke hits for read 1:
 					for (unsigned int i=0; i!=SLOTS_CV1_FWD.size(); i++) {
 						SLOTS[0] = SLOTS_CV1_FWD[i];
@@ -1948,7 +1950,7 @@ template<enum index_type_t index_type> int Hits::map_short_read(Read& read, unsi
 					}
 					SLOTS_CV1_REV.clear();
 					SLOTS_CV2_FWD.clear();
-//return 1;
+
 				}
 				else {
 
@@ -2207,7 +2209,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 			)
 			{
 				// create mismatch:
-			if (mismatches < _numEditOps) {
+			//if (mismatches < _numEditOps) {
+			if (mismatches < _topAlignments.get_max_mismatches() ) {
 					(edit_op[mismatches]).pos = j+1;
 					(edit_op[mismatches]).mm = 1;
 				}
@@ -2224,7 +2227,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 			)
 			{
 				// create mismatch:
-			if (mismatches < _numEditOps) {
+				//if (mismatches < _numEditOps) {
+			if (mismatches < _topAlignments.get_max_mismatches()) {
 					edit_op[mismatches].pos = _read.length() - j;
 					edit_op[mismatches].mm = 1;
 				}
@@ -2234,7 +2238,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
  
-			if (mismatches > _numEditOps) {
+			//if (mismatches > _numEditOps) {
+			if (mismatches > _topAlignments.get_max_mismatches()) {
 				return 0;
 			}
 		}
@@ -2242,7 +2247,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 		j = readpos + hitlength - 1;
 		i = 0;
 		// from read[hit->readpos + hitlength] to read[_read.lenght() - 1]
-		while ((mismatches <= _numEditOps) && (j < (int)_read.length())) {
+		//while ((mismatches <= _numEditOps) && (j < (int)_read.length())) {
+		while ((mismatches <= _topAlignments.get_max_mismatches()) && (j < (int)_read.length())) {
 
 			if (	(orientation == '+')
 					&& (    (hit->chromosome->operator [](end + i) != READ[j])
@@ -2252,7 +2258,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				)
 			{
 				// create mismatch:
-				if (mismatches < _numEditOps) {
+				//if (mismatches < _numEditOps) {
+				if (mismatches < _topAlignments.get_max_mismatches()) {
 					(edit_op[mismatches]).pos = j+1;
 					(edit_op[mismatches]).mm = 1;
 				}
@@ -2271,7 +2278,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 			{
 				
 				// create mismatch:
-				if (mismatches < _numEditOps) {
+				//if (mismatches < _numEditOps) {
+				if (mismatches < _topAlignments.get_max_mismatches() ) {
 					(edit_op[mismatches]).pos = _read.length() - j;
 					(edit_op[mismatches]).mm = 1;
 				}
@@ -2281,7 +2289,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 					assert(mismatches<=Config::MAX_EDIT_OPS) ;
 			}
 			
-			if (mismatches > _numEditOps)
+			//if (mismatches > _numEditOps)
+			if (mismatches > _topAlignments.get_max_mismatches() )
 				return 0;
 
 			++i;
@@ -2292,7 +2301,8 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 	}
 
 
-	if (mismatches <= _config.NUM_MISMATCHES) {	// there can't be gaps
+	if (mismatches <= _topAlignments.get_max_mismatches()) 
+	{	// there can't be gaps
 
 		if (perform_extra_checks)
 			assert(mismatches<=Config::MAX_EDIT_OPS) ;
@@ -2312,7 +2322,7 @@ int Hits::align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome
 				assert(hit->edit_op[ii].pos>=-((int)_read.length()) && hit->edit_op[ii].pos<=((int)_read.length())) ;
 		}
 
-		update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
+		//update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 		return 1;
 	}
@@ -2335,11 +2345,12 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 	// just perform global alignment if gap heuristic/speedup was disabled:
 	if (!_config.OVERHANG_ALIGNMENT)
 	{
-		mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
+		//mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
+		mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _topAlignments.get_max_editops() );
 		if (mismatches < 0) return 0;
 		if (perform_extra_checks)
 			assert(mismatches<=Config::MAX_EDIT_OPS) ;
-		update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
+		//update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 		return 1;
 	}
@@ -2379,11 +2390,12 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 			// there are gaps on best path in alignment -> perform whole global alignment
 			if (k1_aligned == 0) {
-				mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
+				//mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
+				mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _topAlignments.get_max_editops());
 				if (mismatches < 0) return 0;
 				if (perform_extra_checks)
 					assert(mismatches<=Config::MAX_EDIT_OPS) ;
-				update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
+				//update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 				return 1;
 			}
 
@@ -2406,7 +2418,8 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 			}
 
 			// perform alignment if at least one edit op can still be afforded:
-			if (mismatches < _numEditOps || (_config.NOT_MAXIMAL_HITS && mismatches <= _numEditOps)) {
+			//if (mismatches < _numEditOps || (_config.NOT_MAXIMAL_HITS && mismatches <= _numEditOps)) {
+			if (mismatches < _topAlignments.get_max_mismatches() || (_config.NOT_MAXIMAL_HITS && mismatches <= _topAlignments.get_max_mismatches())) {
 				k1_aligned = kbound_overhang_alignment(_read, hit, offset, readpos+hitlength-1, start, end, readpos, chromosome, orientation, mismatches);
 				mismatches = hit->mismatches;
 				if (perform_extra_checks)
@@ -2418,11 +2431,12 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 			// there are gaps on best path in alignment -> perform whole global alignment
 			if (k1_aligned == 0) {
-				mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
+				//mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _numEditOps);
+				mismatches = kbound_global_alignment(_read, hit, readpos, start, end, chromosome, orientation, _topAlignments.get_max_editops());
 				if (mismatches < 0) return 0;
 				if (perform_extra_checks)
 					assert(mismatches<=Config::MAX_EDIT_OPS) ;
-				update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
+				//update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 				return 1;
 			}
@@ -2436,7 +2450,7 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 	// gapless alignment was successful -> insert hit into HITS_BY_SCORE:
 	//insert_into_scorelist(hit, 1);
 
-	update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
+	//update_num_edit_ops(mismatches, ALL_HIT_STRATEGY, _numEditOps) ;
 
 	// successful alignment:
 	return 1;
@@ -2446,117 +2460,122 @@ int Hits::prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Ch
 
 // prints out all hits which have been inserted into HITS_BY_EDITOPS
 // called once for each read (?)
-int Hits::analyze_hits(QPalma const * qpalma)
-{
-	int i, printed = 0, nr;
-	HIT *hit;
+// int Hits::analyze_hits(QPalma const * qpalma)
+// {
+// 	int i, printed = 0, nr;
+// 	HIT *hit;
 	
-	for (i = 0; i != (int)NUM_SCORE_INTERVALS; ++i) {
+// 	for (i = 0; i != (int)NUM_SCORE_INTERVALS; ++i) {
 
-		if (printed && _config.BEST_HIT_STRATEGY) //!(_config.OUTPUT_FILTER==OUTPUT_FILTER_ALL) && !(_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP))
-		{
-			//fprintf(stdout, "stopping analysis %i %i %i %i\n", printed, _config.OUTPUT_FILTER, OUTPUT_FILTER_ALL, OUTPUT_FILTER_TOP) ;
-			break; // best hit strategy
-		}
+// 		if (printed && _config.BEST_HIT_STRATEGY) //!(_config.OUTPUT_FILTER==OUTPUT_FILTER_ALL) && !(_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP))
+// 		{
+// 			//fprintf(stdout, "stopping analysis %i %i %i %i\n", printed, _config.OUTPUT_FILTER, OUTPUT_FILTER_ALL, OUTPUT_FILTER_TOP) ;
+// 			break; // best hit strategy
+// 		}
 
-		if (_topAlignments.stop_aligning())
-		  break ;
+// 		if (_topAlignments.stop_aligning())
+// 		  break ;
 			
 
-		if (HITS_BY_SCORE[i].hitpointer != NULL)
-		{
-			// only _config.OUTPUT_FILTER_NUM_LIMIT numbers of alignment will be chosen randomly:
-			//if ((_config.OUTPUT_FILTER==OUTPUT_FILTER_RANDOM) && (_config.OUTPUT_FILTER_NUM_LIMIT < 0) && (HITS_BY_SCORE[i].num > -_config.OUTPUT_FILTER_NUM_LIMIT))
-			if (_config.OUTPUT_FILTER == OUTPUT_FILTER_LIMIT && HITS_BY_SCORE[i].num > _config.OUTPUT_FILTER_NUM_LIMIT)
-			{
-				srand((unsigned) time(NULL));
+// 		if (HITS_BY_SCORE[i].hitpointer != NULL)
+// 		{
+// 			// only _config.OUTPUT_FILTER_NUM_LIMIT numbers of alignment will be chosen randomly:
+// 			//if ((_config.OUTPUT_FILTER==OUTPUT_FILTER_RANDOM) && (_config.OUTPUT_FILTER_NUM_LIMIT < 0) && (HITS_BY_SCORE[i].num > -_config.OUTPUT_FILTER_NUM_LIMIT))
 
-				int j, k, n;
-				int lhits[_config.OUTPUT_FILTER_NUM_LIMIT];
-				for (j = 0; j != _config.OUTPUT_FILTER_NUM_LIMIT; ++j) {
-					n = 1;
-					while (n != 0) {
-						n = 0;
-						lhits[j] = rand() % HITS_BY_SCORE[i].num;
-						for (k = 0; k != j; ++k) {
-							if (lhits[j] == lhits[k])
-								++n;
-						}
-					}
-				}
+// 			if (_config.OUTPUT_FILTER == OUTPUT_FILTER_LIMIT && HITS_BY_SCORE[i].num > _config.OUTPUT_FILTER_NUM_LIMIT)
+// 			{
+// 				srand((unsigned) time(NULL));
 
-				qsort(lhits, _config.OUTPUT_FILTER_NUM_LIMIT, sizeof(int), compare_int);
+// 				int j, k, n;
+// 				int lhits[_config.OUTPUT_FILTER_NUM_LIMIT];
+// 				for (j = 0; j != _config.OUTPUT_FILTER_NUM_LIMIT; ++j) {
+// 					n = 1;
+// 					while (n != 0) {
+// 						n = 0;
+// 						lhits[j] = rand() % HITS_BY_SCORE[i].num;
+// 						for (k = 0; k != j; ++k) {
+// 							if (lhits[j] == lhits[k])
+// 								++n;
+// 						}
+// 					}
+// 				}
 
-				hit = HITS_BY_SCORE[i].hitpointer;
+// 				qsort(lhits, _config.OUTPUT_FILTER_NUM_LIMIT, sizeof(int), compare_int);
 
-				nr = 0;
-				for (j = 0; j != HITS_BY_SCORE[i].num; ++j) {
+// 				hit = HITS_BY_SCORE[i].hitpointer;
 
-					if (lhits[nr] == j) {
-						printed += _topAlignments.report_unspliced_hit(_read, hit, _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
-						nr++;
-					}
+// 				nr = 0;
+// 				for (j = 0; j != HITS_BY_SCORE[i].num; ++j) {
 
-					if (nr == _config.OUTPUT_FILTER_NUM_LIMIT || _topAlignments.stop_aligning())
-						break;
+// 					if (lhits[nr] == j) {
+// 						if (!_config.NO_GENOMEMAPPER)
+// 						{							
+// 							printed += _topAlignments.report_unspliced_hit(_read, hit, _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
+// 							nr++;
+// 							if (_topAlignments.stop_aligning())
+// 								break ;
+// 							analysed_hit_cnt++ ;									
+// 							if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+// 								break ;
 
-					hit = hit->same_eo_succ;
-				}
+// 						}
+// 					}
 
-			} else if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP) {
+// 					if (nr == _config.OUTPUT_FILTER_NUM_LIMIT || _topAlignments.stop_aligning())
+// 						break;
 
-				hit = HITS_BY_SCORE[i].hitpointer;
+// 					hit = hit->same_eo_succ;
+// 				}
 
-				// iterate over all hits for this score and collect data to generate a summary
-				// This somewhat counter-intuitive code works because of the way the pre-existing
-				// code was set up: we see the hits in the order of their score here - better hits first.
-				while (hit != NULL)
-				{
-					printed += _topAlignments.report_unspliced_hit(_read, hit, 0, qpalma) ;
-					hit = hit->same_eo_succ;
-					if (_topAlignments.stop_aligning())
-					  break ;
-				}
+// 			} else if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP) {
 
-			} else { // no random selection of output alignments:
+// 				hit = HITS_BY_SCORE[i].hitpointer;
 
-				hit = HITS_BY_SCORE[i].hitpointer;
+// 				// iterate over all hits for this score and collect data to generate a summary
+// 				// This somewhat counter-intuitive code works because of the way the pre-existing
+// 				// code was set up: we see the hits in the order of their score here - better hits first.
+// 				while (hit != NULL)
+// 				{
+// 					if (!_config.NO_GENOMEMAPPER)
+// 						printed += _topAlignments.report_unspliced_hit(_read, hit, 0, qpalma) ;
+// 					hit = hit->same_eo_succ;
+// 					if (_topAlignments.stop_aligning())
+// 					  break ;
+// 					analysed_hit_cnt++ ;									
+// 					if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+// 						break ;
 
-				while (hit != NULL) {
+// 				}
 
-/*					if (!(_config.OUTPUT_FILTER==OUTPUT_FILTER_ALL))
-						nr = HITS_BY_SCORE[i].num;
-					else
-						nr = HITS_IN_SCORE_LIST;
+// 			} else { // no random selection of output alignments:
 
-					if (_config.OUTPUT_FILTER_NUM_LIMIT == 0) { // no max nr of hits per read was specified, print all
-						printed += _topAlignments.report_unspliced_hit(_read, hit, nr, qpalma);
-					} else if (_config.OUTPUT_FILTER_NUM_LIMIT > 0 && printed < _config.OUTPUT_FILTER_NUM_LIMIT) {
-						printed += _topAlignments.report_unspliced_hit(_read, hit, (nr < _config.OUTPUT_FILTER_NUM_LIMIT) ? nr : _config.OUTPUT_FILTER_NUM_LIMIT, qpalma);
-					} else if (_config.OUTPUT_FILTER_NUM_LIMIT == printed) { // repeatmap many alignments already printed out -> stop printing -> next read
-						return 1;
-					}
-*/
+// 				hit = HITS_BY_SCORE[i].hitpointer;
 
-					printed += _topAlignments.report_unspliced_hit(_read, hit, HITS_BY_SCORE[i].num, qpalma);
-					hit = hit->same_eo_succ;
+// 				while (hit != NULL) {
 
-					if (_topAlignments.stop_aligning())
-					  break ;
-				}
-			}
+// 					if (!_config.NO_GENOMEMAPPER)
+// 						printed += _topAlignments.report_unspliced_hit(_read, hit, HITS_BY_SCORE[i].num, qpalma);
+// 					hit = hit->same_eo_succ;
 
-		}
-	}
+// 					if (_topAlignments.stop_aligning())
+// 					  break ;
+// 					analysed_hit_cnt++ ;									
+// 					if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+// 						break ;
+// 				}
+// 			}
 
-	if (printed != 0)
-		return 1; // read could have been mapped
-	else
-		return 0; // read couldn't be mapped
-}
+// 		}
+// 	}
+
+// 	if (printed != 0)
+// 		return 1; // read could have been mapped
+// 	else
+// 		return 0; // read couldn't be mapped
+// }
 
 
-int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
+int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion, QPalma const * qpalma)
 {
 	STORAGE_ENTRY *index_mmap ;
 	INDEX_ENTRY index_entry;
@@ -2769,16 +2788,23 @@ int Hits::map_fast_bsseq(Read& read, int run, int nr_runs, char conversion)
 							//if (!_config.ALL_HIT_STRATEGY && nr_mms < max_mms)
 							//	max_mms = nr_mms;
 
-							update_num_edit_ops(nr_mms, ALL_HIT_STRATEGY, max_mms) ;
+							// update_num_edit_ops(nr_mms, ALL_HIT_STRATEGY, max_mms) ;
 
 							// perfect matching read
-//printf("\nINS %c  - %c\n",(*hit->chromosome)[8], chr[8]);
-//printhit(read,hit);
-//printf("run %d\n",run);
-							int ret = insert_into_scorelist(hit, 1);
-							assert(ret>=0) ;
+							// int ret = insert_into_scorelist(hit, 1);
+							// assert(ret>=0) ;
 
-							hits_reported += ret;
+							if (!_config.NO_GENOMEMAPPER)
+								_topAlignments.report_unspliced_hit(read, hit, 0, qpalma) ;
+
+							hits_reported += 1;
+
+							if (_topAlignments.stop_aligning())
+								break ;
+							analysed_hit_cnt++ ;									
+							if (analysed_hit_cnt >= _config.UNSPLICED_MAX_NUM_ALIGNMENTS)
+								break ;
+
 
 						} // end of create hit
 
@@ -2941,14 +2967,8 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 	space[0] = '\0';
 	for (unsigned int k=0; k!=iter; ++k) space[k]=' ';*/
 
-	if (iter == _config.INDEX_DEPTH) {
-//printf("fwd_slot %d seed %s conv %d pe %d\n",fwd_slot,get_seq(read,fwd_slot),conversion,read.pe_type());
-//printf("rev_slot %d seed %s conv %d pe %d\n\n",rev_slot,get_seq(read,rev_slot),conversion,read.pe_type());
-
-//get_slots(read,seedpos);
-//printf("SLOT 0: %s\n",get_seq(read,SLOTS[0]));
-//printf("SLOT 1: %s\n",get_seq(read,SLOTS[1]));
-
+	if (iter == _config.INDEX_DEPTH) 
+	{
 		if (read.pe_type() != 2 && conversion != 2) {// || conversion == 0) {
 			SLOTS_CV1_FWD.push_back(fwd_slot);
 			if (_config.MAP_REVERSE) SLOTS_CV2_REV.push_back(rev_slot);
@@ -2968,25 +2988,20 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 		{
 			case 'C':
 			{
-//printf("A - %u pe %d\n",iter,read.pe_type());
 				fwd_slot += Util::POWER[iter];
 				rev_slot += Util::POWER[_config.INDEX_DEPTH - iter - 1] * 2;
-//printf("%s fwd %u - %s\n",space,fwd_slot,get_seq(read,fwd_slot));
 				generate_all_possible_seeds(read, num, seedpos, iter+1, fwd_slot, rev_slot, conversion);
 				break;
 			}
 			case 'G':
 			{
-//printf("T - %u pe %d\n",iter,read.pe_type());
 				fwd_slot += Util::POWER[iter] * 2;
 				rev_slot += Util::POWER[_config.INDEX_DEPTH - iter - 1];
-//printf("%s fwd %u - %s\n",space,fwd_slot,get_seq(read,fwd_slot));
 				generate_all_possible_seeds(read, num, seedpos, iter+1, fwd_slot, rev_slot, conversion);
 				break;
 			}
 			case 'T':
 			{
-//printf("C - %d pe %d\n",iter, read.pe_type());
 				unsigned int new_fwd_slot = fwd_slot;
 				unsigned int new_rev_slot = rev_slot;
 
@@ -2994,7 +3009,6 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 				fwd_slot += Util::POWER[iter] * 3;
 				// rev_slot remains the same
 
-//printf("%s fwd %u - %s\n",space,fwd_slot,get_seq(read,fwd_slot));
 				generate_all_possible_seeds(read, num, seedpos, iter+1, fwd_slot, rev_slot, conversion);
 
 				if (read.pe_type() < 2) {
@@ -3010,7 +3024,6 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 			}
 			case 'A':
 			{
-//printf("G - %u pe %d\n",iter,read.pe_type());
 				unsigned int new_fwd_slot = fwd_slot;
 				unsigned int new_rev_slot = rev_slot;
 
@@ -3018,7 +3031,6 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 				// fwd_slot remains the same
 				rev_slot += Util::POWER[_config.INDEX_DEPTH - iter - 1] * 3;
 
-//printf("%s fwd %u - %s\n",space,fwd_slot,get_seq(read,fwd_slot));
 				generate_all_possible_seeds(read, num, seedpos, iter+1, fwd_slot, rev_slot, conversion);
 
 				if (read.pe_type() != 1) {
@@ -3036,66 +3048,3 @@ void Hits::generate_all_possible_seeds(Read & read, int num, int seedpos, unsign
 	}
 }
 
-
-/*
-void ReadMappings::make_slots(Read read, std::string slotseq, int conversion)
-{
-	unsigned int pos = slotseq.length();
-	char* readseq = read.data();
-
-	if (pos == _config.INDEX_DEPTH) {
-		if (conversion == 0 && SLOTS[0] == -1) {// to prevent double calculation of unconverted seed
-			SLOTS[0] = get_slots(slotseq);
-		}
-		else {
-			SLOTS.push_back(get_slots(slotseq));
-		}
-	}
-	else {
-		if (read.pe_type() < 2) {
-
-			// Read 1 or Single Read pass this if-clause:
-
-			if (readseq[pos] == 'C') {
-
-				// execute make_slots without conversion:
-				slotseq.append("C");
-				make_slots(read, slotseq, conversion);
-
-				// execute make_slots with conversion - if not conversion == 2:
-				if (conversion < 2) {
-					slotseq[pos] = 'T';
-					make_slots(read, slotseq, 1);
-				}
-			}
-			else {
-				// just elongate without conversion:
-				slotseq.append(readseq[pos]);
-				make_slots(read, slotseq, conversion);
-
-				// Single Read has to additionally allow for G->A conversions:
-				if (read.pe_type() == 0 && readseq[pos] == 'G' && conversion != 1) {
-					slotseq[pos] = 'G';
-					make_slots(read, slotseq, 2);
-				}
-			}
-		}
-		else {
-
-			// Read 2 (only G->A conversions allowed)
-
-			if (readseq[pos] == 'G') {
-
-				// execute make_slots without conversion:
-				slotseq.append("G");
-				make_slots(read, slotseq, conversion);
-
-				// execute make_slots with conversion
-				slotseq[pos] = 'A';
-				make_slots(read, slotseq, 2);
-			}
-		}
-	}
-
-}
-*/
