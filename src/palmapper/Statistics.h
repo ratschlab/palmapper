@@ -98,7 +98,7 @@ public:
 				if (reads_processed<10)
 				{
 					fprintf(stdout, "\nDate & time\t\t\tReads\t\t\tAligned Reads\t\t\tUnaligned Reads") ;
-					fprintf(stdout, "\n\t\t\t\tM/h\t\t#\t%%\tunique\tspliced\t\teditop\tMM\tother") ;
+					fprintf(stdout, "\n\t\t\t\tM/h\t\t#\ttotal\tunique\tspliced\t\teditop\tMM\tother") ;
 					read_stats_start=time(NULL)  ;
 					reads_time_step_size=5 ;
 					return ;
@@ -112,8 +112,8 @@ public:
 				
 				fprintf(stdout, "\n%s\t%1.3f\t%8i\t%2.2f%%\t%2.2f%%\t%2.2f%%\t\t%2.2f%%\t%2.2f%%\t%2.2f%%", s, 
 						reads_processed*3600.0/difftime(time(NULL),read_stats_start)/1000000, reads_processed, 
-						100.0*reads_with_aligment/reads_processed, 100.0*reads_with_unique_alignment/reads_processed,
-						100.0*reads_with_best_spliced_alignment/reads_processed,
+						100.0*reads_with_aligment/reads_processed, 100.0*reads_with_unique_alignment/reads_with_aligment,
+						100.0*reads_with_best_spliced_alignment/reads_with_aligment,
 						100.0*reads_unmapped_editops/reads_processed,
 						100.0*reads_unmapped_dropped/reads_processed,
 						100.0*reads_unmapped_other/reads_processed) ;
