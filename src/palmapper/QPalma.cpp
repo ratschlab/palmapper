@@ -1541,11 +1541,11 @@ void QPalma::reverse_variants(std::vector<Variant> &variants, int dna_len) const
 
 int QPalma::get_first_read_map(Read const &read, bool* read_map) const
 {
-
-	for(unsigned int i=0; i < read.length(); i++)
-		if (read_map[i])
-			return i;
-  
+	if (read_map)
+		for(unsigned int i=0; i < read.length(); i++)
+			if (read_map[i])
+				return i;
+	
 	return -1;
 }
 
@@ -1574,9 +1574,12 @@ void QPalma::Result::delete_regions()
 		for (int32_t chrN = 0; chrN < (int)regions[ori].size(); chrN++)
 			for (int32_t nregion = 0; nregion < (int)regions[ori][chrN].size(); nregion++) 
 			{
+				if (regions[ori][chrN][nregion]==NULL)
+					continue ;
 				delete[] regions[ori][chrN][nregion]->read_map;
 				regions[ori][chrN][nregion]->read_map = NULL;
 				delete regions[ori][chrN][nregion];
+				regions[ori][chrN][nregion]=NULL ;
 			}
 }
 
@@ -1587,9 +1590,12 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 		for (int32_t chrN = 0; chrN < (int)long_regions[ori].size(); chrN++)
 			for (int32_t nregion = 0; nregion < (int)long_regions[ori][chrN].size(); nregion++) 
 			{
+				if (long_regions[ori][chrN][nregion]==NULL)
+					continue ;
 				delete[] long_regions[ori][chrN][nregion]->read_map;
 				long_regions[ori][chrN][nregion]->read_map = NULL;
 				delete long_regions[ori][chrN][nregion];
+				long_regions[ori][chrN][nregion]=NULL ;
 			}
 }
 
@@ -2739,6 +2745,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 			
 			for (size_t nregion = 0; nregion < this_long_regions.size(); nregion++)
 			{
+				if (this_long_regions[nregion]==NULL)
+					continue ;
 				int rstart_=this_long_regions[nregion]->start;
 				int rend_=this_long_regions[nregion]->end;
 				
@@ -5601,7 +5609,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	if (hit_read<0)
 	{
 		fprintf(stderr, "ERROR: hit_read=%i setting to 0 to recover\n", hit_read) ;
-		assert(0) ;
+		//assert(0) ; BUG-TODO
 		hit_read = 0 ;
 	}
 

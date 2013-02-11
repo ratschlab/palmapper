@@ -14,7 +14,7 @@
 
 #include <iostream>
 
-static const bool perform_extra_checks = true ;
+static const bool perform_extra_checks = false ;
 static const bool seed_iterate_reverse = true ;
 
 template int Hits::map_short_read<index_bwt>(Read& read, unsigned int num) ;
