@@ -3,6 +3,7 @@
 
 #include <palmapper/FileReporter.h>
 #include <palmapper/print.h>
+#include <palmapper/palmapper.h>
 
 static clock_t last_warning_time = clock();
 
@@ -27,9 +28,19 @@ void FileReporter::report(Mapper::Result &result, JunctionMap &junctionmap, Vari
 	std::stringstream leftOvers;
 
 	if (result._state == Mapper::ReadMapped || (result._state < Mapper::IgnoreResultBound && _config.INCLUDE_UNMAPPED_READS_SAM)){
-		result._readMappings.topAlignments().end_top_alignment_record(result._work, &out, &sp_out, &variants_out, result._rtrim_cut, result._polytrim_cut_start, result._polytrim_cut_end,
-																	  junctionmap, variants);
+		result._readMappings.topAlignments().end_top_alignment_record(result._work, &out, &sp_out, &variants_out, result._rtrim_cut, result._polytrim_cut_start, 
+																	  result._polytrim_cut_end, junctionmap, variants);
 	} else {
+
+		pthread_mutex_lock( &_stats.read_stats_mutex ) ;
+		
+		_stats.reads_processed++ ;
+		_stats.reads_unmapped_editops += (result._state == Mapper::NothingFound) ? 1 : 0;
+		_stats.reads_unmapped_other += (result._state != Mapper::NothingFound) ? 1 : 0 ;
+		
+		pthread_mutex_unlock( &_stats.read_stats_mutex ) ;
+
+
 		if (result._state < Mapper::IgnoreResultBound && _config.LEFTOVER_FILE_NAME.length() > 0) {
 			char const *text = "";
 			switch (result._state) {

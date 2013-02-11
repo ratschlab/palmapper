@@ -87,4 +87,16 @@ Statistics::Statistics()
 	ret = pthread_mutex_init(&hit_seed_mutex, NULL) ;
 	assert(ret==0) ;
 
+
+	ret=pthread_mutex_init(&read_stats_mutex, NULL) ;
+	assert(ret==0) ;
+	reads_processed=0 ;
+	reads_with_aligment=0 ;
+	reads_with_unique_alignment=0 ;
+	reads_with_best_spliced_alignment=0 ;
+	reads_unmapped_editops=0 ;
+	reads_unmapped_dropped=0 ;
+	reads_unmapped_other=0 ;	
+	read_stats_last_report=clock() ;
+
 }

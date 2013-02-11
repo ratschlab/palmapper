@@ -45,7 +45,7 @@ public:
 #ifdef CHR_MAP_DNAARRAY
 		return CHR_MAP_a[chr.nr()]->get_elem(index) ;
 #else
-		assert(CHR_MAP_c!=NULL) ;
+		//assert(CHR_MAP_c!=NULL) ;
 		return CHR_MAP_c[chr.nr()][index] ;
 #endif
 	}
@@ -58,7 +58,7 @@ public:
 		// not implemented
 		return CHR_MAP_a[chr.nr()]->get_elem(index) ;
 #else
-		assert(CHR_MAP_i!=NULL) ;
+		//assert(CHR_MAP_i!=NULL) ;
 		return CHR_MAP_i[chr.nr()][index] ;
 #endif
 	}
@@ -68,9 +68,9 @@ public:
 	{
 #ifdef CHR_MAP_DNAARRAY
 #ifdef CHR_MAP_DNAARRAY_2BIT
-		assert(c<4) ;
+		//assert(c<4) ;
 #else // CHR_MAP_DNAARRAY_2BIT
-		assert(c<16) ;
+		//assert(c<16) ;
 #endif // CHR_MAP_DNAARRAY_2BIT
 		CHR_MAP_a[chr.nr()]->set_elem(index, c) ;
 #else // CHR_MAP_DNAARRAY

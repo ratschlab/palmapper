@@ -20,6 +20,8 @@ static const bool perform_extra_checks = false ;
 static const std::string verbose_read_id = "WTCHG_37846_104:4:1101:10807:2269#TGCCGGCT/1-"  ;
 static const int verbose_read_level = 2 ;
 
+#define TIME_CODE(x)
+
 inline void get_vector_IUPAC(char c, std::vector<int> &l)
 {
 	c=toupper(c);
@@ -1594,8 +1596,7 @@ void QPalma::delete_long_regions(std::vector<std::vector<region_t *> > *long_reg
 
 int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_search,JunctionMap &annotatedjunctions, VariantMap & variants) const
 {
-		
-	clock_t start_time = clock();
+	TIME_CODE(clock_t start_time = clock();)
 	
 	int myverbosity=verbosity ;
 	
@@ -1807,7 +1808,7 @@ int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_
 		}
 	}
 
-	_stats.qpalma_region_align_time += clock() - start_time;
+	TIME_CODE(_stats.qpalma_region_align_time += clock() - start_time;)
 	return 0;
 }
 
@@ -1815,7 +1816,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 {
 	Read const &read(hits.getRead());
 
-	clock_t start_time = clock();
+	TIME_CODE(clock_t start_time = clock();)
 
 	int myverbosity=verbosity ;
 	
@@ -2249,7 +2250,7 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 			}
 	if (myverbosity >= 2)
 		fprintf(stdout, "# Merged hit list has %i items\n", num_merged);
-	_stats.qpalma_region_align_time += clock() - start_time;
+	TIME_CODE(_stats.qpalma_region_align_time += clock() - start_time;)
 	return 0;
 }
 
@@ -2412,7 +2413,7 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 		myverbosity=verbose_read_level ;
 
 	Read const &read(hits.getRead());
-	clock_t start_time = clock();
+	TIME_CODE(clock_t start_time = clock();)
 
 	std::vector<std::vector<region_t *> > *regions = result.regions;
 	std::vector<std::vector<region_t *> > *long_regions = result.long_regions;
@@ -2502,11 +2503,11 @@ int QPalma::capture_hits_2(Hits &hits, Result &result, bool non_consensus_search
 		delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 	}
 
-	if (myverbosity >= 1 || ((clock()-_stats.qpalma_last_timing_report)/CLOCKS_PER_SEC>=10))
+	TIME_CODE(if (myverbosity >= 1 || ((clock()-_stats.qpalma_last_timing_report)/CLOCKS_PER_SEC>=10))
     {
 		_stats.qpalma_last_timing_report = clock() ;
 		_stats.qpalma_timing(((float) clock() - start_time) / CLOCKS_PER_SEC);
-    }
+    })
 
 	return num_alignments_reported ;
 
@@ -2998,15 +2999,15 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	variants.lock() ;
 
 	
-	clock_t start_time ;
+	TIME_CODE(clock_t start_time ;
 	if (do_timing)
-		start_time = clock();
+		start_time = clock();)
 
 	std::vector<Variant>::iterator it = my_lower_bound(variants.variantlist[chr].begin(), variants.variantlist[chr].end(), start_pos-100) ;
-	if (do_timing)
+	TIME_CODE(if (do_timing)
 		_stats.variant_lower_bound_time += clock() - start_time;
 	if (do_timing)
-		start_time = clock();
+		start_time = clock();)
 
 	int num_found_variants = 0 ;
 	int num_found_SNP_variants = 0 ;
@@ -3205,8 +3206,8 @@ std::vector<Variant> QPalma::identify_variants(std::string dna, std::vector<int>
 	//fprintf(stdout, "%i\t%i\t%i found\n", num_found_SNP_variants, num_found_variants, num_checked_variants) ;
 	variants.unlock() ;
 
-	if (do_timing)
-		_stats.variant_identification_time += clock() - start_time;
+	TIME_CODE(if (do_timing)
+				  _stats.variant_identification_time += clock() - start_time;)
 	
 	return variant_list ;
 }
@@ -3508,9 +3509,9 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 {
 	int seed_ref=hit_dna_pos;
 
-	clock_t my_start_time ;
+	TIME_CODE(clock_t my_start_time ;
 	if (do_timing)
-		my_start_time=clock() ;
+		my_start_time=clock() ;)
 	
 	struct pos_table_str * pos_table_= new struct pos_table_str[dna.size()] ;
 	
@@ -3550,11 +3551,10 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			nbv_snp++ ;
 		}
 	}	
+	TIME_CODE(if (do_timing)
+				  _stats.variant_create_super_sequence_from_variants_init_time += clock() - my_start_time;
 	if (do_timing)
-		_stats.variant_create_super_sequence_from_variants_init_time += clock() - my_start_time;
-
-	if (do_timing)
-		my_start_time=clock() ;
+		my_start_time=clock()) ;
 
 	for (unsigned int i=0; i<variants.size(); i++)
 	{
@@ -3637,14 +3637,14 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 		}
 	}
-	if (do_timing)
-		_stats.variant_create_super_sequence_from_variants_insertion_init_time += clock() - my_start_time;
+	TIME_CODE(if (do_timing)
+				  _stats.variant_create_super_sequence_from_variants_insertion_init_time += clock() - my_start_time;)
 
 	if (myverbosity>=1)
 		fprintf(stdout, "Created supersequence of length %ld from reference sequence of length %ld using %ld variants\n", dna.length(), pos_table.size(), variants.size()) ;
 	
-	if (do_timing)
-		my_start_time=clock() ;
+	TIME_CODE(if (do_timing)
+				  my_start_time=clock() ;)
 	
 	dna = std::string(pos_table.size(), ' ') ;
 	delete[] acceptor ;
@@ -3668,8 +3668,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 		donor[i] = pos_table[i]->don ;
 		dna[i] = pos_table[i]->nuc ;
 	}
-	if (do_timing)
-		_stats.variant_create_super_sequence_from_variants_table_init_time += clock() - my_start_time;
+	TIME_CODE(if (do_timing)
+				  _stats.variant_create_super_sequence_from_variants_table_init_time += clock() - my_start_time;)
 
 	
 	std::vector<variant_cache_t *> variant_cache(d_len,NULL);
@@ -3677,8 +3677,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 	int nb_snps = 0 ;
 	int nb_dels = 0 ;
 	
-	if (do_timing)
-		my_start_time=clock() ;
+	TIME_CODE(if (do_timing)
+				  my_start_time=clock() ;)
 	for (unsigned int i=0; i<pos_table.size(); i++)
 	{
 		for (unsigned j = 0; j<pos_table[i]->del_refs.size(); j++)
@@ -3738,11 +3738,11 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 		}
 	}
+	TIME_CODE(if (do_timing)
+				  _stats.variant_create_super_sequence_from_variants_table_fill1_time += clock() - my_start_time;
 	if (do_timing)
-		_stats.variant_create_super_sequence_from_variants_table_fill1_time += clock() - my_start_time;
+		my_start_time=clock() ;)
 
-	if (do_timing)
-		my_start_time=clock() ;
 	if (!_config.IUPAC_SNPS)
 	{
 		for (unsigned int i=0; i<pos_table.size(); i++)
@@ -3800,8 +3800,8 @@ std::vector<variant_cache_t *> QPalma::create_super_sequence_from_variants(std::
 			}
 		}
 	}
-	if (do_timing)
-		_stats.variant_create_super_sequence_from_variants_table_fill2_time += clock() - my_start_time;
+	TIME_CODE(if (do_timing)
+				  _stats.variant_create_super_sequence_from_variants_table_fill2_time += clock() - my_start_time;)
 
 	for (unsigned int i=0; i<pos_table.size(); i++)
 	{
@@ -5525,9 +5525,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			fprintf(stdout, "hit_dna_converted=%i (dna.length()=%ld, positions.size()=%ld)\n", hit_dna_converted, dna.length(), positions.size()) ;
 	}
     
-	clock_t start_time ;
+	TIME_CODE(clock_t start_time ;
 	if (do_timing)
-		start_time = clock();
+		start_time = clock();)
 
 	bool remove_duplicate_scores = false;
 
@@ -5548,7 +5548,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 	int pre_dna_size=dna.size() ;
 	if (_config.USE_VARIANTS) // && variant_list.size()>0)
 	{
-		clock_t my_start_time ; 
+		TIME_CODE(clock_t my_start_time ; )
 
 		if (strand == '-')
 		{
@@ -5557,8 +5557,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		}
 		try 
 		{
-			if (do_timing)
-				my_start_time = clock() ;
+			TIME_CODE(if (do_timing)
+						  my_start_time = clock() ;)
 			variant_cache = create_super_sequence_from_variants<myverbosity,false>(variant_list, dna, acceptor, a_len, donor, d_len, seed_j, ref_map) ;
 		}
 		catch (std::bad_alloc)
@@ -5571,8 +5571,8 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			return -1;
 		}
 		
-		if (do_timing)
-			_stats.variant_create_super_sequence_from_variants_time += clock() - my_start_time;
+		TIME_CODE(if (do_timing)
+					  _stats.variant_create_super_sequence_from_variants_time += clock() - my_start_time;)
 	}
 	if (myverbosity >= 3)
 		fprintf(stdout, "after supersequence seed_j=%i\n", seed_j) ;
@@ -5646,9 +5646,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		qmm_value+= _config.MIN_NUM_MATCHES_PEN;
 
 	{
-		clock_t my_start_time ;
+		TIME_CODE(clock_t my_start_time ;
 		if (do_timing)
-			my_start_time = clock() ;
+			my_start_time = clock() ;)
 
 		if (_config.USE_VARIANTS) // && (int)variant_list.size()>0)
 		{
@@ -5691,15 +5691,15 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 												qmm_value, remapping,
 												_config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
 		
-		if (do_timing)
-			_stats.variant_myalign_fast_time += clock() - my_start_time;
+		TIME_CODE(if (do_timing)
+					  _stats.variant_myalign_fast_time += clock() - my_start_time;)
 	}
 
-	static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
+	TIME_CODE(static pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_lock( &clock_mutex) ;
 	if (do_timing)
 		_stats.qpalma_align_time += clock() - start_time;
-	pthread_mutex_unlock( &clock_mutex) ;
+			  pthread_mutex_unlock( &clock_mutex) ;)
 
 	int s_len = dna.length() ;
 	int *s_align=NULL;
@@ -5769,17 +5769,17 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		{
 			considered_variants=true ;
 
-			clock_t my_start_time ;
+			TIME_CODE(clock_t my_start_time ;
 			if (do_timing)
-				my_start_time = clock() ;
+				my_start_time = clock() ;)
 			
 			used_variants = reconstruct_reference_alignment<myverbosity>(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
 																		 dna_align, est_align, result_length, remapping, 
 																		 alignment_passed_filters_var, alignment_gaps_var, alignment_mismatches_var,
 																		 variant_cache, _config.REPORT_USED_VARIANTS) ;
 
-			if (do_timing)
-				_stats.variant_reconstruct_reference_alignment_time += clock() - my_start_time;
+			TIME_CODE(if (do_timing)
+						  _stats.variant_reconstruct_reference_alignment_time += clock() - my_start_time;) 
 			
 			for (unsigned int i=0; i< variant_list.size();i++)
 			{

@@ -894,6 +894,18 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 			check_alignment(top_alignments[i]) ;
 	}
 
+	pthread_mutex_lock( &_stats.read_stats_mutex ) ;
+
+	_stats.reads_processed++ ;
+	_stats.reads_with_aligment+= (top_alignments.size()>0) ? 1 : 0 ;
+	_stats.reads_with_unique_alignment += (top_alignments.size()==1) ? 1 : 0 ;
+	_stats.reads_with_best_spliced_alignment += (top_alignments.size()>0 && top_alignments[0]->spliced) ? 1 : 0 ;
+	_stats.reads_unmapped_editops += (top_alignments.size()==0 && !_drop_alignments) ? 1 : 0  ;
+	_stats.reads_unmapped_dropped += (_drop_alignments) ? 1 : 0  ;
+
+	pthread_mutex_unlock( &_stats.read_stats_mutex ) ;
+
+
 	if (_config._personality == Palmapper)
 	{
 		if (_config.REPORT_SPLICED_READS)

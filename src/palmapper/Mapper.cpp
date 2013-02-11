@@ -157,18 +157,18 @@ int Mapper::map_reads()
 			break ;
 		
 		// progress output, just for user convenience
-		if ((count_reads % 1000 == 0)) {
+		/*if ((count_reads % 1000 == 0)) {
 			printf("%c", _progressChar);
 			fflush(stdout);
 		}
 		if ((count_reads % 10000 == 0)) {
 			printf("%i", count_reads); // (%i,%i)", count_reads, GENOME.accesssCount(), GENOME.accesssCountConst());
 			fflush(stdout);
-		}
+			}*/
 	}
 
-	map_reads_timing(count_reads) ;
-	_stats.qpalma_timing();
+	//map_reads_timing(count_reads) ;
+	//_stats.qpalma_timing();
 
 	CSignal::report_current_read_id("") ;
 

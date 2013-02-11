@@ -410,6 +410,8 @@ int main(int argc, char *argv[])
 	if (genomemaps != NULL)
 		delete genomemaps;
 
+	fprintf(stdout, "\n") ;
+	
 	if (_config.VERBOSE) { printf("Mapping finished\n"); }
 	
 	CSignal::unset_handler() ;

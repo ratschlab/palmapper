@@ -280,9 +280,9 @@ void Hits::printhits()
 
 #define TIME_CODE(x) 
 //#define TIME_CODE(x) if (_conpthread_mutex_lock( &seed_mutex) ; x ; pthread_mutex_unlock( &seed_mutex) ;
-inline void time_code(int x) {
-	if (_config._personality == Palmapper) {}
-}
+//inline void time_code(int x) {
+//	if (_config._personality == Palmapper) {}
+//}
 
 #define TIME_CODE_TOTAL(x) 
 /*
