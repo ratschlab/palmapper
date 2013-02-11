@@ -51,8 +51,9 @@ public:
 	int reads_unmapped_editops ;
 	int reads_unmapped_dropped ;
 	int reads_unmapped_other ;	
-	clock_t read_stats_last_report ;
+	time_t read_stats_last_report ;
     time_t read_stats_start ;	
+	int reads_time_step_size ;
 
 	void print_alignment_stats(bool force=false)
 		{
@@ -87,21 +88,28 @@ public:
 
 	void print_read_stats(bool force=false)
 		{
-			if (force || (clock()-read_stats_last_report)/CLOCKS_PER_SEC>=10)
+			if (force || difftime(time(NULL),read_stats_last_report)>=reads_time_step_size)
 			{
 				time_t tim=time(NULL);
 				char *s=ctime(&tim);
 				s[strlen(s)-1]=0;
 				
-				read_stats_last_report = clock() ;
+				read_stats_last_report = time(NULL) ;
 				if (reads_processed<10)
 				{
-					fprintf(stdout, "\nDate & time\t\t\tReads\t\tAligned Reads\t\t\tUnaligned Reads") ;
-					fprintf(stdout, "\n\t\t\t\tM/h\t#\t%\tunique\tspliced\t\teditop\tMM\tother") ;
+					fprintf(stdout, "\nDate & time\t\t\tReads\t\t\tAligned Reads\t\t\tUnaligned Reads") ;
+					fprintf(stdout, "\n\t\t\t\tM/h\t\t#\t%%\tunique\tspliced\t\teditop\tMM\tother") ;
 					read_stats_start=time(NULL)  ;
+					reads_time_step_size=5 ;
 					return ;
 				}
-
+				if (difftime(time(NULL),read_stats_start)>10)
+					reads_time_step_size=10 ;
+				if (difftime(time(NULL),read_stats_start)>100)
+					reads_time_step_size=30 ;
+				if (difftime(time(NULL),read_stats_start)>1000)
+					reads_time_step_size=120 ;
+				
 				fprintf(stdout, "\n%s\t%1.3f\t%8i\t%2.2f%%\t%2.2f%%\t%2.2f%%\t\t%2.2f%%\t%2.2f%%\t%2.2f%%", s, 
 						reads_processed*3600.0/difftime(time(NULL),read_stats_start)/1000000, reads_processed, 
 						100.0*reads_with_aligment/reads_processed, 100.0*reads_with_unique_alignment/reads_processed,

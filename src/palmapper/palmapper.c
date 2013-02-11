@@ -278,11 +278,11 @@ int main(int argc, char *argv[])
 	    for (unsigned int i = 0; i < numThreads; ++i) {
 	      threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
 	      threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
-	      printf("Starting thread %d\n", i);
+	      //printf("Starting thread %d\n", i);
 	      if (numThreads>1)
-		threads[i]->launch();
+			  threads[i]->launch();
 	      else
-		threads[i]->run();
+			  threads[i]->run();
 	    }
 	    for (unsigned int i = 0; i < numThreads; ++i) {
 	      if (numThreads>1)

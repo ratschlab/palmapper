@@ -97,6 +97,7 @@ Statistics::Statistics()
 	reads_unmapped_editops=0 ;
 	reads_unmapped_dropped=0 ;
 	reads_unmapped_other=0 ;	
-	read_stats_last_report=clock() ;
+	read_stats_last_report=time(NULL) ;
+	reads_time_step_size=10 ;
 
 }
