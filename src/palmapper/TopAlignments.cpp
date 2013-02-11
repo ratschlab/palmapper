@@ -874,11 +874,12 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 	}
 	if (_drop_alignments)
 	{
-		for (size_t i=top_alignments.size()-1; i>=0;--i)
+		for (size_t i=0; i<top_alignments.size(); i++)
 		{
 			free_alignment_record(top_alignments[i]) ;
-			top_alignments.erase(top_alignments.begin()+i) ;
+			top_alignments[i]=NULL ;
 		}
+		top_alignments.clear() ;
 	}
 	
 	//pthread_mutex_lock( &top_mutex) ;
