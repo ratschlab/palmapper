@@ -867,10 +867,15 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		}
 	}
 	if (_drop_alignments)
-		return ;
+	{
+		for (size_t i=top_alignments.size()-1; i>=0;--i)
+		{
+			free_alignment_record(top_alignments[i]) ;
+			top_alignments.erase(top_alignments.begin()+i) ;
+		}
+	}
 	
 	//pthread_mutex_lock( &top_mutex) ;
-
 
 	sort_top_alignment_list();
 
