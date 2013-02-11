@@ -846,7 +846,13 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		int num_kept=0 ;
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
-			if (top_alignments[i]->passed_filters && (top_alignments[i]->num_gaps_ref+top_alignments[i]->num_mismatches_ref>(unsigned int)max_editops))
+			if (!_config.USE_VARIANTS_EDITOP_FILTER && 
+				top_alignments[i]->passed_filters && 
+				(top_alignments[i]->num_gaps_ref+top_alignments[i]->num_mismatches_ref>(unsigned int)max_editops))
+				top_alignments[i]->passed_filters=false ;
+			if (_config.USE_VARIANTS_EDITOP_FILTER && 
+				top_alignments[i]->passed_filters && 
+				(top_alignments[i]->num_gaps_var+top_alignments[i]->num_mismatches_var>(unsigned int)max_editops))
 				top_alignments[i]->passed_filters=false ;
 			if (top_alignments[i]->passed_filters)
 				num_kept++ ;
@@ -2490,34 +2496,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 bool TopAlignments::stop_aligning() 
 {
 	return _stop_aligning ;
-/*	
-  if (top_alignments.size()>=1)
-    return true ;
-  return false ;
-
-  unsigned int best_editop=10000 ;
-  unsigned int best_editop_i = -1 ;
-  const int delta=2 ;
-  for (unsigned int i=0; i<top_alignments.size(); i++)
-    {
-      if (best_editop>top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref)
-	{
-	  best_editop=top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref ;
-	  best_editop_i=i ;
-	} 
-    }
-  if (best_editop_i<0)
-    return false ;
-  int num_in_delta=0;
-  for (unsigned int i=0; i<top_alignments.size(); i++)
-    {
-      if (top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= best_editop + delta && !overlap(top_alignments[i], top_alignments[best_editop_i]))
-	num_in_delta++ ;
-    }
-  if (num_in_delta>0) 
-    return true ;
-	return false ; 
-*/
 }
 
 int TopAlignments::get_max_editops() 
@@ -2537,9 +2515,12 @@ void TopAlignments::update_max_editops()
 		std::vector<int> editops ;
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
-			if (top_alignments[i]->passed_filters) // && (best_editop > top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref))
+			if (top_alignments[i]->passed_filters) 
 			{
-				editops.push_back(top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref) ;
+				if (!_config.USE_VARIANTS_EDITOP_FILTER)
+					editops.push_back(top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref) ;
+				else
+					editops.push_back(top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var) ;
 			} 
 		}
 		if ((editops.size()<=_config.OUTPUT_FILTER_NUM_TOP && _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP))
@@ -2568,10 +2549,16 @@ void TopAlignments::update_max_editops()
 		
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
-			if (top_alignments[i]->passed_filters && 
+			if (!_config.USE_VARIANTS_EDITOP_FILTER && top_alignments[i]->passed_filters && 
 				best_editop > top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref)
 			{
 				best_editop = top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref ;
+				best_editop_i=i ;
+			} 
+			if (_config.USE_VARIANTS_EDITOP_FILTER && top_alignments[i]->passed_filters && 
+				best_editop > top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var)
+			{
+				best_editop = top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var ;
 				best_editop_i=i ;
 			} 
 		}
@@ -2589,15 +2576,30 @@ void TopAlignments::update_max_editops()
 		for (unsigned int i=0; i<top_alignments.size(); i++)
 		{
 			//fprintf(stdout, "i=%i, $1=%i, $2=%i [%i]\n",  i, top_alignments[i]->passed_filters, top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= best_editop + delta, top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref) ;
-			
-			if (i!=best_editop_i &&
-				top_alignments[i]->passed_filters && 
-				top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= best_editop + delta)
-				num_in_delta++ ;
-			if (best_editop!=0 && 
-				top_alignments[i]->passed_filters && 
-				top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= delta)
-				num_in_delta++ ;
+
+			if (!_config.USE_VARIANTS_EDITOP_FILTER)
+			{
+				if (i!=best_editop_i &&
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= best_editop + delta)
+					num_in_delta++ ;
+				if (best_editop!=0 && 
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= delta)
+					num_in_delta++ ;
+			}
+			else
+			{
+				if (i!=best_editop_i &&
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var <= best_editop + delta)
+					num_in_delta++ ;
+				if (best_editop!=0 && 
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var <= delta)
+					num_in_delta++ ;
+			}
+				
 		}
 		//fprintf(stdout, "best_editop=%i, num_in_delta=%i, _config.OUTPUT_FILTER_NUM_MMDROP=%i, _config.OUTPUT_FILTER_DELTA_MMDROP=%i\n", best_editop, num_in_delta, _config.OUTPUT_FILTER_NUM_MMDROP, _config.OUTPUT_FILTER_DELTA_MMDROP) ;
 		if ((best_editop==0 && num_in_delta > _config.OUTPUT_FILTER_NUM_MMDROP) || 
