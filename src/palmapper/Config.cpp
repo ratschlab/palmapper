@@ -2557,8 +2557,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 void Config::VersionHeader() {
 	if (getPersonality() == Palmapper) {
 		printf("\nPALMapper version %s   (PALMapper is a fusion of GenomeMapper & QPALMA)\n", VERSION);
-		printf("written by Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Fabio De Bona, Stephan Ossowski, and others\n");
-		printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
+		printf("written by Gunnar Raetsch, Geraldine Jean, Andre Kahles, Korbinian Schneeberger, Joerg Hagmann, Fabio De Bona, Stephan Ossowski, and others\n");
+		printf("Sloan-Kettering Institute, New York City, USA, 2012-2013\nMax Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
 	} else {
 		printf("\nGenomeMapper version %s\n", VERSION);
 		printf("written by Korbinian Schneeberger, Joerg Hagmann, Stephan Ossowski, Felix Ott, Gunnar Raetsch and others\n");

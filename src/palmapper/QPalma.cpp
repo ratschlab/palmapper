@@ -1016,7 +1016,7 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 			if (_config.GAP_SCORE<_config.MM_SCORE)
 				fprintf(stdout, "Warning: QPALMA parameters specify unfavourable combination of scores for mismatches and gaps\n") ;
 			
-			fprintf(stdout, "GAP=%f, M=%f, MM=%f\n", _config.GAP_SCORE, _config.M_SCORE, _config.MM_SCORE) ;
+			//fprintf(stdout, "GAP=%f, M=%f, MM=%f\n", _config.GAP_SCORE, _config.M_SCORE, _config.MM_SCORE) ;
 		}
 
 		double *quality_offset_matrix ;
