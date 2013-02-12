@@ -99,5 +99,10 @@ Statistics::Statistics()
 	reads_unmapped_other=0 ;	
 	read_stats_last_report=time(NULL) ;
 	reads_time_step_size=10 ;
-
+	
+	read_stats_seed_time=0;
+	read_stats_UA_time=0 ;
+	read_stats_SA_time=0 ;
+	read_stats_JA_time=0 ;
+	read_stats_other_time=0 ;
 }

@@ -410,7 +410,7 @@ int main(int argc, char *argv[])
 	if (genomemaps != NULL)
 		delete genomemaps;
 
-	fprintf(stdout, "\n") ;
+	fprintf(stdout, "\n\nPalmapper finished normally.\n") ;
 	
 	if (_config.VERBOSE) { printf("Mapping finished\n"); }
 	

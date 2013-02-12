@@ -88,7 +88,7 @@ public:
 
 	Personality _personality;
 	unsigned int BWA_INDEX;
-	unsigned int NUM_THREADS;
+	int NUM_THREADS;
 	OutputFilterEnum OUTPUT_FILTER ;
 	unsigned int OUTPUT_FILTER_NUM_TOP ;
 	int OUTPUT_FILTER_NUM_LIMIT ;

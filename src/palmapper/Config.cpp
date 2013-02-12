@@ -28,7 +28,8 @@ Config::Config() {
 	_personality = getPersonality();
 
 	BWA_INDEX=0; // Bwt	or genomemapper index
-	NUM_THREADS = 1;//::sysconf(_SC_NPROCESSORS_ONLN);
+	NUM_THREADS = DEFAULT_SETTING ; 
+	
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
@@ -228,6 +229,7 @@ Config::Config() {
 
 int Config::applyDefaults(Genome * genome)
 {
+
 	int any_default=false ;
 	
 	if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || 
@@ -237,11 +239,18 @@ int Config::applyDefaults(Genome * genome)
 						  SPLICED_MIN_SEGMENT_LENGTH==DEFAULT_SETTING)) || 
 		(OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) ||
 		((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING && POLYTRIM_STRATEGY) || 
-		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY))
+		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY) || (NUM_THREADS==DEFAULT_SETTING))
 	{
 		fprintf(stdout, "\nSetting default parameters:\n") ;
 		any_default=true ;
 	}
+
+ 	if (NUM_THREADS==DEFAULT_SETTING)
+	{
+		NUM_THREADS=(::sysconf(_SC_NPROCESSORS_ONLN)>16) ? 16 : ::sysconf(_SC_NPROCESSORS_ONLN) ;
+		fprintf(stdout, "* Number of threads : %i [%i max]\n", NUM_THREADS, (int)::sysconf(_SC_NPROCESSORS_ONLN)) ;
+	}
+	READ_COUNT_LIMIT = (READ_COUNT_LIMIT+NUM_THREADS-1)/NUM_THREADS ;
 
 	if (_personality == Palmapper)  {
 	  int read_length = READ_LENGTH_PARAM ;
@@ -283,17 +292,17 @@ int Config::applyDefaults(Genome * genome)
 			}
 			if (NUM_EDIT_OPS == DEFAULT_SETTING)
 			{
-				NUM_EDIT_OPS = read_length*0.08 ;
+				NUM_EDIT_OPS = read_length*0.03 ;
 				fprintf(stdout, " -E %i", NUM_EDIT_OPS) ;
 			}
 			if (NUM_MISMATCHES == DEFAULT_SETTING)
 			{
-				NUM_MISMATCHES = read_length*0.08 ;
+				NUM_MISMATCHES = read_length*0.03 ;
 				fprintf(stdout, " -M %i", NUM_MISMATCHES) ;
 			}
 			if (NUM_GAPS == DEFAULT_SETTING)
 			{
-				NUM_GAPS = read_length*0.03 ;
+				NUM_GAPS = read_length*0.013334 ;
 				fprintf(stdout, " -G %i", NUM_GAPS) ;
 			}
 			if (line_started)
@@ -1239,30 +1248,30 @@ int Config::parseCommandLine(int argc, char *argv[])
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 1 ;
 			}
-			/*if (strcmp(argv[i], "-no-report-map-region") == 0) {
+			if (strcmp(argv[i], "-no-report-map-region") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 0 ;
-				}*/
+				}
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 1 ;
 			}
-			/*if (strcmp(argv[i], "-no-report-map-read") == 0) {
+			if (strcmp(argv[i], "-no-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 0 ;
-				}*/
+				}
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 1 ;
 			}
-			/*if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
+			if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 0 ;
-				}*/
+				}
 
 			//report splice sites - confidence threshold
 			if (strcmp(argv[i], "-report-splice-sites") == 0) {

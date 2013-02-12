@@ -111,6 +111,9 @@ int Mapper::map_reads()
 		fprintf(stderr, "ERROR : Couldn't open log file %s\n", _config.TRIGGERED_LOG_FILE.c_str());     // #A#
 		exit(1);                                                                        // #A#
 	}                                                                                   // #A#
+
+	clock_t read_timing_other = clock() ;
+
 	for (;;) {
 
 		count_reads++;
@@ -132,6 +135,9 @@ int Mapper::map_reads()
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;
+
+		_stats.read_stats_other_time += (clock()-read_timing_other) ;
+		
 		try
 		{
 			if (_config.REALIGN_READS)
@@ -145,6 +151,8 @@ int Mapper::map_reads()
 			continue ;
 		}
 		time3 += clock()-start_time ;
+		read_timing_other=clock() ;
+
 		_reporter.report(result,_junctionmap,_variants);
 		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 		{
@@ -188,6 +196,9 @@ int Mapper::map_reads()
 
 
 void Mapper::map_read(Result &result, clock_t start_time) {
+
+	clock_t read_timing_other=clock() ;
+
 	QPalma const *qpalma = &result._qpalma._qpalma;
 	unsigned int rtrim_cut = 0 ;
 	unsigned int polytrim_cut_start = 0 ;
@@ -260,6 +271,9 @@ restart:
 	hits.HITS_IN_SCORE_LIST = 0;
 	hits._topAlignments.start_top_alignment_record();
 
+	clock_t read_timing_seed=clock() ;
+	_stats.read_stats_other_time += (read_timing_seed-read_timing_other) ;
+	
 	// map_fast IF 1) best hit strategy 2) only hits up to RL/ID mismatches without gaps should be found
 	// READ_LENGTH / _config.INDEX_DEPTH is the number of seeds fitting in the current read
 	int nr_seeds = (int) (read.length() / _config.INDEX_DEPTH);
@@ -289,7 +303,6 @@ restart:
 //			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0 && !_config.SPLICED_HITS) ) )
 		{
 			c_map_short_read++;
-			//fprintf(stdout, "performing hits.map_short_read\n") ;
 			
 			int ret;
 			if (_config.BWA_INDEX == 1)
@@ -299,6 +312,9 @@ restart:
 
 			if (ret<0)
 				cancel=2 ;
+
+			read_timing_other=clock() ;
+			_stats.read_stats_seed_time += (read_timing_other-read_timing_seed) ;
 
 			time2a+= clock()-start_time ;
 
@@ -310,7 +326,12 @@ restart:
 
 			time2b += clock()-start_time ;
 
+			clock_t read_timing_UA=clock() ;
+			_stats.read_stats_other_time += (read_timing_UA-read_timing_other) ;
+
 			ret = hits.browse_hits(qpalma);
+
+			_stats.read_stats_UA_time += (clock()-read_timing_UA) ;
 			
 			if (ret<0)
 				cancel = 3 ;
@@ -327,6 +348,7 @@ restart:
 			printf("canceled\n") ;
 	}
 
+	clock_t read_timing_SA=clock() ;
 
 	time2c += clock()-start_time ;
 
@@ -353,6 +375,8 @@ restart:
 		int ret = qpalma->capture_hits(hits, result._qpalma, _config.non_consensus_search,_annotatedjunctions, _variants);
 		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, 1000, _annotatedjunctions, _variants);//hits._topAlignments.size() -nb_unspliced);
 	}
+
+	clock_t read_timing_JA=0 ;
 
 	if (!cancel)
 	{
@@ -392,7 +416,14 @@ restart:
 					}
 					
 					if (_config.MAP_JUNCTIONS || _config.MAP_JUNCTIONS_ONLY)
+					{
+						read_timing_JA=clock() ;
+
 						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, hits._topAlignments.size() -nb_unspliced, _annotatedjunctions, _variants);
+
+						read_timing_JA=clock()-read_timing_JA ;
+						_stats.read_stats_JA_time += read_timing_JA ;
+					}
 					
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
@@ -503,6 +534,8 @@ restart:
 		if (read_mapped && _config.VERBOSE)
 			fprintf(stderr, "lost unspliced alignments\n") ;
 	}
+
+	_stats.read_stats_SA_time += (clock()-read_timing_SA - read_timing_JA) ;
 
 
 	if (cancel)

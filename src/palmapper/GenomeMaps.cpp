@@ -461,9 +461,7 @@ int GenomeMaps::do_reporting(int force)
 		last_report=clock() ;
 
 #ifdef PMINDEX
-		const int index_depth=15 ;
 #else
-		//const int index_depth=_config.INDEX_DEPTH ;
 		if (_config.VERBOSE>0)
 #endif 
 		  {

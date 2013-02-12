@@ -2769,12 +2769,12 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					junctionmap.lock() ;
 
 					//Intervals around junctions
-					int int1_start = (*it).start - (read.length()+1);
+					int int1_start = (*it).start - (read.length()+_config.SPLICED_CLUSTER_TOLERANCE);
 					if (int1_start <0)
 						int1_start=0;
 					int int1_end = (*it).start-1;
 					int int2_start = (*it).end + 1;					
-					int int2_end = (*it).end + (read.length()+1);
+					int int2_end = (*it).end + (read.length()+_config.SPLICED_CLUSTER_TOLERANCE);
 					char strand = (*it).strand ;
 
 					junctionmap.unlock() ;
@@ -2820,16 +2820,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 						//Create regions from junction
 						region_t new_region1 ; 
-						try {
-							//new_region1 = new region_t();
-							new_region1.read_map = new bool[read.length()];
-						} catch (std::bad_alloc&) 
-						{
-							fprintf(stderr, "[remapping_junctions] allocating memory for read_map failed\n");
-							result.delete_regions();
-							delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-							return -1;
-						}
+						bool read_map1[read.length()] ;
+						
+						new_region1.read_map = read_map1 ;
 						new_region1.start = int1_start;
 						new_region1.end = int1_end+1;
 						new_region1.from_map = true ;
@@ -2839,16 +2832,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						new_region1.hit_len = -111 ;  // TODO					
 						
 						region_t new_region2 ; 
-						try {
-							//new_region2 = new region_t();
-							new_region2.read_map = new bool[read.length()];
-						} catch (std::bad_alloc&) 
-						{
-							fprintf(stderr, "[remapping_junctions] allocating memory for read_map failed\n");
-							result.delete_regions();
-							delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-							return -1;
-						}
+						bool read_map2[read.length()] ;
+						new_region2.read_map = read_map2 ;
 						new_region2.start = int2_start;
 						new_region2.end = int2_end+1;
 						new_region2.from_map = true ;
@@ -2861,87 +2846,88 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						current_regions.push_back(&new_region1);
 						current_regions.push_back(&new_region2);
 						
-						//Corresponding positions and sequence
-
- 						std::string current_seq;
-						current_seq.assign("") ;
-						for (int p = int1_start; p <= int1_end; p++) 
-						{
-							current_positions.push_back(p);
-							current_seq.push_back(chr[p]) ;							
-						}
-						for (int p = int2_start; p <= int2_end; p++) 
-						{
-							current_positions.push_back(p);
-							current_seq.push_back(chr[p]) ;							
-						}
-
-
-						//Take the first long region  to start alignment
-						int hit_read_position = get_first_read_map(read, this_long_regions[nregion]->read_map);
-						if (ori==0)
-							hit_read_position += (rstart - rstart_);
-						else
-							hit_read_position += (rend_-rend);
-
-						int hit_len= rend - rstart ; //this_long_regions[nregion]->end-this_long_regions[nregion]->start;
-
-
-						if(ori==1){
-							hit_read_position = read.length()-hit_len-hit_read_position +1;
-						}
-
-						if (perform_extra_checks)
-						  {
-						    assert (hit_read_position>=0) ;
-						    if (!(hit_len >0))
-						      {
-							fprintf(stderr, "ERROR: hitlen=%i\n", hit_len) ; // BUG-TODO
-							hit_len=0 ;
-							result.delete_regions();
-							delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-							return -1 ;
-						      }
-						  }
-						if (myverbosity>3)
-						{
-							fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
-							fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*this_long_regions[nregion]->start*/, hit_len);					  
-							fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+						int ret = 0 ;
 							
-							fprintf(stdout,"DNA:%s\n",current_seq.c_str());
-							fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
-						}
-						int ret;
-						
-
-
-						if (strand == '+')
+						if (true)
 						{
-							//fprintf(stdout,	"5)hit read position %i\n",hit_read_position);					  
-							ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], 
-																	current_seq, current_regions, current_positions, 
-																	chr, '+', ori, hit_read_position, 
-																	rstart /*this_long_regions[nregion]->start*/, 
-																	hit_len, false, num_alignments_reported, true,
-																	annotatedjunctions, variants, myverbosity);
-						}
-						else
-						{
+							//Corresponding positions and sequence
+							
+							std::string current_seq;
+							current_seq.assign("") ;
+							for (int p = int1_start; p <= int1_end; p++) 
+							{
+								current_positions.push_back(p);
+								current_seq.push_back(chr[p]) ;							
+							}
+							for (int p = int2_start; p <= int2_end; p++) 
+							{
+								current_positions.push_back(p);
+								current_seq.push_back(chr[p]) ;							
+							}
+							
+							
+							//Take the first long region  to start alignment
+							int hit_read_position = get_first_read_map(read, this_long_regions[nregion]->read_map);
+							if (ori==0)
+								hit_read_position += (rstart - rstart_);
+							else
+								hit_read_position += (rend_-rend);
+							
+							int hit_len= rend - rstart ; //this_long_regions[nregion]->end-this_long_regions[nregion]->start;
+							
+							
+							if(ori==1){
+								hit_read_position = read.length()-hit_len-hit_read_position +1;
+							}
+							
 							if (perform_extra_checks)
-								assert (read.length()-(hit_read_position+hit_len)>=0);
+							{
+								assert (hit_read_position>=0) ;
+								if (!(hit_len >0))
+								{
+									fprintf(stderr, "ERROR: hitlen=%i\n", hit_len) ; // BUG-TODO
+									hit_len=0 ;
+									result.delete_regions();
+									delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+									return -1 ;
+								}
+							}
+							if (myverbosity>3)
+							{
+								fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
+								fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*this_long_regions[nregion]->start*/, hit_len);					  
+								fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+								
+								fprintf(stdout,"DNA:%s\n",current_seq.c_str());
+								fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
+							}
 							
-							ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
-																	current_seq, current_regions, current_positions, 
-																	chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
-																	rend /*this_long_regions[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
-																	annotatedjunctions, variants, myverbosity);
+							
+							if (strand == '+')
+							{
+								//fprintf(stdout,	"5)hit read position %i\n",hit_read_position);					  
+								ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], 
+																		current_seq, current_regions, current_positions, 
+																		chr, '+', ori, hit_read_position, 
+																		rstart /*this_long_regions[nregion]->start*/, 
+																		hit_len, false, num_alignments_reported, true,
+																		annotatedjunctions, variants, myverbosity);
+							}
+							else
+							{
+								if (perform_extra_checks)
+									assert (read.length()-(hit_read_position+hit_len)>=0);
+								
+								ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
+																		current_seq, current_regions, current_positions, 
+																		chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+																		rend /*this_long_regions[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
+																		annotatedjunctions, variants, myverbosity);
+							}
 						}
-
+						
 						current_regions.clear();
 						current_positions.clear();
-						delete[] new_region1.read_map ;
-						delete[] new_region2.read_map ;
 				  						
 						if (ret < 0)
 						{
