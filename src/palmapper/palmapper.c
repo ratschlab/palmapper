@@ -278,11 +278,11 @@ int main(int argc, char *argv[])
 	    for (unsigned int i = 0; i < numThreads; ++i) {
 	      threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
 	      threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
-	      printf("Starting thread %d\n", i);
+	      //printf("Starting thread %d\n", i);
 	      if (numThreads>1)
-		threads[i]->launch();
+			  threads[i]->launch();
 	      else
-		threads[i]->run();
+			  threads[i]->run();
 	    }
 	    for (unsigned int i = 0; i < numThreads; ++i) {
 	      if (numThreads>1)
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
   	if (_config.STATISTICS) printf("Total time needed: %dh %dm %ds\n", hours, minutes, seconds);
   	////////////////////////
 
-	if (genomemaps != NULL && (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL))
+	if (genomemaps != NULL && (_config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL))
 	{
 		genomemaps->do_reporting(1) ;
 		genomemaps->write_reporting() ;
@@ -410,6 +410,8 @@ int main(int argc, char *argv[])
 	if (genomemaps != NULL)
 		delete genomemaps;
 
+	fprintf(stdout, "\n\nPalmapper finished normally.\n") ;
+	
 	if (_config.VERBOSE) { printf("Mapping finished\n"); }
 	
 	CSignal::unset_handler() ;

@@ -156,10 +156,10 @@ typedef MyArr<CHROMOSOME_ENTRY*> GenomeArr;
 
 typedef Container<false, CHROMOSOME_ENTRY> CHROMOSOME_ENTRY_CONTAINER;
 
-typedef struct hits_by_score_structure {
-	HIT *hitpointer;
-	int num;
-} HITS_BY_SCORE_STRUCT;
+/* typedef struct hits_by_score_structure { */
+/* 	HIT *hitpointer; */
+/* 	int num; */
+/* } HITS_BY_SCORE_STRUCT; */
 
 
 class Genome ;
@@ -183,7 +183,7 @@ public:
 		return _read;
 	}
 	int dealloc_hit_lists_operator() ;
-	int dealloc_hits_by_score() ;
+	//int dealloc_hits_by_score() ;
 	int align_hit_simple(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, int orientation, unsigned char mismatches) ;
 	int prepare_kbound_alignment(HIT* hit, int start, int end, int readpos, Chromosome const &chromosome, char orientation, char mismatches) ;
 	int size_hit(HIT *hit, unsigned int oldlength);
@@ -191,9 +191,9 @@ public:
 	void printgenome() ;
 //	int alloc_genome_memory() ;
 	int duplicate(HIT* hit) ;
-	int insert_into_scorelist(HIT* hit, char d) ;
-	int browse_hits() ;
-	template<enum index_type_t index_type> int map_fast(Read & read);
+	//int insert_into_scorelist(HIT* hit, char d) ;
+	int browse_hits(QPalma const * qpalma) ;
+	template<enum index_type_t index_type> int map_fast(Read & read, QPalma const * qpalma);
 	template<enum index_type_t index_type> int map_short_read(Read & read, unsigned int num);
 	template<enum index_type_t> int get_slots(Read & read, int pos);
 
@@ -214,84 +214,89 @@ public:
 	}
 	int map_reads(Genome &genome, TopAlignments* topalignments) ;
 
-	int get_num_edit_ops() const {
-		return _numEditOps;
+	/* int get_num_edit_ops() const { */
+	/* 	return _numEditOps; */
+	/* } */
+
+	/* inline void reset_num_edit_ops() */
+	/* { */
+	/* 	SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.resize(0) ; */
+	/* } */
+
+	inline void reset_alignment_cnt()
+	{
+		analysed_hit_cnt=0 ;
 	}
 
-	inline void reset_num_edit_ops()
-	{
-		SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.resize(0) ;
-	}
+	/* inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_) */
+	/* { */
+	/* 	assert(num_edit_ops<=Config::MAX_EDIT_OPS) ; */
 
-	inline void update_num_edit_ops(int num_edit_ops, char & all_hit_strategy, int & NUM_EDIT_OPS_)
-	{
-		assert(num_edit_ops<=Config::MAX_EDIT_OPS) ;
+	/* 	//if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_) */
+	/* 	//	NUM_EDIT_OPS_ = num_edit_ops ; */
 
-		//if (!all_hit_strategy && num_edit_ops < NUM_EDIT_OPS_)
-		//	NUM_EDIT_OPS_ = num_edit_ops ;
+	/* 	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP) */
+	/* 	{ */
+	/* 		// keep a list of minimal edit operation (assuming that each hit is only reported once) */
+	/* 		// the list is 10 times as long as NUM_TOP_ALIGNMENTS, as will be filtered later according to */
+	/* 		// the qpalma-alignment score (this is a heuristic, which may work well enough; alternatively, one */
+	/* 		// would need to compute the qpalma score for each hit, which will be too expensive */
 
-		if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-		{
-			// keep a list of minimal edit operation (assuming that each hit is only reported once)
-			// the list is 10 times as long as NUM_TOP_ALIGNMENTS, as will be filtered later according to
-			// the qpalma-alignment score (this is a heuristic, which may work well enough; alternatively, one
-			// would need to compute the qpalma score for each hit, which will be too expensive
+	/* 		bool inserted = false ; */
 
-			bool inserted = false ;
+	/* 		std::vector<int>::iterator it = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.begin(); */
 
-			std::vector<int>::iterator it = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.begin();
+	/* 		for (uint8_t i = 0; i < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size(); i++, it++) */
+	/* 		{ */
+	/* 			if ( num_edit_ops < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[i] ) */
+	/* 			{ */
+	/* 				SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.insert(it, num_edit_ops); */
+	/* 				inserted = true; */
 
-			for (uint8_t i = 0; i < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size(); i++, it++)
-			{
-				if ( num_edit_ops < SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[i] )
-				{
-					SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.insert(it, num_edit_ops);
-					inserted = true;
+	/* 				if (SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() > _config.OUTPUT_FILTER_NUM_TOP*10) */
+	/* 					SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.pop_back(); */
 
-					if (SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() > _config.OUTPUT_FILTER_NUM_TOP*10)
-						SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.pop_back();
+	/* 				break; */
+	/* 			} */
+	/* 		} */
+	/* 		if (!inserted && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() < _config.OUTPUT_FILTER_NUM_TOP*10) */
+	/* 		{ */
+	/* 			SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.push_back(num_edit_ops) ; */
+	/* 			inserted = true ; */
+	/* 		} */
+	/* 	} */
 
-					break;
-				}
-			}
-			if (!inserted && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size() < _config.OUTPUT_FILTER_NUM_TOP*10)
-			{
-				SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.push_back(num_edit_ops) ;
-				inserted = true ;
-			}
-		}
+	/* 	if (!all_hit_strategy && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()> _config.OUTPUT_FILTER_NUM_TOP*8) */
+	/* 		NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ; */
 
-		if (!all_hit_strategy && SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()> _config.OUTPUT_FILTER_NUM_TOP*8)
-			NUM_EDIT_OPS_ = SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS[SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()-1] ;
+	/* 	//fprintf(stdout, "update_num_edit_ops(num_edit_ops=%i, all_hit_strategy=%i, NUM_EDIT_OPS_=%i)\n", num_edit_ops, (int)all_hit_strategy, NUM_EDIT_OPS_) ; */
 
-		//fprintf(stdout, "update_num_edit_ops(num_edit_ops=%i, all_hit_strategy=%i, NUM_EDIT_OPS_=%i)\n", num_edit_ops, (int)all_hit_strategy, NUM_EDIT_OPS_) ;
-
-	//void make_slots(Read read, std::string slotseq, int conversion);
+	/* //void make_slots(Read read, std::string slotseq, int conversion); */
 		
-	}
+	/* } */
 
 	void clear() {
 		dealloc_mapping_entries();
 		dealloc_hits();
-		dealloc_hits_by_score();
+		//dealloc_hits_by_score();
 		CHROMOSOME_ENTRY_OPERATOR.clear();
 		GENOME.clear();
 		dealloc_hit_lists_operator();
 	}
 
 private:
-	int alloc_hits_by_score() ;
+	//int alloc_hits_by_score() ;
 	int alloc_hit_lists_operator() ;
 	char* get_seq(unsigned int n);
 	CHROMOSOME_ENTRY* alloc_chromosome_entry(Read const &read, unsigned int pos, Chromosome const &chr, char strand);
 	unsigned int extend_seed(int direction, unsigned int seed_depth_extra, Chromosome const &chr, int genome_pos, int readpos, char conversion);
 	int features_conversion(HIT* hit) ;
-	int map_fast_bsseq(Read& read, int run, int nr_runs, char conversion);
+	int map_fast_bsseq(Read& read, int run, int nr_runs, char conversion, QPalma const * qpalma);
 	void generate_all_possible_seeds(Read & read, int num, int seedpos, unsigned int iter, unsigned int fwd_slot, unsigned int rev_slot, char conversion);
 
 	Genome const &_genome;
 	GenomeMaps &_genomeMaps;
-	HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
+	//HITS_BY_SCORE_STRUCT *HITS_BY_SCORE;
 	unsigned int NUM_SCORE_INTERVALS;
 	Container<true, MAPPING_ENTRY> _mappings;
 	Container<true, HIT> _hits;
@@ -299,10 +304,10 @@ private:
 	Read const &_read;
 	GenomeArr &GENOME;
 	CHROMOSOME_ENTRY_CONTAINER &CHROMOSOME_ENTRY_OPERATOR;
-	std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
+	//std::vector<int> SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS ;
 	TopAlignments _topAlignments;
-	int _numEditOps;
-	char ALL_HIT_STRATEGY;
+	//int _numEditOps;
+	//char ALL_HIT_STRATEGY;
 	unsigned int LONGEST_HIT;
 	clock_t seed_covered_reporting_time;
 
@@ -314,4 +319,6 @@ private:
 	std::vector<unsigned int> SLOTS_CV1_REV;
 	std::vector<unsigned int> SLOTS_CV2_FWD;
 	std::vector<unsigned int> SLOTS_CV2_REV;
+
+	int analysed_hit_cnt ;
 };

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <palmapper/Config.h>
 #include "IntervalQuery.h"
+#include <time.h>
 
 const int num_filter_reasons=4  ;
 
@@ -41,9 +42,28 @@ public:
 	int alignment_num_unmapped;
 	clock_t alignment_last_spliced_report ;
 
+	// read stats
+	pthread_mutex_t read_stats_mutex ;
+	int reads_processed ;
+	int reads_with_aligment ;
+	int reads_with_unique_alignment ;
+	int reads_with_best_spliced_alignment ;
+	int reads_unmapped_editops ;
+	int reads_unmapped_dropped ;
+	int reads_unmapped_other ;	
+	time_t read_stats_last_report ;
+    time_t read_stats_start ;	
+	int reads_time_step_size ;
+	clock_t read_stats_seed_time, read_stats_UA_time, read_stats_SA_time, read_stats_other_time, read_stats_JA_time ;
+	std::string read_stats_note ;
+	
+
 	void print_alignment_stats(bool force=false)
 		{
-			if (force || (clock()-alignment_last_spliced_report)/CLOCKS_PER_SEC>=10)
+			print_read_stats(force) ;
+			return ;
+			
+			if (force || (clock()-alignment_last_spliced_report)/CLOCKS_PER_SEC>=100)
 			{
 				alignment_last_spliced_report = clock() ;
 				fprintf(stdout, "\n# %i (%i) unspliced, %i (%i) spliced alignments, %i unmapped (spliced %2.1f%%, unmapped %2.1f%%)\n", 
@@ -66,6 +86,56 @@ public:
 				  variant_create_super_sequence_from_variants_table_init_time/sum2, variant_create_super_sequence_from_variants_table_fill1_time/sum2,
 				  variant_create_super_sequence_from_variants_table_fill2_time/sum2) ;
 				
+			}
+		}
+
+	void print_read_stats(bool force=false)
+		{
+			if (force || difftime(time(NULL),read_stats_last_report)>=reads_time_step_size)
+			{
+				time_t tim=time(NULL);
+				char *s=ctime(&tim);
+				s[strlen(s)-1]=0;
+				
+				read_stats_last_report = time(NULL) ;
+				if (reads_processed<10)
+				{
+					fprintf(stdout, "\nDate & time\t\t\tReads\t\t\tAligned Reads\t\t\tUnaligned Reads\t\t\t\tTime") ;
+					fprintf(stdout, "\n\t\t\t\t  M/h\t       #\t\ttotal\tunique\tspliced\t\ttotal\t[editop\tMM\tother]\t\t[seed\tUA\tSA\tJA\tother]") ;
+					read_stats_start=time(NULL)  ;
+					reads_time_step_size=5 ;
+					read_stats_seed_time=1;
+					read_stats_UA_time=1 ;
+					read_stats_SA_time=1 ;
+					read_stats_JA_time=0 ;
+					read_stats_other_time=0 ;
+					return ;
+				}
+				if (difftime(time(NULL),read_stats_start)>10)
+					reads_time_step_size=10 ;
+				if (difftime(time(NULL),read_stats_start)>100)
+					reads_time_step_size=30 ;
+				if (difftime(time(NULL),read_stats_start)>1000)
+					reads_time_step_size=120 ;
+				if (difftime(time(NULL),read_stats_start)>10000)
+					reads_time_step_size=600 ;
+				
+				fprintf(stdout, "\n%s\t%1.3f\t%8i\t%2.1f%%\t%2.1f%%\t%2.1f%%\t\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%\t\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%", s, 
+						reads_processed*3600.0/difftime(time(NULL),read_stats_start)/1000000, reads_processed, 
+						100.0*reads_with_aligment/reads_processed, 100.0*reads_with_unique_alignment/reads_with_aligment,
+						100.0*reads_with_best_spliced_alignment/reads_with_aligment,
+						100.0*(reads_processed-reads_with_aligment)/reads_processed,
+						100.0*reads_unmapped_editops/(reads_processed-reads_with_aligment),
+						100.0*reads_unmapped_dropped/(reads_processed-reads_with_aligment),
+						100.0*reads_unmapped_other/(reads_processed-reads_with_aligment),
+						100.0*read_stats_seed_time/(read_stats_seed_time+read_stats_UA_time+read_stats_SA_time+read_stats_JA_time+read_stats_other_time),
+						100.0*read_stats_UA_time/(read_stats_seed_time+read_stats_UA_time+read_stats_SA_time+read_stats_JA_time+read_stats_other_time),
+						100.0*read_stats_SA_time/(read_stats_seed_time+read_stats_UA_time+read_stats_SA_time+read_stats_JA_time+read_stats_other_time),
+						100.0*read_stats_JA_time/(read_stats_seed_time+read_stats_UA_time+read_stats_SA_time+read_stats_JA_time+read_stats_other_time),
+						100.0*read_stats_other_time/(read_stats_seed_time+read_stats_UA_time+read_stats_SA_time+read_stats_JA_time+read_stats_other_time)) ;
+				if (read_stats_note.size()>0)
+					fprintf(stdout, "\t\t%s", read_stats_note.c_str()) ;
+				read_stats_note="" ;
 			}
 		}
 

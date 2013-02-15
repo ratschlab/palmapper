@@ -9,12 +9,6 @@
 #include "DNAArray.h"
 #include "DNAArray4.h"
 
-//#define BinaryStream_MAP
-
-#ifdef BinaryStream_MAP
-#include "BinaryStream.h"
-#endif
-
 
 // ##############################################################
 // ####### GLOBAL VARIABLES #####################################

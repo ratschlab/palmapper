@@ -28,10 +28,13 @@ Config::Config() {
 	_personality = getPersonality();
 
 	BWA_INDEX=0; // Bwt	or genomemapper index
-	NUM_THREADS = 1;//::sysconf(_SC_NPROCESSORS_ONLN);
+	NUM_THREADS = DEFAULT_SETTING ; 
+	
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
+	OUTPUT_FILTER_DELTA_MMDROP = 2 ;
+	OUTPUT_FILTER_NUM_MMDROP = 10 ;
 
 	FIXTRIM_STRATEGY_LEN = 10000000;
 	FIXTRIMRIGHT_STRATEGY_LEN = 0 ;
@@ -73,7 +76,6 @@ Config::Config() {
 
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
-	REPORT_REPETITIVE_SEEDS = 0 ;
 	REPORT_MAPPED_REGIONS = 1 ;
 	REPORT_MAPPED_READS = 1 ;
 	REPORT_SPLICED_READS = 1 ;
@@ -134,16 +136,17 @@ Config::Config() {
 	SPLICED_LONGEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_SHORTEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
-	SPLICED_CLUSTER_TOLERANCE = 10 ;
+	UNSPLICED_MAX_NUM_ALIGNMENTS = 100 ;
+	SPLICED_CLUSTER_TOLERANCE = 50 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
 	SPLICED_MIN_SEGMENT_LENGTH = 1 ;//DEFAULT_SETTING ;
 
 	STATISTICS = 0;
 	CHROM_CONTAINER_SIZE = 15000000 ;
 
-	BEST_HIT_STRATEGY = 0 ;
-	ALL_HIT_STRATEGY = 0 ;
-	SUMMARY_HIT_STRATEGY= 0 ;
+	//BEST_HIT_STRATEGY = 0 ;
+	//ALL_HIT_STRATEGY = 0 ;
+	//SUMMARY_HIT_STRATEGY= 0 ;
 	HITLEN_LIMIT = 0 ;
 
 	BSSEQ = 0;
@@ -220,11 +223,13 @@ Config::Config() {
 
     COMMAND_LINE = std::string("") ;
 
-    TAG_MULTIMAPPERS = -1.0;
+    TAG_MULTIMAPPERS = -1 ;
+    TAG_MULTIMAPPERS_QPALMA = -1.0;
 };
 
 int Config::applyDefaults(Genome * genome)
 {
+
 	int any_default=false ;
 	
 	if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || 
@@ -234,11 +239,18 @@ int Config::applyDefaults(Genome * genome)
 						  SPLICED_MIN_SEGMENT_LENGTH==DEFAULT_SETTING)) || 
 		(OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) ||
 		((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING && POLYTRIM_STRATEGY) || 
-		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY))
+		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY) || (NUM_THREADS==DEFAULT_SETTING))
 	{
 		fprintf(stdout, "\nSetting default parameters:\n") ;
 		any_default=true ;
 	}
+
+ 	if (NUM_THREADS==DEFAULT_SETTING)
+	{
+		NUM_THREADS=(::sysconf(_SC_NPROCESSORS_ONLN)>16) ? 16 : ::sysconf(_SC_NPROCESSORS_ONLN) ;
+		fprintf(stdout, "* Number of threads : %i [%i max]\n", NUM_THREADS, (int)::sysconf(_SC_NPROCESSORS_ONLN)) ;
+	}
+	READ_COUNT_LIMIT = (READ_COUNT_LIMIT+NUM_THREADS-1)/NUM_THREADS ;
 
 	if (_personality == Palmapper)  {
 	  int read_length = READ_LENGTH_PARAM ;
@@ -256,6 +268,8 @@ int Config::applyDefaults(Genome * genome)
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
 			{
 				SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
+				if (SPLICED_HIT_MIN_LENGTH_SHORT<(int)INDEX_DEPTH)
+					SPLICED_HIT_MIN_LENGTH_SHORT=INDEX_DEPTH ;
 				fprintf(stdout, " -K %i", SPLICED_HIT_MIN_LENGTH_SHORT) ;
 			}
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
@@ -278,17 +292,17 @@ int Config::applyDefaults(Genome * genome)
 			}
 			if (NUM_EDIT_OPS == DEFAULT_SETTING)
 			{
-				NUM_EDIT_OPS = read_length*0.08 ;
+				NUM_EDIT_OPS = read_length*0.03 ;
 				fprintf(stdout, " -E %i", NUM_EDIT_OPS) ;
 			}
 			if (NUM_MISMATCHES == DEFAULT_SETTING)
 			{
-				NUM_MISMATCHES = read_length*0.08 ;
+				NUM_MISMATCHES = read_length*0.03 ;
 				fprintf(stdout, " -M %i", NUM_MISMATCHES) ;
 			}
 			if (NUM_GAPS == DEFAULT_SETTING)
 			{
-				NUM_GAPS = read_length*0.03 ;
+				NUM_GAPS = read_length*0.013334 ;
 				fprintf(stdout, " -G %i", NUM_GAPS) ;
 			}
 			if (line_started)
@@ -384,9 +398,9 @@ int Config::applyDefaults(Genome * genome)
 		if (NUM_MISMATCHES == DEFAULT_SETTING) NUM_MISMATCHES = 3;
 		if (NUM_GAPS == DEFAULT_SETTING) NUM_GAPS = 1;
 
-		if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT) {
+		/* if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT) {
 			BEST_HIT_STRATEGY = 1;
-		}
+			} */
 	}
 
 	if (POLYTRIM_STRATEGY)
@@ -599,50 +613,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 			//INDEX_REV_FILE_NAME += ".mrc";
 
 		}
-
-		/**
-
-		 //chr index file
-		 if(strcmp(argv[i],"-x")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) 
-		 { 
-		 fprintf(stderr, "ERROR: Argument missing for option -i\n") ;
-		 usage(); exit(1); 
-		 }
-		 i++;
-		 strcpy(CHR_INDEX_FILE_NAME, argv[i]);
-		 has_index = 1;
-		 }
-
-		 //meta index file
-		 if(strcmp(argv[i],"-t")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(META_INDEX_FILE_NAME, argv[i]);
-		 has_meta_index = 1;
-		 }
-
-		 //index fwd file
-		 if(strcmp(argv[i],"-z")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(INDEX_FWD_FILE_NAME, argv[i]);
-		 has_fwd_index = 1;
-		 }
-
-		 //index rev file
-		 if(strcmp(argv[i],"-y")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(INDEX_REV_FILE_NAME, argv[i]);
-		 has_rev_index = 1;
-		 }
-
-		 */
 
 		//BWA index
 		if (strcmp(argv[i], "-bwa") == 0) {
@@ -1273,47 +1243,35 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REALIGN_READS = 1 ;
 			}
 
-			//report repetitive seeds
-			if (strcmp(argv[i], "-report-rep-seed") == 0) {
-				not_defined = 0;
-				REPORT_REPETITIVE_SEEDS = 1 ;
-				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-			}
-			if (strcmp(argv[i], "-no-report-rep-seed") == 0) {
-				not_defined = 0;
-				REPORT_REPETITIVE_SEEDS = 0 ;
-				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-			}
-
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-region") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 1 ;
 			}
-			/*if (strcmp(argv[i], "-no-report-map-region") == 0) {
+			if (strcmp(argv[i], "-no-report-map-region") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 0 ;
-				}*/
+				}
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 1 ;
 			}
-			/*if (strcmp(argv[i], "-no-report-map-read") == 0) {
+			if (strcmp(argv[i], "-no-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 0 ;
-				}*/
+				}
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 1 ;
 			}
-			/*if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
+			if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 0 ;
-				}*/
+				}
 
 			//report splice sites - confidence threshold
 			if (strcmp(argv[i], "-report-splice-sites") == 0) {
@@ -1327,7 +1285,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				QPALMA_USE_SPLICE_SITES_THRESH_DON = atof(argv[i]);
 				QPALMA_USE_SPLICE_SITES= 1 ;
 				not_defined = 0;
-				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
 				//assert(REPORT_SPLICE_SITES_THRESH_TOP_PERC==0.0) ;
 			}
 
@@ -1343,7 +1300,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				assert(QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC>=0 && QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC<=1.0) ;
 				QPALMA_USE_SPLICE_SITES= 1 ;
 				not_defined = 0;
-				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
 				//assert(REPORT_SPLICE_SITES_THRESH==0.0) ;
 			}
 
@@ -1556,6 +1512,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 				SPLICED_MAX_NUM_ALIGNMENTS = tmp;
 			}
 
+			// maximal number of spliced alignments to be performed per read
+			if (strcmp(argv[i], "-UA") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -UA\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -UA too small\n") ;
+					usage();
+					exit(1);
+				}
+				UNSPLICED_MAX_NUM_ALIGNMENTS = tmp;
+			}
+
 			// maximal number of introns in spliced alignments
 			if (strcmp(argv[i], "-NI") == 0) {
 				not_defined = 0;
@@ -1610,7 +1584,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				QPALMA_INDEL_PENALTY = tmp;
 			}
 
-            // include multimpper tag in SAM output, if a non-overlapping alignment with at least (1 - value)*best-QPALMA-Score exists
+            // include multimpper tag in SAM output, if a non-overlapping alignment with at least less than value more editops exist
 			if (strcmp(argv[i], "-tag-multimappers") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1619,13 +1593,31 @@ int Config::parseCommandLine(int argc, char *argv[])
 					exit(1);
 				}
 				i++;
-				double tmp = atof(argv[i]);
+				int tmp = atoi(argv[i]);
 				if (tmp < 0) {
-					fprintf(stderr, "ERROR: Argument for option -tag-multimappers must be >= 0.0\n") ;
+					fprintf(stderr, "ERROR: Argument for option -tag-multimappers must be >= 0\n") ;
 					usage();
 					exit(1);
 				}
 				TAG_MULTIMAPPERS = tmp;
+			}
+
+            // include multimpper tag in SAM output, if a non-overlapping alignment with at least (1 - value)*best-QPALMA-Score exists
+			if (strcmp(argv[i], "-tag-multimappers-qpalma") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -tag-multimappers-qpalma\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				double tmp = atof(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -tag-multimappers-qpalma must be >= 0.0\n") ;
+					usage();
+					exit(1);
+				}
+				TAG_MULTIMAPPERS_QPALMA = tmp;
 			}
 
 
@@ -1909,7 +1901,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1) ;
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
-			ALL_HIT_STRATEGY = 1 ;
+			//ALL_HIT_STRATEGY = 1 ;
 		}
 
 		char const *outputFilteToprOpt = _personality == Palmapper ? "-z" : "-n";
@@ -1936,7 +1928,45 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_TOP ;
-			SUMMARY_HIT_STRATEGY=1 ;
+			//SUMMARY_HIT_STRATEGY=1 ;
+		}
+
+		char const *outputFilterDropOpt = _personality == Palmapper ? "-x" : "";
+		if (strcmp(argv[i], outputFilterDropOpt) == 0) {
+			not_defined = 0;
+			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
+			{
+				fprintf(stderr, "ERROR: output filter already defined\n") ;
+				exit(1) ;
+			}
+			if (i + 2 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", outputFilterDropOpt) ;
+				usage();
+				exit(1);
+			}
+			i++;
+			
+			if ((OUTPUT_FILTER_NUM_MMDROP = atoi(argv[i])) == 0) {
+				if (argv[i][0] != '0' || OUTPUT_FILTER_NUM_MMDROP<0) 
+				{
+					fprintf(stderr,
+							"ERROR: Number of alignments must be a positive integer value!\n");
+					exit(1);
+				}
+			}
+
+			i++;
+			
+			if ((OUTPUT_FILTER_DELTA_MMDROP = atoi(argv[i])) == 0) {
+				if (argv[i][0] != '0' || OUTPUT_FILTER_DELTA_MMDROP<0) 
+				{
+					fprintf(stderr,
+							"ERROR: Delta must be a positive integer value!\n");
+					exit(1);
+				}
+			}
+
+			OUTPUT_FILTER=OUTPUT_FILTER_MMDROP ;
 		}
 
 		//max nr of alignments per read
@@ -1992,7 +2022,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			//OUTPUT_FILTER_NUM_LIMIT = -OUTPUT_FILTER_NUM_LIMIT ;
 			OUTPUT_FILTER = OUTPUT_FILTER_LIMIT ;
-			BEST_HIT_STRATEGY = 1 ;
+			//BEST_HIT_STRATEGY = 1 ;
 		}
 
 		//max number of allowed edit operations
@@ -2528,13 +2558,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (BWA_INDEX && REPORT_REPETITIVE_SEEDS)
-	{
-		fprintf(stderr, "The combination of the two options -bwa and -report-rep-seed is not implemented yet\n") ;
-		exit(-1) ;
-	}
-	
-	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
+	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || SEED_HIT_TRUNCATE_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
 
 	return 0;
 }
@@ -2542,8 +2566,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 void Config::VersionHeader() {
 	if (getPersonality() == Palmapper) {
 		printf("\nPALMapper version %s   (PALMapper is a fusion of GenomeMapper & QPALMA)\n", VERSION);
-		printf("written by Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Fabio De Bona, Stephan Ossowski, and others\n");
-		printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
+		printf("written by Gunnar Raetsch, Geraldine Jean, Andre Kahles, Korbinian Schneeberger, Joerg Hagmann, Fabio De Bona, Stephan Ossowski, and others\n");
+		printf("Sloan-Kettering Institute, New York City, USA, 2012-2013\nMax Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
 	} else {
 		printf("\nGenomeMapper version %s\n", VERSION);
 		printf("written by Korbinian Schneeberger, Joerg Hagmann, Stephan Ossowski, Felix Ott, Gunnar Raetsch and others\n");
