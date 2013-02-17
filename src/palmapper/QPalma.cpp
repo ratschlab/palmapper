@@ -16,9 +16,9 @@
 
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
-static const bool perform_extra_checks = false ;
-static const std::string verbose_read_id = "WTCHG_37846_104:4:1101:10807:2269#TGCCGGCT/1-"  ;
-static const int verbose_read_level = 2 ;
+static const bool perform_extra_checks = true ;
+static const std::string verbose_read_id = "C0HTRACXX120406:3:1301:16294:65782"  ;
+static const int verbose_read_level = 1 ;
 
 #define TIME_CODE(x)
 
@@ -824,6 +824,67 @@ void QPalma::add_const_to_plif(struct penalty_struct & p, double INDEL_PENALTY)
 		p.penalties[i]+=INDEL_PENALTY ;
 }
 
+int check_qpalma_scores(struct penalty_struct *&qualityPlifs, int &num_qualityPlifs,
+						double*&matchmatrix, int verbosity)
+{
+		int num_qpalma_score_fixes=0 ;
+		for (int i=0; i<qualityPlifs[0].len; i++)
+			for (int rna=1; rna<6; rna++)
+			{
+				double & m_score=qualityPlifs[(rna-1)*6+rna].penalties[i] ;
+				double max_mm_score=-1000 ;
+				double min_mm_score=1000 ;
+				double max_ins_score=matchmatrix[1] ;
+				for (int dna=1; dna<5; dna++)
+				{
+					double mm_score=qualityPlifs[(rna-1)*6+dna].penalties[i] ;
+					if (dna!=rna && max_mm_score<mm_score)
+						max_mm_score=mm_score ;
+					if (dna!=rna && min_mm_score>mm_score)
+						min_mm_score=mm_score ;
+
+					double & ins_score=matchmatrix[dna] ;
+					if (ins_score>max_ins_score)
+						max_ins_score=ins_score ;
+				}
+				double & del_score=qualityPlifs[(rna-1)*6].penalties[i] ;
+				const double min_gap = 1e-4 ;
+				
+				if (m_score<max_mm_score+min_gap || m_score<del_score+min_gap || m_score<max_ins_score+min_gap)
+				{
+					char acgtn[7]="-ACGTN" ;
+					if (acgtn[rna]!='N' && verbosity>0)
+						fprintf(stdout, "Warning: unfavorable qpalma match parameters for %i:%c: m_score=%2.3f max_mm_score=%2.3f del_score=%2.3f max_ins_score=%2.3f\n", i, acgtn[rna], m_score, max_mm_score, del_score, max_ins_score) ;
+					m_score=max(max_mm_score,max(del_score, max_ins_score))+min_gap ;
+					num_qpalma_score_fixes++ ;
+				}
+				if (min_mm_score<del_score+min_gap)
+				{
+					char acgtn[7]="-ACGTN" ;
+					//if (verbosity >= (rna==5))
+					if (acgtn[rna]!='N' && verbosity>0)
+						fprintf(stdout, "Warning: unfavorable qpalma del parameters for %i:%c: min_mm_score=%2.3f del_score=%2.3f max_ins_score=%2.3f\n", i, acgtn[rna], min_mm_score, del_score, max_ins_score) ;
+					del_score=min_mm_score-min_gap ;
+					num_qpalma_score_fixes++ ;
+				}
+				if (min_mm_score<max_ins_score+min_gap)
+				{
+					char acgtn[7]="-ACGTN" ;
+					//if (verbosity >= (rna==5))
+					if (acgtn[rna]!='N' && verbosity>0)
+						fprintf(stdout, "Warning: unfavorable qpalma ins parameters for %i:%c: min_mm_score=%2.3f del_score=%2.3f max_ins_score=%2.3f\n", i, acgtn[rna], min_mm_score, del_score, max_ins_score) ;
+					for (int dna=1; dna<5; dna++)
+						if (min_mm_score<matchmatrix[dna]+min_gap)
+						{
+							matchmatrix[dna]=min_mm_score-min_gap ;
+							num_qpalma_score_fixes++ ;
+						}
+				}
+			}
+		return num_qpalma_score_fixes ;
+}
+
+
 int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 							   struct penalty_struct &a, struct penalty_struct &d,
 							   struct penalty_struct *&qualityPlifs, int &num_qualityPlifs,
@@ -959,18 +1020,23 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 		add_const_to_plif(qualityPlifs[18+4], 10) ;
 		add_const_to_plif(qualityPlifs[24+5], 10) ;*/
 		
+		int num_qpalma_score_fixes=check_qpalma_scores(qualityPlifs, num_qualityPlifs, matchmatrix, verbosity) ;
+		if (num_qpalma_score_fixes>0 && verbosity>0)
+			fprintf(stdout, "Warning: fixed %i qpalma score elements\n", num_qpalma_score_fixes) ;
+		assert(check_qpalma_scores(qualityPlifs, num_qualityPlifs, matchmatrix, 0)==0) ;
+
 		if (!_config.NO_QPALMA_SCORE_FIX)
 		{
 			double s=0 ;
 
-			for (int i=0; i<6; i++)
+			for (int i=1; i<6; i++)
 				s+=matchmatrix[i] ;
 			s+=qualityPlifs[0].penalties[qualityPlifs[0].len-1] ;
 			s+=qualityPlifs[6].penalties[qualityPlifs[6].len-1] ;
 			s+=qualityPlifs[12].penalties[qualityPlifs[12].len-1] ;
 			s+=qualityPlifs[18].penalties[qualityPlifs[18].len-1] ;
 			s+=qualityPlifs[24].penalties[qualityPlifs[24].len-1] ;
-			_config.GAP_SCORE = s/11 ;
+			_config.GAP_SCORE = s/10 ;
 
 			s=0 ;
 			s+=qualityPlifs[0+1].penalties[qualityPlifs[0+1].len-1] ;
@@ -1818,6 +1884,33 @@ int QPalma::recapture_hits(Hits &hits, Result &result, bool const non_consensus_
 	return 0;
 }
 
+region_t *gen_new_region(size_t start_pos, size_t end_pos, size_t read_pos, size_t read_len)
+{
+	// Create first region for this hit
+	region_t *new_region = NULL;
+	try {
+		new_region = new region_t();
+		new_region->read_map = new bool[read_len];
+	} catch (std::bad_alloc&) 
+	{
+		fprintf(stderr, "[capture_hits] allocating memory for read_map failed\n");
+		return NULL;
+	}  
+	new_region->erased = false ;
+	new_region->start = start_pos ;
+	new_region->end = start_pos ;
+	new_region->from_map = false ;
+	for (size_t ii = 0; ii < read_len; ii++)
+		new_region->read_map[ii] = false ;
+	
+	new_region->read_pos = read_pos ;
+	new_region->hit_len = 0 ;
+	
+	for (size_t ii = 0; ii < end_pos - start_pos && read_pos + ii < read_len; ii++, new_region->hit_len++, new_region->end++)
+			 new_region->read_map[read_pos + ii] = true;
+    return new_region ;
+}
+	
 int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_search,JunctionMap &annotatedjunctions, VariantMap & variants) const
 {
 	Read const &read(hits.getRead());
@@ -1891,6 +1984,33 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 				for (size_t ii = 0; ii < hit->end - hit->start && hit->readpos + ii< read.length(); ii++,  new_lregion->hit_len++, new_lregion->end++)
 					new_lregion->read_map[hit->readpos + ii] = true;
 				long_regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_lregion);
+
+
+				if (false) 
+				{
+					const size_t region_len = 100000 ;
+					char buf[region_len+1] ;
+					const Chromosome & chr=*hit->chromosome ;
+					for (size_t ii=0; hit->end+ii<hit->chromosome->length() && ii<region_len; ii++)
+					{
+						buf[ii]=chr[hit->end+ii] ;
+						buf[ii+1]=0 ;
+					}
+					std::string sbuf=buf ;
+					char read_str[read.length()+1] ;
+					strcpy(read_str, read.data()) ;
+					const int k=6 ;
+					for (size_t read_pos=hit->readpos+(hit->end-hit->start); read_pos<read.length()-k; read_pos+=k/2)
+					{
+						size_t found = sbuf.find(&read_str[read_pos], 0, k) ;
+						if (found!=std::string::npos)
+						{
+							//fprintf(stdout, "found kmer match: %ld %ld\n", read_pos, found) ;
+							region_t *new_region = gen_new_region(hit->end+found, hit->end+found+k, read_pos, read.length()) ;
+							regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_region);
+						}
+					}
+				}
 			}
 			
 			hit = hit->next;
@@ -2147,6 +2267,12 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 		{
 			if (regions[ori][chrN].size() == 0)
 				continue;
+
+			Chromosome const &chromosome = genome->chromosome(chrN);
+			size_t nbr_regions=regions[ori][chrN].size();
+			for (int i = 0; i < (int)nbr_regions; i++) 
+				result.add_buffer_to_region(ori, chromosome, i, read.length());
+
 			bool ret=sort_regions(regions[ori][chrN], sortorder_startpos) ;
 			ret = ret && sort_regions(long_regions[ori][chrN], sortorder_startpos) ;
 			if (!ret)
@@ -2165,19 +2291,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
     for (int ori = 0; ori < 2; ori++){
 		for (int32_t chrN = 0; chrN < (int)regions[ori].size(); chrN++)
 		{
-			Chromosome const &chromosome = genome->chromosome(chrN);
 			size_t nbr_regions=regions[ori][chrN].size();
 			if (nbr_regions == 0)
 				continue;
-			if (nbr_regions == 1) 
-			{
-				// Nothing to merge, just extend the one existing region to include a buffer.
-				result.add_buffer_to_region(ori, chromosome, 0, read.length());
-				continue;
-			}
-	
-			for (int i = 0; i < (int)nbr_regions; i++) 
-				result.add_buffer_to_region(ori, chromosome, i, read.length());
 	
 			for (int nregion = 0; nregion < (int)nbr_regions - 1; nregion++) 
 			{
@@ -2202,7 +2318,11 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 						(regions[ori][chrN][nregion])->end = (regions[ori][chrN][next])->end;
 					
 					if (perform_extra_checks)
-						assert(regions[ori][chrN][nregion]->start <= regions[ori][chrN][next]->start) ;
+					{
+						if (!(regions[ori][chrN][nregion]->start <= regions[ori][chrN][next]->start))
+							fprintf(stdout, "warning: Failed: regions[ori][chrN][nregion]->start = %i <= %i = regions[ori][chrN][next]->start\n", regions[ori][chrN][nregion]->start, regions[ori][chrN][next]->start) ;
+						//assert(regions[ori][chrN][nregion]->start <= regions[ori][chrN][next]->start) ;
+					}
 					
 					// merge the two read_maps
 					for (size_t i = 0; i < read.length(); i++)
@@ -3923,7 +4043,7 @@ template <int myverbosity>
 int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, const std::vector<FoundVariant> & found_variants, std::string & dna, const std::vector<bool> & ref_map, 
 											int * &s_align, int & s_len, int *&e_align, int & e_len,int *&dna_align,int *&read_align,int &result_length,bool remapping, 
 											bool& alignment_passed_filters,	int &alignment_gaps, int &alignment_mm, 
-											const std::vector<variant_cache_t *> &variant_cache, bool report_variants) const
+											const std::vector<variant_cache_t *> &variant_cache, bool report_variants, const char * read_id) const
 {
 
 	if (myverbosity>=3)
@@ -4400,29 +4520,29 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 		dna_align_back.clear();
 		read_align_back.clear();
 		//fprintf(stdout, "alignment_mm=%i, alignment_gaps=%i, max_intron_len=%i, min_intron_len=%i, num_exons=%i\n", alignment_mm, alignment_gaps, max_intron_len, min_intron_len, num_exons) ;
-		
+
 		if (_config.NUM_MISMATCHES==0 && alignment_mm>0)
 		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==0 && alignment_mm=%i -> setting to 0\n", alignment_mm); // BUG-TODO
+				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==0 && alignment_mm=%i -> setting to 0 (%s)\n", alignment_mm, read_id); // BUG-TODO
 			alignment_mm=0 ;
 		}
 		if (_config.NUM_MISMATCHES==1 && alignment_mm>1)
 		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==1 && alignment_mm=%i -> setting to 1\n", alignment_mm); // BUG-TODO
+				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==1 && alignment_mm=%i -> setting to 1 (%s)\n", alignment_mm, read_id); // BUG-TODO
 			alignment_mm=1 ;
 		}
 		if (_config.NUM_MISMATCHES==2 && alignment_mm>2)
 		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==2 && alignment_mm=%i -> setting to 2\n", alignment_mm); // BUG-TODO
+				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==2 && alignment_mm=%i -> setting to 2 (%s)\n", alignment_mm, read_id); // BUG-TODO
 			alignment_mm=2 ;
 		}
 		if (_config.NUM_GAPS==0 && alignment_gaps>0)
 		{ // same here for gaps
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_GAPS==0 && alignment_gaps=%i -> setting to 0\n", alignment_gaps); // BUG-TODO
+				fprintf(stderr, "Warning: _config.NUM_GAPS==0 && alignment_gaps=%i -> setting to 0 (%s)\n", alignment_gaps, read_id); // BUG-TODO
 			alignment_gaps=0 ;
 		}
 
@@ -5770,7 +5890,7 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 			used_variants = reconstruct_reference_alignment<myverbosity>(variant_list,found_variants, dna, ref_map, s_align, s_len, e_align, est_len_p, 
 																		 dna_align, est_align, result_length, remapping, 
 																		 alignment_passed_filters_var, alignment_gaps_var, alignment_mismatches_var,
-																		 variant_cache, _config.REPORT_USED_VARIANTS) ;
+																		 variant_cache, _config.REPORT_USED_VARIANTS, read.id()) ;
 
 			TIME_CODE(if (do_timing)
 						  _stats.variant_reconstruct_reference_alignment_time += clock() - my_start_time;) 
