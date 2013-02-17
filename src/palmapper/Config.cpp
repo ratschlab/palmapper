@@ -1,3 +1,8 @@
+// Authors: Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Dominik Diesch
+// Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -274,12 +279,12 @@ int Config::applyDefaults(Genome * genome)
 			}
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
 			{
-				SPLICED_HIT_MIN_LENGTH_LONG = (read_length/4<20) ? 20 : read_length/4 ;
+				SPLICED_HIT_MIN_LENGTH_LONG = INDEX_DEPTH ; // (read_length/4<20) ? 20 : read_length/4 ;
 				fprintf(stdout, " -L %i", SPLICED_HIT_MIN_LENGTH_LONG) ;
 			}
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING)
 			{
-				SPLICED_HIT_MIN_LENGTH_COMB = (read_length/2<30) ? 30 : read_length/2 ;
+				SPLICED_HIT_MIN_LENGTH_COMB = INDEX_DEPTH ; // (read_length/2<30) ? 30 : read_length/2 ;
 				if (SPLICED_HIT_MIN_LENGTH_COMB<SPLICED_HIT_MIN_LENGTH_LONG)
 					SPLICED_HIT_MIN_LENGTH_COMB=SPLICED_HIT_MIN_LENGTH_LONG ;
 				fprintf(stdout, " -C %i", SPLICED_HIT_MIN_LENGTH_COMB) ;
