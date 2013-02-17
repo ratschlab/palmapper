@@ -88,6 +88,18 @@ public:
 				
 			}
 		}
+	void reset_read_stats()
+	{
+		fprintf(stdout, "\nDate & time\t\t\tReads\t\t\tAligned Reads\t\t\tUnaligned Reads\t\t\t\tTime") ;
+		fprintf(stdout, "\n\t\t\t\t  M/h\t       #\ttotal\tunique\tspliced\t\ttotal\t[editop\tMM\tother]\t\t[seed\tUA\tSA\tJA\tother]") ;
+		read_stats_start=time(NULL)  ;
+		reads_time_step_size=5 ;
+		read_stats_seed_time=1;
+		read_stats_UA_time=1 ;
+		read_stats_SA_time=1 ;
+		read_stats_JA_time=0 ;
+		read_stats_other_time=0 ;
+	}
 
 	void print_read_stats(bool force=false)
 		{
@@ -98,19 +110,6 @@ public:
 				s[strlen(s)-1]=0;
 				
 				read_stats_last_report = time(NULL) ;
-				if (reads_processed<10)
-				{
-					fprintf(stdout, "\nDate & time\t\t\tReads\t\t\tAligned Reads\t\t\tUnaligned Reads\t\t\t\tTime") ;
-					fprintf(stdout, "\n\t\t\t\t  M/h\t       #\t\ttotal\tunique\tspliced\t\ttotal\t[editop\tMM\tother]\t\t[seed\tUA\tSA\tJA\tother]") ;
-					read_stats_start=time(NULL)  ;
-					reads_time_step_size=5 ;
-					read_stats_seed_time=1;
-					read_stats_UA_time=1 ;
-					read_stats_SA_time=1 ;
-					read_stats_JA_time=0 ;
-					read_stats_other_time=0 ;
-					return ;
-				}
 				if (difftime(time(NULL),read_stats_start)>10)
 					reads_time_step_size=10 ;
 				if (difftime(time(NULL),read_stats_start)>100)
@@ -120,7 +119,7 @@ public:
 				if (difftime(time(NULL),read_stats_start)>10000)
 					reads_time_step_size=600 ;
 				
-				fprintf(stdout, "\n%s\t%1.3f\t%8i\t%2.1f%%\t%2.1f%%\t%2.1f%%\t\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%\t\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%", s, 
+				fprintf(stdout, "\n%s\t%1.3f\t%8i\t%2.3f%%\t%2.1f%%\t%2.1f%%\t\t%2.3f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%\t\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%\t%2.1f%%", s, 
 						reads_processed*3600.0/difftime(time(NULL),read_stats_start)/1000000, reads_processed, 
 						100.0*reads_with_aligment/reads_processed, 100.0*reads_with_unique_alignment/reads_with_aligment,
 						100.0*reads_with_best_spliced_alignment/reads_with_aligment,
