@@ -6,7 +6,8 @@ the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
 
 Written (W) 2007-2009 Fabio De Bona, Andre Noll, Gunnar Raetsch
-Copyright (C) 2007-2009 Max-Planck-Society
+Copyright (C) 2007-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
 
 */
 
