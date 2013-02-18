@@ -521,6 +521,7 @@ template<enum index_type_t index_type> int Hits::seed2genome(unsigned int num, u
 				TIME_CODE(start_time = clock()) ;
 
 				// Check if there is already a chromosome director and get this or a new one
+
 				if (*(GENOME+genome_pos) == NULL) 
 				{
 				

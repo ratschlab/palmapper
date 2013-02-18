@@ -128,13 +128,36 @@ int Genome::alloc_index_memory()
 		INDEX_SIZE = _config.INDEX_SIZE_12 ;
 	if (_config.VERBOSE>0)
 		fprintf(stdout, "_config.INDEX_DEPTH=%i, INDEX_SIZE=%ld, sizeof(INDEX_ENTRY)=%ld, index size=%ld\n",  (int)_config.INDEX_DEPTH, (long int)INDEX_SIZE, (long int)sizeof(INDEX_ENTRY), (long int)sizeof(INDEX_ENTRY)*INDEX_SIZE) ;
+
+	if (_config.VERBOSE>0)
+		fprintf(stdout, "Allocating index memory\n") ;
 #endif
 
 	if ( (INDEX = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY)) ) == NULL) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (2)\n");
 		exit(1);
-	}
+		}
 
+	if (false)
+	{
+		time_t t=time(NULL) ;
+		bool did_output=false ;
+		for (size_t i=0; i<INDEX_SIZE; i+=INDEX_SIZE/1000)
+		{
+			if (difftime(time(NULL), t)>2)
+			{
+				fprintf(stderr, "Initializing index memory: %2.1f%%\r", (100.0*i)/INDEX_SIZE) ;
+				t=time(NULL) ;
+				did_output=true ;
+				fflush(stdout) ;
+			}
+			if (INDEX_SIZE-i>=INDEX_SIZE/1000)
+				memset(&INDEX[i], 0, sizeof(INDEX_ENTRY)*INDEX_SIZE/1000) ;
+		}
+		if (did_output)
+			fprintf(stderr, "Initializing index memory: 100%%\n") ;
+	}
+	
 	/*if ( _config.MAP_REVERSE && ((INDEX_REV = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY))) == NULL) ) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (3)\n");
 		exit(1);
@@ -283,7 +306,16 @@ int Genome::load_genome()
 #ifdef USE_CHR_BIN
 		fprintf(stdout, "using compact genome representation (class %s)\n", USE_CHR_BIN_CLASS::get_class_name()) ;
 #endif	
-
+	time_t t=time(NULL) ;
+	size_t total_len=0 ;
+	size_t cum_pos =0;
+	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) 
+	{
+		Chromosome &chr = _chromosomes[i];
+		total_len+=chr.length() ;
+	}
+	bool did_output=false ;
+	
 	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) 
 	{
 		Chromosome &chr = _chromosomes[i];
@@ -334,14 +366,23 @@ int Genome::load_genome()
 					exit(0);
 				} 
 			}
+			data[pos]=0 ;
+			if (difftime(time(NULL), t)>1)
+			{
+				t=time(NULL) ;
+				fprintf(stdout, "Reading genome sequence: %2.1f%%\r", 100.0*(cum_pos+pos)/total_len) ;
+				fflush(stdout) ;
+				did_output=true ;
+			}
 			
 			fp = (unsigned int)ftell(genome_fp);
 			if (fgets(line, 512, genome_fp) == NULL) break;
 		}
 		
 		data[chr.length()] = '\0';
-
-		if (chr.length() != strlen(data)) {
+		cum_pos+=pos ;
+		
+		if (chr.length() != strlen(data) || pos!=chr.length()) {
 			fprintf(stderr, "ERROR: Idx file seems to be corrupted. Chromosome %d has %d characters at the end! (%d %d)\n",i+1, (int)strlen(data)-chr.length(), (int)strlen(data), chr.length());
 			exit(1);
 		}
@@ -350,6 +391,8 @@ int Genome::load_genome()
 	}
 	
 	fclose(genome_fp);
+	if (did_output)
+		fprintf(stdout, "Reading genome sequence: %2.1f%%\n", 100.0) ;
 	
 	return 0;	
 }
@@ -505,12 +548,25 @@ int Genome::read_meta_index(FILE *META_INDEX_FP)
 	int used_slots = 0;
 	unsigned int index_offset = 0;//, index_rev_offset = 0;
 
+	time_t t=time(NULL) ;
+	bool did_output=false ;
+
 	while (fread(&file_entry, sizeof(file_entry), 1, META_INDEX_FP) == 1)
 	{
 	  //if (file_entry.slot < 0) continue;	//downcompatibility to previous GM versions 
 
 		used_slots++;
-
+		if (used_slots%10000==0)
+		{
+			//fprintf(stdout, "used_slots=%i, fpos=%ld, slot=%d\n", used_slots, ftell(META_INDEX_FP), file_entry.slot) ;
+			if (difftime(time(NULL), t)>1)
+			{
+				fprintf(stdout, "Reading Meta Index file: %2.1f%%\r", (100.0*file_entry.slot)/INDEX_SIZE) ;
+				did_output=true ;
+				t=time(NULL) ;
+				fflush(stdout) ;
+			}
+		}
 		index_offset += file_entry.num;
 
 		INDEX[file_entry.slot].num = file_entry.num;
@@ -519,7 +575,9 @@ int Genome::read_meta_index(FILE *META_INDEX_FP)
 		if (file_entry.num > MAX_POSITIONS)
 			MAX_POSITIONS = file_entry.num;
 	}
-
+	if (did_output)
+		fprintf(stdout, "Reading Meta Index file: 100%%\n") ;
+	
 	fclose(META_INDEX_FP);
 
   	return 0;
