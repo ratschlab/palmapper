@@ -1,6 +1,8 @@
 #pragma once
-// Authors: Korbinian Schneeberger, Stephan Ossowski, Joerg Hagmann, Gunnar Raetsch
+// Authors: Korbinian Schneeberger, Stephan Ossowski, Joerg Hagmann, Gunnar Raetsch, Dominik Diesch
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
 
 #include "shogun/init.h"
 #include "shogun/common.h"

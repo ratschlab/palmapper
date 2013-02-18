@@ -1,8 +1,9 @@
 // authors: Korbinian Schneeberger and Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
-// Authors: Gunnar R\"atsch and Lisa Thalheim
-// Copyright (C) 2008 by Friedrich Miescher Laboratory of the Max Planck Society
+// Authors: Gunnar R\"atsch, Lisa Thalheim, Dominik Diesch
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
 
 #include "palmapper.h"
 #include "print.h"
@@ -267,8 +268,10 @@ int main(int argc, char *argv[])
 
 	if (!_config.NO_READ_MAPPING)
 	  {
-	    if (_config.VERBOSE) { printf("Mapping reads\n"); }
-	    
+		  printf("Mapping reads with %i threads\n", _config.NUM_THREADS); 
+		  
+		  _stats.reset_read_stats() ;
+		  
 	    CSignal::set_handler() ;
 	    CSignal::toggle_show_read_ids(true) ;
 	    
@@ -291,6 +294,8 @@ int main(int argc, char *argv[])
 	    }
 	    reporter.done();
 	    CSignal::toggle_show_read_ids(false) ;
+
+		_stats.print_read_stats(true) ;
 	  }
 	else
 	  fprintf(stdout, "Not mapping reads ... \n") ;

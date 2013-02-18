@@ -58,10 +58,10 @@ inline igzstream& operator>>(igzstream & os, struct variant_str & a)
 	os.read((char*)&a.conf_count, sizeof(a.conf_count)) ;
 	os.read((char*)&a.non_conf_count, sizeof(a.non_conf_count)) ;
 
-	int size=0 ;
+	size_t size=0 ;
 	os.read((char*)&size, sizeof(size)) ;
 	{
-	  fprintf(stderr, "size1=%ld\n", (long int)size) ;
+		//fprintf(stderr, "size1=%ld\n", (long int)size) ;
 		char buf[size+1] ;
 		os.read(buf, size) ;
 		buf[size]=0 ;
@@ -71,12 +71,12 @@ inline igzstream& operator>>(igzstream & os, struct variant_str & a)
 	size=0 ;
 	os.read((char*)&size, sizeof(size)) ;
 	{
-	  fprintf(stderr, "size2=%ld, %i\n", (long int)size, a.position) ;
+		//fprintf(stderr, "size2=%ld, %i\n", (long int)size, a.position) ;
 		char buf[size+1] ;
 		os.read(buf, size) ;
 		buf[size]=0 ;
 		a.variant_str.assign(buf) ;
-		exit (-1) ;
+		//exit (-1) ;
 	}
 
 	size=0 ;
