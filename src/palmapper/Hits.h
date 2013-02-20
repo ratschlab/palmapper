@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <vector>
+#include <unordered_map>
 
 #include <palmapper/Config.h>
 #include <palmapper/Chromosome.h>
@@ -105,30 +106,40 @@ struct CHROMOSOME_ENTRY {
 };
 
 
+#ifdef HITS_ARRAY
+
 template <class T> class  MyArr {
 public:
-	MyArr(int size) {
+MyArr(int size): null(NULL) {
 		_accessCount = _accessCountConst = 0;
-		_array = new T[size];
-		memset(_array, 0, sizeof(T) * size);
+
+		 _array=(T*)calloc(size, sizeof(T)) ;
+		if (_array==NULL)
+		{
+			fprintf(stderr, "ERROR: could not allocate memory\n") ;
+			exit(-1) ;
+		} 
 	}
 
 	~MyArr() {
-		delete[] _array;
+		free(_array) ;
 	}
 
 	T const &operator[] (size_t index) const {
+		_accessCountConst++ ;
 		return _array[index];
 	}
 
 	T &operator[] (size_t index) {
+		_accessCount++ ;
 		_used.push_back(index);
 		return _array[index];
 	}
 
-	T const *operator + (int size) const {
+	T const *operator + (int size) {
+		assert(size>=0) ;
 		return &(*this)[size];
-	}
+		}   
 
 	int accesssCountConst() const {
 		return _accessCountConst;
@@ -149,7 +160,42 @@ private:
 	mutable int _accessCountConst;
 	mutable int _accessCount;
 	T *_array;
+	const T * null ;
 };
+
+#else
+
+template <class T> class  MyArr {
+public:
+MyArr(int size) {
+	}
+
+	~MyArr() {
+		_map.clear() ;
+	}
+
+	T &operator[] (size_t index) {
+		if (_map.count(index)==0) 
+			_map[index]=NULL ;
+		return _map[index] ;
+	}
+
+	T const *operator + (int size) {
+		assert(size>=0) ;
+		if (_map.count(size)==0) 
+			_map[size]=NULL ;
+		return &(*this)[size];
+		}   
+
+	void clear() {
+		_map.clear() ;
+	}
+
+private:
+	std::unordered_map<size_t,T> _map ;
+};
+
+#endif
 
 typedef MyArr<CHROMOSOME_ENTRY*> GenomeArr;
 //typedef GenomeMap<CHROMOSOME_ENTRY*> GenomeArr;

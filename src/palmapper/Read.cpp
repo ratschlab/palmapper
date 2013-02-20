@@ -203,6 +203,16 @@ int Read::read_short_read(bool & passed_first_read, bool & passed_last_read)
 			exit(0);
 		}
 
+		/* std::string _read=READ ;
+		size_t pos=_read.find("CTGTAGGC", 0) ;
+		while (pos!=std::string::npos && _read.find("CTGTAGGC", pos+1)!=std::string::npos) 
+			pos=_read.find("CTGTAGGC", pos+1) ;
+		if (pos!=std::string::npos && pos>_config.INDEX_DEPTH)
+		{
+			READ[pos]=0 ;
+			READ_QUALITY[0][pos]=0 ;
+			}*/
+
 		READ_LENGTH = strlen(READ);
 		
 		if (strlen(READ_QUALITY[0]) != READ_LENGTH) {

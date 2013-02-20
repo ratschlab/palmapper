@@ -64,10 +64,10 @@ void fast_fill_matrix<false,false>(int nr_paths_par, int*max_score_positions, in
 
 int number_fill_matrix;
 
-static const int MAX_SPLICE_MISMATCH_QUAL_SINGLE=30 ;
-static const int MAX_SPLICE_MISMATCH_QUAL_TOTAL=60 ;
-static const int MAX_SPLICE_MISMATCH_QUAL_EXTEND=2 ;
-static const int MAX_SPLICE_MISMATCH_NUM_N=2 ;
+static const int MAX_SPLICE_MISMATCH_QUAL_SINGLE=40 ;
+static const int MAX_SPLICE_MISMATCH_QUAL_TOTAL=80 ;
+static const int MAX_SPLICE_MISMATCH_QUAL_EXTEND=3 ;
+static const int MAX_SPLICE_MISMATCH_NUM_N=3 ;
 
 #include "fill_matrix.h"
 #include "debug_tools.h"
@@ -577,14 +577,16 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 		int num_N=0 ;
 		int num_mismatch_score=0 ;
 		int num_mismatch_extend=0 ;
-		int pos_i=i+prev_shift;
-		int pos_j=j+prev_shift;
-		for (int mn=1; mn<=diff_i; mn++)
+		int pos_i=i + prev_shift;
+		int pos_j=j + prev_shift;
+		for (int mn=1; mn<=diff_i; mn++) // BUG-TODO -> leads to these warnings: Warning: _config.NUM_MISMATCHES==0 && alignment_mm=1 -> setting to 0 
+			// couldn't figure out how to fix it
+			// either one end of the exon had a mismatch too much or another end
 		{
 			// fprintf(stdout,"[check_min_matches] From position %i-%i with %c-%c\n",pos_i,pos_j,read[pos_i],dna[pos_j]);
 			if (pos_i<0 || pos_j<0 || pos_i>=read_len || pos_j>=dna_len)
 			{
-				fprintf(stderr,"ERROR: [check_min_matches] out of bounds\n");
+				fprintf(stdout,"ERROR: [check_min_matches] out of bounds\n");
 				conserved_seq=false ;
 				break ;
 			}
@@ -622,7 +624,7 @@ int check_min_matches(SeedElem* seed, int nr_paths, int matrix_position, int min
 
 		if (!conserved_seq && num>=min_matches+num_N && num_N<=MAX_SPLICE_MISMATCH_NUM_N){
 			//if (verbosity>0)
-				fprintf(stderr,"ERROR: [check_min_matches] PROBLEM with number of matches from position %i-%i (%i for %i) with %i N\n",i,j,num,min_matches,num_N);
+				fprintf(stdout,"ERROR: [check_min_matches] PROBLEM with number of matches from position %i-%i (%i for %i) with %i N\n",i,j,num,min_matches,num_N);
 		}
 		if (isnotminusinf(prevValue) && conserved_seq)
 		{

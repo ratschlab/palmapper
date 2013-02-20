@@ -197,7 +197,7 @@ Config::Config() {
 	FILTER_VARIANT_VLEN = 50 ;
 	FILTER_VARIANT_MAXLEN=-1 ;
 	FILTER_VARIANT_JUNCTIONS=false ;
-	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
+	// FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	VARIANT_SNP_TAKE_LINES.push_back("*") ;
 	DP_MAX_DELETIONS = 2 ;
 

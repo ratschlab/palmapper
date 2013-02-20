@@ -18,7 +18,7 @@ const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
 static const bool perform_extra_checks = true ;
 static const std::string verbose_read_id = "C0HTRACXX120406:3:1301:16294:65782"  ;
-static const int verbose_read_level = 1 ;
+static const int verbose_read_level = 0 ;
 
 #define TIME_CODE(x)
 
@@ -1021,7 +1021,7 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 		add_const_to_plif(qualityPlifs[24+5], 10) ;*/
 		
 		int num_qpalma_score_fixes=check_qpalma_scores(qualityPlifs, num_qualityPlifs, matchmatrix, verbosity) ;
-		if (num_qpalma_score_fixes>0 && verbosity>0)
+		if (num_qpalma_score_fixes>0 && verbosity>=0)
 			fprintf(stdout, "Warning: fixed %i qpalma score elements\n", num_qpalma_score_fixes) ;
 		assert(check_qpalma_scores(qualityPlifs, num_qualityPlifs, matchmatrix, 0)==0) ;
 
@@ -3474,6 +3474,8 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 		
 		if (consensus_alignment && (consensus_alignment->passed_filters || non_consensus_search))
 		{
+			if (myverbosity>=1)
+				fprintf(stdout, "added one consensus alignment\n") ;
 			readMappings.topAlignments().add_alignment_record(consensus_alignment, 1) ;
 			num_alignments_reported++ ;
 			if (non_consensus_alignment)
@@ -3483,6 +3485,8 @@ int QPalma::perform_alignment_starter_single(Result &result, Hits &readMappings,
 		{
 			if (non_consensus_alignment && non_consensus_alignment->passed_filters)
 			{
+				if (myverbosity>=1)
+					fprintf(stdout, "added one nonconsensus alignment\n") ;
 				readMappings.topAlignments().add_alignment_record(non_consensus_alignment, 1) ;
 				num_alignments_reported++ ;
 			}
@@ -4524,25 +4528,25 @@ int QPalma::reconstruct_reference_alignment(std::vector<Variant> & variants, con
 		if (_config.NUM_MISMATCHES==0 && alignment_mm>0)
 		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==0 && alignment_mm=%i -> setting to 0 (%s)\n", alignment_mm, read_id); // BUG-TODO
+				fprintf(stdout, "Warning: _config.NUM_MISMATCHES==0 && alignment_mm=%i -> setting to 0 (%s)\n", alignment_mm, read_id); // BUG-TODO
 			alignment_mm=0 ;
 		}
 		if (_config.NUM_MISMATCHES==1 && alignment_mm>1)
 		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==1 && alignment_mm=%i -> setting to 1 (%s)\n", alignment_mm, read_id); // BUG-TODO
+				fprintf(stdout, "Warning: _config.NUM_MISMATCHES==1 && alignment_mm=%i -> setting to 1 (%s)\n", alignment_mm, read_id); // BUG-TODO
 			alignment_mm=1 ;
 		}
 		if (_config.NUM_MISMATCHES==2 && alignment_mm>2)
 		{ // in this case the DP found a non-mismatch version, but somehow the subsequent processing determines that there are mismatches
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_MISMATCHES==2 && alignment_mm=%i -> setting to 2 (%s)\n", alignment_mm, read_id); // BUG-TODO
+				fprintf(stdout, "Warning: _config.NUM_MISMATCHES==2 && alignment_mm=%i -> setting to 2 (%s)\n", alignment_mm, read_id); // BUG-TODO
 			alignment_mm=2 ;
 		}
 		if (_config.NUM_GAPS==0 && alignment_gaps>0)
 		{ // same here for gaps
 			if (myverbosity>=1 || perform_extra_checks)
-				fprintf(stderr, "Warning: _config.NUM_GAPS==0 && alignment_gaps=%i -> setting to 0 (%s)\n", alignment_gaps, read_id); // BUG-TODO
+				fprintf(stdout, "Warning: _config.NUM_GAPS==0 && alignment_gaps=%i -> setting to 0 (%s)\n", alignment_gaps, read_id); // BUG-TODO
 			alignment_gaps=0 ;
 		}
 
@@ -6061,9 +6065,9 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		if (myverbosity >= 2)
 		{
 			fprintf(stdout,
-					"# alignment (%i/%i) with %i exons found for %s (score=%1.3f  matches=%i  gaps=%i strand=%c): %s\npassed filters:%i\n",
+					"# alignment (%i/%i) with %i exons found for %s (score=%1.3f  ref_matches=%i  ref_mismatches=%i  ref_gaps=%i strand=%c): %s\npassed filters:%i\n",
 					non_consensus_search,non_consensus_alignment, (int) exons.size() / 2, read.id(), alignscore,
-					alignment_matches_ref, alignment_gaps_ref, strand, read_anno_ref.c_str(), alignment_passed_filters_ref?1:0);
+					alignment_matches_ref, alignment_mismatches_ref, alignment_gaps_ref, strand, read_anno_ref.c_str(), aln->passed_filters?1:0);
 			for (size_t i = 0; i < exons.size(); i += 2)
 				fprintf(stdout, "# exon %i: %i - %i\n", (int)i / 2, exons[i], exons[i+ 1]);
 		}
