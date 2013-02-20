@@ -1021,7 +1021,7 @@ int QPalma::init_spliced_align(const char *fname, struct penalty_struct &h,
 		add_const_to_plif(qualityPlifs[24+5], 10) ;*/
 		
 		int num_qpalma_score_fixes=check_qpalma_scores(qualityPlifs, num_qualityPlifs, matchmatrix, verbosity) ;
-		if (num_qpalma_score_fixes>0 && verbosity>0)
+		if (num_qpalma_score_fixes>0 && verbosity>=0)
 			fprintf(stdout, "Warning: fixed %i qpalma score elements\n", num_qpalma_score_fixes) ;
 		assert(check_qpalma_scores(qualityPlifs, num_qualityPlifs, matchmatrix, 0)==0) ;
 
