@@ -2824,7 +2824,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 	// Current regions correspond to regions around the junction
 	std::vector<region_t *> current_regions;
-	//Positions are real positions corresponding to current regions
+	// Positions are real positions corresponding to current regions
 	std::vector<int> current_positions;
 	
 	int num_alignments_reported = 0 ;
@@ -2876,6 +2876,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 				// find a lower bound on the index with binary search
 				junctionmap.lock() ;
 				//std::deque<Junction>::iterator it = junctionmap.junctionlist[chrN].begin();
+                
+                // do recursive combination of junctions depending on number of allowed introns
 				std::deque<Junction>::iterator it = my_lower_bound(junctionmap.junctionlist[chrN].begin(), junctionmap.junctionlist[chrN].end(), rstart_-1000) ;
 				junctionmap.unlock() ;
 				
@@ -2919,14 +2921,11 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					//Overlapping junction
 					if ( (rstart >= int1_start and rend <= int1_end+junction_tol+1) or (rstart >= int2_start-junction_tol and rend <= int2_end+1))
 					{
+                        // correct for junction tolerance
 						if (rstart >= int1_start and !(rend <= int1_end+1) and (rend <= int1_end+junction_tol+1)){
-							
 							rend=int1_end+1 ;
-
 						}
-						
 						if (!(rstart >= int2_start) and rend <= int2_end+1 and (rstart >= int2_start-junction_tol)){
-							
 							rstart=int2_start ;
 						}
 						
@@ -2962,7 +2961,6 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						new_region2.read_pos = -111 ; // TODO
 						new_region2.hit_len = -111 ;  // TODO					
 						
-
 						current_regions.push_back(&new_region1);
 						current_regions.push_back(&new_region2);
 						
@@ -2985,19 +2983,18 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 								current_seq.push_back(chr[p]) ;							
 							}
 							
-							
 							//Take the first long region  to start alignment
 							int hit_read_position = get_first_read_map(read, this_long_regions[nregion]->read_map);
 							if (ori==0)
 								hit_read_position += (rstart - rstart_);
 							else
-								hit_read_position += (rend_-rend);
+								hit_read_position += (rend_ - rend);
 							
-							int hit_len= rend - rstart ; //this_long_regions[nregion]->end-this_long_regions[nregion]->start;
+							int hit_len = rend - rstart ; // rend is open interval //this_long_regions[nregion]->end-this_long_regions[nregion]->start;
 							
 							
 							if(ori==1){
-								hit_read_position = read.length()-hit_len-hit_read_position +1;
+								hit_read_position = read.length() - hit_len - hit_read_position + 1;
 							}
 							
 							if (perform_extra_checks)
@@ -3041,7 +3038,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 								ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
 																		current_seq, current_regions, current_positions, 
 																		chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
-																		rend /*this_long_regions[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
+																		rend /*this_long_regions[nregion]->end*/ -1, 
+                                                                        hit_len, false, num_alignments_reported, true, 
 																		annotatedjunctions, variants, myverbosity);
 							}
 						}
@@ -3356,33 +3354,25 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 											  bool non_consensus_search, int& num_alignments_reported, bool remapping, 
 											  JunctionMap &annotatedjunctions, VariantMap & variants, int myverbosity) const
 {
+
+    std::map<int, int> variant_positions;
 	if (!_config.USE_VARIANTS)
 	{
 		std::vector<Variant> variant_list ;
-		std::map<int, int> variant_positions;
-		
-		return perform_alignment_starter_single(result, readMappings, 
-												read_string, read_quality, 
-												dna, current_regions, positions, 
-												contig_idx, strand, ori,
-												hit_read_position, hit_dna_position, hit_length, 
-												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list, variant_positions, myverbosity) ;
-	}
-	else
-	{
-		std::map<int, int> variant_positions;
+    }
+    else
+    {
 		const bool do_timing = false ;
 		std::vector<Variant> variant_list = identify_variants<do_timing>(dna, positions, contig_idx, variants, variant_positions) ;
-
-		return perform_alignment_starter_single(result, readMappings, 
-												read_string, read_quality, 
-												dna, current_regions, positions, 
-												contig_idx, strand, ori,
-												hit_read_position, hit_dna_position, hit_length, 
-												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list, variant_positions, myverbosity) ;
-	}
+    }
+		
+    return perform_alignment_starter_single(result, readMappings, 
+                                            read_string, read_quality, 
+                                            dna, current_regions, positions, 
+                                            contig_idx, strand, ori,
+                                            hit_read_position, hit_dna_position, hit_length, 
+                                            non_consensus_search, num_alignments_reported, remapping, 
+                                            annotatedjunctions, variants, variant_list, variant_positions, myverbosity) ;
 } 
 
 // TODO: dd remove relicts from multithreading
