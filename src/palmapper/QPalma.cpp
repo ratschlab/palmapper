@@ -1253,6 +1253,12 @@ int QPalma::get_string_from_region(Chromosome const &chrN, region_t *region, std
 
 	int32_t length = region->end - region->start;
 
+    if (length > chrN.length()) {
+        fprintf(stderr, "Warning: BUG-TODO: region length (%i) larger than chromosome length (%i) of chr nr %i - shortened region!\n", length, chrN.length(), chrN.nr());
+        length = (int32_t) chrN.length();
+        region->end = region->start + chrN.length();
+    }
+
 	str.assign("") ;
 	for (int i=0; i<length; i++)
 		str.push_back(chrN[region->start+i]) ;

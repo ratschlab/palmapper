@@ -363,7 +363,7 @@ public:
 					str[i] = 'N';
 				else
 				{
-					fprintf(stderr, "Invalid letter %c in %s\n", c, str.c_str()) ;
+                    fprintf(stderr, "Invalid letter %c (ascii %i) at position %i (of %i) in %s\n", c, int(c), i, (int) str.length(), str.c_str()) ;
 					assert(0);
 				}
 			}
