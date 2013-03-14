@@ -57,7 +57,7 @@ void VariantMap::filter_variants_junctions(JunctionMap & junctionmap)
     {
 		//fprintf(stdout, ".") ;
 		std::vector<short int> map(genome->chromosome(i).length(), 0) ;
-		std::deque<Junction> & junctions = junctionmap.junctionlist[i] ;
+		std::deque<Junction> & junctions = junctionmap.junctionlist_by_start[i] ;
 		std::deque<Junction>::iterator it=junctions.begin() ;
 		for (;it!=junctions.end(); it++)
 		{

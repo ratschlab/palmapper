@@ -39,7 +39,8 @@ public:
 	int report_to_gff(std::string &gff_fname);
 	void filter_junctions(int min_coverage, int min_junction_qual, int filter_by_map, const GenomeMaps & genomemaps, int verbosity);
 
-	std::deque<Junction> * junctionlist ;
+	std::deque<Junction> * junctionlist_by_start ;
+	std::deque<Junction> * junctionlist_by_end ;
 
 	void lock() 
 	{ 
@@ -67,7 +68,7 @@ protected:
 
 };
 
-inline std::deque<Junction>::iterator  my_lower_bound ( std::deque<Junction>::iterator first, std::deque<Junction>::iterator  last, const int& value )
+inline std::deque<Junction>::iterator  my_lower_bound_by_start ( std::deque<Junction>::iterator first, std::deque<Junction>::iterator  last, const int& value )
 {
 	std::deque<Junction>::iterator it;
 	long int count, step;
@@ -87,4 +88,48 @@ inline std::deque<Junction>::iterator  my_lower_bound ( std::deque<Junction>::it
 		else count=step;
 	}
 	return first;
+}
+
+inline std::deque<Junction>::iterator  my_lower_bound_by_end ( std::deque<Junction>::iterator first, std::deque<Junction>::iterator  last, const int& value )
+{
+	std::deque<Junction>::iterator it;
+	long int count, step;
+	count = distance(first,last);
+
+	while (count>0)
+	{
+		it = first;
+		step = count/2;
+		advance (it,step);
+		
+		if ( (*it).end < value) 
+		{
+			first=it; //++it;
+			count-=step+1;
+		}
+		else count=step;
+	}
+	return first;
+}
+
+
+inline int get_combination_span ( std::vector<std::deque<Junction>::iterator> combination, bool ascending)
+{
+    if (combination.size() < 2)
+        return 0;
+
+    int span = 0;
+    // this assumes that the vector is sorted by ascending /descending (parameter)
+    if (ascending) {
+        for (size_t i = 0; i < combination.size() - 1; i++) {
+            assert(combination.at(i+1)->start > combination.at(i)->end);
+            span += (combination.at(i+1)->start - combination.at(i)->end - 1);
+        }
+    } else {
+        for (size_t i = combination.size() - 1; i > 0; i--) {
+            assert(combination.at(i)->start > combination.at(i-1)->end);
+            span += (combination.at(i)->start - combination.at(i-1)->end - 1);
+        }
+    }
+    return span;
 }

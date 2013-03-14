@@ -81,7 +81,8 @@ JunctionMap::JunctionMap(Genome const &genome_, int anno_pseudo_coverage_,
 	genome = &genome_ ;
 	unsigned int nbchr = genome->nrChromosomes();
 	
-	junctionlist = new std::deque<Junction>[nbchr];
+	junctionlist_by_start = new std::deque<Junction>[nbchr];
+	junctionlist_by_end = new std::deque<Junction>[nbchr];
 	
 	anno_pseudo_coverage = anno_pseudo_coverage_ ;
 	
@@ -97,10 +98,13 @@ JunctionMap::JunctionMap(Genome const &genome_, int anno_pseudo_coverage_,
 
 JunctionMap::~JunctionMap()
 {
-	for (unsigned int i=0; i< genome->nrChromosomes(); i++)
-		junctionlist[i].clear();
+	for (unsigned int i=0; i< genome->nrChromosomes(); i++) {
+		junctionlist_by_start[i].clear();
+		junctionlist_by_end[i].clear();
+    }
 	
-	delete[] junctionlist;	
+	delete[] junctionlist_by_start;	
+	delete[] junctionlist_by_end;	
 }
 
 
@@ -125,31 +129,42 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual, int 
 	int N=0, T=0 ;
 	for (unsigned int chr=0; chr < genome->nrChromosomes(); chr++)
 	{
-		if (junctionlist[chr].empty())
+        assert(junctionlist_by_start[chr].size() == junctionlist_by_end[chr].size()) ;
+
+		if (junctionlist_by_start[chr].empty())
 			continue;
 		
 		// create copy of list
-		std::deque<Junction>::iterator it=junctionlist[chr].begin(); 
-		std::deque<Junction> list  ;
-		while (!junctionlist[chr].empty() and it!=junctionlist[chr].end())
+		std::deque<Junction>::iterator it_s = junctionlist_by_start[chr].begin(); 
+		std::deque<Junction>::iterator it_e = junctionlist_by_end[chr].begin(); 
+		std::deque<Junction> list_s  ;
+		std::deque<Junction> list_e  ;
+		while (!junctionlist_by_start[chr].empty() and it_s != junctionlist_by_start[chr].end())
 		{
-			list.push_back(*it) ;
-			it++ ;
+			list_s.push_back(*it_s) ;
+			it_s++ ;
 		}
-		junctionlist[chr].clear() ;
-
-		it=list.begin(); 
-		
-		while (!list.empty() and it!=list.end())
+		junctionlist_by_start[chr].clear() ;
+		while (!junctionlist_by_end[chr].empty() and it_e != junctionlist_by_end[chr].end())
 		{
-			assert((*it).coverage>=0);
+			list_e.push_back(*it_e) ;
+			it_e++ ;
+		}
+		junctionlist_by_end[chr].clear() ;
+
+        // filter junction list sorted by end
+        // do all the counting for the filter step on list_s, junctions are anyway the same
+		it_e = list_e.begin(); 
+		while (!list_e.empty() and it_e != list_e.end())
+		{
+			assert((*it_e).coverage>=0);
 
 			bool take = true ;
-			if ((*it).junction_qual<min_junction_qual)
+			if ((*it_e).junction_qual<min_junction_qual)
 				take = false ;
-			if ((*it).coverage<min_coverage)
+			if ((*it_e).coverage<min_coverage)
 				take = false ;
-			if (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && min_junction_qual!=0 && (!(*it).consensus))
+			if (((*it_e).coverage < 2*min_coverage || ((*it_e).junction_qual<30)) && min_junction_qual!=0 && (!(*it_e).consensus))
 				take = false ;
 
 			if (take && filter_by_map>=0)
@@ -157,10 +172,44 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual, int 
 				bool map=false ;
 				for (int p=-filter_by_map; p<=filter_by_map && !map; p++)
 				  {
-				    if ((*it).start+p>=0 && (*it).start+p<(int)genome->chromosome(chr).length())
-				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it).start+p) ;
-				    if ((*it).end+p>=0 && (*it).end+p<(int)genome->chromosome(chr).length())
-				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it).end+p) ;
+				    if ((*it_e).start+p>=0 && (*it_e).start+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it_e).start+p) ;
+				    if ((*it_e).end+p>=0 && (*it_e).end+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it_e).end+p) ;
+				  }
+				if (!map)
+				  take=false ;
+			}
+            if (take) {
+				junctionlist_by_end[chr].push_back(*it_e) ;
+			}
+			it_e++;
+		}
+
+        // filter junction list sorted by start
+        // do all the counting here
+		it_s = list_s.begin(); 
+		while (!list_s.empty() and it_s != list_s.end())
+		{
+			assert((*it_s).coverage>=0);
+
+			bool take = true ;
+			if ((*it_s).junction_qual<min_junction_qual)
+				take = false ;
+			if ((*it_s).coverage<min_coverage)
+				take = false ;
+			if (((*it_s).coverage < 2*min_coverage || ((*it_s).junction_qual<30)) && min_junction_qual!=0 && (!(*it_s).consensus))
+				take = false ;
+
+			if (take && filter_by_map>=0)
+			{
+				bool map=false ;
+				for (int p=-filter_by_map; p<=filter_by_map && !map; p++)
+				  {
+				    if ((*it_s).start+p>=0 && (*it_s).start+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it_s).start+p) ;
+				    if ((*it_s).end+p>=0 && (*it_s).end+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it_s).end+p) ;
 				  }
 				if (!map)
 				  take=false ;
@@ -168,27 +217,27 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual, int 
 			
 			if (!take)
 			{
-				if ((*it).consensus)
+				if ((*it_s).consensus)
 					filtered_consensus++ ;
 				else
 					filtered_nonconsensus++ ;
 			}
 			else
 			{
-				if ((*it).consensus)
+				if ((*it_s).consensus)
 					used_consensus++ ;
 				else
 					used_nonconsensus++ ;
 				
-				junctionlist[chr].push_back(*it) ;
+				junctionlist_by_start[chr].push_back(*it_s) ;
 			}
-			it++;
+			it_s++;
 		}
 		int n=filtered_consensus+filtered_nonconsensus+used_consensus+used_nonconsensus ;
 		int t=used_consensus+used_nonconsensus ;
 		if (verbosity>0)
 		  fprintf(stdout, "%s: analyzed %i junctions, accepted %i junctions (%2.1f%%)\n", genome->chromosome(chr).desc(), n, t, 100.0*t/n) ;
-		total+=junctionlist[chr].size();
+		total+=junctionlist_by_start[chr].size();
 		N+=n ;
 		T+=t ;
 	}
@@ -202,9 +251,7 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual, int 
 	
 bool comp_junction(std::deque<Junction>::iterator &a, std::deque<Junction>::iterator & b)
 {
-	if ((*a).start<(*b).start)
-		return true ;
-	return false ;
+	return ((*a).start<(*b).start);
 }
 
 void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool consensus,  const char* intron_string,
@@ -219,103 +266,140 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 	if (junction_qual<0) // annotation
 		junction_qual = anno_pseudo_coverage ;
 
+    // init junction j, in most cases we use this junction
+    j.start = start;
+    j.end = end;
+    j.coverage = coverage;
+    j.strand = strand;
+    j.consensus = consensus ;
+    j.intron_string = intron_string;
+    j.read_id = read_id ;
+    j.junction_qual = junction_qual ;
+
 	//fprintf(stdout,"%c %i %i %i\n",strand, chr, start, end);
-	if (junctionlist[chr].empty())
+	if (junctionlist_by_start[chr].empty())
 	{
-		j.start=start;
-		j.end=end;
-		j.coverage=coverage;
-		j.strand=strand;
-		j.consensus=consensus ;
-		j.intron_string = intron_string ;
-		j.read_id = read_id ;
-		j.junction_qual = junction_qual ;
-		junctionlist[chr].push_back(j);
+		junctionlist_by_start[chr].push_back(j);
+		junctionlist_by_end[chr].push_back(j);
 
 		unlock() ;
 		return;
 		
 	}
 
-	std::deque<Junction>::iterator it = my_lower_bound(junctionlist[chr].begin(), junctionlist[chr].end(), start) ;
-	//std::deque<Junction>::iterator it = junctionlist[chr].begin() ;
-	
-	for (; it!=junctionlist[chr].end(); it++)
+	std::deque<Junction>::iterator it_s = my_lower_bound_by_start(junctionlist_by_start[chr].begin(), junctionlist_by_start[chr].end(), start) ;
+	std::deque<Junction>::iterator it_e = my_lower_bound_by_end(junctionlist_by_end[chr].begin(), junctionlist_by_end[chr].end(), end) ;
+
+    // first handle list sorted by end
+    bool handled = false;
+    for (; it_e != junctionlist_by_end[chr].end(); it_e++)
 	{
-		if (start <  (*it).start)
+		if (end <  (*it_e).end)
 		{
-			j.start=start;
-			j.end=end;
-			j.coverage=coverage;
-			j.strand=strand;
-			j.consensus = consensus ;
-			j.intron_string = intron_string ;
-			j.read_id = read_id ;
-			j.junction_qual = junction_qual ;
-			junctionlist[chr].insert(it,j);
+			junctionlist_by_end[chr].insert(it_e, j);
+            handled = true;
+            break;
+		}
+		if (end ==  (*it_e).end)
+		{
+			if (start < (*it_e).start)
+			{
+				junctionlist_by_end[chr].insert(it_e, j);
+                handled = true;
+                break;
+			}
+
+			if (start == (*it_e).start)
+			{
+				if (strand == (*it_e).strand)
+				{
+					if ((*it_e).consensus != consensus)
+					{
+						fprintf(stderr, "ERROR: consensus mismatch:\n%s:\t%i-%i %c %i %i %i\n%s:\t%i-%i %c %i %i %i\n", 
+								(*it_e).read_id.c_str(), (*it_e).start, (*it_e).end, (*it_e).strand, (*it_e).coverage, (*it_e).consensus, (*it_e).junction_qual,
+								read_id, start, end, strand, coverage, consensus, junction_qual) ;
+						
+						if (!consensus) // try to handle this case 
+							(*it_e).consensus=false ;
+					}
+					if (junction_qual > (*it_e).junction_qual)
+					{
+						(*it_e).junction_qual = junction_qual ;
+						(*it_e).read_id = read_id ;
+					}
+					
+					if ((*it_e).coverage!=0 && coverage!=0)
+						(*it_e).coverage += coverage;
+					else
+						(*it_e).coverage = 0;
+                    handled = true;
+					break ;
+				}
+				if (strand == '+')
+				{
+					junctionlist_by_end[chr].insert(it_e, j);
+                    handled = true;
+                    break;
+				}
+			}
+		}
+		continue;
+	}
+    if (!handled)
+        junctionlist_by_end[chr].push_back(j);
+
+    // handle list sorted by start
+	for (; it_s !=junctionlist_by_start[chr].end(); it_s++)
+	{
+		if (start <  (*it_s).start)
+		{
+			junctionlist_by_start[chr].insert(it_s, j);
 
 			unlock() ;
 			return;
 		}
-		if (start ==  (*it).start)
+		if (start ==  (*it_s).start)
 		{
-			if (end < (*it).end)
+			if (end < (*it_s).end)
 			{
-				j.start=start;
-				j.end=end;
-				j.coverage=coverage;
-				j.strand=strand;
-				j.consensus = consensus ;
-				j.intron_string = intron_string ;
-				j.read_id = read_id ;
-				j.junction_qual = junction_qual ;
-				junctionlist[chr].insert(it,j);
+				junctionlist_by_start[chr].insert(it_s, j);
 
 				unlock() ;
 				return;
 			}
-			
 
-			if (end == (*it).end)
+			if (end == (*it_s).end)
 			{
-				if (strand == (*it).strand)
+				if (strand == (*it_s).strand)
 				{
-					if ((*it).consensus!=consensus)
+					if ((*it_s).consensus != consensus)
 					{
 						fprintf(stderr, "ERROR: consensus mismatch:\n%s:\t%i-%i %c %i %i %i\n%s:\t%i-%i %c %i %i %i\n", 
-								(*it).read_id.c_str(), (*it).start, (*it).end, (*it).strand, (*it).coverage, (*it).consensus, (*it).junction_qual,
+								(*it_s).read_id.c_str(), (*it_s).start, (*it_s).end, (*it_s).strand, (*it_s).coverage, (*it_s).consensus, (*it_s).junction_qual,
 								read_id, start, end, strand, coverage, consensus, junction_qual) ;
 
 						//assert(0) ; // this should not happen -> please report this bug and try commenting out the assertion
 						
 						if (!consensus) // try to handle this case 
-							(*it).consensus=false ;
+							(*it_s).consensus = false ;
 					}
-					if (junction_qual > (*it).junction_qual)
+					if (junction_qual > (*it_s).junction_qual)
 					{
-						(*it).junction_qual=junction_qual ;
-						(*it).read_id=read_id ;
+						(*it_s).junction_qual = junction_qual ;
+						(*it_s).read_id = read_id ;
 					}
 					
-					if ((*it).coverage!=0 && coverage!=0)
-						(*it).coverage += coverage;
+					if ((*it_s).coverage!=0 && coverage!=0)
+						(*it_s).coverage += coverage;
 					else
-						(*it).coverage = 0;
+						(*it_s).coverage = 0;
 					unlock() ;
 
 					return;
 				}
 				if (strand == '+')
 				{
-					j.start=start;
-					j.end=end;
-					j.coverage=coverage;
-					j.consensus = consensus ;
-					j.intron_string = intron_string ;
-					j.strand = strand;
-					j.read_id = read_id ;
-					j.junction_qual = junction_qual ;
-					junctionlist[chr].insert(it,j);
+					junctionlist_by_start[chr].insert(it_s, j);
 
 					unlock() ;
 					return;
@@ -325,16 +409,7 @@ void JunctionMap::insert_junction(char strand, int chr, int start, int end, bool
 		continue;
 	}
 
-	j.start=start;
-	j.end=end;
-	j.coverage=coverage;
-	j.strand=strand;
-	j.consensus = consensus ;
-	j.intron_string = intron_string ;
-	j.read_id = read_id ;
-	j.junction_qual = junction_qual ;
-	junctionlist[chr].push_back(j);
-
+	junctionlist_by_start[chr].push_back(j);
 
 	unlock() ;
 	return ;
@@ -605,7 +680,7 @@ int JunctionMap::report_to_gff(std::string &gff_fname)
 		const char * chr= genome->get_desc(i);
 		std::deque<Junction>::iterator it;
 		
-		for (it=junctionlist[i].begin(); it!=junctionlist[i].end(); it++){			
+		for (it=junctionlist_by_start[i].begin(); it!=junctionlist_by_start[i].end(); it++){			
 			fprintf(fd,"%s\tpalmapper\tintron\t%i\t%i\t.\t%c\t.\tID=intron_%i;Confirmed=%i;BestSplit=%i;ReadID=%s",
 					chr,(*it).start,(*it).end,(*it).strand,nb_introns,(*it).coverage, (*it).junction_qual, (*it).read_id.c_str());
 			if (!(*it).consensus)
