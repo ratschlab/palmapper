@@ -95,9 +95,13 @@ Genome::Genome(int numChromosomes) {
 }
 
 Genome::~Genome() {
+	fprintf(stdout, "Freeing Genome\n") ;
+	
 	delete[] _chromosomes;
-	free(INDEX);
-	free(BLOCK_TABLE);
+	if (INDEX)
+		free(INDEX);
+	if (BLOCK_TABLE)
+		free(BLOCK_TABLE);
 
 #ifndef PMINDEX 
 	if (_config.BWA_INDEX == 1)
@@ -181,7 +185,10 @@ int Genome::load_genome()
 	unsigned int linelen;
 
 	//std::vector<Chromosome> chromosomes ;
-	_chromosomes = new Chromosome[10000] ;//NUM_CHROMOSOMES];
+	if (NUM_CHROMOSOMES>0)
+		_chromosomes = new Chromosome[NUM_CHROMOSOMES];
+	else
+		_chromosomes = new Chromosome[10000] ;
 
 #ifdef USE_CHR_BIN
 	fprintf(stdout, "using compact genome representation (class %s)\n", USE_CHR_BIN_CLASS::get_class_name()) ;

@@ -16,7 +16,7 @@
 
 const float QPalma::NON_CONSENSUS_SCORE = -123456;
 
-static const bool perform_extra_checks = true ;
+static const bool perform_extra_checks = false ;
 static const std::string verbose_read_id = "C0HTRACXX120406:3:1301:16294:65782"  ;
 static const int verbose_read_level = 0 ;
 
@@ -135,6 +135,22 @@ inline char get_IUPAC_code(char c1, char c2)
 	
 	return c1;
 	
+}
+
+bool IUPACMatch(char c1, char c2)
+{
+	if ((c1=='a' || c1=='A' || c1=='c' || c1=='C' || c1=='g' || c1=='G' || c1=='t' || c1=='T') && (c2=='a' || c2=='A' || c2=='c' || c2=='C' || c2=='g' || c2=='G' || c2=='t' || c2=='T'))
+		return c1==c2 ;
+	
+	std::vector<int> l1,l2 ;
+	l1.resize(4,0) ;
+	l2.resize(4,0) ;	
+	get_vector_IUPAC(c1, l1) ;
+	get_vector_IUPAC(c1, l2) ;
+	for (unsigned int i=0; i<l1.size() && i<l2.size(); i++)
+		if (l1[i]==1 && l2[i]==1)
+			return true ;
+	return false ;
 }
 
 
@@ -1134,7 +1150,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.ACC_CONSENSUS.size(); j++)
-						if (i>start && chr[i-1] == _config.ACC_CONSENSUS[j][0] && chr[i]==_config.ACC_CONSENSUS[j][1])
+						if (i>start && IUPACMatch(chr[i-1], _config.ACC_CONSENSUS[j][0] && chr[i]==_config.ACC_CONSENSUS[j][1]))
 						{
 							num++ ;
 							if (store_pos)
@@ -1145,7 +1161,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.ACC_CONSENSUS_REV.size(); j++)
-						if (i>start && chr[i-1] == _config.ACC_CONSENSUS_REV[j][0] && chr[i] == _config.ACC_CONSENSUS_REV[j][1])
+						if (i>start && IUPACMatch(chr[i-1], _config.ACC_CONSENSUS_REV[j][0]) && IUPACMatch(chr[i], _config.ACC_CONSENSUS_REV[j][1]))
 						{
 							num++ ;
 							if (store_pos)
@@ -1159,7 +1175,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.DON_CONSENSUS.size(); j++)
-						if (i<end-1 && chr[i]== _config.DON_CONSENSUS[j][0] && chr[i+1]==_config.DON_CONSENSUS[j][1])
+						if (i<end-1 && IUPACMatch(chr[i],_config.DON_CONSENSUS[j][0]) && IUPACMatch(chr[i+1],_config.DON_CONSENSUS[j][1]))
 						{
 							num++ ;
 							if (store_pos)
@@ -1170,7 +1186,7 @@ int QPalma::get_splicesite_positions(std::string file_template, const char * typ
 		    {
 				for (int i=start; i<end; i++)
 					for (unsigned int j=0; j<_config.DON_CONSENSUS_REV.size(); j++)
-						if (i<end-1 && chr[i]== _config.DON_CONSENSUS_REV[j][0] && chr[i+1]==_config.DON_CONSENSUS_REV[j][1])
+						if (i<end-1 && IUPACMatch(chr[i], _config.DON_CONSENSUS_REV[j][0]) && IUPACMatch(chr[i+1],_config.DON_CONSENSUS_REV[j][1]))
 						{
 							num++ ;
 							if (store_pos)
@@ -5287,6 +5303,9 @@ int QPalma::get_splice_predictions(std::vector<region_t *> &current_regions, Chr
 }
 
 
+
+
+
 int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 										   const int a_len, double *acceptor, const int d_len, double* donor, const std::string & dna, bool non_consensus_search, char strand, int ori,
 										   bool check_ss, int region_start, int region_end) const
@@ -5299,7 +5318,7 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 	{
 		bool is_ss = false ;
 		for (unsigned int j=0; j<_config.DON_CONSENSUS.size(); j++)
-			if (dna[i] == _config.DON_CONSENSUS[j][0] && dna[i+1] == _config.DON_CONSENSUS[j][1])
+			if (IUPACMatch(dna[i], _config.DON_CONSENSUS[j][0]) && IUPACMatch(dna[i+1], _config.DON_CONSENSUS[j][1]))
 			{
 				is_ss = true ;
 				break ;
@@ -5339,7 +5358,7 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 	{
 		bool is_ss = false ;
 		for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
-			if (i>0 && dna[i-1] == _config.ACC_CONSENSUS[j][0] && dna[i] == _config.ACC_CONSENSUS[j][1])
+			if (i>0 && IUPACMatch(dna[i-1], _config.ACC_CONSENSUS[j][0]) && IUPACMatch(dna[i], _config.ACC_CONSENSUS[j][1]))
 			{
 				is_ss = true ;
 				break ;
@@ -5439,14 +5458,14 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 			
 			bool is_consensus_don = false ;
 			for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
-				if (contig_idx[istart] == _config.DON_CONSENSUS[j][0] && contig_idx[istart+1] == _config.DON_CONSENSUS[j][1])
+				if (IUPACMatch(contig_idx[istart], _config.DON_CONSENSUS[j][0]) && IUPACMatch(contig_idx[istart+1], _config.DON_CONSENSUS[j][1]))
 				{
 					is_consensus_don = true ;
 					break ;
 				}
 			bool is_consensus_acc = false ;
 			for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
-				if (contig_idx[istop-2] == _config.ACC_CONSENSUS[j][0] && contig_idx[istop-1] == _config.ACC_CONSENSUS[j][1])
+				if (IUPACMatch(contig_idx[istop-2], _config.ACC_CONSENSUS[j][0]) && IUPACMatch(contig_idx[istop-1], _config.ACC_CONSENSUS[j][1]))
 				{
 					is_consensus_acc = true ;
 					break ;
@@ -5457,7 +5476,9 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 				non_consensus_alignment=true ;
 			}
 			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS)//  // && final_variants.size()==0) // TODO
-				assert(!non_consensus_intron) ;
+				if (non_consensus_intron && perform_extra_checks)
+					fprintf(stderr, "Warning: acc non_consensus_intron=true\n") ;
+			//assert(!non_consensus_intron) ;
 		}
 		else
 		{
@@ -5468,14 +5489,14 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 			
 			bool is_consensus_don = false ;
 			for (unsigned int j=0; j < _config.DON_CONSENSUS.size(); j++)
-				if (complement(contig_idx[istop-1]) == _config.DON_CONSENSUS[j][0] && complement(contig_idx[istop-2]) == _config.DON_CONSENSUS[j][1])
+				if (IUPACMatch(complement(contig_idx[istop-1]), _config.DON_CONSENSUS[j][0]) && IUPACMatch(complement(contig_idx[istop-2]), _config.DON_CONSENSUS[j][1]))
 				{
 					is_consensus_don = true ;
 					break ;
 				}
 			bool is_consensus_acc = false ;
 			for (unsigned int j=0; j < _config.ACC_CONSENSUS.size(); j++)
-				if (complement(contig_idx[istart+1]) == _config.ACC_CONSENSUS[j][0] && complement(contig_idx[istart-0]) == _config.ACC_CONSENSUS[j][1]) 
+				if (IUPACMatch(complement(contig_idx[istart+1]), _config.ACC_CONSENSUS[j][0]) && IUPACMatch(complement(contig_idx[istart-0]), _config.ACC_CONSENSUS[j][1]))
 				{
 					is_consensus_acc = true ;
 					break ;
@@ -5486,7 +5507,9 @@ int QPalma::construct_intron_strings(ALIGNMENT * aln, Chromosome const &contig_i
 				non_consensus_alignment=true ;
 			}
 			if (!non_consensus_search && !remapping && !_config.USE_VARIANTS) // && final_variants.size()==0) // TODO
-				assert(!non_consensus_intron) ;
+				if (non_consensus_intron && perform_extra_checks) 
+					fprintf(stderr, "Warning: acc non_consensus_intron=true\n") ;
+			//assert(!non_consensus_intron) ;
 			
 		}
 		aln->non_consensus_intron.push_back(non_consensus_intron) ;

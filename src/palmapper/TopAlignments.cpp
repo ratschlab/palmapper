@@ -1900,14 +1900,14 @@ FILE* TopAlignments::open_bam_pipe(std::string & out_fname)
 
 	std::string command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sb /dev/stdin  2> /dev/null > ") + out_fname  + " && echo samtools subprocess terminated successfully";
 	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTPOS )
-		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sb /dev/stdin 2> /dev/null | ") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort /dev/stdin ") + out_fname + std::string("&& mv ") + 
+		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sbu /dev/stdin 2> /dev/null | ") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort /dev/stdin ") + out_fname + std::string("&& mv ") + 
 			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
 	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTNAME )
-		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sb /dev/stdin  2> /dev/null |") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort -n /dev/stdin ") + out_fname + std::string("&& mv ") + 
+		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sbu /dev/stdin  2> /dev/null |") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort -n /dev/stdin ") + out_fname + std::string("&& mv ") + 
 			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
 	FILE* OUT_FP=NULL ;
 	
-	fflush(stdout) ;
+	fflush(stdout) ; 
 	if (false) // does not work
 	{
 		fprintf(stdout, "Testing samtools pipe: ") ;
