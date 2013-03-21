@@ -2884,15 +2884,14 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 				if (myverbosity>=3) // was4
 					fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart_, rend_, chrN, ori);
 
+                std::vector<std::vector<Junction> > combinations;
+                std::vector<unsigned int> cum_spans_right;
+                std::vector<unsigned int> cum_spans_left;
+
 				// find a lower bound on the indexes with binary search (first hit that fullfils < x)
 				junctionmap.lock() ;
 				std::deque<Junction>::iterator it_s = my_lower_bound_by_start(junctionmap.junctionlist_by_start[chrN].begin(), junctionmap.junctionlist_by_start[chrN].end(), rend_) ;
 				std::deque<Junction>::iterator it_e = my_lower_bound_by_end(junctionmap.junctionlist_by_end[chrN].begin(), junctionmap.junctionlist_by_end[chrN].end(), rstart_ - 1);
-				junctionmap.unlock() ;
-
-                std::vector<std::vector<std::deque<Junction>::iterator> > combinations;
-                std::vector<unsigned int> cum_spans_right;
-                std::vector<unsigned int> cum_spans_left;
 
                 // iterate over left junctions
                 // junctions have closed intervals
@@ -2921,20 +2920,20 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                     // augment existing combinations
                     size_t num_combs = combinations.size();
                     for (size_t i = 0; i < num_combs; i++) {
-                        if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end < combinations.at(i).back()->start - 1) && 
-                           (cum_spans_left.at(i) + (combinations.at(i).back()->start - it_e->end - 1) < available_left) &&
+                        if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end < combinations.at(i).back().start - 1) && 
+                           (cum_spans_left.at(i) + (combinations.at(i).back().start - it_e->end - 1) < available_left) &&
                            combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) { // less than available as we need at least one nt before the junction
-                            std::vector<std::deque<Junction>::iterator> tmp = combinations.at(i);
-                            tmp.push_back(it_e);
+                            std::vector<Junction> tmp = combinations.at(i);
+                            tmp.push_back(*it_e);
                             combinations.push_back(tmp);
                             cum_spans_right.push_back(0);
-                            cum_spans_left.push_back(cum_spans_left.at(i) + combinations.at(i).back()->start - it_e->end - 1);
+                            cum_spans_left.push_back(cum_spans_left.at(i) + combinations.at(i).back().start - it_e->end - 1);
                         }
                     }
                     // try junction alone
                     if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end > (rstart_ - available_left)) && (it_e->end < (rstart_ + junction_tol))) {
-                        std::vector<std::deque<Junction>::iterator> tmp;
-                        tmp.push_back(it_e);
+                        std::vector<Junction> tmp;
+                        tmp.push_back(*it_e);
                         combinations.push_back(tmp);
                         cum_spans_right.push_back(0);
                         if (it_e->end < rstart_)
@@ -2974,20 +2973,20 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         // augment existing combinations
                         size_t num_combs = combinations.size();
                         for (size_t i = 0; i < num_combs; i++) {
-                            if ((combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS) && (it_s->start > combinations.at(i).back()->end + 1) &&  
-                                (cum_spans_right.at(i) + (it_s->start - combinations.at(i).back()->end - 1) < available_right) &&
+                            if ((combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS) && (it_s->start > combinations.at(i).back().end + 1) &&  
+                                (cum_spans_right.at(i) + (it_s->start - combinations.at(i).back().end - 1) < available_right) &&
                                 combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) {
-                                std::vector<std::deque<Junction>::iterator> tmp = combinations.at(i);
-                                tmp.push_back(it_s);
+                                std::vector<Junction> tmp = combinations.at(i);
+                                tmp.push_back(*it_s);
                                 combinations.push_back(tmp);
                                 cum_spans_left.push_back(0);
-                                cum_spans_right.push_back(cum_spans_right.at(i) + it_s->start - combinations.at(i).back()->end - 1);
+                                cum_spans_right.push_back(cum_spans_right.at(i) + it_s->start - combinations.at(i).back().end - 1);
                             }
                         }
                         // try junction alone
                         if (combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_s->start < (available_right + rend_)) && (it_s->start >= (rend_ - junction_tol))) {
-                            std::vector<std::deque<Junction>::iterator> tmp;
-                            tmp.push_back(it_s);
+                            std::vector<Junction> tmp;
+                            tmp.push_back(*it_s);
                             combinations.push_back(tmp);
                             cum_spans_left.push_back(0);
                             if (it_s->start > rend_)
@@ -3000,6 +2999,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         it_s++;
                     }
                 }
+				junctionmap.unlock() ;
 
                 if (myverbosity >=3 )
                     fprintf(stdout, "found %i possible junction combinations\n", combinations.size());
@@ -3018,7 +3018,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         int rstart = rstart_;
                         int rend = rend_;
 
-                        char strand = combinations.front().front()->strand ;
+                        char strand = combinations.front().front().strand ;
 
                         std::string current_seq;
                         current_seq.assign("") ;
@@ -3026,7 +3026,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         size_t leftmost = combinations.at(c_idx).size();
                         for (size_t j = 0; j < combinations.at(c_idx).size(); j++)
                         {
-                            if (combinations.at(c_idx).at(j)->end < (rstart + junction_tol))
+                            if (combinations.at(c_idx).at(j).end < (rstart + junction_tol))
                                 leftmost = j;
                             else
                                 break;
@@ -3045,10 +3045,10 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                 bool read_map1[read.length()] ;
                                 new_region1->read_map = read_map1 ;
                                 if (j == leftmost)
-                                    new_region1->start = combinations.at(c_idx).at(j)->start - (available_left - cum_spans_left.at(c_idx));
+                                    new_region1->start = combinations.at(c_idx).at(j).start - (available_left - cum_spans_left.at(c_idx));
                                 else
-                                    new_region1->start = combinations.at(c_idx).at(j+1)->end + 1;
-                                new_region1->end = combinations.at(c_idx).at(j)->start; // interval open
+                                    new_region1->start = combinations.at(c_idx).at(j+1).end + 1;
+                                new_region1->end = combinations.at(c_idx).at(j).start; // interval open
                                 new_region1->from_map = true ;
                                 for (size_t ii = 0; ii < read.length(); ii++)
                                     new_region1->read_map[ii] = false;
@@ -3063,18 +3063,18 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                     current_seq.push_back(chr[p]) ;							
                                 }
                                 if (myverbosity >= 3)
-                                    fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j)->start], chr[combinations.at(c_idx).at(j)->start + 1],
-                                            chr[combinations.at(c_idx).at(j)->end - 1], chr[combinations.at(c_idx).at(j)->end]);
+                                    fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j).start], chr[combinations.at(c_idx).at(j).start + 1],
+                                            chr[combinations.at(c_idx).at(j).end - 1], chr[combinations.at(c_idx).at(j).end]);
                             }
                             // adapt rstart according to junction_tol
-                            if (rstart <= combinations.at(c_idx).front()->end)
+                            if (rstart <= combinations.at(c_idx).front().end)
                             {
-                                rstart = combinations.at(c_idx).front()->end + 2;
+                                rstart = combinations.at(c_idx).front().end + 2;
                             } else {
                                 region_t* new_region1 = new region_t ; 
                                 bool read_map1[read.length()] ;
                                 new_region1->read_map = read_map1 ;
-                                new_region1->start = combinations.at(c_idx).front()->end + 1;
+                                new_region1->start = combinations.at(c_idx).front().end + 1;
                                 new_region1->end = rstart; // interval open
                                 for (size_t ii = 0; ii < read.length(); ii++)
                                     new_region1->read_map[ii] = false;
@@ -3121,8 +3121,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             size_t start_idx = leftmost + 1;
                             if (leftmost == combinations.at(c_idx).size())
                                 start_idx = 0;
-                            if (combinations.at(c_idx).at(start_idx)->start < rend)
-                                rend = combinations.at(c_idx).at(start_idx)->start;
+                            if (combinations.at(c_idx).at(start_idx).start < rend)
+                                rend = combinations.at(c_idx).at(start_idx).start;
                         }
 
                         // add long region as region
@@ -3159,7 +3159,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             // iterate over remaining right junctions of this combination
                             for (size_t j = start_idx; j < combinations.at(c_idx).size(); j++) 
                             {
-                                if (combinations.at(c_idx).at(j)->start == rend)
+                                if (combinations.at(c_idx).at(j).start == rend)
                                     continue;
                                 //Create regions from junction
                                 region_t* new_region1 = new region_t; 
@@ -3168,8 +3168,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                 if (j == start_idx)
                                     new_region1->start = rend ; // interval open
                                 else
-                                    new_region1->start = combinations.at(c_idx).at(j-1)->end + 1;
-                                new_region1->end = combinations.at(c_idx).at(j)->start; // interval open
+                                    new_region1->start = combinations.at(c_idx).at(j-1).end + 1;
+                                new_region1->end = combinations.at(c_idx).at(j).start; // interval open
                                 new_region1->from_map = true ;
                                 for (size_t ii = 0; ii < read.length(); ii++)
                                     new_region1->read_map[ii] = false;
@@ -3184,15 +3184,15 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                     current_seq.push_back(chr[p]) ;							
                                 }
                                 if (myverbosity >= 3)
-                                    fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j)->start], chr[combinations.at(c_idx).at(j)->start + 1],
-                                            chr[combinations.at(c_idx).at(j)->end - 1], chr[combinations.at(c_idx).at(j)->end]);
+                                    fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j).start], chr[combinations.at(c_idx).at(j).start + 1],
+                                            chr[combinations.at(c_idx).at(j).end - 1], chr[combinations.at(c_idx).at(j).end]);
                             }
                             // add last region for remaining read
                             region_t* new_region1 = new region_t ; 
                             bool read_map1[read.length()] ;
                             new_region1->read_map = read_map1 ;
-                            new_region1->start = combinations.at(c_idx).back()->end + 1;
-                            new_region1->end = combinations.at(c_idx).back()->end + available_left - cum_spans_left.at(c_idx) + 1; // interval open
+                            new_region1->start = combinations.at(c_idx).back().end + 1;
+                            new_region1->end = combinations.at(c_idx).back().end + available_left - cum_spans_left.at(c_idx) + 1; // interval open
                             new_region1->from_map = true ;
                             for (size_t ii = 0; ii < read.length(); ii++)
                                 new_region1->read_map[ii] = false;
