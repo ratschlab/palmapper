@@ -145,6 +145,7 @@ Config::Config() {
 	JUNCTION_MAX_NUM_ALIGNMENTS = 20 ;
 	SPLICED_CLUSTER_TOLERANCE = 50 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
+    JUNCTION_REMAP_MAX_INTRONS = 1 ;
 	SPLICED_MIN_SEGMENT_LENGTH = 1 ;//DEFAULT_SETTING ;
 
 	STATISTICS = 0;
@@ -1572,6 +1573,25 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				SPLICED_MAX_INTRONS = tmp;
 			}
+
+			// maximal number of introns in spliced alignments for junction remapping
+			if (strcmp(argv[i], "-JI") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -JI\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -JI too small\n") ;
+					usage();
+					exit(1);
+				}
+				JUNCTION_REMAP_MAX_INTRONS = tmp;
+			}
+
 
 			// How many matches are necessary for identifying a possible splice site in QPALMA recursive alignment algorithm?
 			if (strcmp(argv[i], "-QMM") == 0) {

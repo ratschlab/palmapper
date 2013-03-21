@@ -2821,7 +2821,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 	// 	delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 	// 	return 0;
 	// }
-	const int junction_tol = 0 ; //10 ; // the hit may overlap by this length with the junction
+	const int junction_tol = 10 ; // the hit may overlap by this length with the junction
 	
 	int myverbosity=verbosity ;
 	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
@@ -2881,10 +2881,10 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                 int available_left = read.length();
                 int available_right = read.length();
 
-				if (myverbosity>4)
+				if (myverbosity>=3) // was4
 					fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart_, rend_, chrN, ori);
 
-				// find a lower bound on the indexes with binary search
+				// find a lower bound on the indexes with binary search (first hit that fullfils < x)
 				junctionmap.lock() ;
 				std::deque<Junction>::iterator it_s = my_lower_bound_by_start(junctionmap.junctionlist_by_start[chrN].begin(), junctionmap.junctionlist_by_start[chrN].end(), rend_) ;
 				std::deque<Junction>::iterator it_e = my_lower_bound_by_end(junctionmap.junctionlist_by_end[chrN].begin(), junctionmap.junctionlist_by_end[chrN].end(), rstart_ - 1);
@@ -2897,7 +2897,14 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                 // iterate over left junctions
                 // junctions have closed intervals
                 while (true) {
+                    
+                    if (it_e == junctionmap.junctionlist_by_end[chrN].end())
+                        break;
+
+                    //fprintf(stdout, "[left juncs]: %i-%i\n", it_e->start, it_e->end);
                     if (it_e->end >= rstart_ + junction_tol) {
+                        if (it_e == junctionmap.junctionlist_by_end[chrN].begin())
+                            break;
                         it_e--;
                         continue;
                     }
@@ -2915,7 +2922,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                     size_t num_combs = combinations.size();
                     for (size_t i = 0; i < num_combs; i++) {
                         if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end < combinations.at(i).back()->start - 1) && 
-                           (cum_spans_left.at(i) + (combinations.at(i).back()->start - it_e->end - 1) < available_left)) { // less than available as we need at least one nt before the junction
+                           (cum_spans_left.at(i) + (combinations.at(i).back()->start - it_e->end - 1) < available_left) &&
+                           combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) { // less than available as we need at least one nt before the junction
                             std::vector<std::deque<Junction>::iterator> tmp = combinations.at(i);
                             tmp.push_back(it_e);
                             combinations.push_back(tmp);
@@ -2924,12 +2932,15 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         }
                     }
                     // try junction alone
-                    if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end > rstart_ - available_left)) {
+                    if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end > (rstart_ - available_left)) && (it_e->end < (rstart_ + junction_tol))) {
                         std::vector<std::deque<Junction>::iterator> tmp;
                         tmp.push_back(it_e);
                         combinations.push_back(tmp);
                         cum_spans_right.push_back(0);
-                        cum_spans_left.push_back(rstart_ - it_e->end - 1);
+                        if (it_e->end < rstart_)
+                            cum_spans_left.push_back(rstart_ - it_e->end - 1);
+                        else
+                            cum_spans_left.push_back(0);
                     } else {
                         break;
                     }
@@ -2944,8 +2955,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                 {
                     // iterate over right junctions
                     while (it_s != junctionmap.junctionlist_by_start[chrN].end()) {
+                        // fprintf(stdout, "[right juncs]: %i-%i\n", it_s->start, it_s->end);
                         
-                        if (it_s->start < rend_ - junction_tol) {
+                        if (it_s->start < (rend_ - junction_tol)) {
                             it_s++;
                             continue;
                         }
@@ -2963,7 +2975,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         size_t num_combs = combinations.size();
                         for (size_t i = 0; i < num_combs; i++) {
                             if ((combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS) && (it_s->start > combinations.at(i).back()->end + 1) &&  
-                                (cum_spans_right.at(i) + (it_s->start - combinations.at(i).back()->end - 1) < available_right)) {
+                                (cum_spans_right.at(i) + (it_s->start - combinations.at(i).back()->end - 1) < available_right) &&
+                                combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) {
                                 std::vector<std::deque<Junction>::iterator> tmp = combinations.at(i);
                                 tmp.push_back(it_s);
                                 combinations.push_back(tmp);
@@ -2972,18 +2985,24 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             }
                         }
                         // try junction alone
-                        if (combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_s->start - rend_ < available_right)) {
+                        if (combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_s->start < (available_right + rend_)) && (it_s->start >= (rend_ - junction_tol))) {
                             std::vector<std::deque<Junction>::iterator> tmp;
                             tmp.push_back(it_s);
                             combinations.push_back(tmp);
                             cum_spans_left.push_back(0);
-                            cum_spans_right.push_back(it_s->start - rend_);
+                            if (it_s->start > rend_)
+                                cum_spans_right.push_back(it_s->start - rend_);
+                            else
+                                cum_spans_right.push_back(0);
                         } else {
                             break;
                         }
                         it_s++;
                     }
                 }
+
+                if (myverbosity >=3 )
+                    fprintf(stdout, "found %i possible junction combinations\n", combinations.size());
 
                 // iterate over found combinations
                 for (size_t c_idx = 0; c_idx < combinations.size(); c_idx++) 
@@ -3007,7 +3026,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         size_t leftmost = combinations.at(c_idx).size();
                         for (size_t j = 0; j < combinations.at(c_idx).size(); j++)
                         {
-                            if (combinations.at(c_idx).at(j)->end < rstart_)
+                            if (combinations.at(c_idx).at(j)->end < (rstart + junction_tol))
                                 leftmost = j;
                             else
                                 break;
@@ -3015,7 +3034,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         // handle left junctions
                         if (leftmost < combinations.at(c_idx).size())
                         {
-                            if (myverbosity > 3) { 
+                            if (myverbosity >= 3) { 
                                 fprintf(stdout, "try to align\n") ;
                                 fprintf(stdout, "   junction:") ;
                             }
@@ -3043,36 +3062,75 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                     current_positions.push_back(p);
                                     current_seq.push_back(chr[p]) ;							
                                 }
-                                if (myverbosity > 3)
+                                if (myverbosity >= 3)
                                     fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j)->start], chr[combinations.at(c_idx).at(j)->start + 1],
                                             chr[combinations.at(c_idx).at(j)->end - 1], chr[combinations.at(c_idx).at(j)->end]);
                             }
+                            // adapt rstart according to junction_tol
+                            if (rstart <= combinations.at(c_idx).front()->end)
+                            {
+                                rstart = combinations.at(c_idx).front()->end + 2;
+                            } else {
+                                region_t* new_region1 = new region_t ; 
+                                bool read_map1[read.length()] ;
+                                new_region1->read_map = read_map1 ;
+                                new_region1->start = combinations.at(c_idx).front()->end + 1;
+                                new_region1->end = rstart; // interval open
+                                for (size_t ii = 0; ii < read.length(); ii++)
+                                    new_region1->read_map[ii] = false;
+                                new_region1->read_pos = -111 ; // TODO
+                                new_region1->hit_len = -111 ;  // TODO					
+
+                                current_regions.push_back(new_region1);
+            
+                                for (int p = new_region1->start; p < new_region1->end; p++) 
+                                {
+                                    current_positions.push_back(p);
+                                    current_seq.push_back(chr[p]) ;							
+                                }
+                                if (myverbosity >= 3) 
+                                    fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
+                            }
+                        } else { 
+                            // no junction on the left, add whole left part as region
                             region_t* new_region1 = new region_t ; 
                             bool read_map1[read.length()] ;
                             new_region1->read_map = read_map1 ;
-                            new_region1->start = combinations.at(c_idx).front()->end + 1;
-                            new_region1->end = rstart_; // interval open
+                            new_region1->start = rstart - available_left;
+                            new_region1->end = rstart;
+                            new_region1->from_map = true ;
                             for (size_t ii = 0; ii < read.length(); ii++)
                                 new_region1->read_map[ii] = false;
                             new_region1->read_pos = -111 ; // TODO
                             new_region1->hit_len = -111 ;  // TODO					
-
-                            current_regions.push_back(new_region1);
         
+                            current_regions.push_back(new_region1);
+
                             for (int p = new_region1->start; p < new_region1->end; p++) 
                             {
                                 current_positions.push_back(p);
                                 current_seq.push_back(chr[p]) ;							
                             }
-                            if (myverbosity > 3) 
+                            if (myverbosity >= 3)
                                 fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
                         }
+
+                        // adapt rend, if necessary
+                        if ((leftmost < combinations.at(c_idx).size() - 1) || (leftmost == combinations.at(c_idx).size()))
+                        {
+                            size_t start_idx = leftmost + 1;
+                            if (leftmost == combinations.at(c_idx).size())
+                                start_idx = 0;
+                            if (combinations.at(c_idx).at(start_idx)->start < rend)
+                                rend = combinations.at(c_idx).at(start_idx)->start;
+                        }
+
                         // add long region as region
                         region_t* new_region1 = new region_t;
                         bool read_map_hit[read.length()] ;
                         new_region1->read_map = read_map_hit ;
-                        new_region1->start = rstart_;
-                        new_region1->end = rend_; // interval open
+                        new_region1->start = rstart;
+                        new_region1->end = rend; // interval open
                         for (size_t ii = 0; ii < read.length(); ii++)
                             new_region1->read_map[ii] = false;
                         new_region1->read_pos = -111 ; // TODO
@@ -3085,27 +3143,30 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             current_positions.push_back(p);
                             current_seq.push_back(chr[p]) ;							
                         }
-                        if (myverbosity > 3) {
+                        if (myverbosity >= 3) {
                             fprintf(stdout, "long region: %i-%i (chr:%ld,ori:%i)\n", rstart, rend, chrN, ori);
                         }
-
-                        if (leftmost < combinations.at(c_idx).size() - 1)
+                        
+                        // there is a at least one junction on the right
+                        if ((leftmost < combinations.at(c_idx).size() - 1) || (leftmost == combinations.at(c_idx).size()))
                         {
                             size_t start_idx = leftmost + 1;
                             if (leftmost == combinations.at(c_idx).size())
                                 start_idx = 0;
 
-                            if (myverbosity > 3)
+                            if (myverbosity >= 3)
                                 fprintf(stdout, "   junction:") ;
                             // iterate over remaining right junctions of this combination
                             for (size_t j = start_idx; j < combinations.at(c_idx).size(); j++) 
                             {
+                                if (combinations.at(c_idx).at(j)->start == rend)
+                                    continue;
                                 //Create regions from junction
                                 region_t* new_region1 = new region_t; 
                                 bool read_map1[read.length()] ;
                                 new_region1->read_map = read_map1 ;
                                 if (j == start_idx)
-                                    new_region1->start = rend_ ; // interval open
+                                    new_region1->start = rend ; // interval open
                                 else
                                     new_region1->start = combinations.at(c_idx).at(j-1)->end + 1;
                                 new_region1->end = combinations.at(c_idx).at(j)->start; // interval open
@@ -3122,7 +3183,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                     current_positions.push_back(p);
                                     current_seq.push_back(chr[p]) ;							
                                 }
-                                if (myverbosity > 3)
+                                if (myverbosity >= 3)
                                     fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j)->start], chr[combinations.at(c_idx).at(j)->start + 1],
                                             chr[combinations.at(c_idx).at(j)->end - 1], chr[combinations.at(c_idx).at(j)->end]);
                             }
@@ -3145,7 +3206,29 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                 current_positions.push_back(p);
                                 current_seq.push_back(chr[p]) ;							
                             }
-                            if (myverbosity > 3)
+                            if (myverbosity >= 3)
+                                fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
+                        } else {
+                            // add whole right side without junction
+                            region_t* new_region1 = new region_t ; 
+                            bool read_map1[read.length()] ;
+                            new_region1->read_map = read_map1 ;
+                            new_region1->start = rend;
+                            new_region1->end = rend + available_right;
+                            new_region1->from_map = true ;
+                            for (size_t ii = 0; ii < read.length(); ii++)
+                                new_region1->read_map[ii] = false;
+                            new_region1->read_pos = -111 ; // TODO
+                            new_region1->hit_len = -111 ;  // TODO					
+        
+                            current_regions.push_back(new_region1);
+
+                            for (int p = new_region1->start; p < new_region1->end; p++) 
+                            {
+                                current_positions.push_back(p);
+                                current_seq.push_back(chr[p]) ;							
+                            }
+                            if (myverbosity >= 3)
                                 fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
                         }
 						
@@ -3174,7 +3257,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                 return -1 ;
                             }
                         }
-                        if (myverbosity > 3)
+                        if (myverbosity >= 3)
                         {
                             fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
                             fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*this_long_regions[nregion]->start*/, hit_len);					  
@@ -5634,7 +5717,7 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 			{
 				// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
 				if (_config.NO_SPLICE_PREDICTIONS)
-					donor[i] = 0.0 ;
+					donor[i] = 0.5 ;
 				if ((_config.SCORE_ANNOTATED_SPLICE_SITES||_config.USE_VARIANTS) && donor[i]==-ALMOST_INFINITY)
 					donor[i] = NON_CONSENSUS_SCORE ;
 				match += (donor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS);
@@ -5674,7 +5757,7 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 			if (is_ss)
 			{
 				if (_config.NO_SPLICE_PREDICTIONS)
-					acceptor[i] = 0.0 ;
+					acceptor[i] = 0.5 ;
 				if ((_config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS) && acceptor[i]==-ALMOST_INFINITY)
 					acceptor[i] = NON_CONSENSUS_SCORE ;
 				match += (acceptor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS);
