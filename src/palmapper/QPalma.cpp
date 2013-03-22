@@ -2913,6 +2913,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                     {
                         if (myverbosity>=3)
                             fprintf(stdout, "junction_remapping: skipping junction at %ld:%i-%i on strand %c with transcription direction %i\n", chrN, it_e->start, it_e->end, it_e->strand, transcription_direction) ;
+                        if (it_e == junctionmap.junctionlist_by_end[chrN].begin())
+                            break;
                         it_e--;
                         continue ;
                     }
