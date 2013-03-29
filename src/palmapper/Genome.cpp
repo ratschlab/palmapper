@@ -276,6 +276,13 @@ int Genome::load_genome()
 	//_chromosomes = new Chromosome[NUM_CHROMOSOMES];
 	//for (unsigned int ii=0; ii<NUM_CHROMOSOMES; ii++)
 	//	_chromosomes[ii]=chromosomes[ii] ;
+
+    // check sanity of read chromosome sequence
+    for (unsigned int ii=0; ii<NUM_CHROMOSOMES; ii++)
+    {
+       for (unsigned int jj=0; jj < _chromosomes[ii].length(); jj++)
+            assert(int(_chromosomes[ii][jj]) > 0);
+    }
 	
 	fclose(genome_fp);
 	

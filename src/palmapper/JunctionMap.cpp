@@ -390,7 +390,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			}
 			
 			std::string tmp(properties);
-			unsigned int pos_cov=tmp.find("Confirmed=");
+			size_t pos_cov=tmp.find("Confirmed=");
 			if (pos_cov != std::string::npos)
 				pos_cov += strlen("Confirmed=") ;
 			else
@@ -399,20 +399,20 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				if (pos_cov != std::string::npos)
 					pos_cov += strlen("Note=") ;
 			}
-			int coverage = 1;
+			size_t coverage = 1;
 			if (pos_cov != std::string::npos)
 				coverage= atoi(tmp.substr(pos_cov).c_str());
 
 			bool nonconsensus=false ;
 			char* intron_string = strdup("") ;
-			unsigned int pos_cons = tmp.find("Nonconsensus=");
+			size_t pos_cons = tmp.find("Nonconsensus=");
 
 			if (pos_cons != std::string::npos)
 			{
 				pos_cons += strlen("Nonconsensus=") ;
 				nonconsensus = atoi(tmp.substr(pos_cons).c_str());
 
-				unsigned int pos_intron = tmp.find("IntronSeq=");
+				size_t pos_intron = tmp.find("IntronSeq=");
 				if (pos_intron != std::string::npos)
 				{
 					pos_intron += strlen("IntronSeq=") ;
@@ -422,7 +422,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			}
 			
 			int junction_qual = 1 ;
-			unsigned int pos_qual = tmp.find("BestSplit=") ;
+			size_t pos_qual = tmp.find("BestSplit=") ;
 			if (pos_qual != std::string::npos)
 			{
 				pos_qual += strlen("BestSplit=") ;
@@ -430,7 +430,7 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			}
 
 			char * read_id = strdup("gff") ;
-			unsigned int pos_id = tmp.find("ReadID=");
+			size_t pos_id = tmp.find("ReadID=");
 			if (pos_id != std::string::npos)
 			{
 				pos_id += strlen("ReadID=") ;

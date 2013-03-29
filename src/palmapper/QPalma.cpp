@@ -1999,6 +1999,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 					new_lregion->read_map[ii] = false ;
 				for (size_t ii = 0; ii < hit->end - hit->start && hit->readpos + ii< read.length(); ii++,  new_lregion->hit_len++, new_lregion->end++)
 					new_lregion->read_map[hit->readpos + ii] = true;
+
+                new_lregion->end = (new_lregion->end > hit->chromosome->length())?hit->chromosome->length():new_lregion->end;
 				long_regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_lregion);
 
 
@@ -2096,6 +2098,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 			for (size_t ii = 0; ii < hit->end - hit->start && hit->readpos + ii < read.length(); ii++, new_region->hit_len++, new_region->end++)
 				new_region->read_map[hit->readpos + ii] = true;
 			
+            new_region->end = (new_region->end > hit->chromosome->length())?hit->chromosome->length():new_region->end;
+
 			regions[ori_map(hit->orientation)][hit->chromosome->nr()].push_back(new_region);
 
 			hit = hit->next;
@@ -2193,6 +2197,8 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 							new_region->erased=false ;
 							new_region->start = positions[jj] - _config.INDEX_DEPTH ;
 							new_region->end = positions[jj] + _config.INDEX_DEPTH ;
+                            new_region->end = (new_region->end > chromosome.length())?chromosome.length():new_region->end;
+
 							for (size_t ii = 0; ii < read.length(); ii++)
 								new_region->read_map[ii] = false;
 							
@@ -2252,6 +2258,9 @@ int QPalma::capture_hits(Hits &hits, Result &result, bool const non_consensus_se
 										new_region->end = region_end + _config.INDEX_DEPTH ;
 									for (size_t ii = 0; ii < read.length(); ii++)
 										new_region->read_map[ii] = false;
+
+                                    new_region->end = (new_region->end > chromosome.length())?chromosome.length():new_region->end;
+
 									//new_region->strand = (ori == 0) ? '+' : '-' ;
 									//new_region->chromosome = chrN ;
 									new_region->from_map = true ;
@@ -2840,7 +2849,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 	// Current regions correspond to regions around the junction
 	std::vector<region_t *> current_regions;
-	//Positions are real positions corresponding to current regions
+	// Positions are real positions corresponding to current regions
 	std::vector<int> current_positions;
 	
 	int num_alignments_reported = 0 ;
@@ -2891,7 +2900,6 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 				// find a lower bound on the index with binary search
 				junctionmap.lock() ;
-				//std::deque<Junction>::iterator it = junctionmap.junctionlist[chrN].begin();
 				std::deque<Junction>::iterator it = my_lower_bound(junctionmap.junctionlist[chrN].begin(), junctionmap.junctionlist[chrN].end(), rstart_-1000) ;
 				junctionmap.unlock() ;
 				
