@@ -2922,7 +2922,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                     // augment existing combinations
                     size_t num_combs = combinations.size();
                     for (size_t i = 0; i < num_combs; i++) {
-                        if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end < combinations.at(i).back().start - 1) && 
+                        if (combinations.size() <= _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end < combinations.at(i).back().start - 1) && 
                            (cum_spans_left.at(i) + (combinations.at(i).back().start - it_e->end - 1) < available_left) &&
                            combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) { // less than available as we need at least one nt before the junction
                             std::vector<Junction> tmp = combinations.at(i);
@@ -2933,7 +2933,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         }
                     }
                     // try junction alone
-                    if (combinations.size() < _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end > (rstart_ - available_left)) && (it_e->end < (rstart_ + junction_tol))) {
+                    if (combinations.size() <= _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end > (rstart_ - available_left)) && (it_e->end < (rstart_ + junction_tol))) {
                         std::vector<Junction> tmp;
                         tmp.push_back(*it_e);
                         combinations.push_back(tmp);
@@ -2952,7 +2952,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                 } 
 
                 // try additional right junctions
-                if (combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS)
+                if (combinations.size() <= 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS)
                 {
                     // iterate over right junctions
                     while (it_s != junctionmap.junctionlist_by_start[chrN].end()) {
@@ -2975,7 +2975,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         // augment existing combinations
                         size_t num_combs = combinations.size();
                         for (size_t i = 0; i < num_combs; i++) {
-                            if ((combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS) && (it_s->start > combinations.at(i).back().end + 1) &&  
+                            if ((combinations.size() <= 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS) && (it_s->start > combinations.at(i).back().end + 1) &&  
                                 (cum_spans_right.at(i) + (it_s->start - combinations.at(i).back().end - 1) < available_right) &&
                                 combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) {
                                 std::vector<Junction> tmp = combinations.at(i);
@@ -2986,7 +2986,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             }
                         }
                         // try junction alone
-                        if (combinations.size() < 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_s->start < (available_right + rend_)) && (it_s->start >= (rend_ - junction_tol))) {
+                        if (combinations.size() <= 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_s->start < (available_right + rend_)) && (it_s->start >= (rend_ - junction_tol))) {
                             std::vector<Junction> tmp;
                             tmp.push_back(*it_s);
                             combinations.push_back(tmp);
