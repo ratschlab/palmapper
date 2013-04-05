@@ -2248,14 +2248,18 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		uint32_t last = __cigar[0] ;
 		uint32_t count = 1 ;
 		uint32_t ii = 0;
-		uint32_t insertions = 0 ;
-		uint32_t deletions = 0 ;
+		uint32_t insertions = (last == 'I')?1:0 ;
+		uint32_t deletions = (last == 'D')?1:0 ;
 		idx = 0 ;
 		uint32_t exon_size = (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
 
 
 		for (uint32_t i = 1; i < strlen(__cigar); i++)
 		{
+            if (__cigar[i] == 'D')
+                deletions ++;
+            if (__cigar[i] == 'I')
+                insertions ++;
 			// we reached end of current exon, which is not the last exon -> add intron
 			if ((i - insertions) == exon_size && idx + 2 < curr_align->exons.size())
 			{
@@ -2266,11 +2270,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				pos_in_cigar += strlen(cig_buf) ;
 				cigar[pos_in_cigar++] = last ;
 				assert(pos_in_cigar<max_cigar_len) ;
-
-				if (last == 'D')
-					deletions += count;
-				if (last == 'I')
-					insertions += count;
 
 				// add intron
 				count = 0 ;
@@ -2300,10 +2299,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					cigar[pos_in_cigar++] = last ;
 					assert(pos_in_cigar<max_cigar_len) ;
 				}
-				if (last == 'D')
-					deletions += count;
-				if (last == 'I')
-					insertions += count;
 				count = 1 ;
 				last = __cigar[i] ;
 			}
@@ -2318,11 +2313,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		pos_in_cigar += ii ;
 		cigar[pos_in_cigar++] = last ;
 		assert(pos_in_cigar<max_cigar_len) ;
-		if (last == 'D')
-			deletions += count ; 
-		if (last == 'I')
-			insertions += count ; 
-
 
 		// handle trimmed reads end
 		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0 &&  read_orientation=='+')
