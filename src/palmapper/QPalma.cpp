@@ -3003,12 +3003,20 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                 }
 				junctionmap.unlock() ;
 
-                if (myverbosity >=3 )
+                if (myverbosity >=3 ) {
                     fprintf(stdout, "found %i possible junction combinations\n", combinations.size());
+                }
 
                 // iterate over found combinations
                 for (size_t c_idx = 0; c_idx < combinations.size(); c_idx++) 
                 {
+                        if (myverbosity >= 3) {
+                            fprintf(stdout, " %i junctions in current combination\n", combinations.at(c_idx).size());
+                            for (size_t j =  0; j < combinations.at(c_idx).size(); j++)
+                                fprintf(stdout, "\t(%i - %i) [ %c %c ... %c %c ]\n", combinations.at(c_idx).at(j).start, combinations.at(c_idx).at(j).end, 
+                                                                                   chr[combinations.at(c_idx).at(j).start], chr[combinations.at(c_idx).at(j).start + 1],
+                                                                                   chr[combinations.at(c_idx).at(j).end - 1], chr[combinations.at(c_idx).at(j).end]);
+                        }
 					 	/*if (myverbosity>4)
 						{
 							fprintf(stdout, "try to align\n") ;
@@ -3033,13 +3041,13 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             else
                                 break;
                         }
+                        if (myverbosity >= 3) { 
+                            fprintf(stdout, "try to align\n") ;
+                            fprintf(stdout, "\tcomb regions left: ") ;
+                        }
                         // handle left junctions
                         if (leftmost < combinations.at(c_idx).size())
                         {
-                            if (myverbosity >= 3) { 
-                                fprintf(stdout, "try to align\n") ;
-                                fprintf(stdout, "   junction:") ;
-                            }
                             for (int j = leftmost; j >= 0; j--)
                             {
                                 //Create regions from junction
@@ -3146,7 +3154,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             current_seq.push_back(chr[p]) ;							
                         }
                         if (myverbosity >= 3) {
-                            fprintf(stdout, "long region: %i-%i (chr:%ld,ori:%i)\n", rstart, rend, chrN, ori);
+                            fprintf(stdout, "\tlong region: %i-%i (chr:%ld,ori:%i)\n", rstart, rend, chrN, ori);
+                            fprintf(stdout, "\tcomb regions right: ") ;
                         }
                         
                         // there is a at least one junction on the right
@@ -3156,8 +3165,6 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             if (leftmost == combinations.at(c_idx).size())
                                 start_idx = 0;
 
-                            if (myverbosity >= 3)
-                                fprintf(stdout, "   junction:") ;
                             // iterate over remaining right junctions of this combination
                             for (size_t j = start_idx; j < combinations.at(c_idx).size(); j++) 
                             {
