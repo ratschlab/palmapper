@@ -3064,6 +3064,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                     new_region1->read_map[ii] = false;
                                 new_region1->read_pos = -111 ; // TODO
                                 new_region1->hit_len = -111 ;  // TODO					
+                                // check chromsome boundaries 
+                                new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                                new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
 
                                 current_regions.push_back(new_region1);
             
@@ -3090,6 +3093,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                     new_region1->read_map[ii] = false;
                                 new_region1->read_pos = -111 ; // TODO
                                 new_region1->hit_len = -111 ;  // TODO					
+                                // check chromsome boundaries 
+                                new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                                new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
 
                                 current_regions.push_back(new_region1);
             
@@ -3113,6 +3119,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                 new_region1->read_map[ii] = false;
                             new_region1->read_pos = -111 ; // TODO
                             new_region1->hit_len = -111 ;  // TODO					
+                            // check chromsome boundaries 
+                            new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                            new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
         
                             current_regions.push_back(new_region1);
 
@@ -3145,6 +3154,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                             new_region1->read_map[ii] = false;
                         new_region1->read_pos = -111 ; // TODO
                         new_region1->hit_len = -111 ;  // TODO					
+                        // check chromsome boundaries 
+                        new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                        new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
 
                         current_regions.push_back(new_region1);
     
@@ -3184,6 +3196,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                     new_region1->read_map[ii] = false;
                                 new_region1->read_pos = -111 ; // TODO
                                 new_region1->hit_len = -111 ;  // TODO					
+                                // check chromsome boundaries 
+                                new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                                new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
 
                                 current_regions.push_back(new_region1);
             
@@ -3207,6 +3222,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                 new_region1->read_map[ii] = false;
                             new_region1->read_pos = -111 ; // TODO
                             new_region1->hit_len = -111 ;  // TODO					
+                            // check chromsome boundaries 
+                            new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                            new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
         
                             current_regions.push_back(new_region1);
 
@@ -3229,6 +3247,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                                 new_region1->read_map[ii] = false;
                             new_region1->read_pos = -111 ; // TODO
                             new_region1->hit_len = -111 ;  // TODO					
+                            // check chromsome boundaries 
+                            new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                            new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
         
                             current_regions.push_back(new_region1);
 
