@@ -1339,9 +1339,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			// splice-site based filter: require at least this many edits
+            // this is -filter-splice-min-edit in old versions
 			if (strcmp(argv[i], "-filter-max-edit") == 0) {
 				if (i + 1 > argc - 1) {
-					fprintf(stderr, "ERROR: Argument missing for option -filter-splice-min-edit\n") ;
+					fprintf(stderr, "ERROR: Argument missing for option -filter-max-edit\n") ;
 					usage();
 					exit(1);
 				}
