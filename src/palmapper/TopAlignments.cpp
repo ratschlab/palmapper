@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <pthread.h>
 #include <string>
+#include <sstream>
 #include <time.h>
 #include <stdlib.h>
 //#include <wait.h>
@@ -2225,37 +2226,76 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		}
 
 		//fprintf(stdout,"read anno: %s\n",curr_align->read_anno);
-		
+	    std::string md_tag;
+        uint32_t md_count = 0;
+        bool md_del = false;
+
 		for (uint32_t i = 0; i < curr_align->read_anno.length(); i++)
 		{
-			if (curr_align->read_anno[i] != '[')
+			if (curr_align->read_anno[i] != '[') {
 				__cigar[idx] = 'M' ;	
+                md_count++;
+                md_del = false;
+            }
 			else
 			{
-				if (curr_align->read_anno[i+1] == '-')
+				if (curr_align->read_anno[i+1] == '-') {
 					__cigar[idx] = 'I' ;
-				else if (curr_align->read_anno[i+2] == '-')
+                    md_del = false;
+				} else if (curr_align->read_anno[i+2] == '-') {
 					__cigar[idx] = 'D' ;
-				else
+                    if (!md_del) {
+                        std::stringstream tmp_str;
+                        tmp_str << md_count;
+                        md_count = 0;
+                        md_tag += tmp_str.str(); 
+                        md_tag += '^';
+                        md_del = true;
+                    }
+                    md_tag += curr_align->read_anno[i+1];
+				} else {
 					__cigar[idx] = 'M' ;
+                    if (curr_align->read_anno[i+2] != 'N') {
+                        std::stringstream tmp_str;
+                        tmp_str << md_count;
+                        md_count = 0;
+                        md_tag += tmp_str.str(); 
+                        md_tag += curr_align->read_anno[i+1];
+                        md_del = false;
+                    } else {
+                        md_count++;
+                    }
+                }
 				i += 3 ;
 			}
 			idx += 1 ;
 		}
+
+        if (md_count > 0) {
+            std::stringstream tmp_str;
+            tmp_str << md_count;
+            md_tag += tmp_str.str(); 
+        }
 		__cigar[idx] = 0 ;
 
 
 		uint32_t last = __cigar[0] ;
 		uint32_t count = 1 ;
 		uint32_t ii = 0;
-		uint32_t insertions = 0 ;
-		uint32_t deletions = 0 ;
+		uint32_t insertions = (last == 'I')?1:0 ;
+		uint32_t deletions = (last == 'D')?1:0 ;
 		idx = 0 ;
 		uint32_t exon_size = (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
 
-
 		for (uint32_t i = 1; i < strlen(__cigar); i++)
 		{
+            // account for insertions and deletions
+            if (__cigar[i] == 'D')
+                deletions ++;
+            if (__cigar[i] == 'I')
+                insertions ++;
+
+
 			// we reached end of current exon, which is not the last exon -> add intron
 			if ((i - insertions) == exon_size && idx + 2 < curr_align->exons.size())
 			{
@@ -2266,11 +2306,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				pos_in_cigar += strlen(cig_buf) ;
 				cigar[pos_in_cigar++] = last ;
 				assert(pos_in_cigar<max_cigar_len) ;
-
-				if (last == 'D')
-					deletions += count;
-				if (last == 'I')
-					insertions += count;
 
 				// add intron
 				count = 0 ;
@@ -2300,12 +2335,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					cigar[pos_in_cigar++] = last ;
 					assert(pos_in_cigar<max_cigar_len) ;
 				}
-				if (last == 'D')
-					deletions += count;
-				if (last == 'I')
-					insertions += count;
 				count = 1 ;
 				last = __cigar[i] ;
+
 			}
 			else
 				count += 1 ;
@@ -2318,11 +2350,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		pos_in_cigar += ii ;
 		cigar[pos_in_cigar++] = last ;
 		assert(pos_in_cigar<max_cigar_len) ;
-		if (last == 'D')
-			deletions += count ; 
-		if (last == 'I')
-			insertions += count ; 
-
 
 		// handle trimmed reads end
 		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0 &&  read_orientation=='+')
@@ -2433,6 +2460,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			fprintf(MY_OUT_FP, "\tH1:i:%i", H1) ;
 		if (H2 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
 			fprintf(MY_OUT_FP, "\tH2:i:%i", H2) ;
+        fprintf(MY_OUT_FP, "\tMD:Z:%s", md_tag.c_str());
 
 
 		if (curr_align->spliced)
