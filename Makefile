@@ -10,6 +10,7 @@ SVNVERSION = $(shell svnversion)
 CC = g++
 #CFLAGS =  -Wall -ggdb -g2 -O -pg  #-Wconversion -Werror -Wall -Wextra   # -pg # debug 
 CFLAGS = -std=gnu++0x -O9 -ggdb -g -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -O9 -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -pthread # linux amd64 optimized
+#CFLAGS = -std=gnu++0x -ggdb -g -Wall -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow -fexpensive-optimizations -frerun-cse-after-loop -fcse-follow-jumps -finline-functions -fschedule-insns2 -fthread-jumps -fforce-addr -fstrength-reduce -funroll-loops -pthread # linux amd64 optimized
 #CFLAGS =  -O9 -Wall -ggdb -Wno-unused-parameter -Wformat -Wformat-security -Wimplicit -Wparentheses -Wshadow # generic
 GMFLAGS = -DGM
 INCLUDE =  -Ishogun/ -Idyn_prog/ -Isrc
