@@ -87,8 +87,8 @@ inline double getScore(struct penalty_struct* qualityScores, int mlen, int dnaCh
 	//printf("Starting scoring / scheme is USE_QUALITY_SCORES\n");
 	//printf("estChar,dnaChar are: %d,%d",estChar,dnaChar);
 
-	//assert(estChar > 0 && estChar < 6);
-	//assert(dnaChar > -1 && dnaChar < 6);
+   assert(estChar > 0 && estChar < 6);
+   assert(dnaChar > -1 && dnaChar < 6);
    
    int currentPos = (estChar-1)*6+dnaChar;
    struct penalty_struct *currentPen = &qualityScores[currentPos];

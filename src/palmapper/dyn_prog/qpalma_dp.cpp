@@ -104,10 +104,17 @@ double Alignment::init_seed_position (int hit_read, int hit_dna, int hit_len,
 			continue ;
 	
 		double score;
-		if (use_quality_scores) 
-			score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(read[i_pos]),prb[i_pos]) ;
-		else
+		if (use_quality_scores) {
+            if (check_char(dna[j_pos]) > 5) {
+                int dnaValue = check_char(dna[j_pos]) ;
+                score=getScoreIupac(USE_QUALITY_SCORES, matchmatrix, qualityScores, prb[i_pos], mm_len, dna[j_pos], read[i_pos], dnaValue) ;
+            } else
+                score=getScore(qualityScores,mm_len,check_char(dna[j_pos]),check_char(read[i_pos]),prb[i_pos]) ;
+		} else {
+            assert(check_char(dna[j_pos]) > -1 && check_char(dna[j_pos]) < 6);
+            assert(check_char(read[i_pos]) > -1 && check_char(read[i_pos]) < 6);
 			score=matchmatrix[mm_len*check_char(dna[j_pos])+check_char(read[i_pos])] ;
+        }
 
 		if (score>best_match){
 			best_match=score;
@@ -635,9 +642,11 @@ double Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, 
 		if (estchar>0)
 		{
 			assert(pos<read_length) ;
-			if (use_quality_scores)
-				score_=getScore(qualityScores, 6, dnachar, estchar, prb[pos]) ;
-			else
+            assert(dnachar > -1 && dnachar < 6);
+            assert(estchar > 0 && estchar < 6);
+			if (use_quality_scores) 
+                score_=getScore(qualityScores, 6, dnachar, estchar, prb[pos]) ;
+			else 
 				score_=matchmatrix[6*dnachar+estchar] ;
 		}
 		else
