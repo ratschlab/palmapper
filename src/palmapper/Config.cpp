@@ -181,7 +181,8 @@ Config::Config() {
 	CONVERT_SUBSTITUTION_VARIANTS=false ;
 	MERGE_VARIANT_SOURCE_IDS = false ;
 	UNIQUE_VARIANT_SOURCE_IDS = false ;
-	IUPAC_SNPS= false ;
+	IUPAC_SNPS = false ;
+    IUPAC_GENOME = false ;
 	USE_VARIANTS_EDITOP_FILTER=false ;
 	USE_VARIANT_FILE_NAME = "" ;
 	REPORT_USED_VARIANT_FILE_NAME = "";
@@ -979,10 +980,16 @@ int Config::parseCommandLine(int argc, char *argv[])
 				NO_READ_MAPPING = true ;
 			}
 
-			//verbose
+			// use IUPAC SNPS
 			if (strcmp(argv[i], "-use-iupac-snp-variants") == 0) {
 				not_defined = 0;
-				IUPAC_SNPS= true ;
+				IUPAC_SNPS = true ;
+			}
+
+			// genome has IUPAC positions 
+			if (strcmp(argv[i], "-iupac-genome") == 0) {
+				not_defined = 0;
+				IUPAC_GENOME = true ;
 			}
 
 			//Variant filename with variants to use for alignments

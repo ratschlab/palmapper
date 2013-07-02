@@ -5799,34 +5799,31 @@ int QPalma::perform_alignment(Result &result, Hits &readMappings, std::string &r
 		if (do_timing)
 			my_start_time = clock() ;)
 
-		if (_config.USE_VARIANTS) // && (int)variant_list.size()>0)
-		{
-			if (_config.IUPAC_SNPS)
-				alignment.myalign_fast<true,true>(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
-												  est_len_p, prb, alignment_parameters->h,
-												  alignment_parameters->matchmatrix,
-												  alignment_parameters->matchmatrix_dim[0]
-												  * alignment_parameters->matchmatrix_dim[1], donor, d_len,
-												  acceptor, a_len, alignment_parameters->qualityPlifs,
-												  remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS, _config.DP_MAX_DELETIONS,
-												  readMappings.topAlignments().get_max_gaps(), readMappings.topAlignments().get_max_mismatches(), readMappings.topAlignments().get_max_editops(),
-												  /* _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), */
-												  qmm_value, remapping,
-												  _config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
-			else
-				alignment.myalign_fast<true,false>(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
-												   est_len_p, prb, alignment_parameters->h,
-												   alignment_parameters->matchmatrix,
-												   alignment_parameters->matchmatrix_dim[0]
-												   * alignment_parameters->matchmatrix_dim[1], donor, d_len,
-												   acceptor, a_len, alignment_parameters->qualityPlifs,
-												   remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS, _config.DP_MAX_DELETIONS,
-												   readMappings.topAlignments().get_max_gaps(), readMappings.topAlignments().get_max_mismatches(), readMappings.topAlignments().get_max_editops(),
-												   /* _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), */
-												   qmm_value, remapping,
-												   _config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
+		if ((_config.USE_VARIANTS && _config.IUPAC_SNPS) || _config.IUPAC_GENOME) // && (int)variant_list.size()>0)
+            alignment.myalign_fast<true,true>(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
+                                              est_len_p, prb, alignment_parameters->h,
+                                              alignment_parameters->matchmatrix,
+                                              alignment_parameters->matchmatrix_dim[0]
+                                              * alignment_parameters->matchmatrix_dim[1], donor, d_len,
+                                              acceptor, a_len, alignment_parameters->qualityPlifs,
+                                              remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS, _config.DP_MAX_DELETIONS,
+                                              readMappings.topAlignments().get_max_gaps(), readMappings.topAlignments().get_max_mismatches(), readMappings.topAlignments().get_max_editops(),
+                                              /* _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), */
+                                              qmm_value, remapping,
+                                              _config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
+        else if (_config.USE_VARIANTS) 
+            alignment.myalign_fast<true,false>(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
+                                               est_len_p, prb, alignment_parameters->h,
+                                               alignment_parameters->matchmatrix,
+                                               alignment_parameters->matchmatrix_dim[0]
+                                               * alignment_parameters->matchmatrix_dim[1], donor, d_len,
+                                               acceptor, a_len, alignment_parameters->qualityPlifs,
+                                               remove_duplicate_scores, seed_i, seed_j, best_match, _config.SPLICED_MAX_INTRONS, _config.DP_MAX_DELETIONS,
+                                               readMappings.topAlignments().get_max_gaps(), readMappings.topAlignments().get_max_mismatches(), readMappings.topAlignments().get_max_editops(),
+                                               /* _config.NUM_GAPS, _config.NUM_MISMATCHES, readMappings.get_num_edit_ops(), */
+                                               qmm_value, remapping,
+                                               _config.USE_VARIANTS, _config.NO_GAP_END,_config.SPLICED_MIN_SEGMENT_LENGTH,_config.SPLICED_SHORTEST_INTRON_LENGTH,variant_cache);
 			
-		}
 		else
 			alignment.myalign_fast<false,false>(strand, contig_idx, nr_paths_p, (char*) dna.c_str(), (int) dna.length(), est,
 												est_len_p, prb, alignment_parameters->h,
