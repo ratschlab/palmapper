@@ -58,9 +58,10 @@ inline igzstream& operator>>(igzstream & os, struct variant_str & a)
 	os.read((char*)&a.conf_count, sizeof(a.conf_count)) ;
 	os.read((char*)&a.non_conf_count, sizeof(a.non_conf_count)) ;
 
-	int size=0 ;
+	size_t size=0 ;
 	os.read((char*)&size, sizeof(size)) ;
 	{
+		//fprintf(stderr, "size1=%ld\n", (long int)size) ;
 		char buf[size+1] ;
 		os.read(buf, size) ;
 		buf[size]=0 ;
@@ -70,10 +71,12 @@ inline igzstream& operator>>(igzstream & os, struct variant_str & a)
 	size=0 ;
 	os.read((char*)&size, sizeof(size)) ;
 	{
+		//fprintf(stderr, "size2=%ld, %i\n", (long int)size, a.position) ;
 		char buf[size+1] ;
 		os.read(buf, size) ;
 		buf[size]=0 ;
 		a.variant_str.assign(buf) ;
+		//exit (-1) ;
 	}
 
 	size=0 ;
@@ -103,7 +106,7 @@ inline ogzstream& operator<<(ogzstream & os, const struct variant_str & a)
 	os.write((char*)&a.conf_count, sizeof(a.conf_count)) ;
 	os.write((char*)&a.non_conf_count, sizeof(a.non_conf_count)) ;
 
-	int size=a.ref_str.size() ;
+	size_t size=a.ref_str.size() ;
 	os.write((char*)&size, sizeof(size)) ;
 	os.write(a.ref_str.c_str(), size) ;
 
@@ -166,6 +169,8 @@ typedef struct variant_cache_str variant_cache_t ;
 
 enum VariantInputEnum {
 	sdi,
+	vcf,
+	mgf,
 	maf,
 	samtools,
 	snpcsv,
@@ -191,7 +196,7 @@ private:
 public:
 	std::vector<Variant> * variantlist ;
 
-	VariantMap(Genome const &genome_, bool merge_variant_source_ids=false) ;
+	VariantMap(Genome const &genome_, bool merge_variant_source_ids=false, bool p_validate_variants=false) ;
 	~VariantMap() ;
 	int insert_variants_from_multiple_alignments(std::string & ref_align,int ref_len, std::vector<std::string> & variant_align, std::vector<std::string> & variant_name, 
 												 int start_position, int ref_chr_len, int chr_idx, char strand);
@@ -380,8 +385,8 @@ public:
 		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
-		v.read_pos=read_pos;
-		v.read_len=read_len;
+		v.read_pos=(short int)read_pos;
+		v.read_len=(short int)read_len;
 		
 		if (validate_variants)
 			if (!validate_variant(v, chr.nr()))
@@ -395,9 +400,9 @@ public:
 		Variant v ;
 		v.type = pt_deletion ;
 		v.position = dna_pos ;
-		v.end_position = dna_pos+ref_str.size() ;
-		v.ref_len=ref_str.size() ;
-		v.variant_len=variant_str.size();
+		v.end_position = (int)(dna_pos+ref_str.size()) ;
+		v.ref_len=(int)ref_str.size() ;
+		v.variant_len=(int)variant_str.size();
 		v.ref_str=ref_str ;
 		v.variant_str=variant_str ;
 		v.conf_count = 1 ;
@@ -405,8 +410,8 @@ public:
 		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
-		v.read_pos=read_pos;
-		v.read_len=read_len;
+		v.read_pos=(short int)read_pos;
+		v.read_len=(short int)read_len;
 
 		if (validate_variants)
 			if (!validate_variant(v, chr.nr()))
@@ -420,8 +425,8 @@ public:
 		Variant v ;
 		v.type = pt_deletion ;
 		v.position = dna_pos ;
-		v.end_position = dna_pos+ref_str.size() ;
-		v.ref_len=ref_str.size() ;
+		v.end_position = (int)(dna_pos+ref_str.size()) ;
+		v.ref_len=(int)ref_str.size() ;
 		v.variant_len=0;
 		v.ref_str=ref_str ;
 		v.variant_str="" ;
@@ -430,8 +435,8 @@ public:
 		v.non_used_count = 0 ;
 		v.read_id=read_id ;
 		v.non_conf_count = 0 ;
-		v.read_pos=read_pos;
-		v.read_len=read_len;
+		v.read_pos=(short int)read_pos;
+		v.read_len=(short int)read_len;
 
 		if (validate_variants)
 			if (!validate_variant(v, chr.nr()))
@@ -482,7 +487,7 @@ public:
 			}		
 	}
 
-	void transcribe_gff(const std::string & gff_input, const std::string & fasta_output) ;
+	//void transcribe_gff(const std::string & gff_input, const std::string & fasta_output) ;
 	
 
 protected:
@@ -490,9 +495,11 @@ protected:
 	int init_from_samtools(const  std::string &sam_fname);
 	int init_from_csv(const  std::string &snp_fname, const std::vector<std::string> & take_lines, VariantInputEnum ext);
 	int init_from_sdi(const  std::string &sdi_fname);
+	int init_from_maf(const  std::string &maf_fname);
+	int init_from_vcf(const  std::string &vcf_fname);
 	int init_from_info(const  std::string &info_fname);
 	int init_from_snp_info(const  std::string &info_fname);
-	int init_from_maf(const  std::string &gff_fname, const std::string &ref_genome);
+	int init_from_mgf(const  std::string &gff_fname, const std::string &ref_genome);
 	pthread_mutex_t variant_mutex;
 
 public:

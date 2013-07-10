@@ -4,6 +4,7 @@
 // ####### GenomeMaps ###########################################
 // ##############################################################
 
+
 //#define CHR_MAP_DNAARRAY
 //#define CHR_MAP_DNAARRAY_CLASS CDNAArray4
 // define this if CDNAArray4 is chosen
@@ -31,9 +32,6 @@
 #endif
 #endif
 #define MASK_MAPPED_REGION         16
-#define MASK_REPETITIVE_SEED       32
-#define MASK_REPETITIVE_SEED_MANY1  64
-#define MASK_REPETITIVE_SEED_MANY2  128
 
 
 class GenomeMaps
@@ -47,20 +45,20 @@ public:
 #ifdef CHR_MAP_DNAARRAY
 		return CHR_MAP_a[chr.nr()]->get_elem(index) ;
 #else
-		assert(CHR_MAP_c!=NULL) ;
+		//assert(CHR_MAP_c!=NULL) ;
 		return CHR_MAP_c[chr.nr()][index] ;
 #endif
 	}
 	
 
-	inline unsigned char CHR_MAP_cov(Chromosome const &chr, size_t index)
+	inline unsigned int CHR_MAP_cov(Chromosome const &chr, size_t index)
 	{
 #ifdef CHR_MAP_DNAARRAY
 		assert(false) ;
 		// not implemented
 		return CHR_MAP_a[chr.nr()]->get_elem(index) ;
 #else
-		assert(CHR_MAP_i!=NULL) ;
+		//assert(CHR_MAP_i!=NULL) ;
 		return CHR_MAP_i[chr.nr()][index] ;
 #endif
 	}
@@ -70,9 +68,9 @@ public:
 	{
 #ifdef CHR_MAP_DNAARRAY
 #ifdef CHR_MAP_DNAARRAY_2BIT
-		assert(c<4) ;
+		//assert(c<4) ;
 #else // CHR_MAP_DNAARRAY_2BIT
-		assert(c<16) ;
+		//assert(c<16) ;
 #endif // CHR_MAP_DNAARRAY_2BIT
 		CHR_MAP_a[chr.nr()]->set_elem(index, c) ;
 #else // CHR_MAP_DNAARRAY
@@ -88,13 +86,12 @@ public:
 	
 
 	int init_reporting() ;
-	int report_repetitive_seed(Chromosome const &chr, int chr_start, int count) ;
 	int report_mapped_region(Chromosome const &chr, int chr_start, int chr_end, int num_matches)  ;
 	int report_mapped_read(Chromosome const &chr, int start, int end, int num_matches, int nbest_hit) ;
 	int report_spliced_read(Chromosome const &chr, std::vector<int> & exons, int num_matches, int nbest_hit) ;
 	int do_reporting(int force=0) ;
-	int read_reporting() ;
-	int write_reporting() ;
+	int read_reporting(char *fname=NULL) ;
+	int write_reporting(char *fname=NULL) ;
 	int write_cov_reporting() ;
 	int clean_reporting() ;
 	int init_with_gff(std::string &gff_fname) ;
@@ -109,7 +106,6 @@ protected:
 	void from_dnaarray(int chr = -1) ;
 
 	// stats
-	int reported_repetitive_seeds  ;
 	int reported_mapped_regions  ;
 	int reported_mapped_reads  ;
 	int reported_spliced_reads  ;
@@ -118,9 +114,6 @@ protected:
 	int covered_mapped_read_positions_best  ;
 	int covered_spliced_read_positions  ;
 	int covered_spliced_read_positions_best  ;
-	int covered_repetitive_seed_positions  ;
-	int covered_repetitive_seed_positions_many1  ;
-	int covered_repetitive_seed_positions_many2  ;
 	int covered_mapped_region_positions  ;
 
 	static clock_t last_report ;
@@ -129,7 +122,6 @@ protected:
 	
 public:
 	//TODO: dd check for multithreading
-	int REPORT_REPETITIVE_SEED_DEPTH_EXTRA ;
 
 } ;
 

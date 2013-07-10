@@ -1,5 +1,7 @@
-// Authors: Korbinian Schneeberger and Joerg Hagmann 
+// Authors: Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Dominik Diesch
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -45,9 +47,9 @@ bool Genome::classInitialized = initClass();
 bool Genome::initClass() {
 	for (int cc=0; cc<255; cc++)
 	{
-		upper_char[cc] = (cc >= 'a' && cc <= 'z') ? cc - 32 : cc;
-		valid_char[cc] = ::strchr("ACGTNRYMKWSBDHV", upper_char[cc]) != NULL ? upper_char[cc] : 0;
-		compl_char[cc] = get_compl_base_(cc);
+	  upper_char[cc] = (char)((cc >= 'a' && cc <= 'z') ? cc - 32 : cc);
+	  valid_char[cc] = (char)(::strchr("ACGTNRYMKWSBDHV", upper_char[cc]) != NULL ? upper_char[cc] : 0);
+	  compl_char[cc] = (char)( get_compl_base_((char)cc));
 	}
 	return true;
 }
@@ -60,9 +62,10 @@ Genome::Genome(int numChromosomes) {
 	MAX_POSITIONS = 0;
 	
 	NUM_CHROMOSOMES = numChromosomes ;
+	NO_LOAD_GENOME=false ;
 
 #ifndef PMINDEX 
-	INDEX_SIZE = Config::INDEX_SIZE_15 ;
+	INDEX_SIZE = Config::INDEX_SIZE_16 ;
 #endif
 
 	INDEX=NULL;
@@ -92,9 +95,13 @@ Genome::Genome(int numChromosomes) {
 }
 
 Genome::~Genome() {
+	fprintf(stdout, "Freeing Genome\n") ;
+	
 	delete[] _chromosomes;
-	free(INDEX);
-	free(BLOCK_TABLE);
+	if (INDEX)
+		free(INDEX);
+	if (BLOCK_TABLE)
+		free(BLOCK_TABLE);
 
 #ifndef PMINDEX 
 	if (_config.BWA_INDEX == 1)
@@ -114,7 +121,9 @@ int Genome::alloc_index_memory()
 	//MEM_MGR.next_unused_entry = MEM_MGR.first_entry;
 
 #ifndef PMINDEX
-	INDEX_SIZE=_config.INDEX_SIZE_15 ;
+	INDEX_SIZE=_config.INDEX_SIZE_16 ;
+	if (_config.INDEX_DEPTH==15)
+		INDEX_SIZE = _config.INDEX_SIZE_15 ;
 	if (_config.INDEX_DEPTH==14)
 		INDEX_SIZE = _config.INDEX_SIZE_14 ;
 	if (_config.INDEX_DEPTH==13)
@@ -123,13 +132,36 @@ int Genome::alloc_index_memory()
 		INDEX_SIZE = _config.INDEX_SIZE_12 ;
 	if (_config.VERBOSE>0)
 		fprintf(stdout, "_config.INDEX_DEPTH=%i, INDEX_SIZE=%ld, sizeof(INDEX_ENTRY)=%ld, index size=%ld\n",  (int)_config.INDEX_DEPTH, (long int)INDEX_SIZE, (long int)sizeof(INDEX_ENTRY), (long int)sizeof(INDEX_ENTRY)*INDEX_SIZE) ;
+
+	if (_config.VERBOSE>0)
+		fprintf(stdout, "Allocating index memory\n") ;
 #endif
 
 	if ( (INDEX = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY)) ) == NULL) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (2)\n");
 		exit(1);
-	}
+		}
 
+	if (false)
+	{
+		time_t t=time(NULL) ;
+		bool did_output=false ;
+		for (size_t i=0; i<INDEX_SIZE; i+=INDEX_SIZE/1000)
+		{
+			if (difftime(time(NULL), t)>2)
+			{
+				fprintf(stderr, "Initializing index memory: %2.1f%%\r", (100.0*i)/INDEX_SIZE) ;
+				t=time(NULL) ;
+				did_output=true ;
+				fflush(stdout) ;
+			}
+			if (INDEX_SIZE-i>=INDEX_SIZE/1000)
+				memset(&INDEX[i], 0, sizeof(INDEX_ENTRY)*INDEX_SIZE/1000) ;
+		}
+		if (did_output)
+			fprintf(stderr, "Initializing index memory: 100%%\n") ;
+	}
+	
 	/*if ( _config.MAP_REVERSE && ((INDEX_REV = (INDEX_ENTRY *) calloc (INDEX_SIZE, sizeof(INDEX_ENTRY))) == NULL) ) {
 		fprintf(stderr, "ERROR : not enough memory for mem_master (3)\n");
 		exit(1);
@@ -153,7 +185,10 @@ int Genome::load_genome()
 	unsigned int linelen;
 
 	//std::vector<Chromosome> chromosomes ;
-	_chromosomes = new Chromosome[10000] ;//NUM_CHROMOSOMES];
+	if (NUM_CHROMOSOMES>0)
+		_chromosomes = new Chromosome[NUM_CHROMOSOMES];
+	else
+		_chromosomes = new Chromosome[10000] ;
 
 #ifdef USE_CHR_BIN
 	fprintf(stdout, "using compact genome representation (class %s)\n", USE_CHR_BIN_CLASS::get_class_name()) ;
@@ -241,6 +276,13 @@ int Genome::load_genome()
 	//_chromosomes = new Chromosome[NUM_CHROMOSOMES];
 	//for (unsigned int ii=0; ii<NUM_CHROMOSOMES; ii++)
 	//	_chromosomes[ii]=chromosomes[ii] ;
+
+    // check sanity of read chromosome sequence
+    for (unsigned int ii=0; ii<NUM_CHROMOSOMES; ii++)
+    {
+       for (unsigned int jj=0; jj < _chromosomes[ii].length(); jj++)
+            assert(int(_chromosomes[ii][jj]) > 0);
+    }
 	
 	fclose(genome_fp);
 	
@@ -255,6 +297,7 @@ int Genome::load_genome()
 	if (_config.NO_LOAD_GENOME)
 	{
 		fprintf(stdout, "Not loading genome sequence...\n") ;
+		NO_LOAD_GENOME=true ;
 		return 0 ;
 	}
 	
@@ -271,13 +314,22 @@ int Genome::load_genome()
 //	}
 
 	char line[513];
-	unsigned int fp = ftell(genome_fp);
+	unsigned int fp = (unsigned int)ftell(genome_fp);
 	unsigned int linelen;
 
 #ifdef USE_CHR_BIN
 		fprintf(stdout, "using compact genome representation (class %s)\n", USE_CHR_BIN_CLASS::get_class_name()) ;
 #endif	
-
+	time_t t=time(NULL) ;
+	size_t total_len=0 ;
+	size_t cum_pos =0;
+	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) 
+	{
+		Chromosome &chr = _chromosomes[i];
+		total_len+=chr.length() ;
+	}
+	bool did_output=false ;
+	
 	for (unsigned int i=0; i!=NUM_CHROMOSOMES; ++i) 
 	{
 		Chromosome &chr = _chromosomes[i];
@@ -302,7 +354,7 @@ int Genome::load_genome()
 		}
 		while (line[0] != '>') 
 		{
-			linelen = strcspn(line, " \n\t");
+		  linelen = (unsigned int)strcspn(line, " \n\t");
 			if (linelen > 0 && (line[linelen] == '\t' || line[linelen] == ' ')) {
 				fprintf(stderr, "ERROR: white space character unequal to newline found in genome input file '%s' in chromosome '%s'!\n", _config.GENOME_FILE_NAME.c_str(), chr.desc());
 				exit(0);
@@ -328,14 +380,23 @@ int Genome::load_genome()
 					exit(0);
 				} 
 			}
+			data[pos]=0 ;
+			if (difftime(time(NULL), t)>1)
+			{
+				t=time(NULL) ;
+				fprintf(stdout, "Reading genome sequence: %2.1f%%\r", 100.0*(cum_pos+pos)/total_len) ;
+				fflush(stdout) ;
+				did_output=true ;
+			}
 			
-			fp = ftell(genome_fp);
+			fp = (unsigned int)ftell(genome_fp);
 			if (fgets(line, 512, genome_fp) == NULL) break;
 		}
 		
 		data[chr.length()] = '\0';
-
-		if (chr.length() != strlen(data)) {
+		cum_pos+=pos ;
+		
+		if (chr.length() != strlen(data) || pos!=chr.length()) {
 			fprintf(stderr, "ERROR: Idx file seems to be corrupted. Chromosome %d has %d characters at the end! (%d %d)\n",i+1, (int)strlen(data)-chr.length(), (int)strlen(data), chr.length());
 			exit(1);
 		}
@@ -344,6 +405,8 @@ int Genome::load_genome()
 	}
 	
 	fclose(genome_fp);
+	if (did_output)
+		fprintf(stdout, "Reading genome sequence: %2.1f%%\n", 100.0) ;
 	
 	return 0;	
 }
@@ -499,12 +562,25 @@ int Genome::read_meta_index(FILE *META_INDEX_FP)
 	int used_slots = 0;
 	unsigned int index_offset = 0;//, index_rev_offset = 0;
 
+	time_t t=time(NULL) ;
+	bool did_output=false ;
+
 	while (fread(&file_entry, sizeof(file_entry), 1, META_INDEX_FP) == 1)
 	{
-		if (file_entry.slot < 0) continue;	//downcompatibility to previous GM versions
+	  //if (file_entry.slot < 0) continue;	//downcompatibility to previous GM versions 
 
 		used_slots++;
-
+		if (used_slots%10000==0)
+		{
+			//fprintf(stdout, "used_slots=%i, fpos=%ld, slot=%d\n", used_slots, ftell(META_INDEX_FP), file_entry.slot) ;
+			if (difftime(time(NULL), t)>1)
+			{
+				fprintf(stdout, "Reading Meta Index file: %2.1f%%\r", (100.0*file_entry.slot)/INDEX_SIZE) ;
+				did_output=true ;
+				t=time(NULL) ;
+				fflush(stdout) ;
+			}
+		}
 		index_offset += file_entry.num;
 
 		INDEX[file_entry.slot].num = file_entry.num;
@@ -513,7 +589,9 @@ int Genome::read_meta_index(FILE *META_INDEX_FP)
 		if (file_entry.num > MAX_POSITIONS)
 			MAX_POSITIONS = file_entry.num;
 	}
-
+	if (did_output)
+		fprintf(stdout, "Reading Meta Index file: 100%%\n") ;
+	
 	fclose(META_INDEX_FP);
 
   	return 0;
@@ -613,16 +691,15 @@ int Genome::read_chr_index(FILE *CHR_INDEX_FP)
 // Code adapted from Paraslash.
 ////////////////////////////////////////////////////////
 
-#ifndef BinaryStream_MAP
-
-void Genome::index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const
+/*void Genome::index_pre_buffer(STORAGE_ENTRY* index_mmap, STORAGE_ENTRY* buffer, long index, long size) const
 {
 	assert(index>=0);
 	assert(size>=0);
+	//memcpy(buffer, &index_mmap[index], size*sizeof(STORAGE_ENTRY)) ;
 
 	for (long i=0; i<size; i++)
-		buffer[i]=index_mmap[index+i] ;
-}
+	  buffer[i]=index_mmap[index+i] ;
+}*/
 
 void Genome::mmap_indices()
 {
@@ -644,13 +721,14 @@ void Genome::mmap_indices()
 		clock_t last_time = clock() ;
         for (size_t i=0; i<(fwd_size/sizeof(STORAGE_ENTRY))-1024; i+=1024)
 		{
-            index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
+			memcpy(buffer, &INDEX_FWD_MMAP[i], 1024*sizeof(STORAGE_ENTRY))  ;
+			//index_pre_buffer(INDEX_FWD_MMAP, buffer, i, 1024) ;
 			
-			if (i%1000==0 && ((1.0*clock()-last_time)/CLOCKS_PER_SEC>0.01)) // the timing is tricky. Clock only measures user time, but this statement mostly uses system or io time
-			{
-				fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", (100.0*i)/(fwd_size/sizeof(STORAGE_ENTRY))) ;
-				last_time = clock() ;
-			}
+		  if (i%1000==0 && ((1.0*(float)clock()-(float)last_time)/(float)CLOCKS_PER_SEC>0.01)) // the timing is tricky. Clock only measures user time, but this statement mostly uses system or io time
+		    {
+		      fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", (100.0*(float)i)/((float)fwd_size/sizeof(STORAGE_ENTRY))) ;
+		      last_time = clock() ;
+		    }
 		}
 		fprintf(stdout, "Linearly reading index files to fill caches: %3.1f%%\r", 100.0) ;
         fprintf(stdout, "\n") ;
@@ -711,37 +789,6 @@ int Genome::gm_mmap(size_t length, int prot, int flags, int fd, off_t offset, vo
 
 	return 0;
 }
-
-#else
-
-void Genome::mmap_indices()
-{
-
-	// Map fwd index
-	INDEX_FWD_MMAP = new CBinaryStream<STORAGE_ENTRY>(_config.INDEX_FWD_FILE_NAME);
-
-	if (_config.INDEX_PRECACHE)
-	{
-	//	fprintf(stdout, "Linearly reading index files to fill caches: 1/2 ") ;
-
-		INDEX_FWD_MMAP->read_and_forget() ;
-
-	//	fprintf(stdout, "Done\n") ;
-	}
-
-//		printf("ERROR: Could not get file status\n");
-//                exit(1);
-	/*for (int i=0; i<1000; i++)
-	{
-		STORAGE_ENTRY se=(*INDEX_FWD_MMAP)[i*10];
-		fprintf(stderr, "se[%d]=%0x%0x%0x%0x\n",i, se.id[0], se.id[1], se.id[2], se.id[3]);
-	}
-	exit(1);*/
-}
-
-#endif // BinaryStream_MAP
-
-
 
 int Genome::init_constants() 
 {
@@ -818,13 +865,20 @@ int Genome::init_constants()
 			BINARY_CODE[4] = 268435455;    //binary number: 0000 1111 1111 1111 1111 1111 1111 1111
 		}
 		if (_config.INDEX_DEPTH == 15) {
-			BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
-			BINARY_CODE[4] = 268435456*4-1; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+		  BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[4] = 1073741823; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
 		}
-		if (_config.INDEX_DEPTH>15 || _config.INDEX_DEPTH<5)
+		if (_config.INDEX_DEPTH == 16) {
+		  BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[1] = 1073741824;     //binary number: 0100 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[2] = 2147483648;     //binary number: 1000 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[3] = 3221225472;     //binary number: 1100 0000 0000 0000 0000 0000 0000 0000
+		  BINARY_CODE[4] = 4294967295; //binary number: 1111 1111 1111 1111 1111 1111 1111 1111
+		}
+		if (_config.INDEX_DEPTH>16 || _config.INDEX_DEPTH<5)
 		{
 			fprintf(stderr, "ERROR: _config.INDEX_DEPTH out of range\n") ;
 			//exit(1) ;

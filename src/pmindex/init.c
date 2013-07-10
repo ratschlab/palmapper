@@ -17,6 +17,12 @@ int init_mem_master();
 
 int init(int argc, char *argv[]) 
 {
+  GENOME_OUT_FP=NULL ;
+  GENOME_FP=NULL ;
+  CHR_INDEX_FP=NULL ;
+  META_INDEX_FP=NULL ;
+  MAPFWD_INDEX_FP=NULL ;
+
 	init_defaults();
 	init_opts(argc, argv);
 	//init_index();
@@ -51,6 +57,9 @@ int init_defaults()
 	}
 
 	strcpy(GENOME_VARIANTS_FILE_NAME, "") ;
+	strcpy(GENOME_MASK_FILE_NAME, "") ;
+	strcpy(GENOME_MASK_GFF_FILE_NAME, "") ;
+	has_genome_mask=0 ;
 
 	return 0;
 }
@@ -121,14 +130,6 @@ int init_opts(int argc, char *argv[])
 		}
 **/
 
-		// seed occurrence stat output
-/*		if(strcmp(argv[i],"-o")==0){
-			if(i+1 > argc - 1){ usage(); exit(1); }
-			i++;
-			strcpy(OCC_FILE_NAME, argv[i]);
-			has_meta_index = 1;
-		}*/
-
 		//depth
 		if(strcmp(argv[i],"-s")==0){
 			if(i+1 > argc - 1){ usage(); exit(1); }
@@ -157,7 +158,7 @@ int init_opts(int argc, char *argv[])
 			}
 		}
 
-		//threads
+		//limit the number of seed hits
 		if(strcmp(argv[i],"-seed-hit-cancel-threshold")==0){
 			if(i+1 > argc - 1){ usage(); exit(1); }
 			i++;
@@ -177,6 +178,57 @@ int init_opts(int argc, char *argv[])
 			}
 		}
 
+		// genome mask
+		if(strcmp(argv[i],"-genome-mask")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			strcpy(GENOME_MASK_FILE_NAME, argv[i]);
+			has_genome_mask = 1;
+		}
+		// genome mask gff init
+		if(strcmp(argv[i],"-genome-mask-gff")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			strcpy(GENOME_MASK_GFF_FILE_NAME, argv[i]);
+			has_genome_mask = 1;
+		}
+		// genome mask gff init
+		if(strcmp(argv[i],"-genome-mask-gff-margin")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			genome_mask_gff_extra=atoi(argv[i]);
+		}
+
+		//genome_mask_use_rep_seeds
+		if(strcmp(argv[i],"-genome-mask-repseeds")==0){
+			genome_mask_use_rep_seeds = true;
+		}
+
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions")==0){
+			genome_mask_use_secondary_regions = true ;
+		}
+
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions-margin")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			secondary_region_extra=atoi(argv[i]) ;
+		}
+
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions-minhit")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			secondary_min_num_hits=atoi(argv[i]) ;
+		}
+		//genome_mask_use_secondary_regions
+		if(strcmp(argv[i],"-genome-mask-secondary-regions-minhit-perc")==0){
+			if(i+1 > argc - 1){ usage(); exit(1); }
+			i++;
+			secondary_min_hits_perc=atoi(argv[i]) ;
+		}
+
 		//verbose
 		if(strcmp(argv[i],"-v")==0){
 			VERBOSE = 1;
@@ -188,23 +240,18 @@ int init_opts(int argc, char *argv[])
 		usage(); exit(1);
 	}
 
+	if (!genome_mask_use_rep_seeds && genome_mask_use_secondary_regions)
+	  {
+	    fprintf(stdout, "Warning: -genome-mask-secondary-regions implies -genome-mask-repseeds\n") ;
+	    genome_mask_use_rep_seeds = true ;
+	  }
 	return 1;
 }
-
-/*
-int init_index()
-{
-	INDEX_SIZE = 4^INDEX_DEPTH;
-	
-	INDEX = (BIN *) malloc(INDEX_SIZE * sizeof(BIN));
-	INDEX_REV = (BIN *) malloc(INDEX_SIZE * sizeof(BIN));
-	
-	return 1;
-}*/
 
 
 int init_constants() 
 {
+  INDEX_SIZE=INDEX_SIZE_12 ;
 	if (INDEX_DEPTH == 5) {
 		BINARY_CODE[0] = 0;			//binary number: 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 256;		//binary number: 0000 0000 0000 0001 0000 0000
@@ -267,6 +314,7 @@ int init_constants()
 		BINARY_CODE[2] = 33554432;      //binary number: 0010 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 50331648;      //binary number: 0011 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[4] = 67108863;		//binary number: 0011 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_13 ;
 	}
 	if (INDEX_DEPTH == 14) {
 		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000
@@ -274,13 +322,23 @@ int init_constants()
 		BINARY_CODE[2] = 134217728;     //binary number: 1000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 201326592;     //binary number: 1100 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[4] = 268435455;		//binary number: 1111 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_14 ;
 	}
 	if (INDEX_DEPTH == 15) {
 		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[1] = 268435456;     //binary number: 0001 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[2] = 536870912;     //binary number: 0010 0000 0000 0000 0000 0000 0000 0000
 		BINARY_CODE[3] = 805306368;     //binary number: 0011 0000 0000 0000 0000 0000 0000 0000
-		BINARY_CODE[4] = 268435456*4-1; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+		BINARY_CODE[4] = 1073741823; //binary number: 0011 1111 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_15 ;
+	}
+	if (INDEX_DEPTH == 16) {
+		BINARY_CODE[0] = 0;             //binary number: 0000 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[1] = 1073741824;     //binary number: 0100 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[2] = 2147483648;     //binary number: 1000 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[3] = 3221225472;     //binary number: 1100 0000 0000 0000 0000 0000 0000 0000
+		BINARY_CODE[4] = 4294967295; //binary number: 1111 1111 1111 1111 1111 1111 1111 1111
+		INDEX_SIZE=INDEX_SIZE_16 ;
 	}
 
 	return(0);
@@ -304,7 +362,7 @@ int init_genome_file()
 	
 	if (strchr(line, '\n') == NULL) header = 1;
 
-	int chrdesclen = (strcspn(line, " \t\n") > CHR_DESC_LENGTH-1)? CHR_DESC_LENGTH-1: strcspn(line, " \t\n") - 1;
+	int chrdesclen = (int)((strcspn(line, " \t\n") > CHR_DESC_LENGTH-1)? CHR_DESC_LENGTH-1: strcspn(line, " \t\n") - 1);
 	if (chrdesclen > 0) strncpy(CHR_DESC, &line[1], chrdesclen);
 		else {
 			fprintf(stderr, "ERROR: A chromosome doesn't have a valid description!\n");
@@ -384,6 +442,7 @@ int init_mem_master()
 		fprintf(stderr, "ERROR : not enough memory for memory manager\n");
 		exit(1);
 	}
+	memset(MEM_MGR, 0, sizeof(STORAGE)) ;
 
 	MEM_MGR->curr_num = 0;
 	MEM_MGR->nuggets = NULL;

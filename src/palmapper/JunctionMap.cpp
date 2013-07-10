@@ -14,7 +14,7 @@ bool JunctionMap::is_consensus_intron(char strand, int chr, int start, int end)
 	//fprintf(stdout,"%c-%c %c-%c\n",chrom[start], chrom[start+1],chrom[end-1],chrom[end]);
 
 	if (strand=='+'){
-		
+	  assert(start<=end) ;
 		bool is_consensus_don = false ;
 		for (unsigned int j=0; j < DON_CONSENSUS.size(); j++){
 			
@@ -35,6 +35,7 @@ bool JunctionMap::is_consensus_intron(char strand, int chr, int start, int end)
 				is_consensus_acc = true ;
 				break ;
 			}
+		//fprintf(stdout, "+ is_consensus_don=%i, is_consensus_acc=%i [%c%c]\n", is_consensus_don, is_consensus_acc, chrom[end-1], chrom[end]) ;
 		return is_consensus_acc;
 	}
 	else{
@@ -56,6 +57,7 @@ bool JunctionMap::is_consensus_intron(char strand, int chr, int start, int end)
 				is_consensus_don = true ;
 				break ;
 			}
+		//fprintf(stdout, "- is_consensus_don=%i, is_consensus_acc=%i\n", is_consensus_don, is_consensus_acc) ;
 		return is_consensus_don;
 	}
 	
@@ -102,16 +104,25 @@ JunctionMap::~JunctionMap()
 }
 
 
-void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
+void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual, int filter_by_map, const GenomeMaps & genomemaps, int verbosity)
 {
 	lock() ;
-
-	int total=0, 
-		used_nonconsensus=0, 
-		used_consensus=0,
-		filtered_consensus=0, 
-		filtered_nonconsensus=0 ;
+	if (verbosity>0)
+	  {
+	    fprintf(stdout, "Filtering junctions, requiring\n* %i as minimum confirmation count\n", min_coverage) ;
+	    if (min_junction_qual>0)
+	      fprintf(stdout, "* requiring minimum junction quality of %i (usually distance to border)\n", min_junction_qual) ;
+	    if (filter_by_map>=0)
+	      fprintf(stdout, "* requiring junction next to mapped read or annotated exon with distance at most %i bp\n", filter_by_map) ;
+	  }
 	
+	int total=0, 
+	  used_nonconsensus=0, 
+	  used_consensus=0,
+	  filtered_consensus=0, 
+	  filtered_nonconsensus=0 ;
+
+	int N=0, T=0 ;
 	for (unsigned int chr=0; chr < genome->nrChromosomes(); chr++)
 	{
 		if (junctionlist[chr].empty())
@@ -140,6 +151,20 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
 				take = false ;
 			if (((*it).coverage < 2*min_coverage || ((*it).junction_qual<30)) && min_junction_qual!=0 && (!(*it).consensus))
 				take = false ;
+
+			if (take && filter_by_map>=0)
+			{
+				bool map=false ;
+				for (int p=-filter_by_map; p<=filter_by_map && !map; p++)
+				  {
+				    if ((*it).start+p>=0 && (*it).start+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it).start+p) ;
+				    if ((*it).end+p>=0 && (*it).end+p<(int)genome->chromosome(chr).length())
+				      map |= genomemaps.CHR_MAP(genome->chromosome(chr), (*it).end+p) ;
+				  }
+				if (!map)
+				  take=false ;
+			}
 			
 			if (!take)
 			{
@@ -159,10 +184,18 @@ void JunctionMap::filter_junctions(int min_coverage, int min_junction_qual)
 			}
 			it++;
 		}
+		int n=filtered_consensus+filtered_nonconsensus+used_consensus+used_nonconsensus ;
+		int t=used_consensus+used_nonconsensus ;
+		if (verbosity>0)
+		  fprintf(stdout, "%s: analyzed %i junctions, accepted %i junctions (%2.1f%%)\n", genome->chromosome(chr).desc(), n, t, 100.0*t/n) ;
 		total+=junctionlist[chr].size();
+		N+=n ;
+		T+=t ;
 	}
-	unlock() ;
-	
+	unlock() ;	
+	if (verbosity>0)
+	  fprintf(stdout, "All: analyzed %i junctions, accepted %i junctions (%2.1f%%)\n", N, T, 100.0*T/N) ;
+
 	fprintf(stdout,"Number of junctions in database (min support=%i): %i/%i consensus, %i/%i nonconsensus, %i total\n", 
 			min_coverage, used_consensus, used_consensus+filtered_consensus, used_nonconsensus, used_nonconsensus+filtered_nonconsensus, total);
 }
@@ -344,7 +377,8 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 		
 
 		// Line comes from a gff3 file built by PALMapper
-		if (strcmp(source, "palmapper")==0 and strcmp(type, "intron")==0)
+		//if ((strcmp(source, "palmapper")==0  || strcmp(source, "TopHat")==0) and strcmp(type, "intron")==0)
+        if (strcmp(type, "intron")==0)
 		{
 
 			int chr_idx = genome->find_desc(chr_name) ;
@@ -357,30 +391,30 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			}
 			
 			std::string tmp(properties);
-			int pos_cov=tmp.find("Confirmed=");
-			if (pos_cov>0)
+			size_t pos_cov=tmp.find("Confirmed=");
+			if (pos_cov != std::string::npos)
 				pos_cov += strlen("Confirmed=") ;
 			else
 			{
 				pos_cov=tmp.find("Note=");
-				if (pos_cov>0)
+				if (pos_cov != std::string::npos)
 					pos_cov += strlen("Note=") ;
 			}
-			int coverage = 1;
-			if (pos_cov>0)
+			size_t coverage = 1;
+			if (pos_cov != std::string::npos)
 				coverage= atoi(tmp.substr(pos_cov).c_str());
 
 			bool nonconsensus=false ;
 			char* intron_string = strdup("") ;
-			int pos_cons=tmp.find("Nonconsensus=");
+			size_t pos_cons = tmp.find("Nonconsensus=");
 
-			if (pos_cons>0)
+			if (pos_cons != std::string::npos)
 			{
 				pos_cons += strlen("Nonconsensus=") ;
 				nonconsensus = atoi(tmp.substr(pos_cons).c_str());
 
-				int pos_intron=tmp.find("IntronSeq=");
-				if (pos_intron>0)
+				size_t pos_intron = tmp.find("IntronSeq=");
+				if (pos_intron != std::string::npos)
 				{
 					pos_intron += strlen("IntronSeq=") ;
 					free(intron_string) ;
@@ -388,22 +422,26 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 				}
 			}
 			
-			int junction_qual = 0 ;
-			int pos_qual = tmp.find("BestSplit=") ;
-			if (pos_qual>0)
+			int junction_qual = 1 ;
+			size_t pos_qual = tmp.find("BestSplit=") ;
+			if (pos_qual != std::string::npos)
 			{
 				pos_qual += strlen("BestSplit=") ;
 				junction_qual = atoi(tmp.substr(pos_qual).c_str());
 			}
 
 			char * read_id = strdup("gff") ;
-			int pos_id=tmp.find("ReadID=");
-			if (pos_id>0)
+			size_t pos_id = tmp.find("ReadID=");
+			if (pos_id != std::string::npos)
 			{
 				pos_id += strlen("ReadID=") ;
 				free(read_id) ;
 				read_id = strdup(tmp.substr(pos_id).c_str()) ;
 			}
+
+			// check intron consensus
+			bool consensus_intron= is_consensus_intron(strand,chr_idx,start,end);
+			nonconsensus=!consensus_intron ;
 			
 			//Attention: positions in this file start at 0! :S
 			insert_junction(strand,chr_idx,start, end, !nonconsensus, intron_string, junction_qual, read_id, coverage);
@@ -412,7 +450,6 @@ int JunctionMap::init_from_gff(std::string &gff_fname)
 			free(intron_string) ;
 			free(read_id) ;
 
-			
 			intron_lines++;
 		}
 		

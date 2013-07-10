@@ -131,9 +131,9 @@ template <int bits> void ChromosomeBase<bits>::data(char *ascii, uint32_t len, c
 
 #ifndef PMINDEX
 #ifndef GM
-typedef ChromosomeBase<2> Chromosome;
+typedef ChromosomeBase<8> Chromosome;
 #else
-typedef ChromosomeBase<4> Chromosome;
+typedef ChromosomeBase<8> Chromosome;
 #endif
 #else
 typedef ChromosomeBase<8> Chromosome;

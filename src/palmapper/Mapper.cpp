@@ -1,3 +1,8 @@
+// Authors: Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Dominik Diesch
+// Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
+
 #include <palmapper/Mapper.h>
 #include <palmapper/align.h>
 #include <palmapper/palmapper.h>
@@ -111,6 +116,9 @@ int Mapper::map_reads()
 		fprintf(stderr, "ERROR : Couldn't open log file %s\n", _config.TRIGGERED_LOG_FILE.c_str());     // #A#
 		exit(1);                                                                        // #A#
 	}                                                                                   // #A#
+
+	clock_t read_timing_other = clock() ;
+
 	for (;;) {
 
 		count_reads++;
@@ -132,6 +140,9 @@ int Mapper::map_reads()
 		clock_t start_time = clock() ;
 		if (_config.VERBOSE && (count_reads % 100 == 0))
 			printf("%i..", count_reads) ;
+
+		_stats.read_stats_other_time += (clock()-read_timing_other) ;
+		
 		try
 		{
 			if (_config.REALIGN_READS)
@@ -145,6 +156,8 @@ int Mapper::map_reads()
 			continue ;
 		}
 		time3 += clock()-start_time ;
+		read_timing_other=clock() ;
+
 		_reporter.report(result,_junctionmap,_variants);
 		if (_config.VERBOSE || ((clock()-last_timing_report)/CLOCKS_PER_SEC>=10))
 		{
@@ -157,18 +170,18 @@ int Mapper::map_reads()
 			break ;
 		
 		// progress output, just for user convenience
-		if ((count_reads % 1000 == 0)) {
+		/*if ((count_reads % 1000 == 0)) {
 			printf("%c", _progressChar);
 			fflush(stdout);
 		}
 		if ((count_reads % 10000 == 0)) {
 			printf("%i", count_reads); // (%i,%i)", count_reads, GENOME.accesssCount(), GENOME.accesssCountConst());
 			fflush(stdout);
-		}
+			}*/
 	}
 
-	map_reads_timing(count_reads) ;
-	_stats.qpalma_timing();
+	//map_reads_timing(count_reads) ;
+	//_stats.qpalma_timing();
 
 	CSignal::report_current_read_id("") ;
 
@@ -188,6 +201,9 @@ int Mapper::map_reads()
 
 
 void Mapper::map_read(Result &result, clock_t start_time) {
+
+	clock_t read_timing_other=clock() ;
+
 	QPalma const *qpalma = &result._qpalma._qpalma;
 	unsigned int rtrim_cut = 0 ;
 	unsigned int polytrim_cut_start = 0 ;
@@ -228,8 +244,6 @@ void Mapper::map_read(Result &result, clock_t start_time) {
 
 restart:
 
-	// make it somehow dependent on the read length, the index depth and the number of mismatches
-	_genomeMaps.REPORT_REPETITIVE_SEED_DEPTH_EXTRA = read.length() - _config.INDEX_DEPTH - _config.NUM_MISMATCHES  ;
 
 	char const *READ = read.data();
 	if (_config.VERBOSE>1)
@@ -260,18 +274,22 @@ restart:
 	if (_config.STATISTICS) _stats.HITS_PER_READ = 0;
 
 	hits.HITS_IN_SCORE_LIST = 0;
+	hits._topAlignments.start_top_alignment_record();
 
+	clock_t read_timing_seed=clock() ;
+	_stats.read_stats_other_time += (read_timing_seed-read_timing_other) ;
+	
 	// map_fast IF 1) best hit strategy 2) only hits up to RL/ID mismatches without gaps should be found
 	// READ_LENGTH / _config.INDEX_DEPTH is the number of seeds fitting in the current read
 	int nr_seeds = (int) (read.length() / _config.INDEX_DEPTH);
-	if (!hits.ALL_HIT_STRATEGY || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
+	if (/*!hits.ALL_HIT_STRATEGY*/ true || _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP || (_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0))
 	{
         // if no hits could have been found: _config.ALL_HIT_STRATEGY = -1, necessitating execution of normal mapping in the following
 		int ret;
 		if (_config.BWA_INDEX == 1)
-			ret	= hits.map_fast<index_bwt>(read);	
+			ret	= hits.map_fast<index_bwt>(read, qpalma);	
 		else
-			ret	= hits.map_fast<index_array>(read);	
+			ret	= hits.map_fast<index_array>(read, qpalma);	
 
 		if (ret<0)
 			cancel = 1 ;
@@ -283,14 +301,13 @@ restart:
 
 	time1+= clock()-start_time ;
 		// map_complete IF 1) all hit strategy 2) best hit strategy and no mappings found in map_fast BUT NOT IF MM < RL/ID AND gaps=0 (since map_fast has already found them)
-	if (!cancel)
+	if (!cancel && !hits._topAlignments.stop_aligning())
 	{
-		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
-			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && hits.SUMMARY_HIT_STRATEGY_NUM_EDIT_OPS.size()<=_config.OUTPUT_FILTER_NUM_TOP)) &&
-			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0 && !_config.SPLICED_HITS) ) )
+//		if (((hits.ALL_HIT_STRATEGY!=0) || //_config.NOT_MAXIMAL_HITS || // check again
+//			 (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP /* && hits._topAlignments.size()<=_config.OUTPUT_FILTER_NUM_TOP) */ ) &&
+//			(!(_config.NUM_MISMATCHES < nr_seeds && _config.NUM_GAPS == 0 && !_config.SPLICED_HITS) ) )
 		{
 			c_map_short_read++;
-			//fprintf(stdout, "performing hits.map_short_read\n") ;
 			
 			int ret;
 			if (_config.BWA_INDEX == 1)
@@ -300,6 +317,9 @@ restart:
 
 			if (ret<0)
 				cancel=2 ;
+
+			read_timing_other=clock() ;
+			_stats.read_stats_seed_time += (read_timing_other-read_timing_seed) ;
 
 			time2a+= clock()-start_time ;
 
@@ -311,19 +331,21 @@ restart:
 
 			time2b += clock()-start_time ;
 
-			if (!_config.REPORT_REPETITIVE_SEEDS)
-				ret = hits.browse_hits();
+			clock_t read_timing_UA=clock() ;
+			_stats.read_stats_other_time += (read_timing_UA-read_timing_other) ;
+
+			ret = hits.browse_hits(qpalma);
+
+			_stats.read_stats_UA_time += (clock()-read_timing_UA) ;
 			
 			if (ret<0)
 				cancel = 3 ;
 
-			if (hits.ALL_HIT_STRATEGY < 0)
-				hits.ALL_HIT_STRATEGY = 0;		// resetting _config.ALL_HIT_STRATEGY
-		} else
-		{
-			//if (_config.VERBOSE)
-			//		printf("skipping map_short_read\n") ;
-		}
+		}//  else
+		// {
+		// 	//if (_config.VERBOSE)
+		// 	//		printf("skipping map_short_read\n") ;
+		// }
 	}
 	else
 	{
@@ -331,21 +353,24 @@ restart:
 			printf("canceled\n") ;
 	}
 
+	clock_t read_timing_SA=clock() ;
 
 	time2c += clock()-start_time ;
 
-	if (hits.ALL_HIT_STRATEGY < 0)
-		hits.ALL_HIT_STRATEGY = 0;         // resetting _config.ALL_HIT_STRATEGY
+	//if (hits.ALL_HIT_STRATEGY < 0)
+	//hits.ALL_HIT_STRATEGY = 0;         // resetting _config.ALL_HIT_STRATEGY
 
 	if (_config.STATISTICS && _stats.HITS_PER_READ > MAXHITS)
 		MAXHITS = _stats.HITS_PER_READ;
 
-	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
-		hits.reset_num_edit_ops() ;
+	/*if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
+	  hits.reset_num_edit_ops() ;*/
+
+	hits.reset_alignment_cnt() ;
 
 	read_mapped = 0 ;
 
-	if (false && !cancel && !_config.REPORT_REPETITIVE_SEEDS)
+	if (false && !cancel)
 	{
 		hits._topAlignments.start_top_alignment_record();
 
@@ -356,20 +381,20 @@ restart:
 		ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, 1000, _annotatedjunctions, _variants);//hits._topAlignments.size() -nb_unspliced);
 	}
 
-	if (!cancel && !_config.REPORT_REPETITIVE_SEEDS)
-	{
-		hits._topAlignments.start_top_alignment_record();
+	clock_t read_timing_JA=0 ;
 
-		if (!_config.NO_GENOMEMAPPER && !_config.MAP_JUNCTIONS_ONLY)
+	if (!cancel)
+	{
+		//if (!_config.NO_GENOMEMAPPER && !_config.MAP_JUNCTIONS_ONLY)
 		{
-			read_mapped = hits.analyze_hits(qpalma);	// returns 1 if at least one hit is printed, 0 otherwise
+			read_mapped = (hits._topAlignments.size()>0) ; 
 			if (_config.VERBOSE>1)
 				printf("%i unspliced alignment found\n", (int) hits._topAlignments.size());
 		}
 
 		bool trigger = false ;
 		if (_config.SPLICED_HITS || _config.LOG_TRIGGERED)
-			trigger = hits._topAlignments.size()==0 ||
+			trigger = hits._topAlignments.size()==0 || _config.NO_GENOMEMAPPER || 
 				qpalma->qpalma_filter(result._qpalma, hits._topAlignments.get_alignment(0), num_N, _annotatedjunctions)!=0 ;
 
 		if ( trigger )
@@ -396,7 +421,14 @@ restart:
 					}
 					
 					if (_config.MAP_JUNCTIONS || _config.MAP_JUNCTIONS_ONLY)
+					{
+						read_timing_JA=clock() ;
+
 						ret = qpalma->junctions_remapping(hits, result._qpalma, _junctionmap, hits._topAlignments.size() -nb_unspliced, _annotatedjunctions, _variants);
+
+						read_timing_JA=clock()-read_timing_JA ;
+						_stats.read_stats_JA_time += read_timing_JA ;
+					}
 					
 					//fprintf(stderr, "capture_hits ret=%i\n", ret) ;
 					if (ret<0)
@@ -507,6 +539,8 @@ restart:
 		if (read_mapped && _config.VERBOSE)
 			fprintf(stderr, "lost unspliced alignments\n") ;
 	}
+
+	_stats.read_stats_SA_time += (clock()-read_timing_SA - read_timing_JA) ;
 
 
 	if (cancel)

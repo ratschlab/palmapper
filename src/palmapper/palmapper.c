@@ -1,8 +1,9 @@
 // authors: Korbinian Schneeberger and Joerg Hagmann
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
 
-// Authors: Gunnar R\"atsch and Lisa Thalheim
-// Copyright (C) 2008 by Friedrich Miescher Laboratory of the Max Planck Society
+// Authors: Gunnar R\"atsch, Lisa Thalheim, Dominik Diesch
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
 
 #include "palmapper.h"
 #include "print.h"
@@ -46,6 +47,7 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 			fprintf(stderr, "ERROR: caught ShogunException: %s in thread %lu.\n", e.get_exception_string(), pthread_self()) ;
 			CSignal::do_show_read_ids() ;
 			fprintf(stderr, "\nExiting\n") ;
+			palmapper_cleanup() ;
 			exit(-1) ;
 		}
 		catch (std::exception & e)
@@ -53,6 +55,7 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 			fprintf(stderr, "ERROR: caught std::exception: %s in thread %lu.\n", e.what(), pthread_self()) ;
 			CSignal::do_show_read_ids() ;
 			fprintf(stderr, "\nExiting\n") ;
+			palmapper_cleanup() ;
 			exit(-1) ;
 		}
 		catch (...)
@@ -60,6 +63,7 @@ MapperThread(Genome &genome,	GenomeMaps &genomemaps, QueryFile &queryFile, QPalm
 			fprintf(stderr, "ERROR: caught unknown exception in thread %lu.\n", pthread_self()) ;
 			CSignal::do_show_read_ids() ;
 			fprintf(stderr, "\nExiting\n") ;
+			palmapper_cleanup() ;
 			exit(-1) ;
 		}
 	}
@@ -103,6 +107,9 @@ int main(int argc, char *argv[])
 
 	_config.applyDefaults(&genome) ;
 	_config.checkConfig() ;
+
+	if (_config.VERBOSE && !_config.MAP_REVERSE)
+	  fprintf(stdout, "Warning: only trigger alignments on forward strand\n") ;
 
 	FILE *OUT_FP = NULL ;
 	if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
@@ -156,26 +163,28 @@ int main(int argc, char *argv[])
 			TopAlignments::print_bam_header(genome, SP_OUT_FP) ;
 	}
 
+	// genomemaps
+	GenomeMaps *genomemaps = NULL;
+	if (!_config.NO_READ_MAPPING)
+	  genomemaps = new GenomeMaps(genome);
+
 	if (_config.MAP_JUNCTIONS){
 		int ret=junctionmap.init_from_gffs(_config.MAP_JUNCTIONS_FILE);
 		if (ret!=0)
 			return -1;
-		junctionmap.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH);
+		junctionmap.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH, _config.MAP_JUNCTIONS_MAP_WINDOW, *genomemaps, _config.VERBOSE);
 	}
 	
 	if (_config.SCORE_ANNOTATED_SPLICE_SITES){
 		int ret=annotated_junctions.init_from_gffs(_config.ANNOTATED_SPLICE_SITES_FILE);
 		if (ret!=0)
 			return -1;
-		annotated_junctions.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH);
+		annotated_junctions.filter_junctions(_config.MAP_JUNCTIONS_COVERAGE, _config.MAP_JUNCTIONS_MIN_SEGMENT_LENGTH, _config.MAP_JUNCTIONS_MAP_WINDOW, *genomemaps, _config.VERBOSE);
 	}
 
-	// genomemaps
-	GenomeMaps *genomemaps = NULL;
-	genomemaps = new GenomeMaps(genome);
 
 	// variant maps
-	VariantMap variants(genome, _config.MERGE_VARIANT_SOURCE_IDS);
+	VariantMap variants(genome, _config.MERGE_VARIANT_SOURCE_IDS, _config.VALIDATE_VARIANTS);
 
 	if (_config.USE_VARIANTS)
 	{
@@ -197,7 +206,8 @@ int main(int argc, char *argv[])
 	}
 
 	QPalma *qpalma = NULL;
-	qpalma = new QPalma(&genome, genomemaps, _config.VERBOSE);
+	if (!_config.NO_READ_MAPPING)
+	  qpalma = new QPalma(&genome, genomemaps, _config.VERBOSE);
 
 	if (_config.SPLICED_HITS && _config.FILTER_BY_SPLICE_SITES && !_config.NO_SPLICE_PREDICTIONS)
 	{
@@ -256,71 +266,80 @@ int main(int argc, char *argv[])
 	//printf("The current time is %s",asctime(localtime(&timer_mid)));
   	////////////////////////
 
- 	if (_config.VERBOSE) { printf("Mapping reads\n"); }
-
-	CSignal::set_handler() ;
-	CSignal::toggle_show_read_ids(true) ;
-	
- 	unsigned int numThreads = _config.NUM_THREADS;
-	MapperThread *threads[numThreads];
-	std::string threadIds(".+-:=!$'");
-	for (unsigned int i = 0; i < numThreads; ++i) {
-		threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
-		threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
-		printf("Starting thread %d\n", i);
-		if (numThreads>1)
-			threads[i]->launch();
-		else
-			threads[i]->run();
-	}
-	for (unsigned int i = 0; i < numThreads; ++i) {
-		if (numThreads>1)
+	if (!_config.NO_READ_MAPPING)
+	  {
+		  printf("Mapping reads with %i threads\n", _config.NUM_THREADS); 
+		  
+		  _stats.reset_read_stats() ;
+		  
+	    CSignal::set_handler() ;
+	    CSignal::toggle_show_read_ids(true) ;
+	    
+	    unsigned int numThreads = _config.NUM_THREADS;
+	    MapperThread *threads[numThreads];
+	    std::string threadIds(".+-:=!$'");
+	    for (unsigned int i = 0; i < numThreads; ++i) {
+	      threads[i] = new MapperThread(genome, *genomemaps, queryFile, *qpalma, reporter, junctionmap, annotated_junctions, variants);
+	      threads[i]->setProgressChar(threadIds[i % threadIds.length()]);
+	      //printf("Starting thread %d\n", i);
+	      if (numThreads>1)
+			  threads[i]->launch();
+	      else
+			  threads[i]->run();
+	    }
+	    for (unsigned int i = 0; i < numThreads; ++i) {
+	      if (numThreads>1)
 	        threads[i]->join();
-		delete threads[i];
-	}
-	reporter.done();
-	CSignal::toggle_show_read_ids(false) ;
-		
+	      delete threads[i];
+	    }
+	    reporter.done();
+	    CSignal::toggle_show_read_ids(false) ;
+
+		_stats.print_read_stats(true) ;
+	  }
+	else
+	  fprintf(stdout, "Not mapping reads ... \n") ;
+
 	if (_config.OUT_FILE_NAME.length() > 0)
-	{
-		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
-			fclose(OUT_FP);
-		else
-		{
-			int ret=TopAlignments::close_bam_pipe(OUT_FP) ;
-			if (ret!=0)
-			{
-				fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
-				exit(-1) ;
-			}
-		}
-	}
+	  {
+	    if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+	      fclose(OUT_FP);
+	    else
+	      {
+		int ret=TopAlignments::close_bam_pipe(OUT_FP) ;
+		if (ret!=0)
+		  {
+		    fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
+		    exit(-1) ;
+		  }
+	      }
+	  }
 	if (_config.SPLICED_OUT_FILE_NAME.length() > 0 && SP_OUT_FP!=OUT_FP)
-	{
-		if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
-			fclose(SP_OUT_FP);
-		else
-		{
-			int ret=TopAlignments::close_bam_pipe(SP_OUT_FP) ;
-			if (ret!=0)
-			{
-				fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
-				exit(-1) ;
-			}
-		}
-	}
+	  {
+	    if ( _config.OUTPUT_FORMAT != OUTPUT_FORMAT_BAM )
+	      fclose(SP_OUT_FP);
+	    else
+	      {
+		int ret=TopAlignments::close_bam_pipe(SP_OUT_FP) ;
+		if (ret!=0)
+		  {
+		    fprintf(stderr, "samtools pipe failed (ret=%i)\n", ret) ;
+		    exit(-1) ;
+		  }
+	      }
+	  }
 	if (_config.LEFTOVER_FILE_NAME.length() > 0) 
-		fclose(LEFTOVER_FP);
-
+	  fclose(LEFTOVER_FP);
+	
 	if (_config.REPORT_USED_VARIANTS)
-	{
-		gzclose(USED_VARIANTS_FP);
-	}
-
-	if (_config.TRANSCRIBE_GFF)
-	{
+	  {
+	    gzclose(USED_VARIANTS_FP);
+	  }
+	
+	/*if (_config.TRANSCRIBE_GFF)
+	  {
 		variants.transcribe_gff(_config.TRANSCRIBE_GFF_FILE, _config.TRANSCRIBE_FASTA_FILE) ;
-	}
+		}*/
 
 	if (_config.STATISTICS)	{
 		print_stats(queryFile);
@@ -351,7 +370,7 @@ int main(int argc, char *argv[])
   	if (_config.STATISTICS) printf("Total time needed: %dh %dm %ds\n", hours, minutes, seconds);
   	////////////////////////
 
-	if (genomemaps != NULL && (_config.REPORT_REPETITIVE_SEEDS || _config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL))
+	if (genomemaps != NULL && (_config.REPORT_MAPPED_REGIONS || _config.REPORT_MAPPED_READS || _config.REPORT_FILE!=NULL))
 	{
 		genomemaps->do_reporting(1) ;
 		genomemaps->write_reporting() ;
@@ -396,6 +415,8 @@ int main(int argc, char *argv[])
 	if (genomemaps != NULL)
 		delete genomemaps;
 
+	fprintf(stdout, "\n\nPalmapper finished normally.\n") ;
+	
 	if (_config.VERBOSE) { printf("Mapping finished\n"); }
 	
 	CSignal::unset_handler() ;

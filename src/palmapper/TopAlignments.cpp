@@ -6,9 +6,11 @@
 #include <limits.h>
 #include <pthread.h>
 #include <string>
+#include <sstream>
 #include <time.h>
 #include <stdlib.h>
 //#include <wait.h>
+#include <iostream>
 
 #include "palmapper.h"
 #include "print.h"
@@ -29,7 +31,10 @@ TopAlignments::TopAlignments(GenomeMaps *genomemaps_) :
 	verbosity(0),
 	num_filtered(0),
 	current_ind(0),
-	temp_ind(0)
+	temp_ind(0),
+	max_editops(_config.NUM_EDIT_OPS),
+	_stop_aligning(false),
+	_drop_alignments(false)
 {
 	//int ret = pthread_mutex_init(&top_mutex, NULL) ;// = PTHREAD_MUTEX_INITIALIZER ;
 	//assert(ret==0) ;
@@ -101,6 +106,30 @@ void TopAlignments::determine_transcription_direction(char strand,char orientati
 
 }
 
+bool TopAlignments::overlap(alignment_t* alignment1, alignment_t* alignment2)
+{
+    // no overlap for different chromosomes
+    if (alignment1->chromosome->nr() != alignment2->chromosome->nr())
+        return false;
+
+    // do the alignment overlap at all
+    if ((alignment1->exons.front() > alignment2->exons.back()) || (alignment2->exons.front() > alignment1->exons.back()))
+        return false;
+
+    // find at least on genomic position to overlap
+    std::set<int> align_pos;
+    for (size_t i = 0; i < alignment1->exons.size(); i+=2) 
+        for (int j = alignment1->exons.at(i); j < alignment1->exons.at(i+1); j++)
+            align_pos.insert(j);
+
+    for (size_t i = 0; i < alignment2->exons.size(); i+=2)
+        for (int j = alignment2->exons.at(i); j < alignment2->exons.at(i+1); j++)
+            if (align_pos.find(j) != align_pos.end())
+                return true;
+    
+    // return false otherwise
+    return false;
+}
 
 
 int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num_gaps_p, int *num_mismatches_p, int *qual_mismatches_p, int *num_matches_p)
@@ -206,7 +235,11 @@ int TopAlignments::construct_aligned_string(Read const &read, HIT *hit, int *num
 	ALIGNSEQ[0] = '\0';
 	
 	for (j = 0; j != hit->mismatches; ++j) 
-    {
+	  {
+	    // remove duplicates: BUGTODO
+	    if (j>0 && hit->edit_op[j-1].pos == hit->edit_op[j].pos && hit->edit_op[j-1].mm == hit->edit_op[j].mm)
+	      continue ;
+
 		//fprintf(stderr, "j=%i, edit_op[j].pos=%i\n count_char=%i", j, hit->edit_op[j].pos, count_char) ;
 		assert(hit->edit_op[j].pos>= -((int)read.length()) && hit->edit_op[j].pos<=((int)read.length())) ;
 		
@@ -417,6 +450,8 @@ alignment_t *TopAlignments::gen_alignment_from_hit(Read const &read, HIT *best_h
 
 	int num_gaps=0, num_mismatches=0, num_matches=((int)read.length()), qual_mismatches=0 ;
 	int alignment_length=construct_aligned_string(read, best_hit, &num_gaps, &num_mismatches, &qual_mismatches, &num_matches); // constructs the aligned string with mismatches and gaps in ALIGNSEQ
+	if (verbosity>=1 && (!(num_mismatches<=best_hit->mismatches) || !(num_gaps<=best_hit->gaps))) // BUG-TODO
+		fprintf(stdout, "WARNING: Bug-todo; !(num_mismatches<=best_hit->mismatches) || !(num_gaps<=best_hit->gaps)\n") ;
 
 	if (best_hit->orientation == '+') 
     {
@@ -557,6 +592,7 @@ int TopAlignments::spliced_is_overlapping(alignment_t *a1, alignment_t *a2)
 
 int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2) 
 {
+  //  return 0 ;
 	if (a1->num_matches_ref!=a2->num_matches_ref) 
 		return 0 ;
 
@@ -584,42 +620,35 @@ int TopAlignments::alignment_is_opposite(alignment_t *a1, alignment_t *a2)
 bool TopAlignments::alignment_is_equal(alignment_t *a1, alignment_t *a2) 
 {
 	
-	
+  //return false ;
 	/*if (fabs(a1->qpalma_score-a2->qpalma_score)>1e-3){
 		return false ;
 		}*/ // cant use this due to the remapping scoring
 	
 	if (a1->num_matches_ref!=a2->num_matches_ref){
 		return false ;
-	}
+		}
 	/*if (a1->num_matches_var!=a2->num_matches_var){
 		return false ;
 		}*/
 	if (a1->orientation!=a2->orientation){
 		return false ;
-	}
+		}
 	if (a1->strand!=a2->strand){
 		return false ;
-	}
+		}
 	if (a1->chromosome!=a2->chromosome){
 		return false ;
 	}
 	if (a1->exons!=a2->exons)
-    {
-		// for (int i=0; i<a1->exons.size(); i++)
-		// 	fprintf(stderr, "a1.e[%i]=%i\n", i, a1->exons[i]) ;
-		// for (int i=0; i<a2->exons.size(); i++)
-		// 	fprintf(stderr, "a2.e[%i]=%i\n", i, a2->exons[i]) ;
-		
 		return false ;
-    }
 
 	return true ;	
 }
 
 int TopAlignments::non_consensus_overlaps_consensus(alignment_t *a1, alignment_t *a2)
 {
-
+  //  return 0 ;
 
 	if (a1->non_consensus_alignment == a2->non_consensus_alignment)
 		return 0;
@@ -678,6 +707,9 @@ void TopAlignments::clean_top_alignment_record()
 	num_filtered=0;
 	current_ind=0;
 	temp_ind=0;
+	max_editops=_config.NUM_EDIT_OPS ;
+	_stop_aligning=false ;
+	_drop_alignments=false ;
 
 	//pthread_mutex_unlock( &top_mutex) ;
 }
@@ -805,13 +837,56 @@ void TopAlignments::sort_top_alignment_list()
 void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP, std::ostream *VARIANTS_FP, int rtrim_cut, int polytrim_cut_start, int polytrim_cut_end, 
 											 JunctionMap &junctionmap, VariantMap & variants) 
 {
-	if (top_alignments.empty() && ! _config.INCLUDE_UNMAPPED_READS_SAM)
+	if (top_alignments.empty() && !_config.INCLUDE_UNMAPPED_READS_SAM)
 		return;
 
+	update_max_editops() ;
+
+	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_MMDROP)
+	{
+		int num_kept=0 ;
+		for (unsigned int i=0; i<top_alignments.size(); i++)
+		{
+			if (!_config.USE_VARIANTS_EDITOP_FILTER && 
+				top_alignments[i]->passed_filters && 
+				(top_alignments[i]->num_gaps_ref+top_alignments[i]->num_mismatches_ref>(unsigned int)max_editops))
+				top_alignments[i]->passed_filters=false ;
+			if (_config.USE_VARIANTS_EDITOP_FILTER && 
+				top_alignments[i]->passed_filters && 
+				(top_alignments[i]->num_gaps_var+top_alignments[i]->num_mismatches_var>(unsigned int)max_editops))
+				top_alignments[i]->passed_filters=false ;
+			if (top_alignments[i]->passed_filters)
+				num_kept++ ;
+		}
+		if (num_kept>_config.OUTPUT_FILTER_NUM_MMDROP)
+		{
+			if (verbosity>=1)
+				fprintf(stdout, "num_kept=%i, OUTPUT_FILTER_NUM_MMDROP=%i\n", num_kept, _config.OUTPUT_FILTER_NUM_MMDROP) ;
+			_drop_alignments=true ;
+		}
+
+		for (size_t i=0; i<top_alignments.size();++i){
+			if (!top_alignments[i]->passed_filters){
+				free_alignment_record(top_alignments[i]) ;
+				top_alignments.erase(top_alignments.begin()+i) ;
+				i--;
+			}
+		}
+	}
+	if (_drop_alignments)
+	{
+		for (size_t i=0; i<top_alignments.size(); i++)
+		{
+			free_alignment_record(top_alignments[i]) ;
+			top_alignments[i]=NULL ;
+		}
+		top_alignments.clear() ;
+	}
+	
 	//pthread_mutex_lock( &top_mutex) ;
 
 	sort_top_alignment_list();
-	
+
 	for (unsigned int i=0; i<top_alignments.size(); i++)
     {
 		top_alignments[i]->rtrim_cut=rtrim_cut ;
@@ -820,6 +895,18 @@ void TopAlignments::end_top_alignment_record(Read const &read, std::ostream *OUT
 		if (_config._personality == Palmapper)
 			check_alignment(top_alignments[i]) ;
 	}
+
+	pthread_mutex_lock( &_stats.read_stats_mutex ) ;
+
+	_stats.reads_processed++ ;
+	_stats.reads_with_aligment+= (top_alignments.size()>0) ? 1 : 0 ;
+	_stats.reads_with_unique_alignment += (top_alignments.size()==1) ? 1 : 0 ;
+	_stats.reads_with_best_spliced_alignment += (top_alignments.size()>0 && top_alignments[0]->spliced) ? 1 : 0 ;
+	_stats.reads_unmapped_editops += (top_alignments.size()==0 && !_drop_alignments) ? 1 : 0  ;
+	_stats.reads_unmapped_dropped += (_drop_alignments) ? 1 : 0  ;
+
+	pthread_mutex_unlock( &_stats.read_stats_mutex ) ;
+
 
 	if (_config._personality == Palmapper)
 	{
@@ -968,13 +1055,18 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 		top_alignments.push_back(alignment);
 		current_ind=0;
 		if (alignment->passed_filters)
+		{
+			update_max_editops() ;
 			num_filtered++;
+		}
 		if (my_verbosity >= 2)
 			fprintf(stdout,"add_alignment_record: alignment of read %s added to empty list\n", alignment->read_id);
 		return alignment ;
     }
 	else
     {
+		current_ind=0 ; // TODO: figure out why this is necessary to avoid duplicate alignments
+		
 		int chr = alignment->chromosome->nr();
 		int endalign=alignment->exons[alignment->exons.size()-1];
 
@@ -993,12 +1085,15 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				fprintf(stdout,"add_alignment_record: read %s -> add first\n", alignment->read_id);
 			top_alignments.insert(it+current_ind,1,alignment);
 			if (alignment->passed_filters)
+			{
+				update_max_editops() ;
 				num_filtered++;
+			}
 			return alignment;
 		}
 		else{
 			
-			int i =current_ind;
+			int i = current_ind ;
 			//fprintf(stdout,"   Start comparing with %i\n", i);
 			while (i< (int)top_alignments.size())
 			{
@@ -1015,20 +1110,49 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 				}
 		
 				//Alignment to compare is further away: no conflict possible
-				if ((chr==(int)top_alignments[i]->chromosome->nr() && endalign < top_alignments[i]->exons[0]) 
-					|| (int)top_alignments[i]->chromosome->nr() > chr)
+				if ((chr==(int)top_alignments[i]->chromosome->nr() && endalign<top_alignments[i]->exons[0])
+					  || (int)top_alignments[i]->chromosome->nr() > chr)
 				{
 					if (my_verbosity >= 2)
 						fprintf(stdout,"add_alignment_record: read %s -> Add before because no conflict possible\n", alignment->read_id);
-					top_alignments.insert(it+i,1,alignment);
-					if (temp_ind<i)
-						temp_ind=i;
-					else
-						temp_ind++;
+					// if (strcmp("WTCHG_37846_104:4:1101:1336:2223#TGCCGGCT/1", alignment->read_id)==0)
+					// {
+					// 	for (size_t q=0; q<top_alignments.size(); q++)
+					// 		if (alignment_is_equal(alignment,top_alignments[q]))
+					// 		{
+					// 			fprintf(stdout, "alignment equal q=%ld i=%i n=%ld\n", q, i, top_alignments.size()) ;
+					// 		} ;
+					// }
+					bool found=false ;
+					if (top_alignments.size()>50000)
+						fprintf(stdout, "Warning: TopAlignments becomes inefficient with many alignments (n=%ld)\n", top_alignments.size()) ;
+					for (size_t q=0; !found && q<top_alignments.size(); q++)
+					 	if (alignment_is_equal(alignment,top_alignments[q]))
+					 		found = true ;
 					
-					if (alignment->passed_filters)
-						num_filtered++;
-					return alignment;
+					if (!found)
+					{
+						top_alignments.insert(it+i,1,alignment);
+						
+						if (temp_ind<i)
+							temp_ind=i;
+						else
+							temp_ind++;
+						
+						if (alignment->passed_filters)
+						{
+							update_max_editops() ;
+							num_filtered++;
+						}
+						return alignment;
+					}
+					else
+					{
+						//if (my_verbosity >= 2)
+							fprintf(stdout, "dropping alignment for read %s\n", alignment->read_id) ;
+						free_alignment_record(alignment) ;
+						return NULL ;
+					}
 				}
 						
 				int ret;
@@ -1064,6 +1188,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 							num_filtered++;
 						free_alignment_record(top_alignments[i]) ;
 						top_alignments[i]=alignment;
+						update_max_editops() ;
 						if (temp_ind<i)
 							temp_ind=i;
 						
@@ -1094,6 +1219,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					top_alignments[i]=alignment;
 					if (temp_ind<i)
 						temp_ind=i;
+					update_max_editops() ;
 					
 					return alignment;		
 				}
@@ -1119,7 +1245,7 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 					top_alignments[i]=alignment;
 					if (temp_ind<i)
 						temp_ind=i;
-
+					update_max_editops() ;
 					
 					return alignment;		
 				}
@@ -1146,7 +1272,10 @@ alignment_t * TopAlignments::add_alignment_record(alignment_t *alignment, int nu
 			temp_ind=top_alignments.size()-1;
 			
 			if (alignment->passed_filters)
+			{
+				update_max_editops() ;
 				num_filtered++;
+			}
 			return alignment;
 
 		}
@@ -1759,6 +1888,7 @@ int TopAlignments::print_alignment_shorebed(Read const &read, std::ostream *OUT_
 
 void TopAlignments::print_bam_header(Genome& genome, FILE*OUT_FP)
 {
+    fprintf(OUT_FP, "@PG\tID:PALMapper\tVN:%s\tCL:%s\n", VERSION, _config.COMMAND_LINE.c_str()) ; 
 	for (unsigned int i=0; i<genome.nrChromosomes(); i++)
 	{
 		fprintf(OUT_FP, "@SQ\tSN:%s\tLN:%i\n", genome.get_desc(i), genome.chromosome(i).length())  ;
@@ -1771,14 +1901,14 @@ FILE* TopAlignments::open_bam_pipe(std::string & out_fname)
 
 	std::string command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sb /dev/stdin  2> /dev/null > ") + out_fname  + " && echo samtools subprocess terminated successfully";
 	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTPOS )
-		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sb /dev/stdin 2> /dev/null | ") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort /dev/stdin ") + out_fname + std::string("&& mv ") + 
+		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sbu /dev/stdin 2> /dev/null | ") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort /dev/stdin ") + out_fname + std::string("&& mv ") + 
 			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
 	if ( _config.OUTPUT_FORMAT_OPTION == OUTPUT_FORMAT_OPTION_SORTNAME )
-		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sb /dev/stdin  2> /dev/null |") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort -n /dev/stdin ") + out_fname + std::string("&& mv ") + 
+		command = _config.SAMTOOLS_PATH_NAME + std::string("samtools view -Sbu /dev/stdin  2> /dev/null |") + _config.SAMTOOLS_PATH_NAME + std::string("samtools sort -n /dev/stdin ") + out_fname + std::string("&& mv ") + 
 			out_fname + ".bam " + out_fname + " && echo samtools subprocess terminated successfully" ;
 	FILE* OUT_FP=NULL ;
 	
-	fflush(stdout) ;
+	fflush(stdout) ; 
 	if (false) // does not work
 	{
 		fprintf(stdout, "Testing samtools pipe: ") ;
@@ -1852,8 +1982,8 @@ int TopAlignments::print_top_alignment_variants(int rank, int total, std::ostrea
 int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostream *OUT_FP, std::ostream *SP_OUT_FP)
 {
 	std::ostream* MY_OUT_FP = OUT_FP ;
-	if (top_alignments.size()==0){
-		
+	if (top_alignments.size()==0)
+	{
 		if (_config.INCLUDE_UNMAPPED_READS_SAM)
 		{
 			_stats.alignment_num_unmapped+= 1 ;
@@ -1899,7 +2029,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 	uint32_t H2 = 0 ;
 	uint32_t min_edit_ops = 1000 ;
 	double max_qpalma_score = -1000 ;
-
+    int cnt_multimapper = 0 ;
+	int min_edit_ops_i = -1 ;
+	
 	for (unsigned int j=0; j<top_alignments.size(); j++)
     {
 		if (top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref == 0)
@@ -1909,9 +2041,32 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		if (top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref == 2)
 			H2 += 1 ;
 		if (top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref < min_edit_ops)
+		{
+			min_edit_ops_i=j ;
 			min_edit_ops = top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref ;
+		}
 		if (top_alignments[j]->qpalma_score > max_qpalma_score)
 			max_qpalma_score = top_alignments[j]->qpalma_score ;
+    }
+
+    // mark multiple mappers
+    if (_config.TAG_MULTIMAPPERS >= 0 && min_edit_ops_i>=0)
+    {
+        for (unsigned int j=1; j<top_alignments.size(); j++)
+        {
+            if (!overlap(top_alignments[min_edit_ops_i], top_alignments[j]) && 
+				top_alignments[j]->num_gaps_ref + top_alignments[j]->num_mismatches_ref <= min_edit_ops+_config.TAG_MULTIMAPPERS)
+                cnt_multimapper++ ;
+        }
+    }
+    // mark multiple mappers
+    if (_config.TAG_MULTIMAPPERS_QPALMA >= 0 && max_qpalma_score>-1000)
+    {
+        for (unsigned int j=1; j<top_alignments.size(); j++)
+        {
+            if (!overlap(top_alignments[0], top_alignments[j]) && ((1.0 - _config.TAG_MULTIMAPPERS_QPALMA) * max_qpalma_score <= top_alignments[j]->qpalma_score))
+                cnt_multimapper++ ;
+        }
     }
 
 	Read const * curr_read;
@@ -2071,37 +2226,76 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		}
 
 		//fprintf(stdout,"read anno: %s\n",curr_align->read_anno);
-		
+	    std::string md_tag;
+        uint32_t md_count = 0;
+        bool md_del = false;
+
 		for (uint32_t i = 0; i < curr_align->read_anno.length(); i++)
 		{
-			if (curr_align->read_anno[i] != '[')
+			if (curr_align->read_anno[i] != '[') {
 				__cigar[idx] = 'M' ;	
+                md_count++;
+                md_del = false;
+            }
 			else
 			{
-				if (curr_align->read_anno[i+1] == '-')
+				if (curr_align->read_anno[i+1] == '-') {
 					__cigar[idx] = 'I' ;
-				else if (curr_align->read_anno[i+2] == '-')
+                    md_del = false;
+				} else if (curr_align->read_anno[i+2] == '-') {
 					__cigar[idx] = 'D' ;
-				else
+                    if (!md_del) {
+                        std::stringstream tmp_str;
+                        tmp_str << md_count;
+                        md_count = 0;
+                        md_tag += tmp_str.str(); 
+                        md_tag += '^';
+                        md_del = true;
+                    }
+                    md_tag += curr_align->read_anno[i+1];
+				} else {
 					__cigar[idx] = 'M' ;
+                    if (curr_align->read_anno[i+2] != 'N') {
+                        std::stringstream tmp_str;
+                        tmp_str << md_count;
+                        md_count = 0;
+                        md_tag += tmp_str.str(); 
+                        md_tag += curr_align->read_anno[i+1];
+                        md_del = false;
+                    } else {
+                        md_count++;
+                    }
+                }
 				i += 3 ;
 			}
 			idx += 1 ;
 		}
+
+        if (md_count > 0) {
+            std::stringstream tmp_str;
+            tmp_str << md_count;
+            md_tag += tmp_str.str(); 
+        }
 		__cigar[idx] = 0 ;
 
 
 		uint32_t last = __cigar[0] ;
 		uint32_t count = 1 ;
 		uint32_t ii = 0;
-		uint32_t insertions = 0 ;
-		uint32_t deletions = 0 ;
+		uint32_t insertions = (last == 'I')?1:0 ;
+		uint32_t deletions = (last == 'D')?1:0 ;
 		idx = 0 ;
 		uint32_t exon_size = (curr_align->exons[idx + 1] - curr_align->exons[idx]) ;
 
-
 		for (uint32_t i = 1; i < strlen(__cigar); i++)
 		{
+            // account for insertions and deletions
+            if (__cigar[i] == 'D')
+                deletions ++;
+            if (__cigar[i] == 'I')
+                insertions ++;
+
+
 			// we reached end of current exon, which is not the last exon -> add intron
 			if ((i - insertions) == exon_size && idx + 2 < curr_align->exons.size())
 			{
@@ -2112,11 +2306,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 				pos_in_cigar += strlen(cig_buf) ;
 				cigar[pos_in_cigar++] = last ;
 				assert(pos_in_cigar<max_cigar_len) ;
-
-				if (last == 'D')
-					deletions += count;
-				if (last == 'I')
-					insertions += count;
 
 				// add intron
 				count = 0 ;
@@ -2146,12 +2335,9 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 					cigar[pos_in_cigar++] = last ;
 					assert(pos_in_cigar<max_cigar_len) ;
 				}
-				if (last == 'D')
-					deletions += count;
-				if (last == 'I')
-					insertions += count;
 				count = 1 ;
 				last = __cigar[i] ;
+
 			}
 			else
 				count += 1 ;
@@ -2164,11 +2350,6 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 		pos_in_cigar += ii ;
 		cigar[pos_in_cigar++] = last ;
 		assert(pos_in_cigar<max_cigar_len) ;
-		if (last == 'D')
-			deletions += count ; 
-		if (last == 'I')
-			insertions += count ; 
-
 
 		// handle trimmed reads end
 		if ((_config.POLYTRIM_STRATEGY || _config.RTRIM_STRATEGY) && polytrim_cut_end>0 &&  read_orientation=='+')
@@ -2279,6 +2460,7 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			fprintf(MY_OUT_FP, "\tH1:i:%i", H1) ;
 		if (H2 > 0 && (_config.OUTPUT_FORMAT_FLAGS & OUTPUT_FORMAT_FLAGS_SAMFLAGS))
 			fprintf(MY_OUT_FP, "\tH2:i:%i", H2) ;
+        fprintf(MY_OUT_FP, "\tMD:Z:%s", md_tag.c_str());
 
 
 		if (curr_align->spliced)
@@ -2329,8 +2511,12 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 			fprintf(MY_OUT_FP, "\tZS:f:%2.3f", curr_align->qpalma_score) ;
 			fprintf(MY_OUT_FP, "\tAS:i:%i", (int)(100*curr_align->qpalma_score)) ;
 			fprintf(MY_OUT_FP, "\tHI:i:%i", j) ;
+			fprintf(MY_OUT_FP, "\tNH:i:%i", top_alignments.size()) ;
 			fprintf(MY_OUT_FP, "\tXD:f:%2.3f", max_qpalma_score-curr_align->qpalma_score) ;
 			fprintf(MY_OUT_FP, "\tXd:i:%i", curr_align->num_mismatches_ref + curr_align->num_gaps_ref - min_edit_ops) ;
+            if (_config.TAG_MULTIMAPPERS >= 0 || _config.TAG_MULTIMAPPERS_QPALMA >= 0.0)
+                fprintf(MY_OUT_FP, "\tYM:i:%i", cnt_multimapper) ;
+                
 			//fprintf(MY_OUT_FP, "\tXr:i:%i", curr_align->remapped + (curr_align->exons.size()>2)) ;
 
 		}
@@ -2347,3 +2533,141 @@ int TopAlignments::print_top_alignment_records_sam(Read const &read, std::ostrea
 	return top_alignments.size() ;
 }
 
+
+bool TopAlignments::stop_aligning() 
+{
+	return _stop_aligning ;
+}
+
+int TopAlignments::get_max_editops() 
+{
+	if (max_editops<0)
+	{
+		_stop_aligning=true ;
+		return 0 ;
+	}
+	return max_editops ;
+}
+
+void TopAlignments::update_max_editops() 
+{
+	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP)
+	{
+		std::vector<int> editops ;
+		for (unsigned int i=0; i<top_alignments.size(); i++)
+		{
+			if (top_alignments[i]->passed_filters) 
+			{
+				if (!_config.USE_VARIANTS_EDITOP_FILTER)
+					editops.push_back(top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref) ;
+				else
+					editops.push_back(top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var) ;
+			} 
+		}
+		if ((editops.size()<=_config.OUTPUT_FILTER_NUM_TOP && _config.OUTPUT_FILTER==OUTPUT_FILTER_TOP))
+		{
+			// not enough alignments -> reset editops
+			max_editops=_config.NUM_EDIT_OPS ;
+			_stop_aligning=false ;
+		}
+			
+		std::sort(editops.begin(), editops.end()) ;
+		
+		if (_config.OUTPUT_FILTER==OUTPUT_FILTER_TOP && _config.OUTPUT_FILTER_NUM_TOP-1>=0 && _config.OUTPUT_FILTER_NUM_TOP-1<editops.size())
+		{			
+			max_editops=editops[_config.OUTPUT_FILTER_NUM_TOP-1]-1 ;
+			if (max_editops<0)
+				_stop_aligning=true ;
+		}
+	}
+
+	if (_config.OUTPUT_FILTER==OUTPUT_FILTER_MMDROP)
+	{
+		unsigned int best_editop=_config.MAX_EDIT_OPS ;
+		unsigned int best_editop_i = -1 ;
+		const unsigned int delta=_config.OUTPUT_FILTER_DELTA_MMDROP ;
+		//fprintf(stdout, "top_alignments.size()=%ld\n", top_alignments.size()) ;
+		
+		for (unsigned int i=0; i<top_alignments.size(); i++)
+		{
+			if (!_config.USE_VARIANTS_EDITOP_FILTER && top_alignments[i]->passed_filters && 
+				best_editop > top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref)
+			{
+				best_editop = top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref ;
+				best_editop_i=i ;
+			} 
+			if (_config.USE_VARIANTS_EDITOP_FILTER && top_alignments[i]->passed_filters && 
+				best_editop > top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var)
+			{
+				best_editop = top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var ;
+				best_editop_i=i ;
+			} 
+		}
+		//fprintf(stdout, "best_editop_i=%i, best_editop=%i\n", best_editop_i, best_editop) ;
+		if (best_editop_i<0)
+		{
+			_drop_alignments=false ;
+			_stop_aligning=false ;
+			return ;
+		}
+
+		int num_in_delta=1;
+		int num_in_delta0=1;
+		
+		for (unsigned int i=0; i<top_alignments.size(); i++)
+		{
+			//fprintf(stdout, "i=%i, $1=%i, $2=%i [%i]\n",  i, top_alignments[i]->passed_filters, top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= best_editop + delta, top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref) ;
+
+			if (!_config.USE_VARIANTS_EDITOP_FILTER)
+			{
+				if (i!=best_editop_i &&
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= best_editop + delta)
+					num_in_delta++ ;
+				if (best_editop!=0 && 
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_ref + top_alignments[i]->num_gaps_ref <= delta)
+					num_in_delta++ ;
+			}
+			else
+			{
+				if (i!=best_editop_i &&
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var <= best_editop + delta)
+					num_in_delta++ ;
+				if (best_editop!=0 && 
+					top_alignments[i]->passed_filters && 
+					top_alignments[i]->num_mismatches_var + top_alignments[i]->num_gaps_var <= delta)
+					num_in_delta++ ;
+			}
+				
+		}
+		//fprintf(stdout, "best_editop=%i, num_in_delta=%i, _config.OUTPUT_FILTER_NUM_MMDROP=%i, _config.OUTPUT_FILTER_DELTA_MMDROP=%i\n", best_editop, num_in_delta, _config.OUTPUT_FILTER_NUM_MMDROP, _config.OUTPUT_FILTER_DELTA_MMDROP) ;
+		if ((best_editop==0 && num_in_delta > _config.OUTPUT_FILTER_NUM_MMDROP) || 
+			(num_in_delta0 > _config.OUTPUT_FILTER_NUM_MMDROP))
+		{
+			//fprintf(stdout, "best_editop=%i, num_in_delta=%i, _config.OUTPUT_FILTER_NUM_MMDROP=%i, _config.OUTPUT_FILTER_DELTA_MMDROP=%i\n", best_editop, num_in_delta, _config.OUTPUT_FILTER_NUM_MMDROP, _config.OUTPUT_FILTER_DELTA_MMDROP) ;
+			_stop_aligning=true ;
+			_drop_alignments=true ;
+		}
+
+		max_editops = best_editop + _config.OUTPUT_FILTER_DELTA_MMDROP ;
+	}
+
+}
+
+int TopAlignments::get_max_mismatches() 
+{
+	int me=get_max_editops() ;
+	if (me>_config.NUM_MISMATCHES)
+		return _config.NUM_MISMATCHES ;
+	return me ;
+}
+
+int TopAlignments::get_max_gaps() 
+{
+	int me=get_max_editops() ;
+	if (me>_config.NUM_GAPS)
+		return _config.NUM_GAPS ;
+	return me ;
+}

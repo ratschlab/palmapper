@@ -1,4 +1,5 @@
 #include <iostream>
+#include <palmapper/palmapper.h>
 
 #include <palmapper/QueryFile.h>
 #include <palmapper/Read.h>
@@ -47,7 +48,7 @@ bool QueryFile::next_read(Read &read, int &strand) {
 		passed_first_read=false;
 		passed_last_read=false ;
 		if (!open_next_file()) {
-			if (_readCount == 0)
+			if (_readCount == 0 && _config.VERBOSE>0)
 				cerr << "\n!!! WARNING: None of the given file(s) contain any usable read!\n\n";
 			return false;
 		}
@@ -70,7 +71,7 @@ bool QueryFile::next_read(Read &read) {
 		passed_first_read=false ;
 		passed_last_read=false ;
 		if (!open_next_file()) {
-			if (_readCount == 0)
+			if (_readCount == 0  && _config.VERBOSE>0)
 				cerr << "\n!!! WARNING: None of the given file(s) contain any usable read!\n\n";
 			return false;
 		}

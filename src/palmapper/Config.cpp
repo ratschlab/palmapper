@@ -1,3 +1,8 @@
+// Authors: Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Dominik Diesch
+// Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,10 +33,13 @@ Config::Config() {
 	_personality = getPersonality();
 
 	BWA_INDEX=0; // Bwt	or genomemapper index
-	NUM_THREADS = 1;//::sysconf(_SC_NPROCESSORS_ONLN);
+	NUM_THREADS = DEFAULT_SETTING ; 
+	
 	OUTPUT_FILTER = OUTPUT_FILTER_DEFAULT ;
 	OUTPUT_FILTER_NUM_TOP = 10 ;
 	OUTPUT_FILTER_NUM_LIMIT = 0 ; // all
+	OUTPUT_FILTER_DELTA_MMDROP = 2 ;
+	OUTPUT_FILTER_NUM_MMDROP = 10 ;
 
 	FIXTRIM_STRATEGY_LEN = 10000000;
 	FIXTRIMRIGHT_STRATEGY_LEN = 0 ;
@@ -60,6 +68,7 @@ Config::Config() {
 	INDEX_DEPTH_EXTRA_THRESHOLD = 1000000000 ;
 	INDEX_SEED_STEP = 1 ;
 	SEED_HIT_CANCEL_THRESHOLD = 100000000 ;
+	SEED_HIT_TRUNCATE_THRESHOLD = SEED_HIT_CANCEL_THRESHOLD ;
 
 	OUTPUT_FORMAT = OUTPUT_FORMAT_DEFAULT ;
 	OUTPUT_FORMAT_FLAGS = OUTPUT_FORMAT_FLAGS_DEFAULT ;
@@ -72,7 +81,6 @@ Config::Config() {
 
 	REPORT_FILE = NULL;
 	REPORT_FILE_READONLY = 0 ;
-	REPORT_REPETITIVE_SEEDS = 0 ;
 	REPORT_MAPPED_REGIONS = 1 ;
 	REPORT_MAPPED_READS = 1 ;
 	REPORT_SPLICED_READS = 1 ;
@@ -87,6 +95,7 @@ Config::Config() {
 	MAP_JUNCTIONS_COVERAGE=2;
 	MAP_JUNCTIONS_MIN_SEGMENT_LENGTH=6 ;
 	MAP_JUNCTIONS_PSEUDO_ANNO_COV=10 ;
+	MAP_JUNCTIONS_MAP_WINDOW=-1 ;
 	MAP_JUNCTIONS_ONLY=false ;
 
 	QPALMA_USE_MAP = 1 ;
@@ -132,16 +141,17 @@ Config::Config() {
 	SPLICED_LONGEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_SHORTEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
-	SPLICED_CLUSTER_TOLERANCE = 10 ;
+	UNSPLICED_MAX_NUM_ALIGNMENTS = 100 ;
+	SPLICED_CLUSTER_TOLERANCE = 50 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
 	SPLICED_MIN_SEGMENT_LENGTH = 1 ;//DEFAULT_SETTING ;
 
 	STATISTICS = 0;
 	CHROM_CONTAINER_SIZE = 15000000 ;
 
-	BEST_HIT_STRATEGY = 0 ;
-	ALL_HIT_STRATEGY = 0 ;
-	SUMMARY_HIT_STRATEGY= 0 ;
+	//BEST_HIT_STRATEGY = 0 ;
+	//ALL_HIT_STRATEGY = 0 ;
+	//SUMMARY_HIT_STRATEGY= 0 ;
 	HITLEN_LIMIT = 0 ;
 
 	BSSEQ = 0;
@@ -161,20 +171,23 @@ Config::Config() {
 	non_consensus_search_discount=1 ;
 
 	NO_LOAD_GENOME = false ;
+	NO_READ_MAPPING = false ;
 	USE_VARIANTS = false ;
 	DISCOVER_VARIANTS=false ;
 	REPORT_VARIANTS=false ;
 	REPORT_USED_VARIANTS=false ;
+	VALIDATE_VARIANTS=false ;
 	FILTER_VARIANTS=false ;
 	CONVERT_SUBSTITUTION_VARIANTS=false ;
 	MERGE_VARIANT_SOURCE_IDS = false ;
 	UNIQUE_VARIANT_SOURCE_IDS = false ;
-	IUPAC_SNPS= false ;
+	IUPAC_SNPS = false ;
+    IUPAC_GENOME = false ;
 	USE_VARIANTS_EDITOP_FILTER=false ;
 	USE_VARIANT_FILE_NAME = "" ;
 	REPORT_USED_VARIANT_FILE_NAME = "";
 	REPORT_VARIANTS_FILE_NAME="" ;
-	MAF_REF_NAME="";
+	MGF_REF_NAME="";
 
 	FILTER_VARIANT_MINSOURCECOUNT=0 ;
 	FILTER_VARIANT_REQSOURCES.clear() ;
@@ -185,7 +198,7 @@ Config::Config() {
 	FILTER_VARIANT_VLEN = 50 ;
 	FILTER_VARIANT_MAXLEN=-1 ;
 	FILTER_VARIANT_JUNCTIONS=false ;
-	FILTER_VARIANT_SOURCES.push_back("papHam1") ;
+	// FILTER_VARIANT_SOURCES.push_back("papHam1") ;
 	VARIANT_SNP_TAKE_LINES.push_back("*") ;
 	DP_MAX_DELETIONS = 2 ;
 
@@ -200,6 +213,7 @@ Config::Config() {
 	MIN_NUM_MATCHES_PEN=2;
 	
 	INCLUDE_UNMAPPED_READS_SAM=false;
+	READ_LENGTH_PARAM=DEFAULT_SETTING ;
 	
 	NO_QPALMA = false;
 	NO_GENOMEMAPPER = false ;
@@ -213,10 +227,15 @@ Config::Config() {
 	Q1_QUERY_FILE_NAMES= std::string("") ;
 	Q2_QUERY_FILE_NAMES= std::string("") ;
 
+    COMMAND_LINE = std::string("") ;
+
+    TAG_MULTIMAPPERS = -1 ;
+    TAG_MULTIMAPPERS_QPALMA = -1.0;
 };
 
 int Config::applyDefaults(Genome * genome)
 {
+
 	int any_default=false ;
 	
 	if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || 
@@ -226,15 +245,24 @@ int Config::applyDefaults(Genome * genome)
 						  SPLICED_MIN_SEGMENT_LENGTH==DEFAULT_SETTING)) || 
 		(OUTPUT_FORMAT==OUTPUT_FORMAT_DEFAULT) ||
 		((int)POLYTRIM_STRATEGY_STEP == DEFAULT_SETTING && POLYTRIM_STRATEGY) || 
-		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY))
+		((int)RTRIM_STRATEGY_STEP == DEFAULT_SETTING && RTRIM_STRATEGY) || (NUM_THREADS==DEFAULT_SETTING))
 	{
 		fprintf(stdout, "\nSetting default parameters:\n") ;
 		any_default=true ;
 	}
 
+ 	if (NUM_THREADS==DEFAULT_SETTING)
+	{
+		NUM_THREADS=(::sysconf(_SC_NPROCESSORS_ONLN)>16) ? 16 : ::sysconf(_SC_NPROCESSORS_ONLN) ;
+		fprintf(stdout, "* Number of threads : %i [%i max]\n", NUM_THREADS, (int)::sysconf(_SC_NPROCESSORS_ONLN)) ;
+	}
+	READ_COUNT_LIMIT = (READ_COUNT_LIMIT+NUM_THREADS-1)/NUM_THREADS ;
+
 	if (_personality == Palmapper)  {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
-		if (read_length>0)
+	  int read_length = READ_LENGTH_PARAM ;
+	  if (read_length==DEFAULT_SETTING)
+	    read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
+	  if (read_length>0 && read_length!=DEFAULT_SETTING)
 		{
 			bool line_started=false ;
 			if ((SPLICED_HITS && (SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING || SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING || SPLICED_MAX_INTRONS == DEFAULT_SETTING)) ||
@@ -246,16 +274,18 @@ int Config::applyDefaults(Genome * genome)
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_SHORT == DEFAULT_SETTING)
 			{
 				SPLICED_HIT_MIN_LENGTH_SHORT = 15 ;
+				if (SPLICED_HIT_MIN_LENGTH_SHORT<(int)INDEX_DEPTH)
+					SPLICED_HIT_MIN_LENGTH_SHORT=INDEX_DEPTH ;
 				fprintf(stdout, " -K %i", SPLICED_HIT_MIN_LENGTH_SHORT) ;
 			}
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_LONG == DEFAULT_SETTING)
 			{
-				SPLICED_HIT_MIN_LENGTH_LONG = (read_length/4<20) ? 20 : read_length/4 ;
+				SPLICED_HIT_MIN_LENGTH_LONG = INDEX_DEPTH ; // (read_length/4<20) ? 20 : read_length/4 ;
 				fprintf(stdout, " -L %i", SPLICED_HIT_MIN_LENGTH_LONG) ;
 			}
 			if (SPLICED_HITS && SPLICED_HIT_MIN_LENGTH_COMB == DEFAULT_SETTING)
 			{
-				SPLICED_HIT_MIN_LENGTH_COMB = (read_length/2<30) ? 30 : read_length/2 ;
+				SPLICED_HIT_MIN_LENGTH_COMB = INDEX_DEPTH ; // (read_length/2<30) ? 30 : read_length/2 ;
 				if (SPLICED_HIT_MIN_LENGTH_COMB<SPLICED_HIT_MIN_LENGTH_LONG)
 					SPLICED_HIT_MIN_LENGTH_COMB=SPLICED_HIT_MIN_LENGTH_LONG ;
 				fprintf(stdout, " -C %i", SPLICED_HIT_MIN_LENGTH_COMB) ;
@@ -268,17 +298,17 @@ int Config::applyDefaults(Genome * genome)
 			}
 			if (NUM_EDIT_OPS == DEFAULT_SETTING)
 			{
-				NUM_EDIT_OPS = read_length*0.08 ;
+				NUM_EDIT_OPS = read_length*0.03 ;
 				fprintf(stdout, " -E %i", NUM_EDIT_OPS) ;
 			}
 			if (NUM_MISMATCHES == DEFAULT_SETTING)
 			{
-				NUM_MISMATCHES = read_length*0.08 ;
+				NUM_MISMATCHES = read_length*0.03 ;
 				fprintf(stdout, " -M %i", NUM_MISMATCHES) ;
 			}
 			if (NUM_GAPS == DEFAULT_SETTING)
 			{
-				NUM_GAPS = read_length*0.03 ;
+				NUM_GAPS = read_length*0.013334 ;
 				fprintf(stdout, " -G %i", NUM_GAPS) ;
 			}
 			if (line_started)
@@ -374,9 +404,9 @@ int Config::applyDefaults(Genome * genome)
 		if (NUM_MISMATCHES == DEFAULT_SETTING) NUM_MISMATCHES = 3;
 		if (NUM_GAPS == DEFAULT_SETTING) NUM_GAPS = 1;
 
-		if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT) {
+		/* if (OUTPUT_FILTER == OUTPUT_FILTER_DEFAULT) {
 			BEST_HIT_STRATEGY = 1;
-		}
+			} */
 	}
 
 	if (POLYTRIM_STRATEGY)
@@ -407,8 +437,10 @@ int Config::applyDefaults(Genome * genome)
 int Config::checkConfig()
 {
 	if (_personality == Palmapper) {
-		int read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
-
+	  int read_length = READ_LENGTH_PARAM ;
+	  if (read_length==DEFAULT_SETTING)
+	    read_length = QueryFile::determine_read_length(QUERY_FILE_NAMES,QUERY_FILE_STRANDS);
+	  
 		if (SPLICED_OUT_FILE_NAME.length()>0 && !SPLICED_HITS)
 		{
 			fprintf(stderr, "ERROR: output files for spliced hits provided, but no spliced alignment is performed\n");
@@ -433,9 +465,10 @@ int Config::checkConfig()
 			exit(1) ;
 		}
 
-		if(SPLICED_HITS && read_length>0 && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
-			fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
-			SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
+		if (read_length>0 && read_length!=DEFAULT_SETTING)
+		  if(SPLICED_HITS && read_length>0 && (SPLICED_HIT_MIN_LENGTH_LONG>read_length/2)){
+		    fprintf(stderr,"WARNING: Minimal length of long hit (%i) is greater to the half of read length. Reset to half read length (%i)\n", SPLICED_HIT_MIN_LENGTH_LONG, read_length);
+		    SPLICED_HIT_MIN_LENGTH_LONG=read_length/2;
 		}
 	}
 
@@ -556,6 +589,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 	char has_genome = 0;
 
 	for (i = 1; i < argc; i++) {
+
 		not_defined = 1;
 
 		//genome file
@@ -585,50 +619,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 			//INDEX_REV_FILE_NAME += ".mrc";
 
 		}
-
-		/**
-
-		 //chr index file
-		 if(strcmp(argv[i],"-x")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) 
-		 { 
-		 fprintf(stderr, "ERROR: Argument missing for option -i\n") ;
-		 usage(); exit(1); 
-		 }
-		 i++;
-		 strcpy(CHR_INDEX_FILE_NAME, argv[i]);
-		 has_index = 1;
-		 }
-
-		 //meta index file
-		 if(strcmp(argv[i],"-t")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(META_INDEX_FILE_NAME, argv[i]);
-		 has_meta_index = 1;
-		 }
-
-		 //index fwd file
-		 if(strcmp(argv[i],"-z")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(INDEX_FWD_FILE_NAME, argv[i]);
-		 has_fwd_index = 1;
-		 }
-
-		 //index rev file
-		 if(strcmp(argv[i],"-y")==0){
-		 not_defined = 0;
-		 if(i+1 > argc - 1) { usage(); exit(1); }
-		 i++;
-		 strcpy(INDEX_REV_FILE_NAME, argv[i]);
-		 has_rev_index = 1;
-		 }
-
-		 */
 
 		//BWA index
 		if (strcmp(argv[i], "-bwa") == 0) {
@@ -985,11 +975,21 @@ int Config::parseCommandLine(int argc, char *argv[])
 				not_defined = 0;
 				NO_LOAD_GENOME = true ;
 			}
+			if (strcmp(argv[i], "-no-read-mapping") == 0) {
+				not_defined = 0;
+				NO_READ_MAPPING = true ;
+			}
 
-			//verbose
+			// use IUPAC SNPS
 			if (strcmp(argv[i], "-use-iupac-snp-variants") == 0) {
 				not_defined = 0;
-				IUPAC_SNPS= true ;
+				IUPAC_SNPS = true ;
+			}
+
+			// genome has IUPAC positions 
+			if (strcmp(argv[i], "-iupac-genome") == 0) {
+				not_defined = 0;
+				IUPAC_GENOME = true ;
 			}
 
 			//Variant filename with variants to use for alignments
@@ -1024,15 +1024,26 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REPORT_USED_VARIANTS=true ;
 			}
 
-			if (strcmp(argv[i], "-maf-ref") == 0) {
+			if (strcmp(argv[i], "-mgf-ref") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
-					fprintf(stderr, "ERROR: Argument missing for option -maf-refn") ;
+					fprintf(stderr, "ERROR: Argument missing for option -mgf-refn") ;
 					usage();
 					exit(1);
 				}
 				i++;
-				MAF_REF_NAME.assign(argv[i]);
+				MGF_REF_NAME.assign(argv[i]);
+			}
+
+			if (strcmp(argv[i], "-maf-source-id") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -maf-source-id") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAF_SOURCE_ID.assign(argv[i]);
 			}
 
 			if (strcmp(argv[i], "-junction-remapping") == 0) {
@@ -1053,6 +1064,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 
+			if (strcmp(argv[i], "-junction-remapping-map-window") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -junction-remapping-map-window\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				MAP_JUNCTIONS_MAP_WINDOW=atoi(argv[i]) ;
+				assert(MAP_JUNCTIONS_MAP_WINDOW>=0) ;
+			}
 			if (strcmp(argv[i], "-junction-remapping-coverage") == 0) {
 				not_defined = 0;
 				if (i + 1 > argc - 1) {
@@ -1091,6 +1113,17 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				FILTER_VARIANT_VLEN=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_VLEN>=0) ;
+			}
+			if (strcmp(argv[i], "-read-len") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -read-len\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				READ_LENGTH_PARAM=atoi(argv[i]) ;
+				assert(READ_LENGTH_PARAM>=0) ;
 			}
 			if (strcmp(argv[i], "-filter-variants-maxlen") == 0) {
 				not_defined = 0;
@@ -1140,6 +1173,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				FILTER_VARIANT_MINSOURCECOUNT=atoi(argv[i]) ;
 				assert(FILTER_VARIANT_MINSOURCECOUNT>=0) ;
 				FILTER_VARIANTS=true ;
+			}
+			if (strcmp(argv[i], "-validate-variants") == 0) {
+				not_defined = 0;
+				VALIDATE_VARIANTS=true ;
 			}
 
 			if (strcmp(argv[i], "-filter-variants-reqsources") == 0) 
@@ -1218,18 +1255,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				REALIGN_READS = 1 ;
 			}
 
-			//report repetitive seeds
-			if (strcmp(argv[i], "-report-rep-seed") == 0) {
-				not_defined = 0;
-				REPORT_REPETITIVE_SEEDS = 1 ;
-				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-			}
-			if (strcmp(argv[i], "-no-report-rep-seed") == 0) {
-				not_defined = 0;
-				REPORT_REPETITIVE_SEEDS = 0 ;
-				//assert(REPORT_SPLICE_SITES==0) ; // currently not supported
-			}
-
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-region") == 0) {
 				not_defined = 0;
@@ -1238,7 +1263,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-no-report-map-region") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_REGIONS  = 0 ;
-			}
+				}
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-map-read") == 0) {
@@ -1248,7 +1273,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-no-report-map-read") == 0) {
 				not_defined = 0;
 				REPORT_MAPPED_READS = 0 ;
-			}
+				}
 
 			//report mapped regions
 			if (strcmp(argv[i], "-report-spliced-read") == 0) {
@@ -1258,7 +1283,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			if (strcmp(argv[i], "-no-report-spliced-read") == 0) {
 				not_defined = 0;
 				REPORT_SPLICED_READS = 0 ;
-			}
+				}
 
 			//report splice sites - confidence threshold
 			if (strcmp(argv[i], "-report-splice-sites") == 0) {
@@ -1272,7 +1297,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				QPALMA_USE_SPLICE_SITES_THRESH_DON = atof(argv[i]);
 				QPALMA_USE_SPLICE_SITES= 1 ;
 				not_defined = 0;
-				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
 				//assert(REPORT_SPLICE_SITES_THRESH_TOP_PERC==0.0) ;
 			}
 
@@ -1288,7 +1312,6 @@ int Config::parseCommandLine(int argc, char *argv[])
 				assert(QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC>=0 && QPALMA_USE_SPLICE_SITES_THRESH_TOP_PERC<=1.0) ;
 				QPALMA_USE_SPLICE_SITES= 1 ;
 				not_defined = 0;
-				//assert(REPORT_REPETITIVE_SEEDS==0) ; // currently not supported
 				//assert(REPORT_SPLICE_SITES_THRESH==0.0) ;
 			}
 
@@ -1364,7 +1387,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			// reset the report (i.e. don't load it from file, even when available)
-			if (strcmp(argv[i], "-report-reset") == 0) {
+			if (strcmp(argv[i], "-report-wo") == 0) {
 				not_defined = 0;
 				REPORT_RESET = 1 ;
 			}
@@ -1501,6 +1524,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 				SPLICED_MAX_NUM_ALIGNMENTS = tmp;
 			}
 
+			// maximal number of spliced alignments to be performed per read
+			if (strcmp(argv[i], "-UA") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -UA\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -UA too small\n") ;
+					usage();
+					exit(1);
+				}
+				UNSPLICED_MAX_NUM_ALIGNMENTS = tmp;
+			}
+
 			// maximal number of introns in spliced alignments
 			if (strcmp(argv[i], "-NI") == 0) {
 				not_defined = 0;
@@ -1553,6 +1594,42 @@ int Config::parseCommandLine(int argc, char *argv[])
 					exit(1);
 				}
 				QPALMA_INDEL_PENALTY = tmp;
+			}
+
+            // include multimpper tag in SAM output, if a non-overlapping alignment with at least less than value more editops exist
+			if (strcmp(argv[i], "-tag-multimappers") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -tag-multimappers\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -tag-multimappers must be >= 0\n") ;
+					usage();
+					exit(1);
+				}
+				TAG_MULTIMAPPERS = tmp;
+			}
+
+            // include multimpper tag in SAM output, if a non-overlapping alignment with at least (1 - value)*best-QPALMA-Score exists
+			if (strcmp(argv[i], "-tag-multimappers-qpalma") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -tag-multimappers-qpalma\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				double tmp = atof(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -tag-multimappers-qpalma must be >= 0.0\n") ;
+					usage();
+					exit(1);
+				}
+				TAG_MULTIMAPPERS_QPALMA = tmp;
 			}
 
 
@@ -1743,9 +1820,9 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			i++;
 			int tmp = atoi(argv[i]);
-			if (tmp < 1 || tmp>14) 
+			if (tmp < 1 || tmp>16) 
 			{
-				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=14\n") ;
+				fprintf(stderr, "ERROR: Argument for option -index-seed-step has to be between 1 and INDEX_DEPTH<=16\n") ;
 				usage();
 				exit(1);
 			}
@@ -1809,6 +1886,24 @@ int Config::parseCommandLine(int argc, char *argv[])
 			SEED_HIT_CANCEL_THRESHOLD = tmp ;
 		}
 
+		// truncate seed processing if more seed matches exist than a threshold
+		if (strcmp(argv[i], "-seed-hit-truncate-threshold") == 0) {
+			not_defined = 0;
+			if (i + 1 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", "-seed-hit-truncate-threshold") ;
+				usage();
+				exit(1);
+			}
+			i++;
+			int tmp = atoi(argv[i]);
+			if (tmp < 0) {
+				fprintf(stderr, "ERROR: Argument for option %s too small\n", "-seed-hit-truncate-threshold") ;
+				usage();
+				exit(1);
+			}
+			SEED_HIT_TRUNCATE_THRESHOLD = tmp ;
+		}
+
 		//report all hits-strategy
 		if (strcmp(argv[i], "-a") == 0) {
 			not_defined = 0;
@@ -1818,7 +1913,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				exit(1) ;
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_ALL ;
-			ALL_HIT_STRATEGY = 1 ;
+			//ALL_HIT_STRATEGY = 1 ;
 		}
 
 		char const *outputFilteToprOpt = _personality == Palmapper ? "-z" : "-n";
@@ -1845,7 +1940,45 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 			}
 			OUTPUT_FILTER=OUTPUT_FILTER_TOP ;
-			SUMMARY_HIT_STRATEGY=1 ;
+			//SUMMARY_HIT_STRATEGY=1 ;
+		}
+
+		char const *outputFilterDropOpt = _personality == Palmapper ? "-x" : "";
+		if (strcmp(argv[i], outputFilterDropOpt) == 0) {
+			not_defined = 0;
+			if (OUTPUT_FILTER!=OUTPUT_FILTER_DEFAULT)
+			{
+				fprintf(stderr, "ERROR: output filter already defined\n") ;
+				exit(1) ;
+			}
+			if (i + 2 > argc - 1) {
+				fprintf(stderr, "ERROR: Argument missing for option %s\n", outputFilterDropOpt) ;
+				usage();
+				exit(1);
+			}
+			i++;
+			
+			if ((OUTPUT_FILTER_NUM_MMDROP = atoi(argv[i])) == 0) {
+				if (argv[i][0] != '0' || OUTPUT_FILTER_NUM_MMDROP<0) 
+				{
+					fprintf(stderr,
+							"ERROR: Number of alignments must be a positive integer value!\n");
+					exit(1);
+				}
+			}
+
+			i++;
+			
+			if ((OUTPUT_FILTER_DELTA_MMDROP = atoi(argv[i])) == 0) {
+				if (argv[i][0] != '0' || OUTPUT_FILTER_DELTA_MMDROP<0) 
+				{
+					fprintf(stderr,
+							"ERROR: Delta must be a positive integer value!\n");
+					exit(1);
+				}
+			}
+
+			OUTPUT_FILTER=OUTPUT_FILTER_MMDROP ;
 		}
 
 		//max nr of alignments per read
@@ -1901,7 +2034,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 			//OUTPUT_FILTER_NUM_LIMIT = -OUTPUT_FILTER_NUM_LIMIT ;
 			OUTPUT_FILTER = OUTPUT_FILTER_LIMIT ;
-			BEST_HIT_STRATEGY = 1 ;
+			//BEST_HIT_STRATEGY = 1 ;
 		}
 
 		//max number of allowed edit operations
@@ -2175,13 +2308,13 @@ int Config::parseCommandLine(int argc, char *argv[])
 		}
 
 		//statistics
-		if (strcmp(argv[i], "-stat") == 0) {
+		/*if (strcmp(argv[i], "-stat") == 0) {
 			not_defined = 0;
 			STATISTICS = 1;
-		}
+			}*/
 
 		//print out gene, too (for every hit) used for WMD2
-		if (strcmp(argv[i], "-target_info") == 0) {
+		/*if (strcmp(argv[i], "-target_info") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
@@ -2194,10 +2327,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 				fprintf(stderr, "-target_info value must be either 1 or 2!\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//flanking region of a hit
-		if (strcmp(argv[i], "-flanking") == 0) {
+		/* if (strcmp(argv[i], "-flanking") == 0) {
 			not_defined = 0;
 			if (i + 1 > argc - 1) {
 				fprintf(stderr,
@@ -2211,7 +2344,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 						"-flanking value must be a positive integer and must not exceed 100!\n");
 				exit(1);
 			}
-		}
+			}*/
 
 		//bisulfite mode
 		if (strcmp(argv[i], "-B") == 0) {
@@ -2399,7 +2532,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			//transcribe transcripts into fasta files
-			if (strcmp(argv[i], "-transcribe-gff") == 0) {
+			/*if (strcmp(argv[i], "-transcribe-gff") == 0) {
 				not_defined = 0;
 				if (i + 2 > argc - 1) {
 					fprintf(stderr, "ERROR: Argument missing for option -transcribe-gff\n") ;
@@ -2411,7 +2544,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 				i++;
 				TRANSCRIBE_FASTA_FILE =argv[i] ;
 				TRANSCRIBE_GFF=true ;
-			}
+				}*/
 			
 			if (not_defined == 1) {
 				fprintf(stderr, "ERROR: unknown option %s\n", argv[i]) ;
@@ -2420,6 +2553,12 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 		}
 	}
+
+    COMMAND_LINE = std::string(argv[0]);
+    for (i = 1; i < argc; i++) {
+        COMMAND_LINE += (std::string(" ") + std::string(argv[i]));
+    }
+
 
 	//Initialize query file vectors (name and strand information)
 	postprocess_query_filenames(Q_QUERY_FILE_NAMES, STRAND) ;
@@ -2431,13 +2570,7 @@ int Config::parseCommandLine(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (BWA_INDEX && REPORT_REPETITIVE_SEEDS)
-	{
-		fprintf(stderr, "The combination of the two options -bwa and -report-rep-seed is not implemented yet\n") ;
-		exit(-1) ;
-	}
-	
-	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
+	NOT_MAXIMAL_HITS = SEED_HIT_CANCEL_THRESHOLD || SEED_HIT_TRUNCATE_THRESHOLD || INDEX_DEPTH_EXTRA_THRESHOLD;
 
 	return 0;
 }
@@ -2445,8 +2578,8 @@ int Config::parseCommandLine(int argc, char *argv[])
 void Config::VersionHeader() {
 	if (getPersonality() == Palmapper) {
 		printf("\nPALMapper version %s   (PALMapper is a fusion of GenomeMapper & QPALMA)\n", VERSION);
-		printf("written by Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Geraldine Jean, Fabio De Bona, Stephan Ossowski, and others\n");
-		printf("Max Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
+		printf("written by Gunnar Raetsch, Geraldine Jean, Andre Kahles, Korbinian Schneeberger, Joerg Hagmann, Fabio De Bona, Stephan Ossowski, and others\n");
+		printf("Sloan-Kettering Institute, New York City, USA, 2012-2013\nMax Planck Institute for Developmental Biology and Friedrich Miescher Laboratory, Tuebingen, Germany, 2008-2010\n\n");
 	} else {
 		printf("\nGenomeMapper version %s\n", VERSION);
 		printf("written by Korbinian Schneeberger, Joerg Hagmann, Stephan Ossowski, Felix Ott, Gunnar Raetsch and others\n");
@@ -2546,9 +2679,9 @@ int Config::usage() {
 		printf(" -junction-remapping-coverage INT      minimum alignment support to take into account a junction\n");
 		printf(" -report-junctions STRING              report splice site junctions in gff3 format\n\n");
 
-		printf(" -use-variants STRING                  Use variants provided in a sdi or maf or samtools file to map reads against\n");
-		printf("-use-iupac-snp-variants                Enables the merge of SNPs and DNA base for aligning with variants (no snps reported in this case)\n");
-		printf(" -maf-ref STRING                       Name of the reference genome as it appears in multiple alignments for MAF file given with -use-variants option\n");
+		printf(" -use-variants STRING                  Use variants provided in a sdi, maf, mgf, vcf or samtools file to map reads against\n");
+		printf(" -use-iupac-snp-variants                Enables the merge of SNPs and DNA base for aligning with variants (no snps reported in this case)\n");
+		printf(" -mgf-ref STRING                       Name of the reference genome as it appears in multiple alignments for MGF file given with -use-variants option\n");
 		printf(" -discover-variants                    Switch on the discovery of new variant sequences (deletion, insertion, SNP)\n");
 		printf(" -report-variants STRING               report variants (used and discovered)\n\n");
 
@@ -2573,7 +2706,7 @@ int Config::usage() {
 
 		printf(" -report STRING                        file for map reporting\n");
 		printf(" -report-ro STRING                     file for map reporting (read only)\n");
-		//printf(" -report-reset                         does not load report even if it is available\n");
+		//printf(" -report-wo                          does not load report even if it is available\n");
 		printf(" -report-rep-seed                      switch on reporting of repetitive seeds\n");
 		printf(" -report-map-region                    switch on reporting of mapped regions\n");
 		//printf(" -no-report-map-region                 switch off reporting of mapped regions\n");

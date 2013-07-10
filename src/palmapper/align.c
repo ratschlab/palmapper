@@ -1,5 +1,7 @@
-// Authors: Korbinian Schneeberger and Joerg Hagmann
+// Authors: Korbinian Schneeberger, Joerg Hagmann, Gunnar Raetsch, Dominik Diesch
 // Copyright (C) 2008 by Max-Planck Institute for Developmental Biology, Tuebingen, Germany
+// Copyright (C) 2009-2011 by Friedrich Miescher Laboratory, Tuebingen, Germany
+// Copyright (C) 2012-2013 by Sloan-Kettering Institute, New York, USA
 
 #include "Hits.h"
 #include "align.h"
@@ -42,6 +44,7 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 	char const * const READ = read.data();
 	int Read_length = read.length();
 	int K = _config.NUM_GAPS;
+	
 	int Max_read_length = _config.MAX_READ_LENGTH;
 	double Mismatch_score = _config.MM_SCORE;
 	double Match_score = _config.M_SCORE;
@@ -62,17 +65,21 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 
 	int i, j, h;
 	// TODO: dd make this stack vars?
-	double** M = (double**) malloc ((2 * K + 1) * sizeof(double*));
-	char** T = (char**) malloc ((2 * K + 1) * sizeof(char*));
+	double* M[(2 * K + 1)] ;
+	char* T[(2 * K + 1)] ;
+	//double** M = (double**) malloc ((2 * K + 1) * sizeof(double*));
+	//char** T = (char**) malloc ((2 * K + 1) * sizeof(char*));
 
 	if (M == NULL || T == NULL) {
 		fprintf(stderr, "[kbound_overhang_alignment] ERROR Could not allocate memory\n");
 		exit(1);
 	}
-
+	double fbuf[(2*K+1)*(Max_read_length + K * 2)] ;
+	char cbuf[(2*K+1)*(Max_read_length + K * 2)] ;
+	
 	for (i=0; i!=2*K+1; ++i) {
-		*(M+i) = (double*) malloc ((Max_read_length + K * 2) * sizeof(double));
-		*(T+i) = (char*) malloc ((Max_read_length + K * 2) * sizeof(char));
+		*(M+i) = &fbuf[i*(Max_read_length + K * 2)] ; // (double*) malloc ((Max_read_length + K * 2) * sizeof(double));
+		*(T+i) = &cbuf[i*(Max_read_length + K * 2)] ; // (char*) malloc ((Max_read_length + K * 2) * sizeof(char));
 		if (*(M+i) == NULL || *(T+i) == NULL) {
 			fprintf(stderr, "[kbound_overhang_alignment] ERROR Could not allocate memory\n");
 			exit(1);
@@ -141,12 +148,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 					if (orientation == '+') {
 						if (chrstart+i-1>=(int)chromosome.length())
 						{
-							for (i=0; i!=2*K+1; ++i) {
+							/*for (i=0; i!=2*K+1; ++i) {
 								free(M[i]);
 								free(T[i]);
-							}
-							free(M);
-							free(T);
+								}*/
+							//free(M);
+							//free(T);
 							return -1;
 						}
 
@@ -166,12 +173,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 					else {
 						if (chrstart-i+1<0)
 						{
-							for (i=0; i!=2*K+1; ++i) {
+							/*for (i=0; i!=2*K+1; ++i) {
 								free(M[i]);
 								free(T[i]);
-							}
-							free(M);
-							free(T);
+								}*/
+							//free(M);
+							//free(T);
 							return -1;
 						}
 
@@ -198,12 +205,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 							if (i == j) {
 								//if (_config.STATISTICS) _stats.GAPS_ENCOUNTERED[0]++;
 								// cleanup:
-								for (i=0; i!=2*K+1; ++i) {
+								/*for (i=0; i!=2*K+1; ++i) {
 									free(M[i]);
 									free(T[i]);
-								}
-								free(M);
-								free(T);
+									}*/
+								//free(M);
+								//free(T);
 								return 0;
 							}
 
@@ -218,12 +225,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 							if (i == j) {
 								//if (_config.STATISTICS) _stats.GAPS_ENCOUNTERED[0]++;
 								// cleanup:
-								for (i=0; i!=2*K+1; ++i) {
+								/* for (i=0; i!=2*K+1; ++i) {
 									free(M[i]);
 									free(T[i]);
-								}
-								free(M);
-								free(T);
+									} */
+								//free(M);
+								//free(T);
 								return 0;
 							}
 
@@ -256,12 +263,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 			if (readstart == 0 || best_score > Worst_score) {
 				//if (_config.STATISTICS) _stats.TOO_MANY_MMS[0]++;
 				// cleanup:
-				for (i=0; i!=2*K+1; ++i) {
+				/*for (i=0; i!=2*K+1; ++i) {
 					free(M[i]);
 					free(T[i]);
-				}
-				free(M);
-				free(T);
+					}*/
+				//free(M);
+				//free(T);
 				return -1;
 			}
 			// if best_score has been found before most right bottom cell was processed
@@ -293,12 +300,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 	if (best_score > Worst_score) {
 		//if (_config.STATISTICS) _stats.TOO_MANY_MMS[1]++;
 		// cleanup:
-		for (i=0; i!=2*K+1; ++i) {
+		/* for (i=0; i!=2*K+1; ++i) {
 			free(M[i]);
 			free(T[i]);
-		}
-		free(M);
-		free(T);
+			} */
+		//free(M);
+		//free(T);
 		return -1;
 	}
 
@@ -308,24 +315,24 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 		if (min_i == j) {
 			//if (_config.STATISTICS) _stats.TOO_MANY_MMS[1]++;
 			// cleanup:
-			for (i=0; i!=2*K+1; ++i) {
+			/* for (i=0; i!=2*K+1; ++i) {
 				free(M[i]);
 				free(T[i]);
-			}
-			free(M);
-			free(T);
+				} */
+			//free(M);
+			//free(T);
 			return -1;
 		}
 		// ..and there is another cell with this score other than the most right bottom cell -> there is a path with a valid score, BUT with gaps!
 		else {
 			//if (_config.STATISTICS) _stats.GAPS_ENCOUNTERED[2]++;
 			// cleanup:
-			for (i=0; i!=2*K+1; ++i) {
+			/* for (i=0; i!=2*K+1; ++i) {
 				free(M[i]);
 				free(T[i]);
-			}
-			free(M);
-			free(T);
+				} */
+			//free(M);
+			//free(T);
 			return 0;
 		}
 	}
@@ -335,12 +342,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 	if (min_i != j) {	// even if score in most right bottom cell is equal to best score -> path with gaps needs less edit ops -> perform global algnm.
 		//if (_config.STATISTICS) _stats.GAPS_ENCOUNTERED[2]++;
 		// cleanup:
-		for (i=0; i!=2*K+1; ++i) {
+		/* for (i=0; i!=2*K+1; ++i) {
 			free(M[i]);
 			free(T[i]);
-		}
-		free(M);
-		free(T);
+			} */
+		//free(M);
+		//free(T);
 		return 0;
 	}
 	// FOR READSTART == 0: traceback has to start in most right bottom corner
@@ -375,12 +382,12 @@ int kbound_overhang_alignment(Read const &read, HIT* hit, int offset, int readst
 
 
 	// cleanup:
-	for (i=0; i!=2*K+1; ++i) {
+	/* for (i=0; i!=2*K+1; ++i) {
 		free(M[i]);
 		free(T[i]);
-	}
-	free(M);
-	free(T);
+		} */
+	//free(M);
+	//free(T);
 
 	// write in hit-structure:
 	//memcpy(hit->edit_op, edit_op, mismatches * sizeof(EDIT_OPS));
@@ -406,9 +413,15 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 	double Match_score = _config.M_SCORE;
 	double Worst_score = WORST_SCORE;
 	char Gaps_most_right = _config.GAPS_MOST_RIGHT;
+
 	int Num_mismatches = _config.NUM_MISMATCHES;
+	if (Num_mismatches == Num_edit_ops)
+		Num_mismatches = Num_edit_ops ;
+	
 	char Stringent_gaplimit = _config.STRINGENT_GAPLIMIT;
 	int K = _config.NUM_GAPS;
+	if (K>Num_edit_ops)
+		K=Num_edit_ops ;
 	int Max_read_length = _config.MAX_READ_LENGTH;
 
 	// arguments:
@@ -419,23 +432,28 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 
 	int i, j, h;
 
-	// initialize alignment and traceback matrices and mismatch array
-	double** M = (double**) malloc ((2 * K + 1) * sizeof(double*));
-	char** T = (char**) malloc ((2 * K + 1) * sizeof(char*));
+	double* M[(2 * K + 1)] ;
+	char* T[(2 * K + 1)] ;
+	//double** M = (double**) malloc ((2 * K + 1) * sizeof(double*));
+	//char** T = (char**) malloc ((2 * K + 1) * sizeof(char*));
 
 	if (M == NULL || T == NULL) {
 		fprintf(stderr, "[kbound_global_alignment] ERROR Could not allocate memory\n");
 		exit(1);
 	}
 
+	double fbuf[(2*K+1)*(Max_read_length + K * 2)] ;
+	char cbuf[(2*K+1)*(Max_read_length + K * 2)] ;
+	
 	for (i=0; i!=2*K+1; ++i) {
-		*(M+i) = (double*) malloc ((Max_read_length + K * 2) * sizeof(double));
-		*(T+i) = (char*) malloc ((Max_read_length + K * 2) * sizeof(char));
+		*(M+i) = &fbuf[i*(Max_read_length + K * 2)] ; // (double*) malloc ((Max_read_length + K * 2) * sizeof(double));
+		*(T+i) = &cbuf[i*(Max_read_length + K * 2)] ; // (char*) malloc ((Max_read_length + K * 2) * sizeof(char));
 		if (*(M+i) == NULL || *(T+i) == NULL) {
 			fprintf(stderr, "[kbound_global_alignment] ERROR Could not allocate memory\n");
 			exit(1);
 		}
 	}
+
 
 	EDIT_OPS edit_op[Config::MAX_EDIT_OPS];
 
@@ -510,12 +528,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 					if (orientation == '+') {
 						if (chrstart+i-1>=(int)chromosome.length())
 						{
-							for (i=0; i!=2*K+1; ++i) {
+							/* for (i=0; i!=2*K+1; ++i) {
 								free(M[i]);
 								free(T[i]);
 							}
 							free(M);
-							free(T);
+							free(T); */
 							return -1;
 						}
 
@@ -536,12 +554,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 					else {
 						if (chrstart-i+1<0)
 						{
-							for (i=0; i!=2*K+1; ++i) {
+							/* for (i=0; i!=2*K+1; ++i) {
 								free(M[i]);
 								free(T[i]);
 							}
 							free(M);
-							free(T);
+							free(T); */
 							return -1;
 						}
 						
@@ -617,12 +635,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 			if (best_score > Worst_score) {
 				//if (_config.STATISTICS) _stats.BREAK_GLOBAL_ALIGNMENT[0]++;
 				// cleanup:
-				for (i=0; i!=2*K+1; ++i) {
+				/* for (i=0; i!=2*K+1; ++i) {
 					free(M[i]);
 					free(T[i]);
 				}
 				free(M);
-				free(T);
+				free(T); */
 				return -1;
 			}
 			else {
@@ -638,12 +656,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 	if (best_score > Worst_score) {
                 //if (_config.STATISTICS) _stats.BREAK_GLOBAL_ALIGNMENT[0]++;
         // cleanup:
-		for (i=0; i!=2*K+1; ++i) {
+		/* for (i=0; i!=2*K+1; ++i) {
 			free(M[i]);
 			free(T[i]);
 		}
 		free(M);
-		free(T);
+		free(T); */
 		return -1;
 	}
 
@@ -685,12 +703,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 					else {
 						//if (_config.STATISTICS) _stats.BREAK_TB_IN_GLOBAL_ALIGNMENT++;
 						// cleanup:
-						for (i=0; i!=2*K+1; ++i) {
+						/* for (i=0; i!=2*K+1; ++i) {
 							free(M[i]);
 							free(T[i]);
 						}
 						free(M);
-						free(T);
+						free(T); */
 						return -1;	// discard hit
 					}
 				}
@@ -716,12 +734,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 				else {
 					//if (_config.STATISTICS) _stats.BREAK_TB_IN_GLOBAL_ALIGNMENT++;
 					// cleanup:
-					for (i=0; i!=2*K+1; ++i) {
+					/* for (i=0; i!=2*K+1; ++i) {
 						free(M[i]);
 						free(T[i]);
 					}
 					free(M);
-					free(T);
+					free(T); */
 					return -1;	// discard hit
 				}
 
@@ -745,12 +763,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 				else {
 					//if (_config.STATISTICS) _stats.BREAK_TB_IN_GLOBAL_ALIGNMENT++;
 					// cleanup:
-					for (i=0; i!=2*K+1; ++i) {
+					/* for (i=0; i!=2*K+1; ++i) {
 						free(M[i]);
 						free(T[i]);
 					}
 					free(M);
-					free(T);
+					free(T); */ 
 					return -1;	// discard hit
 				}
 
@@ -777,12 +795,12 @@ int kbound_global_alignment(Read const &read, HIT* hit, unsigned short int hitre
 		hit->edit_op[ii]=edit_op[ii] ;
 
 	// cleanup:
-	for (i=0; i!=2*K+1; ++i) {
+	/* for (i=0; i!=2*K+1; ++i) {
 		free(M[i]);
 		free(T[i]);
 	}
 	free(M);
-	free(T);
+	free(T); */
 
 	// successfully aligned
 	return mismatches;

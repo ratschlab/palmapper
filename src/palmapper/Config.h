@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#define MAX_INDEX_DEPTH 15
-#define VERSION "0.5"
+#define MAX_INDEX_DEPTH 16
+#define VERSION "0.6"
 
 enum OutputFormatEnum
 {
@@ -41,7 +41,8 @@ enum OutputFilterEnum
 	OUTPUT_FILTER_ALL=0,
 	OUTPUT_FILTER_TOP=1,
 	OUTPUT_FILTER_LIMIT=2,
-	OUTPUT_FILTER_RANDOM=3
+	OUTPUT_FILTER_RANDOM=3,
+	OUTPUT_FILTER_MMDROP=4
 }  ;
 
 enum ProtocolEnum
@@ -80,20 +81,23 @@ public:
 	static size_t const INDEX_SIZE_13 = 67108864; //4^13
 	static size_t const INDEX_SIZE_14 = 67108864*4; //4^14
 	static size_t const INDEX_SIZE_15 = 67108864*4*4; //4^15
+	static size_t const INDEX_SIZE_16 = 67108864L*4*4*4; //4^16
 	static size_t const MAX_READ_LENGTH = 20000;
 	static int const MAX_READ_ID_LENGTH = 1000;
 	//static unsigned int const NUM_TOP_ALIGNMENTS = 10 ;
 
 	Personality _personality;
 	unsigned int BWA_INDEX;
-	unsigned int NUM_THREADS;
+	int NUM_THREADS;
 	OutputFilterEnum OUTPUT_FILTER ;
 	unsigned int OUTPUT_FILTER_NUM_TOP ;
 	int OUTPUT_FILTER_NUM_LIMIT ;
+	int OUTPUT_FILTER_DELTA_MMDROP ;
+	int OUTPUT_FILTER_NUM_MMDROP ;
 	
-	char ALL_HIT_STRATEGY;
-	char BEST_HIT_STRATEGY;
-	char SUMMARY_HIT_STRATEGY;
+	//char ALL_HIT_STRATEGY;
+	//char BEST_HIT_STRATEGY;
+	//char SUMMARY_HIT_STRATEGY;
 
 	char BSSEQ;
 
@@ -133,6 +137,8 @@ public:
 
 	unsigned int INDEX_DEPTH_EXTRA_THRESHOLD;
 	unsigned int SEED_HIT_CANCEL_THRESHOLD;
+	unsigned int SEED_HIT_TRUNCATE_THRESHOLD ;
+
 	bool NOT_MAXIMAL_HITS;
 	std::string CHR_INDEX_FILE_NAME;
 	std::string INDEX_FWD_FILE_NAME;
@@ -156,9 +162,10 @@ public:
 	
 	std::string LOCK_FILE_NAME ;
 
+	int READ_LENGTH_PARAM ;
+
 	char * REPORT_FILE;
 	int REPORT_FILE_READONLY;
-	int REPORT_REPETITIVE_SEEDS;
 	int REPORT_MAPPED_REGIONS;
 	int REPORT_MAPPED_READS;
 	int REPORT_SPLICED_READS;
@@ -175,6 +182,7 @@ public:
 	int MAP_JUNCTIONS_COVERAGE;
 	int MAP_JUNCTIONS_MIN_SEGMENT_LENGTH ;
 	int MAP_JUNCTIONS_PSEUDO_ANNO_COV ;
+	int MAP_JUNCTIONS_MAP_WINDOW ;
 	bool MAP_JUNCTIONS_ONLY ;
 	
 	std::string ANNOTATED_SPLICE_SITES_FILE;
@@ -222,13 +230,16 @@ public:
 	int MIN_NUM_MATCHES_PEN;
 
 	bool NO_LOAD_GENOME ;
-	
+	bool NO_READ_MAPPING ;
+
 	bool USE_VARIANTS ;
 	bool DISCOVER_VARIANTS ;
 	bool REPORT_VARIANTS ;
 	bool REPORT_USED_VARIANTS ;
 	bool IUPAC_SNPS ;
+	bool IUPAC_GENOME ;
 	bool CONVERT_SUBSTITUTION_VARIANTS ;
+	bool VALIDATE_VARIANTS ;
 	bool FILTER_VARIANTS ;
 	bool MERGE_VARIANT_SOURCE_IDS ;
 	bool UNIQUE_VARIANT_SOURCE_IDS ;
@@ -236,12 +247,14 @@ public:
 
 	std::string USE_VARIANT_FILE_NAME ;
 	std::string REPORT_USED_VARIANT_FILE_NAME;
-	std::string MAF_REF_NAME;
+	std::string MGF_REF_NAME;
 	std::string REPORT_VARIANTS_FILE_NAME ;
 	std::string REPORT_VARIANTS_STATS_FILE_NAME ;
 	std::vector<std::string> FILTER_VARIANT_SOURCES ;
 	std::vector<std::string> VARIANT_SNP_TAKE_LINES ;
 	
+	std::string MAF_SOURCE_ID ;
+
 	int FILTER_VARIANT_MINSOURCECOUNT ;
 	std::vector<std::string> FILTER_VARIANT_REQSOURCES ;
 	int FILTER_VARIANT_MINCONFCOUNT ;
@@ -281,6 +294,7 @@ public:
 	int SPLICED_HIT_MIN_LENGTH_LONG;
 	int SPLICED_LONGEST_INTRON_LENGTH;
 	int SPLICED_SHORTEST_INTRON_LENGTH;
+	int UNSPLICED_MAX_NUM_ALIGNMENTS;
 	int SPLICED_MAX_NUM_ALIGNMENTS;
 	int SPLICED_CLUSTER_TOLERANCE;
 	int SPLICED_MAX_INTRONS;
@@ -292,6 +306,12 @@ public:
 	static void VersionHeader() ;
 	static int usage();
 	static Personality getPersonality();
+
+    std::string COMMAND_LINE;
+
+    double TAG_MULTIMAPPERS ;
+    int TAG_MULTIMAPPERS_QPALMA ;
+
 private:
 	int getInt(int &i, char *argv[]) const;
 	int getString(int &i, char *argv[]) const;

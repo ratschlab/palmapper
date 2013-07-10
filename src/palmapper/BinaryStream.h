@@ -107,7 +107,7 @@ template <class T> class CBinaryStream
 			{
 				const int block_size = 32768 ;
 				T buf[block_size] ;
-				for (int i=0; i < get_size(); i+=32768)
+				for (size_t i=0; i < get_size(); i+=32768)
 				{
 					fread(buf, sizeof(T), block_size, fd) ;
 				}

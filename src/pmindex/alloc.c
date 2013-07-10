@@ -37,7 +37,7 @@ int dealloc_chr()
 	return 0;
 }
 
-int alloc_bin(int slot) {
+int alloc_bin(unsigned int slot) {
 
 	if (((INDEX[slot] = (BIN *) malloc (sizeof(BIN))) == NULL)) {
 		fprintf(stderr, "ERROR : couldn't allocate memory for a storage bin\n");
