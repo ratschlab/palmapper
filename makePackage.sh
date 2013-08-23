@@ -7,7 +7,7 @@
 
 set -e
 
-name=palmapper-0.4-rc4
+name=palmapper-0.5
 tmp_dir=/tmp/$name
 result_fn=/tmp/$name.tar.gz
 
