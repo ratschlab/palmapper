@@ -606,29 +606,51 @@ double Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, 
 	//fprintf(stdout, "align_seq=%s\n", align_seq) ;
 	
 	assert(strand=='+'||strand=='-') ;
-	int reverse[7] = { -1, 0, 4, 3, 2, 1, 5 } ;
+	int reverse[17] = { -1, 0, 4, 3, 2, 1, 5, 13, 8, 7, 10, 9, 15, 12, 6, 14, 11} ;
+    // reverse info
+    // A -> 1 ==> T -> 4
+    // C -> 2 ==> G -> 3
+    // G -> 3 ==> C -> 2
+    // T -> 4 ==> A -> 1
+    // N -> 5 ==> N -> 5
+    // CGT -> 6 ==> GCA -> 13
+    // AGT -> 7 ==> TCA -> 8
+    // ACT -> 8 ==> TGA -> 7
+    // GT -> 9 ==> CA -> 10
+    // AC -> 10 ==> TG -> 9
+    // AG -> 11 ==> TC -> 15
+    // GC -> 12 ==> CG -> 12
+    // ACG -> 13 ==> TGC -> 6
+    // AT -> 14 ==> TA -> 14
+    // CT -> 15 ==> GA -> 11
 			
 	int pos=0 ;
 	for (int i=0; i<len_; i++)
 	{
 		int dnachar ;
 		int estchar ;
+        char dnachar_ ;
+        char estchar_ ;
 
 		assert(align_seq[i]!=']') ;
 		if (align_seq[i]=='[')
 		{
 			dnachar=check_char(align_seq[i+1]) ;
+            dnachar_ = align_seq[i+1] ;
 			estchar=check_char(align_seq[i+2]) ;
+            estchar_ = align_seq[i+2] ;
 			assert(align_seq[i+3]==']') ;
 			i+=3 ;
 		}
-		else
+		else {
 			estchar=dnachar=check_char(align_seq[i]) ;
+            estchar_ = dnachar_ = align_seq[i] ;
+        }
 
 		if (strand=='-')
 		{
-			assert(dnachar>=-1 && dnachar<=5) ;
-			assert(estchar>=-1 && estchar<=5) ;
+			assert(dnachar>=-1 && dnachar<=15) ;
+			assert(estchar>=-1 && estchar<=15) ;
 			
 			dnachar = reverse[dnachar+1] ;
 			estchar = reverse[estchar+1] ;
@@ -642,11 +664,14 @@ double Alignment::scoreUnsplicedAlignment(const char * align_seq, double * prb, 
 		if (estchar>0)
 		{
 			assert(pos<read_length) ;
-            assert(dnachar > -1 && dnachar < 6);
+            assert(dnachar > -1 && dnachar < 16);
             assert(estchar > 0 && estchar < 6);
-			if (use_quality_scores) 
-                score_=getScore(qualityScores, 6, dnachar, estchar, prb[pos]) ;
-			else 
+			if (use_quality_scores) { 
+                if (dnachar > 5) {
+                    score_ = getScoreIupac(USE_QUALITY_SCORES, matchmatrix, qualityScores, prb[pos], 6, dnachar_, estchar_, dnachar) ;
+                } else
+                    score_  =getScore(qualityScores, 6, dnachar, estchar, prb[pos]) ;
+			} else 
 				score_=matchmatrix[6*dnachar+estchar] ;
 		}
 		else
