@@ -25,7 +25,10 @@ int usage() {
 	//printf(" -t STRING  meta index filename\n");
 	printf("\n");
 	printf("optional:\n");
-	printf(" -s INT     seed length, range 5 to 13 (default: 12)\n");
+	printf(" -s INT     seed length, range 5 to 16 (default: 12)\n");
+    printf(" -threads INT   number of threads (default: 1)\n");
+    printf(" -use-variants  FILE    provide variant information in sdi format to incorporate into the index\n");
+    printf(" -max-variant-source-combinations INT   max allowed number of variant combinations within one k-mer\n");
 	printf(" -v         verbose (default: silent)\n");
 	printf("\n");
 
