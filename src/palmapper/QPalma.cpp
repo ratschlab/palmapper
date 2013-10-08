@@ -2901,7 +2901,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 				// find a lower bound on the index with binary search
 				junctionmap.lock() ;
 				std::deque<Junction>::iterator it = my_lower_bound(junctionmap.junctionlist[chrN].begin(), junctionmap.junctionlist[chrN].end(), rstart_-1000) ;
-				junctionmap.unlock() ;
+				//junctionmap.unlock() ;
 				
 				while (it != junctionmap.junctionlist[chrN].end())
 				{
@@ -2910,7 +2910,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 					//Search for an overlapping with junction
 
-					junctionmap.lock() ;
+					//junctionmap.lock() ;
 
 					//Intervals around junctions
 					int int1_start = (*it).start - (read.length()+_config.SPLICED_CLUSTER_TOLERANCE);
@@ -2921,7 +2921,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					int int2_end = (*it).end + (read.length()+_config.SPLICED_CLUSTER_TOLERANCE);
 					char strand = (*it).strand ;
 
-					junctionmap.unlock() ;
+					//junctionmap.unlock() ;
 					
 					
 					//Continue only if the strand with the splice junction is consistent with the transcription direction
@@ -3092,6 +3092,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					it++;
 					
 				}//loop through junctions
+				junctionmap.unlock() ;
 			}//loop through long regions for a chromosome and ori 
 		}// loop chr
 	}// loop ori
