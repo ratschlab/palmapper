@@ -142,8 +142,10 @@ Config::Config() {
 	SPLICED_SHORTEST_INTRON_LENGTH = DEFAULT_SETTING ;
 	SPLICED_MAX_NUM_ALIGNMENTS = 10 ;
 	UNSPLICED_MAX_NUM_ALIGNMENTS = 100 ;
+	JUNCTION_MAX_NUM_ALIGNMENTS = 20 ;
 	SPLICED_CLUSTER_TOLERANCE = 50 ;
 	SPLICED_MAX_INTRONS = DEFAULT_SETTING ;
+    JUNCTION_REMAP_MAX_INTRONS = 1 ;
 	SPLICED_MIN_SEGMENT_LENGTH = 1 ;//DEFAULT_SETTING ;
 
 	STATISTICS = 0;
@@ -1344,9 +1346,10 @@ int Config::parseCommandLine(int argc, char *argv[])
 			}
 
 			// splice-site based filter: require at least this many edits
+            // this is -filter-splice-min-edit in old versions
 			if (strcmp(argv[i], "-filter-max-edit") == 0) {
 				if (i + 1 > argc - 1) {
-					fprintf(stderr, "ERROR: Argument missing for option -filter-splice-min-edit\n") ;
+					fprintf(stderr, "ERROR: Argument missing for option -filter-max-edit\n") ;
 					usage();
 					exit(1);
 				}
@@ -1542,6 +1545,25 @@ int Config::parseCommandLine(int argc, char *argv[])
 				UNSPLICED_MAX_NUM_ALIGNMENTS = tmp;
 			}
 
+			// maximal number of junction alignments to be performed per read side
+			if (strcmp(argv[i], "-JA") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -JA\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -JA too small\n") ;
+					usage();
+					exit(1);
+				}
+				 JUNCTION_MAX_NUM_ALIGNMENTS = tmp;
+			}
+
+
 			// maximal number of introns in spliced alignments
 			if (strcmp(argv[i], "-NI") == 0) {
 				not_defined = 0;
@@ -1559,6 +1581,25 @@ int Config::parseCommandLine(int argc, char *argv[])
 				}
 				SPLICED_MAX_INTRONS = tmp;
 			}
+
+			// maximal number of introns in spliced alignments for junction remapping
+			if (strcmp(argv[i], "-JI") == 0) {
+				not_defined = 0;
+				if (i + 1 > argc - 1) {
+					fprintf(stderr, "ERROR: Argument missing for option -JI\n") ;
+					usage();
+					exit(1);
+				}
+				i++;
+				int tmp = atoi(argv[i]);
+				if (tmp < 0) {
+					fprintf(stderr, "ERROR: Argument for option -JI too small\n") ;
+					usage();
+					exit(1);
+				}
+				JUNCTION_REMAP_MAX_INTRONS = tmp;
+			}
+
 
 			// How many matches are necessary for identifying a possible splice site in QPALMA recursive alignment algorithm?
 			if (strcmp(argv[i], "-QMM") == 0) {

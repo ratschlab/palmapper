@@ -135,7 +135,7 @@ int init_opts(int argc, char *argv[])
 			if(i+1 > argc - 1){ usage(); exit(1); }
 			i++;
 			if ((INDEX_DEPTH = atoi(argv[i])) == 0) {
-				fprintf(stderr, "ERROR: seedlength must be an integer value between 5 and 12 (both inclusive)!\n");
+				fprintf(stderr, "ERROR: seedlength must be an integer value between 5 and 16 (both inclusive)!\n");
 				exit(0);
 			}
 			if (INDEX_DEPTH < MIN_INDEX_DEPTH) {

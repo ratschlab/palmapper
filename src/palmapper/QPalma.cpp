@@ -192,9 +192,9 @@ void get_annotated_splice_positions( std::vector<int> &pos, JunctionMap &annotat
 	// find a lower bound on the index with binary search
 	annotatedjunctions.lock() ;
 	//std::deque<Junction>::iterator it = annotatedjunctions.junctionlist[chrN].begin();
-	std::deque<Junction>::iterator it = my_lower_bound(annotatedjunctions.junctionlist[chr].begin(), annotatedjunctions.junctionlist[chr].end(), start-100) ;
+	std::deque<Junction>::iterator it = my_lower_bound_by_start(annotatedjunctions.junctionlist_by_start[chr].begin(), annotatedjunctions.junctionlist_by_start[chr].end(), start-100) ;
 
-	while (it != annotatedjunctions.junctionlist[chr].end() && (*it).start <= end)
+	while (it != annotatedjunctions.junctionlist_by_start[chr].end() && (*it).start <= end)
 	{
 
 		if ((*it).strand!=strand){
@@ -227,9 +227,9 @@ void get_annotated_splice_sites(std::vector<int> &acc_pos, std::vector<int> &don
 	// find a lower bound on the index with binary search
 	annotatedjunctions.lock() ;
 	//std::deque<Junction>::iterator it = annotatedjunctions.junctionlist[chrN].begin();
-	std::deque<Junction>::iterator it = my_lower_bound(annotatedjunctions.junctionlist[chr].begin(), annotatedjunctions.junctionlist[chr].end(), start-100) ;
+	std::deque<Junction>::iterator it = my_lower_bound_by_start(annotatedjunctions.junctionlist_by_start[chr].begin(), annotatedjunctions.junctionlist_by_start[chr].end(), start-100) ;
 
-	while (it != annotatedjunctions.junctionlist[chr].end() && (*it).start <= end)
+	while (it != annotatedjunctions.junctionlist_by_start[chr].end() && (*it).start <= end)
 	{
 
 
@@ -2837,7 +2837,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 	// 	delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 	// 	return 0;
 	// }
-	const int junction_tol = 10 ; // the hit may overlap by this length with the junction
+	int junction_tol = 10 ; // the hit may overlap by this length with the junction
 	
 	int myverbosity=verbosity ;
 	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
@@ -2887,31 +2887,490 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 			
 			Chromosome const &chr = genome->chromosome(chrN);			
 
-			
 			for (size_t nregion = 0; nregion < this_long_regions.size(); nregion++)
 			{
 				if (this_long_regions[nregion]==NULL)
 					continue ;
-				int rstart_=this_long_regions[nregion]->start;
-				int rend_=this_long_regions[nregion]->end;
+				int rstart_ = this_long_regions[nregion]->start;
+				int rend_ = this_long_regions[nregion]->end; // half-open
 				
-				if (myverbosity>4)
+                int available_left = read.length();
+                int available_right = read.length();
+
+                // reset junction tolerance to at most half the long region length
+                junction_tol = 10 < ((rend_ - rstart_) / 2) ? 10 : (rend_ - rstart_) / 2;
+
+				if (myverbosity>=3) // was4
 					fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart_, rend_, chrN, ori);
 
-				// find a lower bound on the index with binary search
+                std::vector<std::vector<Junction> > combinations;
+                std::vector<unsigned int> cum_spans_right;
+                std::vector<unsigned int> cum_spans_left;
+
+				// find a lower bound on the indexes with binary search (first hit that fullfils < x)
 				junctionmap.lock() ;
-				std::deque<Junction>::iterator it = my_lower_bound(junctionmap.junctionlist[chrN].begin(), junctionmap.junctionlist[chrN].end(), rstart_-1000) ;
+				std::deque<Junction>::iterator it_s = my_lower_bound_by_start(junctionmap.junctionlist_by_start[chrN].begin(), junctionmap.junctionlist_by_start[chrN].end(), rend_) ;
+				std::deque<Junction>::iterator it_e = my_lower_bound_by_end(junctionmap.junctionlist_by_end[chrN].begin(), junctionmap.junctionlist_by_end[chrN].end(), rstart_ - 1);
+
+                // iterate over left junctions
+                // junctions have closed intervals
+                while (true) {
+                    
+                    if (it_e == junctionmap.junctionlist_by_end[chrN].end())
+                        break;
+
+                    //fprintf(stdout, "[left juncs]: %i-%i\n", it_e->start, it_e->end);
+                    if (it_e->end >= rstart_ + junction_tol) {
+                        if (it_e == junctionmap.junctionlist_by_end[chrN].begin())
+                            break;
+                        it_e--;
+                        continue;
+                    }
+
+                    //Continue only if the strand with the splice junction is consistent with the transcription direction
+                    if ((transcription_direction==1 && it_e->strand=='-') || (transcription_direction==-1 && it_e->strand=='+') )		
+                    {
+                        if (myverbosity>=3)
+                            fprintf(stdout, "junction_remapping: skipping junction at %ld:%i-%i on strand %c with transcription direction %i\n", chrN, it_e->start, it_e->end, it_e->strand, transcription_direction) ;
+                        if (it_e == junctionmap.junctionlist_by_end[chrN].begin())
+                            break;
+                        it_e--;
+                        continue ;
+                    }
+                    
+                    // augment existing combinations
+                    size_t num_combs = combinations.size();
+                    for (size_t i = 0; i < num_combs; i++) {
+                        if (combinations.size() <= _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end < combinations.at(i).back().start - 1) && 
+                           (cum_spans_left.at(i) + (combinations.at(i).back().start - it_e->end - 1) < available_left) &&
+                           combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) { // less than available as we need at least one nt before the junction
+                            std::vector<Junction> tmp = combinations.at(i);
+                            tmp.push_back(*it_e);
+                            combinations.push_back(tmp);
+                            cum_spans_right.push_back(0);
+                            cum_spans_left.push_back(cum_spans_left.at(i) + combinations.at(i).back().start - it_e->end - 1);
+                        }
+                    }
+                    // try junction alone
+                    if (combinations.size() <= _config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_e->end > (rstart_ - available_left)) && (it_e->end < (rstart_ + junction_tol))) {
+                        std::vector<Junction> tmp;
+                        tmp.push_back(*it_e);
+                        combinations.push_back(tmp);
+                        cum_spans_right.push_back(0);
+                        if (it_e->end < rstart_)
+                            cum_spans_left.push_back(rstart_ - it_e->end - 1);
+                        else
+                            cum_spans_left.push_back(0);
+                    } else {
+                        break;
+                    }
+                    if (it_e > junctionmap.junctionlist_by_end[chrN].begin())
+                        it_e--;
+                    else
+                        break;
+                } 
+
+                // try additional right junctions
+                if (combinations.size() <= 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS)
+                {
+                    // iterate over right junctions
+                    while (it_s != junctionmap.junctionlist_by_start[chrN].end()) {
+                        // fprintf(stdout, "[right juncs]: %i-%i\n", it_s->start, it_s->end);
+                        
+                        if (it_s->start < (rend_ - junction_tol)) {
+                            it_s++;
+                            continue;
+                        }
+
+                        //Continue only if the strand with the splice junction is consistent with the transcription direction
+                        if ((transcription_direction==1 && it_s->strand=='-') || (transcription_direction==-1 && it_s->strand=='+') )		
+                        {
+                            if (myverbosity>=3)
+                                fprintf(stdout, "junction_remapping: skipping junction at %ld:%i-%i on strand %c with transcription direction %i\n", chrN, it_s->start, it_s->end, it_s->strand, transcription_direction) ;
+                            it_s++;
+                            continue ;
+                        }
+
+                        // augment existing combinations
+                        size_t num_combs = combinations.size();
+                        for (size_t i = 0; i < num_combs; i++) {
+                            if ((combinations.size() <= 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS) && (it_s->start > combinations.at(i).back().end + 1) &&  
+                                (cum_spans_right.at(i) + (it_s->start - combinations.at(i).back().end - 1) < available_right) &&
+                                combinations.at(i).size() < _config.JUNCTION_REMAP_MAX_INTRONS) {
+                                std::vector<Junction> tmp = combinations.at(i);
+                                tmp.push_back(*it_s);
+                                combinations.push_back(tmp);
+                                cum_spans_left.push_back(0);
+                                cum_spans_right.push_back(cum_spans_right.at(i) + it_s->start - combinations.at(i).back().end - 1);
+                            }
+                        }
+                        // try junction alone
+                        if (combinations.size() <= 2*_config.JUNCTION_MAX_NUM_ALIGNMENTS && (it_s->start < (available_right + rend_)) && (it_s->start >= (rend_ - junction_tol))) {
+                            std::vector<Junction> tmp;
+                            tmp.push_back(*it_s);
+                            combinations.push_back(tmp);
+                            cum_spans_left.push_back(0);
+                            if (it_s->start > rend_)
+                                cum_spans_right.push_back(it_s->start - rend_);
+                            else
+                                cum_spans_right.push_back(0);
+                        } else {
+                            break;
+                        }
+                        it_s++;
+                    }
+                }
 				junctionmap.unlock() ;
-				
-				while (it != junctionmap.junctionlist[chrN].end())
+
+                if (myverbosity >=3 ) {
+                    fprintf(stdout, "found %i possible junction combinations\n", combinations.size());
+                }
+
+                // iterate over found combinations
+                for (size_t c_idx = 0; c_idx < combinations.size(); c_idx++) 
+                {
+                        if (myverbosity >= 3) {
+                            fprintf(stdout, " %i junctions in current combination\n", combinations.at(c_idx).size());
+                            for (size_t j =  0; j < combinations.at(c_idx).size(); j++)
+                                fprintf(stdout, "\t(%i - %i) [ %c %c ... %c %c ]\n", combinations.at(c_idx).at(j).start, combinations.at(c_idx).at(j).end, 
+                                                                                   chr[combinations.at(c_idx).at(j).start], chr[combinations.at(c_idx).at(j).start + 1],
+                                                                                   chr[combinations.at(c_idx).at(j).end - 1], chr[combinations.at(c_idx).at(j).end]);
+                        }
+					 	/*if (myverbosity>4)
+						{
+							fprintf(stdout, "try to align\n") ;
+							fprintf(stdout, "    junction: (%i-%i)-(%i-%i) (%ld,%c)\n",int1_start,int1_end,int2_start,int2_end,chrN,strand);
+							fprintf(stdout, "    junction %c%c-%c%c\n",chr[(*it).start],chr[(*it).start+1],chr[(*it).end-1],chr[(*it).end]);
+							fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart, rend, chrN, ori);
+						}*/
+
+                        int rstart = rstart_;
+                        int rend = rend_;
+
+                        char strand = combinations.front().front().strand ;
+
+                        std::string current_seq;
+                        current_seq.assign("") ;
+                        // go through junction list to find leftmost junction (left junction with highest index)
+                        size_t leftmost = combinations.at(c_idx).size();
+                        for (size_t j = 0; j < combinations.at(c_idx).size(); j++)
+                        {
+                            // fprintf(stdout, "curr comb (%i) end = %i; rstart=%i; junction_tol=%i\n", j, combinations.at(c_idx).at(j).end, rstart, junction_tol);
+                            if (combinations.at(c_idx).at(j).end < (rstart + junction_tol)) 
+                                leftmost = j;
+                            else
+                                break;
+                        }
+                        if (myverbosity >= 3) { 
+                            fprintf(stdout, "try to align\n") ;
+                            fprintf(stdout, "\tcomb regions left: ") ;
+                        }
+                        // handle left junctions
+                        if (leftmost < combinations.at(c_idx).size())
+                        {
+                            for (int j = leftmost; j >= 0; j--)
+                            {
+                                //Create regions from junction
+                                region_t* new_region1 = new region_t; 
+                                bool read_map1[read.length()] ;
+                                new_region1->read_map = read_map1 ;
+                                if (j == leftmost)
+                                    new_region1->start = combinations.at(c_idx).at(j).start - (available_left - cum_spans_left.at(c_idx));
+                                else
+                                    new_region1->start = combinations.at(c_idx).at(j+1).end + 1;
+                                new_region1->end = combinations.at(c_idx).at(j).start; // interval open
+                                new_region1->from_map = true ;
+                                for (size_t ii = 0; ii < read.length(); ii++)
+                                    new_region1->read_map[ii] = false;
+                                new_region1->read_pos = -111 ; // TODO
+                                new_region1->hit_len = -111 ;  // TODO					
+                                // check chromsome boundaries 
+                                new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                                new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
+
+                                current_regions.push_back(new_region1);
+            
+                                for (int p = new_region1->start; p < new_region1->end; p++) 
+                                {
+                                    current_positions.push_back(p);
+                                    current_seq.push_back(chr[p]) ;							
+                                }
+                                if (myverbosity >= 3)
+                                    fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j).start], chr[combinations.at(c_idx).at(j).start + 1],
+                                            chr[combinations.at(c_idx).at(j).end - 1], chr[combinations.at(c_idx).at(j).end]);
+                            }
+                            // adapt rstart according to junction_tol
+                            if (rstart <= combinations.at(c_idx).front().end)
+                            {
+                                rstart = combinations.at(c_idx).front().end + 2;
+                            } else {
+                                region_t* new_region1 = new region_t ; 
+                                bool read_map1[read.length()] ;
+                                new_region1->read_map = read_map1 ;
+                                new_region1->start = combinations.at(c_idx).front().end + 1;
+                                new_region1->end = rstart; // interval open
+                                for (size_t ii = 0; ii < read.length(); ii++)
+                                    new_region1->read_map[ii] = false;
+                                new_region1->read_pos = -111 ; // TODO
+                                new_region1->hit_len = -111 ;  // TODO					
+                                // check chromsome boundaries 
+                                new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                                new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
+
+                                current_regions.push_back(new_region1);
+            
+                                for (int p = new_region1->start; p < new_region1->end; p++) 
+                                {
+                                    current_positions.push_back(p);
+                                    current_seq.push_back(chr[p]) ;							
+                                }
+                                if (myverbosity >= 3) 
+                                    fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
+                            }
+                        } else { 
+                            // no junction on the left, add whole left part as region
+                            region_t* new_region1 = new region_t ; 
+                            bool read_map1[read.length()] ;
+                            new_region1->read_map = read_map1 ;
+                            new_region1->start = rstart - available_left;
+                            new_region1->end = rstart;
+                            new_region1->from_map = true ;
+                            for (size_t ii = 0; ii < read.length(); ii++)
+                                new_region1->read_map[ii] = false;
+                            new_region1->read_pos = -111 ; // TODO
+                            new_region1->hit_len = -111 ;  // TODO					
+                            // check chromsome boundaries 
+                            new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                            new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
+        
+                            current_regions.push_back(new_region1);
+
+                            for (int p = new_region1->start; p < new_region1->end; p++) 
+                            {
+                                current_positions.push_back(p);
+                                current_seq.push_back(chr[p]) ;							
+                            }
+                            if (myverbosity >= 3)
+                                fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
+                        }
+
+                        // adapt rend, if necessary
+                        if ((leftmost < combinations.at(c_idx).size() - 1) || (leftmost == combinations.at(c_idx).size()))
+                        {
+                            size_t start_idx = leftmost + 1;
+                            if (leftmost == combinations.at(c_idx).size())
+                                start_idx = 0;
+                            if (combinations.at(c_idx).at(start_idx).start < rend)
+                                rend = combinations.at(c_idx).at(start_idx).start;
+                        }
+
+                        // add long region as region
+                        region_t* new_region1 = new region_t;
+                        bool read_map_hit[read.length()] ;
+                        new_region1->read_map = read_map_hit ;
+                        new_region1->start = rstart;
+                        new_region1->end = rend; // interval open
+                        for (size_t ii = 0; ii < read.length(); ii++)
+                            new_region1->read_map[ii] = false;
+                        new_region1->read_pos = -111 ; // TODO
+                        new_region1->hit_len = -111 ;  // TODO					
+                        // check chromsome boundaries 
+                        new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                        new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
+
+                        current_regions.push_back(new_region1);
+    
+                        for (int p = new_region1->start; p < new_region1->end; p++) 
+                        {
+                            current_positions.push_back(p);
+                            current_seq.push_back(chr[p]) ;							
+                        }
+                        if (myverbosity >= 3) {
+                            fprintf(stdout, "\tlong region: %i-%i (chr:%ld,ori:%i)\n", rstart, rend, chrN, ori);
+                            fprintf(stdout, "\tcomb regions right: ") ;
+                        }
+                        
+                        // there is a at least one junction on the right
+                        if ((leftmost < combinations.at(c_idx).size() - 1) || (leftmost == combinations.at(c_idx).size()))
+                        {
+                            size_t start_idx = leftmost + 1;
+                            if (leftmost == combinations.at(c_idx).size())
+                                start_idx = 0;
+
+                            // iterate over remaining right junctions of this combination
+                            for (size_t j = start_idx; j < combinations.at(c_idx).size(); j++) 
+                            {
+                                if (combinations.at(c_idx).at(j).start == rend)
+                                    continue;
+                                //Create regions from junction
+                                region_t* new_region1 = new region_t; 
+                                bool read_map1[read.length()] ;
+                                new_region1->read_map = read_map1 ;
+                                if (j == start_idx)
+                                    new_region1->start = rend ; // interval open
+                                else
+                                    new_region1->start = combinations.at(c_idx).at(j-1).end + 1;
+                                new_region1->end = combinations.at(c_idx).at(j).start; // interval open
+                                new_region1->from_map = true ;
+                                for (size_t ii = 0; ii < read.length(); ii++)
+                                    new_region1->read_map[ii] = false;
+                                new_region1->read_pos = -111 ; // TODO
+                                new_region1->hit_len = -111 ;  // TODO					
+                                // check chromsome boundaries 
+                                new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                                new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
+
+                                current_regions.push_back(new_region1);
+            
+                                for (int p = new_region1->start; p < new_region1->end; p++) 
+                                {
+                                    current_positions.push_back(p);
+                                    current_seq.push_back(chr[p]) ;							
+                                }
+                                if (myverbosity >= 3)
+                                    fprintf(stdout, "(%i-%i)%c%c-%c%c", new_region1->start, new_region1->end, chr[combinations.at(c_idx).at(j).start], chr[combinations.at(c_idx).at(j).start + 1],
+                                            chr[combinations.at(c_idx).at(j).end - 1], chr[combinations.at(c_idx).at(j).end]);
+                            }
+                            // add last region for remaining read
+                            region_t* new_region1 = new region_t ; 
+                            bool read_map1[read.length()] ;
+                            new_region1->read_map = read_map1 ;
+                            new_region1->start = combinations.at(c_idx).back().end + 1;
+                            new_region1->end = combinations.at(c_idx).back().end + available_left - cum_spans_left.at(c_idx) + 1; // interval open
+                            new_region1->from_map = true ;
+                            for (size_t ii = 0; ii < read.length(); ii++)
+                                new_region1->read_map[ii] = false;
+                            new_region1->read_pos = -111 ; // TODO
+                            new_region1->hit_len = -111 ;  // TODO					
+                            // check chromsome boundaries 
+                            new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                            new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
+        
+                            current_regions.push_back(new_region1);
+
+                            for (int p = new_region1->start; p < new_region1->end; p++) 
+                            {
+                                current_positions.push_back(p);
+                                current_seq.push_back(chr[p]) ;							
+                            }
+                            if (myverbosity >= 3)
+                                fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
+                        } else {
+                            // add whole right side without junction
+                            region_t* new_region1 = new region_t ; 
+                            bool read_map1[read.length()] ;
+                            new_region1->read_map = read_map1 ;
+                            new_region1->start = rend;
+                            new_region1->end = rend + available_right;
+                            new_region1->from_map = true ;
+                            for (size_t ii = 0; ii < read.length(); ii++)
+                                new_region1->read_map[ii] = false;
+                            new_region1->read_pos = -111 ; // TODO
+                            new_region1->hit_len = -111 ;  // TODO					
+                            // check chromsome boundaries 
+                            new_region1->start = new_region1->start < 0 ? 0 : new_region1->start;
+                            new_region1->end = new_region1->end > chr.length() ? chr.length() : new_region1->end;
+        
+                            current_regions.push_back(new_region1);
+
+                            for (int p = new_region1->start; p < new_region1->end; p++) 
+                            {
+                                current_positions.push_back(p);
+                                current_seq.push_back(chr[p]) ;							
+                            }
+                            if (myverbosity >= 3)
+                                fprintf(stdout, "(%i-%i) (%ld,%c)\n", new_region1->start, new_region1->end, chrN, strand);
+                        }
+						
+                        //Take the first long region  to start alignment
+                        int hit_read_position = get_first_read_map(read, this_long_regions[nregion]->read_map);
+                        if (ori==0)
+                            hit_read_position += (rstart - rstart_);
+                        else
+                            hit_read_position += (rend_ - rend);
+                        
+                        int hit_len = rend - rstart ; // rend is open interval
+                        
+                        if(ori==1){
+                            hit_read_position = read.length() - hit_len - hit_read_position + 1;
+                        }
+                        
+                        if (perform_extra_checks)
+                        {
+                            assert (hit_read_position>=0) ;
+                            if (!(hit_len >0))
+                            {
+                                fprintf(stderr, "ERROR: hitlen=%i\n", hit_len) ; // BUG-TODO
+                                hit_len=0 ;
+                                result.delete_regions();
+                                delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+                                return -1 ;
+                            }
+                        }
+                        if (myverbosity >= 3)
+                        {
+                            fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
+                            fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*this_long_regions[nregion]->start*/, hit_len);					  
+                            fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+                            
+                            fprintf(stdout,"DNA:%s\n",current_seq.c_str());
+                            fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
+                        }
+                        
+                        
+						int ret = 0 ;
+
+                        if (strand == '+')
+                        {
+                            ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], 
+                                                                    current_seq, current_regions, current_positions, 
+                                                                    chr, '+', ori, hit_read_position, 
+                                                                    rstart /*this_long_regions[nregion]->start*/, 
+                                                                    hit_len, false, num_alignments_reported, true,
+                                                                    annotatedjunctions, variants, myverbosity);
+                        }
+                        else
+                        {
+                            if (perform_extra_checks)
+                                assert (read.length()-(hit_read_position+hit_len)>=0);
+                            
+                            ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
+                                                                    current_seq, current_regions, current_positions, 
+                                                                    chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+                                                                    rend /*this_long_regions[nregion]->end*/ -1, 
+                                                                    hit_len, false, num_alignments_reported, true, 
+                                                                    annotatedjunctions, variants, myverbosity);
+                        }
+						
+                        for (size_t i = 0; i < current_regions.size(); i++) {
+                            delete current_regions.at(i);
+                        }
+						current_regions.clear();
+						current_positions.clear();
+				  						
+						if (ret < 0)
+						{
+							delete_long_regions(long_regions); 
+							return ret;
+						}
+						if (hits.topAlignments().stop_aligning())
+						  {
+							delete_long_regions(long_regions); 
+							return 0 ;
+						  }
+
+						num_alignments_reported += ret;						
+						hits.topAlignments().update_top_alignment_index();
+
+                }// iterate over combinations
+
+				/*while (it != junctionmap.junctionlist[chrN].end())
 				{
 					int rstart=rstart_ ;
 					int rend=rend_ ;
 
 					//Search for an overlapping with junction
-
 					junctionmap.lock() ;
-
 					//Intervals around junctions
 					int int1_start = (*it).start - (read.length()+_config.SPLICED_CLUSTER_TOLERANCE);
 					if (int1_start <0)
@@ -2920,19 +3379,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					int int2_start = (*it).end + 1;					
 					int int2_end = (*it).end + (read.length()+_config.SPLICED_CLUSTER_TOLERANCE);
 					char strand = (*it).strand ;
-
 					junctionmap.unlock() ;
-					
-					
-					//Continue only if the strand with the splice junction is consistent with the transcription direction
-					if ((transcription_direction==1 && strand=='-') || (transcription_direction==-1 && strand=='+') )		
-					{
-						if (myverbosity>=3)
-							fprintf(stdout, "junction_remapping: skipping junction at %ld:%i-%i on strand %c with transcription direction %i\n", chrN, (*it).start, (*it).end, strand, transcription_direction) ;
-						//break;
-						it++;
-						continue ;
-					}
 					
 					if ((unsigned int)int2_end >= chr.length())
 						int2_end=chr.length()-1;
@@ -2943,14 +3390,11 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 					//Overlapping junction
 					if ( (rstart >= int1_start and rend <= int1_end+junction_tol+1) or (rstart >= int2_start-junction_tol and rend <= int2_end+1))
 					{
+                        // correct for junction tolerance
 						if (rstart >= int1_start and !(rend <= int1_end+1) and (rend <= int1_end+junction_tol+1)){
-							
 							rend=int1_end+1 ;
-
 						}
-						
 						if (!(rstart >= int2_start) and rend <= int2_end+1 and (rstart >= int2_start-junction_tol)){
-							
 							rstart=int2_start ;
 						}
 						
@@ -2986,89 +3430,84 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 						new_region2.read_pos = -111 ; // TODO
 						new_region2.hit_len = -111 ;  // TODO					
 						
-
 						current_regions.push_back(&new_region1);
 						current_regions.push_back(&new_region2);
 						
 						int ret = 0 ;
 							
-						if (true)
-						{
-							//Corresponding positions and sequence
-							
-							std::string current_seq;
-							current_seq.assign("") ;
-							for (int p = int1_start; p <= int1_end; p++) 
-							{
-								current_positions.push_back(p);
-								current_seq.push_back(chr[p]) ;							
-							}
-							for (int p = int2_start; p <= int2_end; p++) 
-							{
-								current_positions.push_back(p);
-								current_seq.push_back(chr[p]) ;							
-							}
-							
-							
-							//Take the first long region  to start alignment
-							int hit_read_position = get_first_read_map(read, this_long_regions[nregion]->read_map);
-							if (ori==0)
-								hit_read_position += (rstart - rstart_);
-							else
-								hit_read_position += (rend_-rend);
-							
-							int hit_len= rend - rstart ; //this_long_regions[nregion]->end-this_long_regions[nregion]->start;
-							
-							
-							if(ori==1){
-								hit_read_position = read.length()-hit_len-hit_read_position +1;
-							}
-							
-							if (perform_extra_checks)
-							{
-								assert (hit_read_position>=0) ;
-								if (!(hit_len >0))
-								{
-									fprintf(stderr, "ERROR: hitlen=%i\n", hit_len) ; // BUG-TODO
-									hit_len=0 ;
-									result.delete_regions();
-									delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
-									return -1 ;
-								}
-							}
-							if (myverbosity>3)
-							{
-								fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
-								fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*this_long_regions[nregion]->start*/, hit_len);					  
-								fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
-								
-								fprintf(stdout,"DNA:%s\n",current_seq.c_str());
-								fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
-							}
-							
-							
-							if (strand == '+')
-							{
-								//fprintf(stdout,	"5)hit read position %i\n",hit_read_position);					  
-								ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], 
-																		current_seq, current_regions, current_positions, 
-																		chr, '+', ori, hit_read_position, 
-																		rstart /*this_long_regions[nregion]->start*/, 
-																		hit_len, false, num_alignments_reported, true,
-																		annotatedjunctions, variants, myverbosity);
-							}
-							else
-							{
-								if (perform_extra_checks)
-									assert (read.length()-(hit_read_position+hit_len)>=0);
-								
-								ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
-																		current_seq, current_regions, current_positions, 
-																		chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
-																		rend /*this_long_regions[nregion]->end*/ -1, hit_len, false, num_alignments_reported, true, 
-																		annotatedjunctions, variants, myverbosity);
-							}
-						}
+                        //Corresponding positions and sequence
+                        
+                        std::string current_seq;
+                        current_seq.assign("") ;
+                        for (int p = int1_start; p <= int1_end; p++) 
+                        {
+                            current_positions.push_back(p);
+                            current_seq.push_back(chr[p]) ;							
+                        }
+                        for (int p = int2_start; p <= int2_end; p++) 
+                        {
+                            current_positions.push_back(p);
+                            current_seq.push_back(chr[p]) ;							
+                        }
+                        
+                        //Take the first long region  to start alignment
+                        int hit_read_position = get_first_read_map(read, this_long_regions[nregion]->read_map);
+                        if (ori==0)
+                            hit_read_position += (rstart - rstart_);
+                        else
+                            hit_read_position += (rend_ - rend);
+                        
+                        int hit_len = rend - rstart ; // rend is open interval //this_long_regions[nregion]->end-this_long_regions[nregion]->start;
+                        
+                        
+                        if(ori==1){
+                            hit_read_position = read.length() - hit_len - hit_read_position + 1;
+                        }
+                        
+                        if (perform_extra_checks)
+                        {
+                            assert (hit_read_position>=0) ;
+                            if (!(hit_len >0))
+                            {
+                                fprintf(stderr, "ERROR: hitlen=%i\n", hit_len) ; // BUG-TODO
+                                hit_len=0 ;
+                                result.delete_regions();
+                                delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
+                                return -1 ;
+                            }
+                        }
+                        if (myverbosity>3)
+                        {
+                            fprintf(stdout,"read id %s curr len %i\n",read.id(), (int)current_positions.size());
+                            fprintf(stdout,	"# Starting point for alignments: read %i, dna %i, len %i\n",hit_read_position, rstart /*this_long_regions[nregion]->start*\/, hit_len);					  
+                            fprintf(stdout,	"# Number of current regions %i\n",(int)current_regions.size());
+                            
+                            fprintf(stdout,"DNA:%s\n",current_seq.c_str());
+                            fprintf(stdout,"READ:%s\n",read_seq[ori].c_str());
+                        }
+                        
+                        
+                        if (strand == '+')
+                        {
+                            ret = perform_alignment_starter_variant(result, hits, read_seq[ori], read_quality[ori], 
+                                                                    current_seq, current_regions, current_positions, 
+                                                                    chr, '+', ori, hit_read_position, 
+                                                                    rstart /*this_long_regions[nregion]->start*\/, 
+                                                                    hit_len, false, num_alignments_reported, true,
+                                                                    annotatedjunctions, variants, myverbosity);
+                        }
+                        else
+                        {
+                            if (perform_extra_checks)
+                                assert (read.length()-(hit_read_position+hit_len)>=0);
+                            
+                            ret = perform_alignment_starter_variant(result, hits, read_seq[1 - ori], read_quality[1 - ori], 
+                                                                    current_seq, current_regions, current_positions, 
+                                                                    chr, '-', 1-ori, read.length()-(hit_read_position+hit_len),
+                                                                    rend /*this_long_regions[nregion]->end*\/ -1, 
+                                                                    hit_len, false, num_alignments_reported, true, 
+                                                                    annotatedjunctions, variants, myverbosity);
+                        }
 						
 						current_regions.clear();
 						current_positions.clear();
@@ -3091,7 +3530,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 
 					it++;
 					
-				}//loop through junctions
+				}*///loop through junctions
 			}//loop through long regions for a chromosome and ori 
 		}// loop chr
 	}// loop ori
@@ -3380,33 +3819,22 @@ int QPalma::perform_alignment_starter_variant(Result &result, Hits &readMappings
 											  bool non_consensus_search, int& num_alignments_reported, bool remapping, 
 											  JunctionMap &annotatedjunctions, VariantMap & variants, int myverbosity) const
 {
-	if (!_config.USE_VARIANTS)
-	{
-		std::vector<Variant> variant_list ;
-		std::map<int, int> variant_positions;
-		
-		return perform_alignment_starter_single(result, readMappings, 
-												read_string, read_quality, 
-												dna, current_regions, positions, 
-												contig_idx, strand, ori,
-												hit_read_position, hit_dna_position, hit_length, 
-												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list, variant_positions, myverbosity) ;
-	}
-	else
-	{
-		std::map<int, int> variant_positions;
-		const bool do_timing = false ;
-		std::vector<Variant> variant_list = identify_variants<do_timing>(dna, positions, contig_idx, variants, variant_positions) ;
 
-		return perform_alignment_starter_single(result, readMappings, 
-												read_string, read_quality, 
-												dna, current_regions, positions, 
-												contig_idx, strand, ori,
-												hit_read_position, hit_dna_position, hit_length, 
-												non_consensus_search, num_alignments_reported, remapping, 
-												annotatedjunctions, variants, variant_list, variant_positions, myverbosity) ;
-	}
+    std::map<int, int> variant_positions;
+    std::vector<Variant> variant_list ;
+	if (_config.USE_VARIANTS)
+    {
+		const bool do_timing = false ;
+		variant_list = identify_variants<do_timing>(dna, positions, contig_idx, variants, variant_positions) ;
+    }
+		
+    return perform_alignment_starter_single(result, readMappings, 
+                                            read_string, read_quality, 
+                                            dna, current_regions, positions, 
+                                            contig_idx, strand, ori,
+                                            hit_read_position, hit_dna_position, hit_length, 
+                                            non_consensus_search, num_alignments_reported, remapping, 
+                                            annotatedjunctions, variants, variant_list, variant_positions, myverbosity) ;
 } 
 
 // TODO: dd remove relicts from multithreading
@@ -5342,7 +5770,7 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 			{
 				// if no splice predictions, put score 0 for allowed donor splice consensus (e.g. 'GT/C')
 				if (_config.NO_SPLICE_PREDICTIONS)
-					donor[i] = 0.0 ;
+					donor[i] = 0.5 ;
 				if ((_config.SCORE_ANNOTATED_SPLICE_SITES||_config.USE_VARIANTS) && donor[i]==-ALMOST_INFINITY)
 					donor[i] = NON_CONSENSUS_SCORE ;
 				match += (donor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS);
@@ -5382,7 +5810,7 @@ int QPalma::postprocess_splice_predictions(Chromosome const &contig_idx,
 			if (is_ss)
 			{
 				if (_config.NO_SPLICE_PREDICTIONS)
-					acceptor[i] = 0.0 ;
+					acceptor[i] = 0.5 ;
 				if ((_config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS) && acceptor[i]==-ALMOST_INFINITY)
 					acceptor[i] = NON_CONSENSUS_SCORE ;
 				match += (acceptor[i] > -ALMOST_INFINITY || _config.SCORE_ANNOTATED_SPLICE_SITES || _config.USE_VARIANTS);
