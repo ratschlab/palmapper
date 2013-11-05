@@ -2837,7 +2837,7 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 	// 	delete_long_regions(long_regions); //Need to be deleted because of deep copies of region_t elements
 	// 	return 0;
 	// }
-	const int junction_tol = 10 ; // the hit may overlap by this length with the junction
+	int junction_tol = 10 ; // the hit may overlap by this length with the junction
 	
 	int myverbosity=verbosity ;
 	if (myverbosity!=verbose_read_level && std::string(result._read.id())==verbose_read_id)
@@ -2896,6 +2896,9 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
 				
                 int available_left = read.length();
                 int available_right = read.length();
+
+                // reset junction tolerance to at most half the long region length
+                junction_tol = 10 < ((rend_ - rstart_) / 2) ? 10 : (rend_ - rstart_) / 2;
 
 				if (myverbosity>=3) // was4
 					fprintf(stdout, "long region: %i-%i (%ld,%i)\n", rstart_, rend_, chrN, ori);
@@ -3052,7 +3055,8 @@ int QPalma::junctions_remapping(Hits &hits, Result &result, JunctionMap &junctio
                         size_t leftmost = combinations.at(c_idx).size();
                         for (size_t j = 0; j < combinations.at(c_idx).size(); j++)
                         {
-                            if (combinations.at(c_idx).at(j).end < (rstart + junction_tol))
+                            // fprintf(stdout, "curr comb (%i) end = %i; rstart=%i; junction_tol=%i\n", j, combinations.at(c_idx).at(j).end, rstart, junction_tol);
+                            if (combinations.at(c_idx).at(j).end < (rstart + junction_tol)) 
                                 leftmost = j;
                             else
                                 break;
